@@ -89,6 +89,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 - [ ] **RZ-113** (P1, L) **Distritais variáveis**: `n' = n − p + r` (p = campeão promovido), mínimo 8, máximo 14, **Bolsa distrital**; mínimo duro de 6 no MVP. → RZ-111, 125
 - [ ] **RZ-125** (P1, M) **Fase de Promoção**: 20 campeões distritais em 4 grupos de 5 (zonas A-D), todos contra todos a uma volta, 2 sobem por grupo (8 ao todo). → RZ-102
 - [ ] **RZ-126** (P2, M) **Gerador de clubes novos** para a Bolsa vazia (nome por modelos, estatísticas, presidente, notícia). → RZ-113
+- [ ] **RZ-127** (P1, L) **Corrupção v1** (decidido a 14-10-2026): propostas ilícitas, risco de investigação/escândalo e sanções, ligadas a `integridade`. Tipos do MVP a confirmar com o Pedro (ver `docs/HISTORICO_EVENTOS.md`). → RZ-004, RZ-005
 - [ ] **RZ-124** (P1, M) Testes unitários das regras de pirâmide, prémio e distritais (casos: r=0, r=1, r≥2, excedente, bolsa vazia, empate total no prémio).
 
 ### Clube e cidade (versão mínima)

@@ -150,4 +150,4 @@ Funções puras (sem I/O) para testar com 50 épocas sem interface.
 ## 11. Decisões e pontos em aberto
 
 - **Escala:** 1-20, como no FM; a importação converte autarcas do CSV (1-10).
-- **Em aberto:** número final de traços (8 propostos); se os adeptos devem ter personalidade individual (RZ-909); se a corrupção entra no MVP ou só em F3.
+- **Em aberto:** número final de traços (8 propostos); se os adeptos devem ter personalidade individual (RZ-909); ~~se a corrupção entra no MVP~~ (decidido: entra no MVP, RZ-127).
