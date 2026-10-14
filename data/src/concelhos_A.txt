@@ -1,0 +1,67 @@
+# Concelho|Distrito|Pop|Setor|Tag2|Polo   (população aproximada, Censos 2021 arredondados)
+Viana do Castelo|Viana do Castelo|85200|MAR|TUR|Minho-Lima
+Ponte de Lima|Viana do Castelo|42500|AGR|PAT|Minho-Lima
+Valença|Viana do Castelo|12400|FRO|TUR|Minho-Lima
+Caminha|Viana do Castelo|16100|MAR|TUR|Minho-Lima
+Arcos de Valdevez|Viana do Castelo|20700|AGR|PAT|Minho-Lima
+Monção|Viana do Castelo|17300|AGR|FRO|Minho-Lima
+Melgaço|Viana do Castelo|8000|AGR|TER|Minho-Lima
+Paredes de Coura|Viana do Castelo|8600|INT|TUR|Minho-Lima
+Ponte da Barca|Viana do Castelo|11000|INT|TUR|Minho-Lima
+Vila Nova de Cerveira|Viana do Castelo|8500|TUR|PAT|Minho-Lima
+Braga|Braga|193300|SER|UNI|Cávado
+Guimarães|Braga|153800|IND|PAT|Vale do Ave
+Vila Nova de Famalicão|Braga|133800|IND|LOG|Vale do Ave
+Barcelos|Braga|116700|IND|PAT|Cávado
+Fafe|Braga|48100|IND|ENE|Vale do Ave
+Esposende|Braga|34000|TUR|MAR|Cávado
+Vizela|Braga|24000|IND|TER|Vale do Ave
+Póvoa de Lanhoso|Braga|21000|INT|IND|Cávado
+Amares|Braga|17800|AGR|TUR|Cávado
+Vieira do Minho|Braga|11800|INT|AGR|Cávado
+Cabeceiras de Basto|Braga|15400|INT|AGR|Vale do Ave
+Celorico de Basto|Braga|17000|INT|AGR|Vale do Ave
+Terras de Bouro|Braga|6200|INT|TUR|Cávado
+Vila Verde|Braga|46600|IND|AGR|Cávado
+Porto|Porto|231800|SER|TUR|Grande Porto
+Vila Nova de Gaia|Porto|302300|TUR|DOR|Grande Porto
+Matosinhos|Porto|172700|MAR|IND|Grande Porto
+Gondomar|Porto|164100|DOR|IND|Grande Porto
+Maia|Porto|137400|SER|LOG|Grande Porto
+Valongo|Porto|94000|IND|DOR|Grande Porto
+Póvoa de Varzim|Porto|66500|TUR|MAR|Grande Porto
+Vila do Conde|Porto|80800|MAR|IND|Grande Porto
+Penafiel|Porto|72300|IND|AGR|Tâmega e Sousa
+Paredes|Porto|85600|IND|DOR|Tâmega e Sousa
+Paços de Ferreira|Porto|55500|IND|DOR|Tâmega e Sousa
+Amarante|Porto|52000|TUR|PAT|Tâmega e Sousa
+Felgueiras|Porto|56000|IND|AGR|Tâmega e Sousa
+Lousada|Porto|47000|IND|AGR|Tâmega e Sousa
+Marco de Canaveses|Porto|52000|IND|EMI|Tâmega e Sousa
+Santo Tirso|Porto|68000|IND|DOR|Vale do Ave
+Trofa|Porto|37000|IND|LOG|Vale do Ave
+Baião|Porto|17500|INT|AGR|Tâmega e Sousa
+Vila Real|Vila Real|49500|UNI|AGR|Douro
+Chaves|Vila Real|38000|FRO|TER|Trás-os-Montes
+Peso da Régua|Vila Real|16300|AGR|TUR|Douro
+Valpaços|Vila Real|14300|INT|AGR|Trás-os-Montes
+Montalegre|Vila Real|9500|INT|ENE|Trás-os-Montes
+Alijó|Vila Real|10500|AGR|INT|Douro
+Vila Pouca de Aguiar|Vila Real|12500|INT|TER|Trás-os-Montes
+Mondim de Basto|Vila Real|6800|INT|TUR|Douro
+Murça|Vila Real|8200|AGR|INT|Trás-os-Montes
+Sabrosa|Vila Real|5800|AGR|PAT|Douro
+Mesão Frio|Vila Real|4100|AGR|INT|Douro
+Santa Marta de Penaguião|Vila Real|7000|AGR|INT|Douro
+Bragança|Bragança|34300|INT|UNI|Trás-os-Montes
+Mirandela|Bragança|22600|AGR|LOG|Trás-os-Montes
+Macedo de Cavaleiros|Bragança|14900|AGR|INT|Trás-os-Montes
+Mogadouro|Bragança|6900|INT|FRO|Terra de Miranda
+Miranda do Douro|Bragança|6800|FRO|PAT|Terra de Miranda
+Vinhais|Bragança|7000|INT|AGR|Trás-os-Montes
+Torre de Moncorvo|Bragança|7800|AGR|INT|Douro
+Freixo de Espada à Cinta|Bragança|3300|FRO|AGR|Douro
+Carrazeda de Ansiães|Bragança|5900|AGR|INT|Douro
+Alfândega da Fé|Bragança|4100|INT|AGR|Terra de Miranda
+Vila Flor|Bragança|5800|AGR|INT|Douro
+Vimioso|Bragança|3900|INT|FRO|Terra de Miranda

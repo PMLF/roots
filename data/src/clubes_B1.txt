@@ -1,0 +1,33 @@
+## CP-B
+Medieval da Feira FC|Santa Maria da Feira|Santa Maria da Feira|Fogaceiros|Fogaça|Branco e azul-escuro|Estádio do Castelo da Feira|Atlético Oliveira de Azeméis
+Espinho Praia Clube|Espinho|Espinho|Espinhenses|Ficha de Casino|Azul e preto|Estádio da Praia de Paramos|Medieval da Feira FC
+Viseu Viriato FC|Viseu|Viseu|Viriatos|Viriato|Verde e dourado|Estádio do Fontelo|Tondela Dão Clube
+Tondela Dão Clube|Tondela|Tondela|Pasteleiros|Pastel de Tondela|Amarelo e verde|Estádio dos Pastéis|Viseu Viriato FC
+São Pedro Termal CD|São Pedro do Sul|São Pedro do Sul|Termais|Banhista|Branco e turquesa|Estádio das Termas de São Pedro|Vouzela Vouga FC
+Gouveia Serra FC|Gouveia|Gouveia|Gouveenses|Pastor da Serra|Branco e azul-escuro|Estádio dos Lanifícios|FC Estrela Serrana
+Figueira Casino FC|Figueira da Foz|Figueira da Foz|Figueirenses|Gaivota Surfista|Azul-claro e branco|Estádio do Cabedelo|Cantanhede Bairrada FC
+Cantanhede Bairrada FC|Cantanhede|Cantanhede|Cantanhedenses|Bago de Baga|Grená e branco|Estádio da Expofacic|Figueira Casino FC
+Fundão Cereja CD|Fundão|Fundão|Cerejeiros|Cereja do Fundão|Vermelho e verde|Estádio do Pomar|AD Covilhanense
+Sertã Pinhal FC|Sertã|Sertã|Sertaginenses|Maranho|Verde-escuro e castanho|Campo do Pinhal|Proença Pinhal Desportivo
+## DIST|Aveiro
+Ovar Pão-de-Ló FC|Ovar|Ovar|Ovarenses|Pão-de-Ló|Branco e amarelo|Estádio do Carnaval|Murtosa Garça CD
+Águeda Guarda-Chuvas CD|Águeda|Águeda|Aguedenses|Guarda-chuva|Branco e laranja|Estádio dos Guarda-Chuvas|Albergaria Velha CD
+Sanjoanense Chapéu AC|São João da Madeira|São João da Madeira|Chapeleiros|Chapéu|Branco e vermelho|Estádio dos Chapéus|Medieval da Feira FC
+Vagos Dunas FC|Vagos|Vagos|Vaguenses|Duna Falante|Amarelo-areia e azul|Campo da Vagueira|UD Ílhavo
+Murtosa Garça CD|Murtosa|Murtosa|Murtoseiros|Garça-real|Verde e branco|Campo do Bico|Ovar Pão-de-Ló FC
+Anadia Bairrada Atlético|Anadia|Anadia|Anadienses|Rolha de Espumante|Amarelo e grená|Estádio da Curia|Mealhada Leitão FC
+Mealhada Leitão FC|Mealhada|Mealhada|Leitões|Leitão|Rosa e castanho|Estádio da Mata do Buçaco|Anadia Bairrada Atlético
+Arouca Pedras Parideiras CD|Arouca|Arouca|Parideiras|Pedra Parideira|Cinzento e laranja|Estádio da Ponte 516|Vale de Cambra Freita CD
+Vale de Cambra Freita CD|Vale de Cambra|Vale de Cambra|Cambrenses|Lobo da Freita|Verde e azul-escuro|Campo da Freita|Arouca Pedras Parideiras CD
+Albergaria Velha CD|Albergaria-a-Velha|Albergaria-a-Velha|Albergarienses|Peregrino|Azul e preto|Campo da Albergaria|Águeda Guarda-Chuvas CD
+## DIST|Viseu
+Mangualde Dão FC|Mangualde|Mangualde|Mangualdenses|Operário da Fábrica|Azul e preto|Estádio do Dão|Nelas Dão Atlético
+Nelas Dão Atlético|Nelas|Nelas|Nelenses|Pipa|Vermelho e branco|Campo da Quinta|Mangualde Dão FC
+Castro Daire Montanha FC|Castro Daire|Castro Daire|Castrenses|Lobo do Montemuro|Verde e preto|Campo do Montemuro|Cinfães Douro CD
+Cinfães Douro CD|Cinfães|Cinfães|Cinfanenses|Pescador do Douro|Castanho e branco|Campo do Douro|Castro Daire Montanha FC
+Moimenta Maçã FC|Moimenta da Beira|Moimenta da Beira|Moimentenses|Maçã de Riscadinha|Vermelho e verde|Campo do Pomar de Moimenta|Tarouca Cister CD
+Pesqueira Douro CD|São João da Pesqueira|São João da Pesqueira|Pesqueirenses|Socalco|Verde e bordô|Campo dos Socalcos|Tarouca Cister CD
+Tarouca Cister CD|Tarouca|Tarouca|Taroucenses|Monge Cisterciense|Branco e preto|Campo do Mosteiro de Tarouca|Académico Lamego
+Vouzela Vouga FC|Vouzela|Vouzela|Vouzelenses|Vitela de Lafões|Vermelho e azul|Campo do Vouga|São Pedro Termal CD
+Frades do Vouga CD|Oliveira de Frades|Oliveira de Frades|Frades|Frade|Castanho e branco|Campo do Convento|Vouzela Vouga FC
+Sátão Arado Clube|Sátão|Sátão|Satanenses|Arado|Verde e amarelo|Campo do Arado|Viseu Viriato FC

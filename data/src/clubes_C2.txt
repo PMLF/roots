@@ -1,0 +1,33 @@
+## DIST|Leiria
+Nazaré Ondas FC|Nazaré|Nazaré|Nazarenos|Sete Saias|Preto e vermelho|Estádio do Sítio|Alcobaça Monges FC
+Pombal Castelo FC|Pombal|Pombal|Pombalenses|Pombo|Branco e azul|Estádio do Arrabalde|Leiria FC
+Batalha Mosteiro AC|Batalha|Batalha|Batalhenses|Dom João I|Dourado e azul|Campo de São Jorge|Porto de Mós Serra CD
+Porto de Mós Serra CD|Porto de Mós|Porto de Mós|Portomosenses|Estalactite|Cinzento e azul|Campo das Grutas|Batalha Mosteiro AC
+Bombarral Eden FC|Bombarral|Bombarral|Bombarralenses|Guerreiro de Terracota|Amarelo e vermelho|Campo do Eden|Cadaval Pera Rocha CD
+Ansião Sicó Clube|Ansião|Ansião|Ansianenses|Cabra|Preto e branco|Campo da Serra de Sicó|Figueiró Vinhos Pinhal
+Pedrógão Grande CD|Pedrógão Grande|Pedrógão Grande|Pedroguenses|Truta|Verde e preto|Campo do Zêzere|Figueiró Vinhos Pinhal
+Figueiró Vinhos Pinhal|Figueiró dos Vinhos|Figueiró dos Vinhos|Figueiroenses|Ponte Suspensa|Azul e branco|Campo das Chãs|Pedrógão Grande CD
+Castanheira Pera Praia CD|Castanheira de Pera|Castanheira de Pera|Castanheirenses|Castanheira|Castanho e verde|Campo da Praia Fluvial|Ansião Sicó Clube
+Tornada Louça FC|Tornada|Caldas da Rainha|Tornadenses|Sardinha de Bordalo|Verde-cerâmica e branco|Campo da Louça|GR Caldense
+## DIST|Santarém
+Ourém Fátima FC|Fátima|Ourém|Peregrinos|Vela|Branco e azul-claro|Campo da Cova da Iria|Tomar Templário FC
+Torres Novas Almonda FC|Torres Novas|Torres Novas|Novenses|Nascente do Almonda|Azul e branco|Estádio do Almonda|Grémio Ferroviário do Entroncamento
+Abrantes Tejo Clube|Abrantes|Abrantes|Abrantinos|Palha de Abrantes|Vermelho e preto|Estádio do Castelo|Mação Linho CD
+Almeirim Sopa FC|Almeirim|Almeirim|Almeirinenses|Sopa da Pedra|Vermelho e amarelo|Estádio da Sopa da Pedra|Santarém Ribatejano FC
+Cartaxo Vinho FC|Cartaxo|Cartaxo|Cartaxenses|Barril|Roxo e branco|Estádio das Vinhas|Azambuja Lezíria FC
+Rio Maior Sal FC|Rio Maior|Rio Maior|Rio-maiorenses|Salina|Branco e azul-claro|Estádio das Salinas|Alcobaça Monges FC
+Samora Correia Atlético|Samora Correia|Benavente|Samoranos|Forcado|Vermelho e azul|Campo do Forcado|Xira Campino FC
+Coruche Cortiça Clube|Coruche|Coruche|Coruchenses|Rolha de Cortiça|Castanho e laranja|Campo do Sorraia|Chamusca Tejo CD
+Chamusca Tejo CD|Chamusca|Chamusca|Chamusquenses|Barco do Tejo|Azul e castanho|Campo da Chamusca|JD Golegã
+Mação Linho CD|Mação|Mação|Maçaenses|Homem da Pré-História|Verde e castanho|Campo da Pré-História|Abrantes Tejo Clube
+## DIST|Portalegre
+Campo Maior Café FC|Campo Maior|Campo Maior|Campo-maiorenses|Chávena de Café|Castanho e vermelho|Estádio das Flores|FC Elvas Fronteira
+Castelo de Vide Judiaria CD|Castelo de Vide|Castelo de Vide|Vidences|Fonte da Vila|Branco e azul|Campo da Judiaria|SC Marvão
+Nisa Queijo Clube|Nisa|Nisa|Nisenses|Queijo de Nisa|Amarelo e verde|Campo do Castelo de Nisa|Gavião Tejo Clube
+Arronches Raia Atlético|Arronches|Arronches|Arronchenses|Sentinela|Verde e vermelho|Campo da Raia|Campo Maior Café FC
+Avis Cavaleiros FC|Avis|Avis|Avisenses|Cavaleiro de Avis|Verde e branco|Campo da Ordem|Sousel Alentejano FC
+Crato Hospitalários CD|Crato|Crato|Cratenses|Flor da Rocha|Rosa e branco|Campo da Flor da Rocha|Alter Real CD
+Alter Real CD|Alter do Chão|Alter do Chão|Alterenses|Cavalo Alter Real|Castanho e dourado|Campo da Coudelaria|Crato Hospitalários CD
+Sousel Alentejano FC|Sousel|Sousel|Souselenses|Anta|Branco e verde|Campo de Cano|Avis Cavaleiros FC
+Monforte Azinheira CD|Monforte|Monforte|Monfortenses|Azinheira|Verde-escuro e castanho|Campo da Azinheira|Sousel Alentejano FC
+Gavião Tejo Clube|Gavião|Gavião|Gavionenses|Gavião|Preto e laranja|Campo de Belver|Nisa Queijo Clube

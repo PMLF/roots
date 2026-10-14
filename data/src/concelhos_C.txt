@@ -1,0 +1,72 @@
+Lisboa|Lisboa|545000|SER|TUR|Grande Lisboa
+Sintra|Lisboa|385000|DOR|TUR|Grande Lisboa
+Loures|Lisboa|201000|DOR|LOG|Grande Lisboa
+Cascais|Lisboa|214000|TUR|SER|Grande Lisboa
+Oeiras|Lisboa|172000|SER|UNI|Grande Lisboa
+Amadora|Lisboa|171000|MUL|DOR|Grande Lisboa
+Odivelas|Lisboa|148000|DOR|MUL|Grande Lisboa
+Vila Franca de Xira|Lisboa|137000|LOG|IND|Lezíria
+Mafra|Lisboa|87000|TUR|MAR|Oeste
+Torres Vedras|Lisboa|79000|TUR|AGR|Oeste
+Alenquer|Lisboa|43000|AGR|DOR|Oeste
+Azambuja|Lisboa|22000|LOG|AGR|Lezíria
+Cadaval|Lisboa|13500|AGR|INT|Oeste
+Sobral de Monte Agraço|Lisboa|11000|AGR|DOR|Oeste
+Arruda dos Vinhos|Lisboa|14000|AGR|DOR|Oeste
+Lourinhã|Lisboa|26000|TUR|AGR|Oeste
+Setúbal|Setúbal|123000|MAR|IND|Península de Setúbal
+Seixal|Setúbal|166000|DOR|IND|Margem Sul
+Almada|Setúbal|177000|TUR|UNI|Margem Sul
+Barreiro|Setúbal|78000|IND|LOG|Margem Sul
+Palmela|Setúbal|64000|IND|AGR|Península de Setúbal
+Sesimbra|Setúbal|51000|MAR|TUR|Península de Setúbal
+Moita|Setúbal|66000|DOR|LOG|Margem Sul
+Montijo|Setúbal|56000|LOG|AGR|Margem Sul
+Alcochete|Setúbal|20000|TUR|AGR|Margem Sul
+Sines|Setúbal|14200|ENE|LOG|Costa Alentejana
+Santiago do Cacém|Setúbal|29000|AGR|INT|Costa Alentejana
+Grândola|Setúbal|13500|AGR|TUR|Costa Alentejana
+Alcácer do Sal|Setúbal|12000|AGR|INT|Costa Alentejana
+Leiria|Leiria|128000|IND|SER|Leiria
+Caldas da Rainha|Leiria|51000|TER|IND|Oeste
+Marinha Grande|Leiria|38000|IND|DOR|Leiria
+Alcobaça|Leiria|54000|PAT|AGR|Oeste
+Nazaré|Leiria|15000|TUR|MAR|Oeste
+Pombal|Leiria|51000|IND|AGR|Leiria
+Batalha|Leiria|15000|PAT|IND|Leiria
+Porto de Mós|Leiria|24000|IND|TUR|Leiria
+Bombarral|Leiria|12000|AGR|INT|Oeste
+Ansião|Leiria|12000|INT|AGR|Pinhal Interior
+Pedrógão Grande|Leiria|3500|INT|TUR|Pinhal Interior
+Figueiró dos Vinhos|Leiria|5000|INT|TUR|Pinhal Interior
+Castanheira de Pera|Leiria|2800|INT|TUR|Pinhal Interior
+Peniche|Leiria|26000|MAR|TUR|Oeste
+Óbidos|Leiria|12000|PAT|TUR|Oeste
+Santarém|Santarém|62000|AGR|SER|Lezíria
+Tomar|Santarém|36000|PAT|IND|Médio Tejo
+Ourém|Santarém|45000|TUR|PAT|Médio Tejo
+Torres Novas|Santarém|34000|IND|AGR|Médio Tejo
+Abrantes|Santarém|37000|LOG|IND|Médio Tejo
+Almeirim|Santarém|23000|AGR|DOR|Lezíria
+Cartaxo|Santarém|24000|AGR|DOR|Lezíria
+Rio Maior|Santarém|21000|IND|AGR|Lezíria
+Benavente|Santarém|29000|AGR|DOR|Lezíria
+Coruche|Santarém|18000|AGR|INT|Lezíria
+Chamusca|Santarém|9000|AGR|INT|Lezíria
+Mação|Santarém|6000|INT|TUR|Médio Tejo
+Entroncamento|Santarém|20000|LOG|PAT|Médio Tejo
+Golegã|Santarém|5500|AGR|PAT|Médio Tejo
+Portalegre|Portalegre|22000|INT|PAT|Alto Alentejo
+Ponte de Sor|Portalegre|15000|IND|AGR|Alto Alentejo
+Campo Maior|Portalegre|8000|FRO|IND|Alto Alentejo
+Castelo de Vide|Portalegre|3000|TUR|PAT|Alto Alentejo
+Nisa|Portalegre|6000|INT|AGR|Alto Alentejo
+Arronches|Portalegre|3000|FRO|INT|Alto Alentejo
+Avis|Portalegre|4000|INT|AGR|Alto Alentejo
+Crato|Portalegre|3500|INT|PAT|Alto Alentejo
+Alter do Chão|Portalegre|3000|AGR|PAT|Alto Alentejo
+Sousel|Portalegre|4500|AGR|INT|Alto Alentejo
+Monforte|Portalegre|3000|AGR|INT|Alto Alentejo
+Gavião|Portalegre|3500|INT|ENE|Alto Alentejo
+Elvas|Portalegre|20000|FRO|PAT|Alto Alentejo
+Marvão|Portalegre|3000|INT|PAT|Alto Alentejo

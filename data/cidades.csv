@@ -1,0 +1,277 @@
+﻿concelho,distrito,populacao,setor,tag2,polo,ilha,orcamento_municipal,autarca,ambicao,apoio_desporto,vaidade,paciencia,integridade,clubes
+Albergaria-a-Velha,Aveiro,24500,IND,LOG,Ria de Aveiro,não,42000000,Carla Cardoso Neves,9,1,9,10,2,Albergaria Velha CD
+Anadia,Aveiro,28000,AGR,TER,Bairrada,não,46400000,Helena Lopes Lopes,6,1,9,1,5,Anadia Bairrada Atlético
+Arouca,Aveiro,21000,TUR,INT,Entre Douro e Vouga,não,37600000,Lúcia Teixeira Teixeira,10,5,4,2,9,Arouca Pedras Parideiras CD
+Aveiro,Aveiro,80700,TUR,UNI,Ria de Aveiro,não,107000000,Susana Gonçalves Nunes,8,2,10,6,5,Aveirense Futebol Clube
+Espinho,Aveiro,31000,TUR,MAR,Entre Douro e Vouga,não,50000000,Sandra Martins Gonçalves,8,5,6,9,10,Espinho Praia Clube
+Estarreja,Aveiro,26000,IND,AGR,Ria de Aveiro,não,43900000,Nuno Alves Teixeira,6,1,6,3,10,C União Estarreja
+Mealhada,Aveiro,20000,AGR,TUR,Bairrada,não,36300000,Paulo Rocha Cardoso,1,7,9,4,9,Mealhada Leitão FC
+Murtosa,Aveiro,9900,MAR,TUR,Ria de Aveiro,não,22000000,Jorge Carvalho Costa,2,6,6,6,5,Murtosa Garça CD
+Oliveira de Azeméis,Aveiro,66000,IND,DOR,Entre Douro e Vouga,não,90400000,Manuel Moreira Correia,8,7,2,10,3,Atlético Oliveira de Azeméis
+Ovar,Aveiro,55000,TUR,IND,Ria de Aveiro,não,78000000,Luís Moreira Correia,6,9,8,5,2,Ovar Pão-de-Ló FC
+Santa Maria da Feira,Aveiro,139000,IND,PAT,Entre Douro e Vouga,não,171800000,Carlos Vieira Ribeiro,3,6,6,8,5,Medieval da Feira FC
+São João da Madeira,Aveiro,21700,IND,SER,Entre Douro e Vouga,não,38500000,Teresa Costa Rodrigues,2,2,9,2,8,Sanjoanense Chapéu AC
+Vagos,Aveiro,22000,AGR,MAR,Ria de Aveiro,não,38900000,Paulo Fernandes Nunes,2,6,7,7,6,Vagos Dunas FC
+Vale de Cambra,Aveiro,22000,IND,INT,Entre Douro e Vouga,não,38900000,Carla Fernandes Fernandes,10,3,9,10,9,Vale de Cambra Freita CD
+Águeda,Aveiro,45000,IND,LOG,Ria de Aveiro,não,66500000,Rita Mendes Oliveira,6,4,6,1,3,Águeda Guarda-Chuvas CD
+Ílhavo,Aveiro,39000,MAR,IND,Ria de Aveiro,não,59500000,Helena Ribeiro Gonçalves,7,1,8,6,7,UD Ílhavo
+Angra do Heroísmo,Açores,35000,PAT,LOG,Açores Central,sim,54800000,Manuel Teixeira Pinto,1,8,2,3,9,GD Terceirense 1917
+Calheta (São Jorge),Açores,3700,AGR,TUR,Açores Central,sim,10400000,Rita Moreira Pinto,10,6,3,6,2,Calheta São Jorge FC
+Corvo,Açores,400,TUR,INT,Açores Ocidental,sim,1400000,Luís Carvalho Santos,5,1,5,1,6,Corvo Corvos FC
+Horta,Açores,14500,MAR,TUR,Açores Central,sim,28800000,Paula Costa Santos,3,9,5,1,10,Horta Faial Atlético
+Lagoa (Açores),Açores,14000,IND,AGR,Açores Oriental,sim,28100000,Inês Costa Alves,7,3,7,9,6,Lagoa Cerâmica Açores FC
+Lajes das Flores,Açores,1500,TUR,INT,Açores Ocidental,sim,4800000,Luís Carvalho Oliveira,6,7,10,3,8,FC Flores do Atlântico
+Madalena,Açores,6000,AGR,TUR,Açores Central,sim,15200000,João Silva Sousa,5,9,5,10,4,SC Ilha do Pico
+Nordeste,Açores,4500,AGR,TUR,Açores Oriental,sim,12200000,João Marques Monteiro,5,3,1,8,1,Nordeste Miradouro CD
+Ponta Delgada,Açores,68000,SER,TUR,Açores Oriental,sim,92700000,José Moreira Silva,10,10,6,1,3,Ponta Delgada Atlântico FC
+Povoação,Açores,5900,AGR,TER,Açores Oriental,sim,15000000,Nuno Teixeira Gomes,1,10,7,7,7,Povoação Furnas FC
+Praia da Vitória,Açores,20000,LOG,ENE,Açores Central,sim,36300000,António Moreira Rodrigues,4,2,4,8,9,Praia Vitória Lajes FC
+Ribeira Grande,Açores,32000,AGR,TUR,Açores Oriental,sim,51200000,Carla Lopes Teixeira,10,10,5,8,3,Ribeira Grande Chá Gorreana
+Santa Cruz da Graciosa,Açores,4000,AGR,TER,Açores Central,sim,11100000,Lúcia Gomes Marques,1,2,6,10,2,AD Graciosa
+Velas,Açores,5000,AGR,MAR,Açores Central,sim,13200000,Cristina Martins Rocha,4,5,6,6,5,Velas Topo CD
+Vila Franca do Campo,Açores,11000,MAR,PAT,Açores Oriental,sim,23700000,Paula Alves Santos,7,8,9,2,5,Vila Franca Ilhéu CD
+Vila do Porto,Açores,5400,LOG,TUR,Açores Oriental,sim,14000000,Rui Fernandes Fernandes,4,7,7,5,10,Vila do Porto Mar FC
+Aljustrel,Beja,8500,IND,INT,Baixo Alentejo,não,19700000,Maria Soares Gomes,9,3,2,5,7,Aljustrel Mineiros FC
+Almodôvar,Beja,6500,INT,AGR,Baixo Alentejo,não,16100000,Ana Rocha Mendes,2,8,10,7,8,Almodôvar Serra CD
+Alvito,Beja,2300,AGR,PAT,Baixo Alentejo,não,7000000,Teresa Moreira Oliveira,1,8,7,1,7,Alvito Castelo AC
+Barrancos,Beja,1500,FRO,INT,Baixo Alentejo,não,4800000,Maria Pereira Nunes,3,9,6,4,6,Barrancos Raia CD
+Castro Verde,Beja,6500,IND,AGR,Baixo Alentejo,não,16100000,Fernando Rodrigues Neves,6,10,2,2,1,Castro Verde Campo Branco
+Cuba,Beja,4500,AGR,INT,Baixo Alentejo,não,12200000,Manuel Lopes Cardoso,1,10,1,1,3,Cuba Azeite FC
+Ferreira do Alentejo,Beja,7000,AGR,INT,Baixo Alentejo,não,17000000,Isabel Soares Monteiro,8,10,5,1,7,Ferreira Ceifeira FC
+Moura,Beja,14000,AGR,TER,Baixo Alentejo,não,28100000,Susana Pinto Neves,9,8,2,3,10,Moura Alqueva CD
+Mértola,Beja,6000,PAT,FRO,Baixo Alentejo,não,15200000,Rita Silva Monteiro,3,10,1,1,2,Mértola Guadiana FC
+Odemira,Beja,25500,AGR,TUR,Costa Alentejana,não,43300000,Paula Almeida Correia,8,10,5,8,3,UD Odemira; CA Zambujeira do Mar
+Ourique,Beja,5000,AGR,INT,Baixo Alentejo,não,13200000,Paula Sousa Gomes,6,9,2,3,1,Ourique Batalha CD
+Serpa,Beja,13500,AGR,PAT,Baixo Alentejo,não,27400000,Hugo Lopes Almeida,7,1,1,1,10,Serpa Atlético Clube
+Vidigueira,Beja,5500,AGR,PAT,Baixo Alentejo,não,14200000,António Neves Ferreira,6,8,1,6,9,Vidigueira Vinho FC
+Amares,Braga,17800,AGR,TUR,Cávado,não,33400000,Fernando Costa Gonçalves,6,5,3,10,4,Amarense Clube
+Barcelos,Braga,116700,IND,PAT,Cávado,não,147100000,Rui Nunes Sousa,6,1,5,10,10,Atlético de Barcelos
+Braga,Braga,193300,SER,UNI,Cávado,não,231800000,José Correia Moreira,4,1,7,3,4,Bracarense Atlético Clube
+Cabeceiras de Basto,Braga,15400,INT,AGR,Vale do Ave,não,30100000,Marta Santos Nunes,2,3,10,7,1,Cabeceiras Basto SC
+Celorico de Basto,Braga,17000,INT,AGR,Vale do Ave,não,32300000,Ana Fernandes Teixeira,3,1,9,7,5,Celorico Basto Desportivo
+Esposende,Braga,34000,TUR,MAR,Cávado,não,53600000,Lúcia Soares Fernandes,9,7,6,3,2,Esposende Atlântico CD
+Fafe,Braga,48100,IND,ENE,Vale do Ave,não,70100000,Sandra Silva Cardoso,5,6,9,7,2,FC Fafe
+Guimarães,Braga,153800,IND,PAT,Vale do Ave,não,188200000,Fernando Santos Ferreira,3,9,9,7,2,Vimaranense Atlético Clube; Caldas das Taipas Termal
+Póvoa de Lanhoso,Braga,21000,INT,IND,Cávado,não,37600000,José Martins Ferreira,2,1,9,5,9,Póvoa de Lanhoso SC
+Terras de Bouro,Braga,6200,INT,TUR,Cávado,não,15600000,Paulo Nunes Neves,10,7,3,8,6,Terras de Bouro Gerês FC
+Vieira do Minho,Braga,11800,INT,AGR,Cávado,não,24900000,Carla Martins Soares,2,1,8,1,2,Vieirense Montanha FC
+Vila Nova de Famalicão,Braga,133800,IND,LOG,Vale do Ave,não,166100000,Rita Fernandes Vieira,10,8,2,6,7,Famalicense Operário FC
+Vila Verde,Braga,46600,IND,AGR,Cávado,não,68300000,Susana Vieira Gonçalves,1,1,6,2,10,Vila Verde Atlético
+Vizela,Braga,24000,IND,TER,Vale do Ave,não,41400000,Isabel Pinto Moreira,1,9,2,4,7,Termas de Vizela FC
+Alfândega da Fé,Bragança,4100,INT,AGR,Terra de Miranda,não,11300000,Susana Teixeira Vieira,8,3,1,4,3,Alfândega Fé Desportivo
+Bragança,Bragança,34300,INT,UNI,Trás-os-Montes,não,53900000,Helena Oliveira Ribeiro,9,10,2,6,7,CD Matelense; Izeda Raiano FC
+Carrazeda de Ansiães,Bragança,5900,AGR,INT,Douro,não,15000000,Teresa Carvalho Silva,5,5,1,4,5,Carrazeda Ansiães CD
+Freixo de Espada à Cinta,Bragança,3300,FRO,AGR,Douro,não,9500000,Paula Soares Ferreira,10,10,2,3,4,Freixo Seda Clube
+Macedo de Cavaleiros,Bragança,14900,AGR,INT,Trás-os-Montes,não,29400000,Manuel Neves Oliveira,9,6,6,4,2,Macedo Cavaleiros FC
+Miranda do Douro,Bragança,6800,FRO,PAT,Terra de Miranda,não,16700000,Inês Alves Alves,6,4,6,2,5,Pauliteiros de Miranda CD
+Mirandela,Bragança,22600,AGR,LOG,Trás-os-Montes,não,39600000,Teresa Moreira Neves,1,6,5,9,1,AD Mirandelense
+Mogadouro,Bragança,6900,INT,FRO,Terra de Miranda,não,16900000,Helena Cardoso Silva,5,5,7,10,10,Mogadouro Amêndoa FC
+Torre de Moncorvo,Bragança,7800,AGR,INT,Douro,não,18500000,Susana Ferreira Carvalho,4,7,4,9,2,Moncorvo Ferro CD
+Vila Flor,Bragança,5800,AGR,INT,Douro,não,14800000,Sandra Fernandes Rocha,10,1,9,6,6,Vila Flor Desportivo
+Vimioso,Bragança,3900,INT,FRO,Terra de Miranda,não,10800000,João Rodrigues Almeida,3,8,1,8,1,União Desportiva Vimiosa
+Vinhais,Bragança,7000,INT,AGR,Trás-os-Montes,não,17000000,Lúcia Almeida Mendes,1,5,3,7,1,Vinhais Fumeiro SC
+Belmonte,Castelo Branco,6000,PAT,UNI,Serra da Estrela,não,15200000,Fernando Silva Soares,8,10,6,7,2,Belmonte Cabral FC
+Castelo Branco,Castelo Branco,52000,SER,INT,Beira Baixa,não,74500000,Hugo Monteiro Rocha,5,2,8,3,9,SC Castelo Branco; Alcains Atlético Clube
+Covilhã,Castelo Branco,51000,UNI,IND,Serra da Estrela,não,73400000,Jorge Pereira Soares,9,3,10,1,2,AD Covilhanense; Unhais Serra Termal
+Fundão,Castelo Branco,26000,AGR,IND,Beira Baixa,não,43900000,Teresa Teixeira Vieira,7,5,3,10,4,Fundão Cereja CD
+Idanha-a-Nova,Castelo Branco,8800,FRO,AGR,Beira Baixa,não,20200000,Rita Vieira Moreira,10,9,5,3,10,Idanha Raiana CD; Monsanto Granito FC
+Oleiros,Castelo Branco,4800,INT,TUR,Pinhal Interior,não,12800000,Luís Cardoso Rocha,8,7,1,10,4,Oleiros Xisto CD
+Penamacor,Castelo Branco,4500,FRO,INT,Beira Baixa,não,12200000,Jorge Rocha Alves,7,9,2,1,8,Penamacor Raia CD
+Proença-a-Nova,Castelo Branco,7500,INT,AGR,Pinhal Interior,não,17900000,Pedro Soares Rodrigues,4,10,10,6,4,Proença Pinhal Desportivo
+Sertã,Castelo Branco,14200,INT,AGR,Pinhal Interior,não,28400000,Manuel Teixeira Ribeiro,5,7,9,1,3,Sertã Pinhal FC
+Vila Velha de Ródão,Castelo Branco,3000,INT,ENE,Beira Baixa,não,8800000,António Pereira Pinto,3,3,2,10,6,Ródão Portas CD
+Vila de Rei,Castelo Branco,3000,INT,TUR,Pinhal Interior,não,8800000,Rita Soares Vieira,2,2,7,9,8,Vila de Rei Centro FC
+Arganil,Coimbra,11700,INT,AGR,Serra da Lousã,não,24700000,Miguel Nunes Ribeiro,5,1,4,6,7,Arganil Serra Atlético
+Cantanhede,Coimbra,35000,AGR,IND,Baixo Mondego,não,54800000,Susana Oliveira Rocha,1,1,5,2,10,Cantanhede Bairrada FC
+Coimbra,Coimbra,140000,UNI,PAT,Baixo Mondego,não,172900000,Paula Nunes Moreira,8,10,9,4,3,Atlético de Coimbra; Coimbra Sport Clube
+Condeixa-a-Nova,Coimbra,17000,PAT,DOR,Baixo Mondego,não,32300000,Fernando Oliveira Cardoso,8,6,4,7,6,Condeixa Conímbriga FC
+Figueira da Foz,Coimbra,60000,TUR,MAR,Baixo Mondego,não,83600000,Paula Almeida Teixeira,2,3,1,8,7,Figueira Casino FC
+Góis,Coimbra,3900,INT,TUR,Serra da Lousã,não,10800000,Isabel Gomes Alves,2,7,9,9,8,Góis Chanfana Clube
+Lousã,Coimbra,16500,TUR,INT,Serra da Lousã,não,31600000,Filipa Vieira Rocha,9,7,8,10,10,Lousã Serra CD
+Mira,Coimbra,11500,MAR,AGR,Baixo Mondego,não,24400000,Inês Sousa Marques,5,10,8,5,4,Mira Mar CD
+Miranda do Corvo,Coimbra,12500,IND,INT,Serra da Lousã,não,25900000,Hugo Soares Oliveira,7,5,7,4,1,Miranda Corvo Atlético
+Montemor-o-Velho,Coimbra,20000,AGR,PAT,Baixo Mondego,não,36300000,Sofia Nunes Alves,10,9,10,10,5,FC Montemor-o-Velho
+Oliveira do Hospital,Coimbra,20000,AGR,IND,Serra da Estrela,não,36300000,Paulo Cardoso Martins,2,6,10,7,6,Oliveira do Hospital Mel FC
+Penacova,Coimbra,14000,INT,TUR,Baixo Mondego,não,28100000,Teresa Almeida Gomes,8,6,10,10,4,Penacova Mondego CD
+Soure,Coimbra,17000,AGR,INT,Baixo Mondego,não,32300000,Sérgio Sousa Gomes,2,3,4,8,4,Soure Templário FC
+Tábua,Coimbra,11400,AGR,INT,Serra da Lousã,não,24300000,Lúcia Sousa Ribeiro,5,6,9,10,9,Tábua Rio Alva FC
+Albufeira,Faro,42000,TUR,DOR,Algarve Central,não,63000000,Jorge Moreira Fernandes,3,8,4,7,4,Albufeira Sol FC
+Alcoutim,Faro,2500,FRO,INT,Sotavento,não,7500000,José Carvalho Carvalho,1,4,8,2,7,Alcoutim Guadiana CD
+Aljezur,Faro,6000,AGR,TUR,Barlavento,não,15200000,Miguel Carvalho Monteiro,5,2,2,8,8,Aljezur Batata-Doce FC
+Castro Marim,Faro,6500,AGR,FRO,Sotavento,não,16100000,Fernando Almeida Soares,7,10,10,2,6,Castro Marim Sal FC
+Faro,Faro,67000,TUR,UNI,Algarve Central,não,91600000,Lúcia Lopes Ferreira,10,4,10,8,10,Clube Sport Sagres
+Lagoa (Algarve),Faro,26400,AGR,TUR,Barlavento,não,44400000,Filipa Monteiro Rocha,5,8,2,4,2,Lagoa Carvoeiro CD
+Lagos,Faro,33000,TUR,MAR,Barlavento,não,52400000,Susana Pinto Oliveira,3,5,10,3,1,Lagos Descobrimentos FC
+Loulé,Faro,72000,TUR,AGR,Algarve Central,não,97200000,João Pinto Fernandes,7,9,2,3,8,Louletano Atlético
+Monchique,Faro,5500,TER,INT,Barlavento,não,14200000,Sofia Pinto Ferreira,4,7,3,3,2,Monchique Medronho FC
+Olhão,Faro,45000,MAR,TUR,Sotavento,não,66500000,Marta Almeida Fernandes,10,2,2,8,9,Olhão Ria Formosa CD
+Portimão,Faro,59000,TUR,MAR,Barlavento,não,82500000,Miguel Santos Pinto,8,3,2,2,7,Portimão Sardinha FC
+Silves,Faro,37000,AGR,PAT,Barlavento,não,57100000,Sofia Gonçalves Carvalho,5,2,2,5,7,Silves Castelo Laranja FC
+São Brás de Alportel,Faro,11000,AGR,TER,Algarve Central,não,23700000,Helena Oliveira Carvalho,4,10,5,2,4,São Brás Barrocal FC
+Tavira,Faro,26000,TUR,PAT,Sotavento,não,43900000,Hugo Almeida Rodrigues,2,7,5,10,1,Tavira Atum CD
+Vila Real de Santo António,Faro,20000,FRO,TUR,Sotavento,não,36300000,Fernando Alves Carvalho,8,2,9,4,10,Pombalino Guadiana FC
+Almeida,Guarda,6000,FRO,PAT,Beira Alta,não,15200000,Sandra Vieira Ribeiro,1,7,1,5,6,Almeida Fortaleza CD
+Celorico da Beira,Guarda,7500,AGR,LOG,Serra da Estrela,não,17900000,Manuel Pinto Pinto,6,6,5,1,2,Celorico Queijo FC
+Figueira de Castelo Rodrigo,Guarda,5000,FRO,AGR,Beira Alta,não,13200000,Susana Martins Ribeiro,10,6,8,6,7,Castelo Rodrigo FC
+Fornos de Algodres,Guarda,4500,INT,AGR,Serra da Estrela,não,12200000,Jorge Cardoso Moreira,9,4,4,9,6,Fornos Algodres CD
+Gouveia,Guarda,12700,INT,TUR,Serra da Estrela,não,26200000,Sandra Nunes Martins,1,5,1,10,7,Gouveia Serra FC
+Guarda,Guarda,40000,INT,UNI,Serra da Estrela,não,60700000,Lúcia Martins Vieira,2,6,9,5,1,Académico da Guarda
+Manteigas,Guarda,2900,TUR,INT,Serra da Estrela,não,8500000,Maria Cardoso Gomes,7,6,1,6,2,Manteigas Glaciar CD
+Meda,Guarda,4500,INT,AGR,Beira Alta,não,12200000,Pedro Carvalho Pinto,4,7,4,10,1,Meda Planalto CD
+Pinhel,Guarda,9000,INT,AGR,Beira Alta,não,20500000,Ana Rocha Carvalho,6,6,3,3,8,Pinhel Falcão CD
+Sabugal,Guarda,11000,FRO,INT,Beira Alta,não,23700000,João Almeida Vieira,5,3,5,2,1,Sabugal Raiano FC
+Seia,Guarda,23000,INT,TUR,Serra da Estrela,não,40100000,Luís Soares Nunes,2,6,8,2,3,FC Estrela Serrana
+Trancoso,Guarda,9200,INT,PAT,Beira Alta,não,20800000,Tiago Ribeiro Pereira,10,1,7,3,1,Trancoso Bandarra FC
+Vila Nova de Foz Côa,Guarda,7000,PAT,AGR,Douro,não,17000000,Miguel Pereira Lopes,7,4,7,9,10,Foz Côa Gravura FC
+Alcobaça,Leiria,54000,PAT,AGR,Oeste,não,76800000,Rita Marques Mendes,4,9,5,2,2,Alcobaça Monges FC
+Ansião,Leiria,12000,INT,AGR,Pinhal Interior,não,25200000,Teresa Soares Gomes,1,3,5,8,1,Ansião Sicó Clube
+Batalha,Leiria,15000,PAT,IND,Leiria,não,29500000,Sandra Monteiro Alves,5,1,10,6,4,Batalha Mosteiro AC
+Bombarral,Leiria,12000,AGR,INT,Oeste,não,25200000,Helena Carvalho Mendes,5,6,6,5,8,Bombarral Eden FC
+Caldas da Rainha,Leiria,51000,TER,IND,Oeste,não,73400000,Nuno Cardoso Cardoso,9,8,2,9,2,GR Caldense; Tornada Louça FC
+Castanheira de Pera,Leiria,2800,INT,TUR,Pinhal Interior,não,8300000,Sandra Ferreira Carvalho,8,6,9,7,10,Castanheira Pera Praia CD
+Figueiró dos Vinhos,Leiria,5000,INT,TUR,Pinhal Interior,não,13200000,Tiago Rodrigues Cardoso,4,1,9,8,3,Figueiró Vinhos Pinhal
+Leiria,Leiria,128000,IND,SER,Leiria,não,159600000,Paula Santos Mendes,5,8,7,9,9,Leiria FC
+Marinha Grande,Leiria,38000,IND,DOR,Leiria,não,58300000,Miguel Mendes Gonçalves,1,5,5,4,6,Marinha Grande Vidreiros
+Nazaré,Leiria,15000,TUR,MAR,Oeste,não,29500000,Rita Neves Moreira,7,1,6,5,5,Nazaré Ondas FC
+Pedrógão Grande,Leiria,3500,INT,TUR,Pinhal Interior,não,9900000,Rita Cardoso Rocha,2,3,6,3,10,Pedrógão Grande CD
+Peniche,Leiria,26000,MAR,TUR,Oeste,não,43900000,Sofia Silva Sousa,3,10,2,10,6,Penichense FC
+Pombal,Leiria,51000,IND,AGR,Leiria,não,73400000,João Ribeiro Fernandes,9,9,9,1,7,Pombal Castelo FC
+Porto de Mós,Leiria,24000,IND,TUR,Leiria,não,41400000,Marta Monteiro Gonçalves,6,6,4,1,10,Porto de Mós Serra CD
+Óbidos,Leiria,12000,PAT,TUR,Oeste,não,25200000,Manuel Silva Gonçalves,7,4,9,6,10,CD Castelo de Óbidos
+Alenquer,Lisboa,43000,AGR,DOR,Oeste,não,64200000,Rita Ferreira Lopes,7,9,5,2,8,Alenquer Vinho FC
+Amadora,Lisboa,171000,MUL,DOR,Grande Lisboa,não,207200000,Marta Correia Martins,6,2,8,8,3,CO Amadora Nova
+Arruda dos Vinhos,Lisboa,14000,AGR,DOR,Oeste,não,28100000,Sofia Soares Pinto,7,7,10,6,8,Arruda Vinhos CD
+Azambuja,Lisboa,22000,LOG,AGR,Lezíria,não,38900000,Rui Ferreira Marques,1,4,4,10,9,Azambuja Lezíria FC
+Cadaval,Lisboa,13500,AGR,INT,Oeste,não,27400000,Isabel Lopes Gonçalves,10,4,3,8,4,Cadaval Pera Rocha CD
+Cascais,Lisboa,214000,TUR,SER,Grande Lisboa,não,254700000,Helena Marques Pereira,5,9,1,9,1,SC Cascais; Carcavelos Praia Clube
+Lisboa,Lisboa,545000,SER,TUR,Grande Lisboa,não,619200000,Sandra Nunes Almeida,8,1,10,1,5,UD Saldanha; Alfama Fado Clube
+Loures,Lisboa,201000,DOR,LOG,Grande Lisboa,não,240300000,Marta Lopes Teixeira,3,7,3,5,2,AC Sacavém
+Lourinhã,Lisboa,26000,TUR,AGR,Oeste,não,43900000,Helena Pereira Neves,4,5,8,3,7,Lourinhã FC; Sporting Moita dos Ferreiros
+Mafra,Lisboa,87000,TUR,MAR,Oeste,não,114000000,Rui Ribeiro Neves,3,8,5,10,4,Mafra Convento FC; Ericeira Surf Clube
+Odivelas,Lisboa,148000,DOR,MUL,Grande Lisboa,não,181800000,Sofia Nunes Fernandes,4,2,10,9,8,Odivelas Mosteiro AC
+Oeiras,Lisboa,172000,SER,UNI,Grande Lisboa,não,208300000,Sandra Fernandes Pinto,3,7,2,3,3,Oeiras Atlântico CD
+Sintra,Lisboa,385000,DOR,TUR,Grande Lisboa,não,443100000,Cristina Correia Silva,10,7,1,6,4,Sintra Romântico FC
+Sobral de Monte Agraço,Lisboa,11000,AGR,DOR,Oeste,não,23700000,Ana Rocha Monteiro,5,2,1,7,5,Sobral Monte Agraço CD
+Torres Vedras,Lisboa,79000,TUR,AGR,Oeste,não,105100000,Rita Ferreira Moreira,9,6,5,10,2,Torres Vedras FC
+Vila Franca de Xira,Lisboa,137000,LOG,IND,Lezíria,não,169600000,Rita Ribeiro Correia,8,5,4,8,1,Xira Campino FC
+Calheta (Madeira),Madeira,10500,AGR,TUR,Madeira Oeste,sim,22900000,Manuel Nunes Ferreira,3,8,7,3,4,Calheta Bananeiros FC
+Câmara de Lobos,Madeira,35000,MAR,AGR,Madeira Sul,sim,54800000,Lúcia Lopes Rodrigues,5,2,10,8,4,AD Câmara de Lobos; Estreito Poncha CD
+Funchal,Madeira,105000,SER,TUR,Madeira Sul,sim,134100000,Paulo Ferreira Pinto,6,8,1,4,3,Funchal Bolo do Caco FC; Monte Teleférico FC
+Machico,Madeira,22000,TUR,LOG,Madeira Leste,sim,38900000,Ana Vieira Teixeira,10,7,4,6,1,CN Machico; Caniçal Baleeiros CD
+Ponta do Sol,Madeira,8000,AGR,TUR,Madeira Oeste,sim,18800000,Fernando Almeida Rodrigues,2,1,5,2,7,Ponta do Sol Poente FC
+Porto Moniz,Madeira,2500,MAR,TUR,Madeira Norte,sim,7500000,José Rodrigues Martins,5,10,6,7,9,Porto Moniz Piscinas CD
+Porto Santo,Madeira,5500,TUR,MAR,Porto Santo,sim,14200000,Susana Marques Rodrigues,5,8,10,5,4,Porto Santo Areal Dourado
+Ribeira Brava,Madeira,12000,AGR,MAR,Madeira Oeste,sim,25200000,Manuel Ribeiro Silva,4,7,6,1,3,Ribeira Brava Levada CD
+Santa Cruz (Madeira),Madeira,43000,LOG,TUR,Madeira Leste,sim,64200000,Luís Neves Sousa,6,10,5,8,2,Santa Cruz Aeroporto CD
+Santana,Madeira,7000,AGR,TUR,Madeira Norte,sim,17000000,Sérgio Rocha Gomes,9,4,5,4,1,UD Santana
+São Vicente,Madeira,5000,AGR,TUR,Madeira Norte,sim,13200000,Jorge Lopes Santos,6,6,1,6,2,São Vicente Lava FC
+Alter do Chão,Portalegre,3000,AGR,PAT,Alto Alentejo,não,8800000,Cristina Costa Martins,1,8,8,5,5,Alter Real CD
+Arronches,Portalegre,3000,FRO,INT,Alto Alentejo,não,8800000,Paulo Correia Ferreira,3,5,7,10,2,Arronches Raia Atlético
+Avis,Portalegre,4000,INT,AGR,Alto Alentejo,não,11100000,Carlos Pinto Fernandes,6,2,2,1,7,Avis Cavaleiros FC
+Campo Maior,Portalegre,8000,FRO,IND,Alto Alentejo,não,18800000,Isabel Martins Santos,3,4,6,2,7,Campo Maior Café FC
+Castelo de Vide,Portalegre,3000,TUR,PAT,Alto Alentejo,não,8800000,Sandra Correia Fernandes,5,1,1,2,1,Castelo de Vide Judiaria CD
+Crato,Portalegre,3500,INT,PAT,Alto Alentejo,não,9900000,Teresa Monteiro Oliveira,4,5,9,7,8,Crato Hospitalários CD
+Elvas,Portalegre,20000,FRO,PAT,Alto Alentejo,não,36300000,Paulo Moreira Soares,3,8,9,7,10,FC Elvas Fronteira
+Gavião,Portalegre,3500,INT,ENE,Alto Alentejo,não,9900000,Jorge Martins Neves,10,10,4,6,3,Gavião Tejo Clube
+Marvão,Portalegre,3000,INT,PAT,Alto Alentejo,não,8800000,Filipa Nunes Soares,8,8,1,8,5,SC Marvão
+Monforte,Portalegre,3000,AGR,INT,Alto Alentejo,não,8800000,António Oliveira Lopes,7,2,3,4,2,Monforte Azinheira CD
+Nisa,Portalegre,6000,INT,AGR,Alto Alentejo,não,15200000,Luís Monteiro Monteiro,4,9,10,7,8,Nisa Queijo Clube
+Ponte de Sor,Portalegre,15000,IND,AGR,Alto Alentejo,não,29500000,Tiago Rocha Carvalho,4,5,6,9,4,Ponte de Sor Cortiça AC
+Portalegre,Portalegre,22000,INT,PAT,Alto Alentejo,não,38900000,Rita Vieira Pereira,4,10,8,2,5,GD Portalegrense
+Sousel,Portalegre,4500,AGR,INT,Alto Alentejo,não,12200000,Rita Costa Alves,2,8,3,1,5,Sousel Alentejano FC
+Amarante,Porto,52000,TUR,PAT,Tâmega e Sousa,não,74500000,António Oliveira Correia,1,9,6,10,1,Amarante Ponte FC
+Baião,Porto,17500,INT,AGR,Tâmega e Sousa,não,33000000,Lúcia Marques Alves,8,2,8,3,1,Baião Douro Clube
+Felgueiras,Porto,56000,IND,AGR,Tâmega e Sousa,não,79100000,Rui Martins Almeida,5,7,4,9,1,Felgueiras Calçado FC
+Gondomar,Porto,164100,DOR,IND,Grande Porto,não,199600000,João Carvalho Monteiro,2,9,4,9,7,GD Lomba
+Lousada,Porto,47000,IND,AGR,Tâmega e Sousa,não,68800000,Rita Marques Correia,2,9,5,8,7,Lousada Desportivo
+Maia,Porto,137400,SER,LOG,Grande Porto,não,170000000,Luís Pereira Ferreira,8,9,8,5,6,Maia Atlético Clube
+Marco de Canaveses,Porto,52000,IND,EMI,Tâmega e Sousa,não,74500000,Helena Nunes Ferreira,2,5,3,8,5,Marco Canaveses SC
+Matosinhos,Porto,172700,MAR,IND,Grande Porto,não,209100000,Sofia Gomes Moreira,1,8,9,10,5,FC Leixonense; Leça de Palmeira SC
+Paredes,Porto,85600,IND,DOR,Tâmega e Sousa,não,112500000,Luís Vieira Lopes,4,10,6,4,9,Móveis de Paredes FC
+Paços de Ferreira,Porto,55500,IND,DOR,Tâmega e Sousa,não,78500000,Nuno Almeida Rocha,2,3,6,4,1,Paços Mobiliário Atlético
+Penafiel,Porto,72300,IND,AGR,Tâmega e Sousa,não,97500000,Nuno Pereira Santos,6,5,3,3,7,Atlético Penafidelense
+Porto,Porto,231800,SER,TUR,Grande Porto,não,274300000,Manuel Moreira Teixeira,9,8,10,2,10,FC Varziela
+Póvoa de Varzim,Porto,66500,TUR,MAR,Grande Porto,não,91000000,Luís Nunes Rocha,10,8,4,5,3,Póvoa Mar FC
+Santo Tirso,Porto,68000,IND,DOR,Vale do Ave,não,92700000,António Almeida Carvalho,10,10,5,10,8,Santo Tirso Têxtil
+Trofa,Porto,37000,IND,LOG,Vale do Ave,não,57100000,Luís Moreira Santos,3,4,9,3,4,Trofa Atlético Clube
+Valongo,Porto,94000,IND,DOR,Grande Porto,não,121800000,Maria Costa Marques,10,4,1,4,4,SC Valongo
+Vila Nova de Gaia,Porto,302300,TUR,DOR,Grande Porto,não,352000000,Pedro Almeida Martins,4,5,7,4,7,CD Gaia
+Vila do Conde,Porto,80800,MAR,IND,Grande Porto,não,107100000,Manuel Silva Costa,9,3,10,6,2,AD Vilacondense
+Abrantes,Santarém,37000,LOG,IND,Médio Tejo,não,57100000,José Vieira Alves,8,2,3,4,5,Abrantes Tejo Clube
+Almeirim,Santarém,23000,AGR,DOR,Lezíria,não,40100000,Pedro Gonçalves Soares,5,4,9,5,4,Almeirim Sopa FC
+Benavente,Santarém,29000,AGR,DOR,Lezíria,não,47600000,Jorge Ferreira Santos,8,10,1,6,5,Samora Correia Atlético
+Cartaxo,Santarém,24000,AGR,DOR,Lezíria,não,41400000,Hugo Carvalho Teixeira,9,1,9,3,2,Cartaxo Vinho FC
+Chamusca,Santarém,9000,AGR,INT,Lezíria,não,20500000,Fernando Gonçalves Rodrigues,8,6,1,6,6,Chamusca Tejo CD
+Coruche,Santarém,18000,AGR,INT,Lezíria,não,33600000,Rui Soares Monteiro,4,2,2,10,9,Coruche Cortiça Clube
+Entroncamento,Santarém,20000,LOG,PAT,Médio Tejo,não,36300000,Helena Monteiro Soares,10,3,8,8,8,Grémio Ferroviário do Entroncamento
+Golegã,Santarém,5500,AGR,PAT,Médio Tejo,não,14200000,Maria Rocha Santos,6,3,9,4,10,JD Golegã
+Mação,Santarém,6000,INT,TUR,Médio Tejo,não,15200000,Ana Moreira Alves,9,2,4,9,6,Mação Linho CD
+Ourém,Santarém,45000,TUR,PAT,Médio Tejo,não,66500000,Paula Pereira Martins,6,2,4,6,6,Ourém Fátima FC
+Rio Maior,Santarém,21000,IND,AGR,Lezíria,não,37600000,Nuno Carvalho Pereira,9,7,7,1,3,Rio Maior Sal FC
+Santarém,Santarém,62000,AGR,SER,Lezíria,não,85900000,Filipa Almeida Monteiro,10,7,1,8,4,Santarém Ribatejano FC
+Tomar,Santarém,36000,PAT,IND,Médio Tejo,não,56000000,Cristina Pereira Carvalho,7,2,4,4,1,Tomar Templário FC
+Torres Novas,Santarém,34000,IND,AGR,Médio Tejo,não,53600000,Cristina Cardoso Gonçalves,5,8,10,5,4,Torres Novas Almonda FC
+Alcochete,Setúbal,20000,TUR,AGR,Margem Sul,não,36300000,Fernando Rocha Correia,8,7,5,9,8,Alcochete Salinas CD
+Alcácer do Sal,Setúbal,12000,AGR,INT,Costa Alentejana,não,25200000,Pedro Soares Mendes,9,4,5,10,10,Alcácer Arroz FC
+Almada,Setúbal,177000,TUR,UNI,Margem Sul,não,213800000,Rui Soares Neves,10,9,4,2,5,CD Charneca; UA Almada
+Barreiro,Setúbal,78000,IND,LOG,Margem Sul,não,103900000,Isabel Cardoso Marques,9,9,5,5,1,Atlético do Barreiro
+Grândola,Setúbal,13500,AGR,TUR,Costa Alentejana,não,27400000,Fernando Lopes Fernandes,3,3,8,10,1,Grândola Vila Morena
+Moita,Setúbal,66000,DOR,LOG,Margem Sul,não,90400000,Teresa Rocha Marques,4,10,3,2,10,Barrete Verde FC
+Montijo,Setúbal,56000,LOG,AGR,Margem Sul,não,79100000,Nuno Rodrigues Lopes,5,9,3,4,2,Montijo Tejo FC
+Palmela,Setúbal,64000,IND,AGR,Península de Setúbal,não,88200000,Carlos Moreira Monteiro,10,7,1,1,6,UD Palmelense
+Santiago do Cacém,Setúbal,29000,AGR,INT,Costa Alentejana,não,47600000,Luís Rodrigues Vieira,6,4,6,5,2,Cacém Alentejo FC
+Seixal,Setúbal,166000,DOR,IND,Margem Sul,não,201700000,Fernando Oliveira Rocha,10,2,7,6,5,Seixal Baía FC; Corroios Moinho FC
+Sesimbra,Setúbal,51000,MAR,TUR,Península de Setúbal,não,73400000,Sérgio Cardoso Silva,6,6,6,10,4,Sesimbra Atlântico CD
+Setúbal,Setúbal,123000,MAR,IND,Península de Setúbal,não,154100000,Pedro Fernandes Carvalho,7,6,10,3,8,Setúbal Sadino Atlético; Azeitão Queijo Clube
+Sines,Setúbal,14200,ENE,LOG,Costa Alentejana,não,28400000,Carla Soares Moreira,5,6,4,6,1,Sines Porto Atlântico
+Arcos de Valdevez,Viana do Castelo,20700,AGR,PAT,Minho-Lima,não,37200000,Sérgio Ferreira Fernandes,9,4,7,2,6,Arcos Atlético Clube; GD Espigueiros do Soajo
+Caminha,Viana do Castelo,16100,MAR,TUR,Minho-Lima,não,31100000,Helena Sousa Correia,7,5,3,10,2,Âncora Praia FC
+Melgaço,Viana do Castelo,8000,AGR,TER,Minho-Lima,não,18800000,Sandra Pereira Almeida,9,9,3,10,10,AD Melgacense
+Monção,Viana do Castelo,17300,AGR,FRO,Minho-Lima,não,32700000,Sandra Costa Soares,7,9,5,10,2,Alvarinho FC
+Paredes de Coura,Viana do Castelo,8600,INT,TUR,Minho-Lima,não,19800000,Helena Correia Rocha,7,1,8,8,7,Paredes de Coura Festival Clube
+Ponte da Barca,Viana do Castelo,11000,INT,TUR,Minho-Lima,não,23700000,Helena Cardoso Monteiro,2,9,3,5,4,Barquense Desportivo; Lindoso Fronteira SC
+Ponte de Lima,Viana do Castelo,42500,AGR,PAT,Minho-Lima,não,63600000,António Gomes Sousa,6,2,10,10,7,Ponte de Lima Atlético Clube
+Valença,Viana do Castelo,12400,FRO,TUR,Minho-Lima,não,25800000,Isabel Sousa Monteiro,8,7,8,6,1,CD Fortaleza de Valença
+Viana do Castelo,Viana do Castelo,85200,MAR,TUR,Minho-Lima,não,112000000,Paulo Carvalho Pinto,7,8,9,4,6,FC Barroselas; Atlântico de Afife
+Vila Nova de Cerveira,Viana do Castelo,8500,TUR,PAT,Minho-Lima,não,19700000,Sandra Sousa Monteiro,2,7,6,8,7,Cerveira Arte FC
+Alijó,Vila Real,10500,AGR,INT,Douro,não,22900000,Teresa Teixeira Santos,8,8,9,4,1,Alijó Vinhateiro
+Chaves,Vila Real,38000,FRO,TER,Trás-os-Montes,não,58300000,Fernando Moreira Mendes,9,6,5,6,4,Chaves Termal FC
+Mesão Frio,Vila Real,4100,AGR,INT,Douro,não,11300000,Hugo Martins Teixeira,6,7,3,10,6,Mesão Frio Desportivo
+Mondim de Basto,Vila Real,6800,INT,TUR,Douro,não,16700000,Fernando Santos Costa,10,10,10,1,3,Mondim Basto Marão
+Montalegre,Vila Real,9500,INT,ENE,Trás-os-Montes,não,21300000,José Rodrigues Sousa,8,2,8,1,3,Montalegre Barrosão CD
+Murça,Vila Real,8200,AGR,INT,Trás-os-Montes,não,19100000,Miguel Martins Gonçalves,6,3,6,2,6,Murça Porca FC
+Peso da Régua,Vila Real,16300,AGR,TUR,Douro,não,31300000,Inês Santos Ribeiro,1,7,4,5,3,Régua Douro Atlético
+Sabrosa,Vila Real,5800,AGR,PAT,Douro,não,14800000,Nuno Pinto Correia,10,10,9,10,7,Sabrosa Navegador FC
+Santa Marta de Penaguião,Vila Real,7000,AGR,INT,Douro,não,17000000,Sandra Rocha Teixeira,7,3,2,8,6,SC Santa Marta
+Valpaços,Vila Real,14300,INT,AGR,Trás-os-Montes,não,28600000,Cristina Pinto Pereira,10,2,2,7,7,Valpaços Castanha FC
+Vila Pouca de Aguiar,Vila Real,12500,INT,TER,Trás-os-Montes,não,25900000,Hugo Martins Teixeira,5,10,3,5,7,Vila Pouca Aguiar Granito FC
+Vila Real,Vila Real,49500,UNI,AGR,Douro,não,71700000,Marta Gomes Soares,5,8,3,2,5,UD Vila-Realense
+Castro Daire,Viseu,13700,INT,AGR,Lafões,não,27700000,Luís Pinto Santos,7,9,4,8,4,Castro Daire Montanha FC
+Cinfães,Viseu,17200,AGR,EMI,Douro,não,32600000,Miguel Mendes Martins,5,3,10,2,6,Cinfães Douro CD
+Lamego,Viseu,25500,AGR,PAT,Douro,não,43300000,Manuel Ferreira Almeida,9,3,4,9,5,Académico Lamego
+Mangualde,Viseu,19000,IND,AGR,Dão,não,35000000,Jorge Alves Pinto,3,8,2,2,7,Mangualde Dão FC
+Moimenta da Beira,Viseu,9400,AGR,INT,Douro,não,21100000,Fernando Ribeiro Neves,5,5,3,8,10,Moimenta Maçã FC
+Nelas,Viseu,12500,AGR,IND,Dão,não,25900000,Miguel Neves Silva,1,3,3,10,8,Nelas Dão Atlético
+Oliveira de Frades,Viseu,10000,IND,AGR,Lafões,não,22100000,Fernando Nunes Cardoso,5,2,2,2,5,Frades do Vouga CD
+Santa Comba Dão,Viseu,10900,AGR,INT,Dão,não,23500000,Carla Ribeiro Marques,5,5,8,10,1,Sta Comba Dão FC
+Sátão,Viseu,12000,AGR,INT,Dão,não,25200000,Cristina Pereira Alves,7,7,1,5,2,Sátão Arado Clube
+São João da Pesqueira,Viseu,6800,AGR,PAT,Douro,não,16700000,Paulo Correia Vieira,4,9,8,5,10,Pesqueira Douro CD
+São Pedro do Sul,Viseu,15500,TER,INT,Lafões,não,30200000,Cristina Nunes Correia,9,8,7,8,1,São Pedro Termal CD
+Tarouca,Viseu,7900,AGR,PAT,Douro,não,18600000,Carla Lopes Cardoso,4,1,4,10,8,Tarouca Cister CD
+Tondela,Viseu,26000,AGR,IND,Dão,não,43900000,Sandra Martins Pinto,10,2,8,4,9,Tondela Dão Clube
+Viseu,Viseu,99000,SER,AGR,Dão,não,127400000,Carla Soares Rocha,2,2,9,1,1,Viseu Viriato FC
+Vouzela,Viseu,9700,INT,AGR,Lafões,não,21600000,Sérgio Rodrigues Gonçalves,3,10,5,10,6,Vouzela Vouga FC
+Alandroal,Évora,5000,FRO,AGR,Alentejo Central,não,13200000,Helena Vieira Fernandes,3,6,8,3,2,Alandroal Raia CD
+Arraiolos,Évora,6500,AGR,PAT,Alentejo Central,não,16100000,Fernando Soares Teixeira,1,9,6,4,7,Arraiolos Tapete FC
+Borba,Évora,7000,IND,AGR,Alentejo Central,não,17000000,Rui Carvalho Correia,7,5,8,4,6,Borba Adega FC
+Estremoz,Évora,12500,IND,PAT,Alentejo Central,não,25900000,Rita Vieira Alves,8,4,9,2,1,Estremoz Mármore AC
+Montemor-o-Novo,Évora,15000,AGR,INT,Alentejo Central,não,29500000,Hugo Lopes Santos,5,7,8,7,3,Montemor Novo Castelo FC
+Mora,Évora,2500,INT,AGR,Alentejo Central,não,7500000,Sérgio Oliveira Oliveira,10,1,3,10,3,Mora Montado CD
+Mourão,Évora,2500,FRO,TUR,Alentejo Central,não,7500000,Miguel Pinto Ferreira,7,8,7,9,10,Mourão Alqueva FC
+Portel,Évora,5500,AGR,INT,Alentejo Central,não,14200000,José Vieira Neves,3,7,10,9,4,Portel Castelo CD
+Redondo,Évora,6500,AGR,PAT,Alentejo Central,não,16100000,Susana Martins Teixeira,10,10,6,6,5,CA Redondo FC
+Reguengos de Monsaraz,Évora,10000,AGR,TUR,Alentejo Central,não,22100000,Filipa Vieira Martins,6,8,9,8,7,Reguengos Vinho CD
+Vendas Novas,Évora,11000,LOG,INT,Alentejo Central,não,23700000,Paulo Neves Pinto,9,9,3,8,1,Vendas Novas Artilheiros FC
+Viana do Alentejo,Évora,5000,AGR,PAT,Alentejo Central,não,13200000,Marta Ribeiro Alves,9,8,10,4,8,Viana Alentejo Cante CD
+Vila Viçosa,Évora,7500,PAT,IND,Alentejo Central,não,17900000,José Neves Ribeiro,7,1,7,4,10,Vila Viçosa Ducal FC
+Évora,Évora,53000,PAT,UNI,Alentejo Central,não,75700000,Isabel Silva Soares,6,8,3,1,7,SU Évora Velha

@@ -1,0 +1,33 @@
+## CP-C
+Sintra Romântico FC|Sintra|Sintra|Românticos|Queijada de Sintra|Roxo e amarelo|Estádio da Serra de Sintra|CO Amadora Nova
+Oeiras Atlântico CD|Oeiras|Oeiras|Marqueses|Marquês|Azul e dourado|Estádio do Palácio do Marquês|SC Cascais
+Xira Campino FC|Vila Franca de Xira|Vila Franca de Xira|Campinos|Campino|Vermelho e verde|Estádio do Colete Encarnado|AC Sacavém
+Seixal Baía FC|Seixal|Seixal|Baieiros|Moinho de Maré|Azul e verde|Estádio da Baía|Atlético do Barreiro
+Setúbal Sadino Atlético|Setúbal|Setúbal|Sadinos|Roaz do Sado|Azul-turquesa e laranja|Estádio do Sado|UD Palmelense
+Alcobaça Monges FC|Alcobaça|Alcobaça|Monges|Coroa de Inês|Branco e castanho|Estádio do Mosteiro|GR Caldense
+Marinha Grande Vidreiros|Marinha Grande|Marinha Grande|Vidreiros|Copo de Cristal|Azul-cristal e branco|Estádio da Fábrica do Vidro|Leiria FC
+Santarém Ribatejano FC|Santarém|Santarém|Escalabitanos|Espiga de Trigo|Verde e amarelo|Estádio das Portas do Sol|Tomar Templário FC
+Tomar Templário FC|Tomar|Tomar|Templários|Gualdim Pais|Branco e vermelho|Estádio do Convento de Cristo|Santarém Ribatejano FC
+Ponte de Sor Cortiça AC|Ponte de Sor|Ponte de Sor|Corticeiros|Sobreiro|Castanho e verde|Estádio do Montado|GD Portalegrense
+## DIST|Lisboa
+Mafra Convento FC|Mafra|Mafra|Conventuais|Sino do Convento|Azul-celeste e branco|Estádio do Palácio Nacional|Ericeira Surf Clube
+Ericeira Surf Clube|Ericeira|Mafra|Ericeirenses|Surfista|Azul e branco|Campo dos Pescadores|Mafra Convento FC
+Odivelas Mosteiro AC|Odivelas|Odivelas|Odivelenses|Dom Dinis|Verde e vermelho|Campo do Mosteiro de Odivelas|CO Amadora Nova
+Alenquer Vinho FC|Alenquer|Alenquer|Alenquerenses|Pergaminho|Vermelho e dourado|Estádio de Damião de Góis|Arruda Vinhos CD
+Azambuja Lezíria FC|Azambuja|Azambuja|Azambujenses|Toiro Bravo|Branco e verde|Campo da Lezíria|Xira Campino FC
+Cadaval Pera Rocha CD|Cadaval|Cadaval|Cadavalenses|Pera Rocha|Verde-claro e dourado|Campo da Pera Rocha|Sobral Monte Agraço CD
+Sobral Monte Agraço CD|Sobral de Monte Agraço|Sobral de Monte Agraço|Sobralenses|Soldado das Linhas de Torres|Vermelho e azul|Campo das Linhas de Torres|Torres Vedras FC
+Arruda Vinhos CD|Arruda dos Vinhos|Arruda dos Vinhos|Arrudenses|Lagar|Roxo e branco|Campo da Adega Cooperativa|Alenquer Vinho FC
+Alfama Fado Clube|Alfama|Lisboa|Fadistas|Guitarra Portuguesa|Azul e branco|Campo da Graça|UD Saldanha
+Carcavelos Praia Clube|Carcavelos|Cascais|Carcavelenses|Torreão de São Julião|Laranja e preto|Campo da Praia de Carcavelos|SC Cascais
+## DIST|Setúbal
+Sesimbra Atlântico CD|Sesimbra|Sesimbra|Sesimbrenses|Choco|Azul e amarelo|Estádio do Castelo de Sesimbra|Setúbal Sadino Atlético
+Barrete Verde FC|Moita|Moita|Moitenses|Barrete Verde|Verde e branco|Campo da Festa|Atlético do Barreiro
+Montijo Tejo FC|Montijo|Montijo|Montijenses|Garça|Azul e amarelo|Campo do Tejo|Barrete Verde FC
+Alcochete Salinas CD|Alcochete|Alcochete|Alcochetanos|Flamingo|Rosa e branco|Campo das Salinas|Montijo Tejo FC
+Sines Porto Atlântico|Sines|Sines|Sineenses|Vasco da Gama|Azul-marinho e branco|Estádio do Porto de Sines|Cacém Alentejo FC
+Cacém Alentejo FC|Santiago do Cacém|Santiago do Cacém|Cacemenses|Cavaleiro de Santiago|Vermelho e branco|Campo do Castelo de Santiago|Sines Porto Atlântico
+Grândola Vila Morena|Grândola|Grândola|Grandolenses|Vila Morena|Vermelho e branco|Campo do Zeca|Alcácer Arroz FC
+Alcácer Arroz FC|Alcácer do Sal|Alcácer do Sal|Alcacerenses|Espiga de Arroz|Branco e dourado|Campo do Sado|Grândola Vila Morena
+Corroios Moinho FC|Corroios|Seixal|Corroienses|Moinho de Maré|Laranja e azul|Campo do Moinho|Seixal Baía FC
+Azeitão Queijo Clube|Azeitão|Setúbal|Azeitonenses|Queijo de Azeitão|Amarelo e branco|Campo da Serra da Arrábida|Setúbal Sadino Atlético

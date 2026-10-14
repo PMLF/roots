@@ -1,0 +1,33 @@
+## DIST|Guarda
+Trancoso Bandarra FC|Trancoso|Trancoso|Trancosenses|Sapateiro Profeta|Azul e dourado|Campo das Muralhas|Pinhel Falcão CD
+Pinhel Falcão CD|Pinhel|Pinhel|Pinhelenses|Falcão|Verde e branco|Campo do Castelo de Pinhel|Trancoso Bandarra FC
+Sabugal Raiano FC|Sabugal|Sabugal|Sabugalenses|Castelo de Cinco Quinas|Vermelho e verde|Campo das Cinco Quinas|Almeida Fortaleza CD
+Celorico Queijo FC|Celorico da Beira|Celorico da Beira|Queijeiros|Queijo da Serra|Amarelo e branco|Campo da Feira do Queijo|Fornos Algodres CD
+Fornos Algodres CD|Fornos de Algodres|Fornos de Algodres|Fornenses|Forno de Lenha|Castanho e laranja|Campo do Forno|Celorico Queijo FC
+Foz Côa Gravura FC|Vila Nova de Foz Côa|Vila Nova de Foz Côa|Gravadores|Cavalo Rupestre|Preto e ocre|Campo do Côa|Moncorvo Ferro CD
+Manteigas Glaciar CD|Manteigas|Manteigas|Manteiguenses|Cão da Serra da Estrela|Branco e azul-claro|Campo do Vale Glaciar|FC Estrela Serrana
+Almeida Fortaleza CD|Almeida|Almeida|Almeidenses|Soldado da Praça-Forte|Vermelho e preto|Campo da Praça-Forte|Sabugal Raiano FC
+Castelo Rodrigo FC|Castelo Rodrigo|Figueira de Castelo Rodrigo|Rodriguenses|Torre de Menagem|Azul e branco|Campo do Castelo|Meda Planalto CD
+Meda Planalto CD|Meda|Meda|Medenses|Raposa|Verde e amarelo|Campo do Planalto|Castelo Rodrigo FC
+## DIST|Coimbra
+Lousã Serra CD|Lousã|Lousã|Lousanenses|Cabra Serrana|Verde e cinzento|Estádio do Castelo da Lousã|Miranda Corvo Atlético
+Miranda Corvo Atlético|Miranda do Corvo|Miranda do Corvo|Corvos|Corvo|Preto e roxo|Campo do Corvo|Lousã Serra CD
+Penacova Mondego CD|Penacova|Penacova|Penacovenses|Canoísta|Azul e verde|Campo do Cais de Penacova|Atlético de Coimbra
+Condeixa Conímbriga FC|Condeixa-a-Nova|Condeixa-a-Nova|Condeixenses|Mosaico Romano|Ocre e vermelho|Estádio de Conímbriga|Coimbra Sport Clube
+Soure Templário FC|Soure|Soure|Sourenses|Cavaleiro Templário|Branco e vermelho|Campo do Castelo de Soure|FC Montemor-o-Velho
+Mira Mar CD|Mira|Mira|Miranenses|Barco de Xávega|Azul e branco|Campo da Praia de Mira|Figueira Casino FC
+Arganil Serra Atlético|Arganil|Arganil|Arganilenses|Açor|Verde e preto|Campo do Açor|Tábua Rio Alva FC
+Tábua Rio Alva FC|Tábua|Tábua|Tabuenses|Lontra|Verde e dourado|Campo do Alva|Arganil Serra Atlético
+Oliveira do Hospital Mel FC|Oliveira do Hospital|Oliveira do Hospital|Melgueiros|Abelha|Amarelo e preto|Campo do Mel|FC Estrela Serrana
+Góis Chanfana Clube|Góis|Góis|Goienses|Chanfana|Vermelho e bege|Campo do Ceira|Lousã Serra CD
+## DIST|Castelo Branco
+Belmonte Cabral FC|Belmonte|Belmonte|Belmontenses|Cabral Navegador|Azul e vermelho|Campo do Castelo de Belmonte|AD Covilhanense
+Idanha Raiana CD|Idanha-a-Nova|Idanha-a-Nova|Idanhenses|Abutre-do-Egito|Preto e branco|Campo da Idanha|Monsanto Granito FC
+Monsanto Granito FC|Monsanto|Idanha-a-Nova|Monsantinos|Galo de Prata|Prata e preto|Campo do Castelo de Monsanto|Idanha Raiana CD
+Penamacor Raia CD|Penamacor|Penamacor|Penamacorenses|Lince-ibérico|Laranja e preto|Campo da Malcata|Sabugal Raiano FC
+Proença Pinhal Desportivo|Proença-a-Nova|Proença-a-Nova|Proencenses|Pinha|Verde e castanho|Campo do Pinhal|Sertã Pinhal FC
+Oleiros Xisto CD|Oleiros|Oleiros|Oleirenses|Oleiro|Castanho e cinzento|Campo do Xisto|Sertã Pinhal FC
+Vila de Rei Centro FC|Vila de Rei|Vila de Rei|Reienses|Marco Geodésico|Azul e branco|Campo do Centro de Portugal|Proença Pinhal Desportivo
+Ródão Portas CD|Vila Velha de Ródão|Vila Velha de Ródão|Rodanenses|Grifo|Cinzento e verde|Campo das Portas de Ródão|SC Castelo Branco
+Unhais Serra Termal|Unhais da Serra|Covilhã|Unhaenses|Caldeira|Azul e verde|Campo das Termas de Unhais|AD Covilhanense
+Alcains Atlético Clube|Alcains|Castelo Branco|Alcainenses|Cabrito|Branco e vermelho|Campo da Beira Baixa|SC Castelo Branco

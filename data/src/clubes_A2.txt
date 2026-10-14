@@ -1,0 +1,33 @@
+## DIST|Porto
+AD Vilacondense|Vila do Conde|Vila do Conde|Rendeiras|Caravela|Azul-marinho e branco|Estádio da Nau Quinhentista|Póvoa Mar FC
+Móveis de Paredes FC|Paredes|Paredes|Marceneiros|Cadeira Falante|Castanho e branco|Campo da Serra|Paços Mobiliário Atlético
+Paços Mobiliário Atlético|Paços de Ferreira|Paços de Ferreira|Móveleiros|Sofá Gigante|Castanho e dourado|Estádio da Mata|Móveis de Paredes FC
+Amarante Ponte FC|Amarante|Amarante|Amarantinos|Papo de Anjo|Roxo e dourado|Estádio da Ponte de São Gonçalo|Atlético Penafidelense
+Felgueiras Calçado FC|Felgueiras|Felgueiras|Sapateiros|Sapato Gigante|Preto e vermelho|Estádio do Sapato|Lousada Desportivo
+Lousada Desportivo|Lousada|Lousada|Lousadenses|Piloto de Rali|Preto e laranja|Estádio do Circuito|Felgueiras Calçado FC
+Marco Canaveses SC|Marco de Canaveses|Marco de Canaveses|Marcoenses|Emigrante com Mala|Azul e amarelo|Campo do Tâmega|Baião Douro Clube
+Santo Tirso Têxtil|Santo Tirso|Santo Tirso|Tirsenses|Escultura Ambulante|Grená e branco|Estádio do Ave|Trofa Atlético Clube
+Trofa Atlético Clube|Trofa|Trofa|Trofenses|Cegonha|Amarelo e azul|Campo do Bougado|Santo Tirso Têxtil
+Baião Douro Clube|Baião|Baião|Baionenses|Pastor do Marão|Laranja e preto|Campo da Serra do Marão|Marco Canaveses SC
+## DIST|Vila Real
+Chaves Termal FC|Chaves|Chaves|Flavienses|Romano da Ponte|Azul e amarelo|Estádio da Ponte de Trajano|UD Vila-Realense
+Régua Douro Atlético|Peso da Régua|Peso da Régua|Reguenses|Rabelo|Bordô e branco|Estádio do Cais|Académico Lamego
+Valpaços Castanha FC|Valpaços|Valpaços|Valpacenses|Castanha|Castanho e verde|Campo do Castanheiro|Chaves Termal FC
+Montalegre Barrosão CD|Montalegre|Montalegre|Barrosões|Bruxa|Preto e roxo|Campo do Pelourinho|Chaves Termal FC
+Alijó Vinhateiro|Alijó|Alijó|Alijoenses|Cepa Velha|Bordô e dourado|Campo do Pinhão|Régua Douro Atlético
+Vila Pouca Aguiar Granito FC|Vila Pouca de Aguiar|Vila Pouca de Aguiar|Granitos|Pedra de Granito|Cinzento e azul|Campo das Pedras Salgadas|Chaves Termal FC
+Mondim Basto Marão|Mondim de Basto|Mondim de Basto|Mondinenses|Sino do Marão|Branco e verde|Campo do Senhor da Serra|Cabeceiras Basto SC
+Murça Porca FC|Murça|Murça|Murcenses|Porca de Murça|Cinzento e rosa|Campo da Porca|AD Mirandelense
+Sabrosa Navegador FC|Sabrosa|Sabrosa|Sabrosenses|Navegador|Azul-marinho e dourado|Campo de Magalhães|Régua Douro Atlético
+Mesão Frio Desportivo|Mesão Frio|Mesão Frio|Frieiros|Cesto de Vindima|Preto e amarelo|Campo da Barragem|SC Santa Marta
+## DIST|Bragança
+Macedo Cavaleiros FC|Macedo de Cavaleiros|Macedo de Cavaleiros|Cavaleiros|Cavaleiro Medieval|Azul-escuro e branco|Estádio do Azeite|AD Mirandelense
+Mogadouro Amêndoa FC|Mogadouro|Mogadouro|Mogadourenses|Amendoeira em Flor|Rosa e branco|Campo da Amêndoa|Pauliteiros de Miranda CD
+Pauliteiros de Miranda CD|Miranda do Douro|Miranda do Douro|Mirandeses|Pauliteiro|Vermelho e preto|Estádio da Barragem|Mogadouro Amêndoa FC
+Vinhais Fumeiro SC|Vinhais|Vinhais|Vinhaenses|Fumeiro|Castanho e vermelho|Campo do Castelo de Vinhais|CD Matelense
+Moncorvo Ferro CD|Torre de Moncorvo|Torre de Moncorvo|Ferreiros|Mineiro de Ferro|Castanho-avermelhado e preto|Estádio da Mina|Vila Flor Desportivo
+Freixo Seda Clube|Freixo de Espada à Cinta|Freixo de Espada à Cinta|Freixenos|Bicho-da-seda|Branco e dourado|Campo da Seda|Moncorvo Ferro CD
+Carrazeda Ansiães CD|Carrazeda de Ansiães|Carrazeda de Ansiães|Carrazedenses|Cerejeira|Vermelho e branco|Campo do Castelo de Ansiães|Vila Flor Desportivo
+Alfândega Fé Desportivo|Alfândega da Fé|Alfândega da Fé|Alfandeguenses|Castanheiro|Verde e laranja|Campo da Feira|Macedo Cavaleiros FC
+Vila Flor Desportivo|Vila Flor|Vila Flor|Vila-florenses|Oliveira|Verde-oliva e branco|Campo do Lagar|Carrazeda Ansiães CD
+Izeda Raiano FC|Izeda|Bragança|Raianos|Gaiteiro|Preto e verde|Campo da Terra Fria|CD Matelense

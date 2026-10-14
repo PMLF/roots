@@ -1,0 +1,69 @@
+Aveiro|Aveiro|80700|TUR|UNI|Ria de Aveiro
+Santa Maria da Feira|Aveiro|139000|IND|PAT|Entre Douro e Vouga
+Espinho|Aveiro|31000|TUR|MAR|Entre Douro e Vouga
+Ovar|Aveiro|55000|TUR|IND|Ria de Aveiro
+Águeda|Aveiro|45000|IND|LOG|Ria de Aveiro
+São João da Madeira|Aveiro|21700|IND|SER|Entre Douro e Vouga
+Vagos|Aveiro|22000|AGR|MAR|Ria de Aveiro
+Murtosa|Aveiro|9900|MAR|TUR|Ria de Aveiro
+Anadia|Aveiro|28000|AGR|TER|Bairrada
+Mealhada|Aveiro|20000|AGR|TUR|Bairrada
+Arouca|Aveiro|21000|TUR|INT|Entre Douro e Vouga
+Vale de Cambra|Aveiro|22000|IND|INT|Entre Douro e Vouga
+Albergaria-a-Velha|Aveiro|24500|IND|LOG|Ria de Aveiro
+Estarreja|Aveiro|26000|IND|AGR|Ria de Aveiro
+Ílhavo|Aveiro|39000|MAR|IND|Ria de Aveiro
+Oliveira de Azeméis|Aveiro|66000|IND|DOR|Entre Douro e Vouga
+Viseu|Viseu|99000|SER|AGR|Dão
+Tondela|Viseu|26000|AGR|IND|Dão
+São Pedro do Sul|Viseu|15500|TER|INT|Lafões
+Mangualde|Viseu|19000|IND|AGR|Dão
+Nelas|Viseu|12500|AGR|IND|Dão
+Castro Daire|Viseu|13700|INT|AGR|Lafões
+Cinfães|Viseu|17200|AGR|EMI|Douro
+Moimenta da Beira|Viseu|9400|AGR|INT|Douro
+São João da Pesqueira|Viseu|6800|AGR|PAT|Douro
+Tarouca|Viseu|7900|AGR|PAT|Douro
+Vouzela|Viseu|9700|INT|AGR|Lafões
+Oliveira de Frades|Viseu|10000|IND|AGR|Lafões
+Sátão|Viseu|12000|AGR|INT|Dão
+Lamego|Viseu|25500|AGR|PAT|Douro
+Santa Comba Dão|Viseu|10900|AGR|INT|Dão
+Guarda|Guarda|40000|INT|UNI|Serra da Estrela
+Seia|Guarda|23000|INT|TUR|Serra da Estrela
+Gouveia|Guarda|12700|INT|TUR|Serra da Estrela
+Trancoso|Guarda|9200|INT|PAT|Beira Alta
+Pinhel|Guarda|9000|INT|AGR|Beira Alta
+Sabugal|Guarda|11000|FRO|INT|Beira Alta
+Celorico da Beira|Guarda|7500|AGR|LOG|Serra da Estrela
+Fornos de Algodres|Guarda|4500|INT|AGR|Serra da Estrela
+Vila Nova de Foz Côa|Guarda|7000|PAT|AGR|Douro
+Manteigas|Guarda|2900|TUR|INT|Serra da Estrela
+Almeida|Guarda|6000|FRO|PAT|Beira Alta
+Figueira de Castelo Rodrigo|Guarda|5000|FRO|AGR|Beira Alta
+Meda|Guarda|4500|INT|AGR|Beira Alta
+Coimbra|Coimbra|140000|UNI|PAT|Baixo Mondego
+Figueira da Foz|Coimbra|60000|TUR|MAR|Baixo Mondego
+Cantanhede|Coimbra|35000|AGR|IND|Baixo Mondego
+Lousã|Coimbra|16500|TUR|INT|Serra da Lousã
+Miranda do Corvo|Coimbra|12500|IND|INT|Serra da Lousã
+Penacova|Coimbra|14000|INT|TUR|Baixo Mondego
+Condeixa-a-Nova|Coimbra|17000|PAT|DOR|Baixo Mondego
+Soure|Coimbra|17000|AGR|INT|Baixo Mondego
+Mira|Coimbra|11500|MAR|AGR|Baixo Mondego
+Arganil|Coimbra|11700|INT|AGR|Serra da Lousã
+Tábua|Coimbra|11400|AGR|INT|Serra da Lousã
+Oliveira do Hospital|Coimbra|20000|AGR|IND|Serra da Estrela
+Góis|Coimbra|3900|INT|TUR|Serra da Lousã
+Montemor-o-Velho|Coimbra|20000|AGR|PAT|Baixo Mondego
+Castelo Branco|Castelo Branco|52000|SER|INT|Beira Baixa
+Covilhã|Castelo Branco|51000|UNI|IND|Serra da Estrela
+Fundão|Castelo Branco|26000|AGR|IND|Beira Baixa
+Sertã|Castelo Branco|14200|INT|AGR|Pinhal Interior
+Belmonte|Castelo Branco|6000|PAT|UNI|Serra da Estrela
+Idanha-a-Nova|Castelo Branco|8800|FRO|AGR|Beira Baixa
+Penamacor|Castelo Branco|4500|FRO|INT|Beira Baixa
+Proença-a-Nova|Castelo Branco|7500|INT|AGR|Pinhal Interior
+Oleiros|Castelo Branco|4800|INT|TUR|Pinhal Interior
+Vila de Rei|Castelo Branco|3000|INT|TUR|Pinhal Interior
+Vila Velha de Ródão|Castelo Branco|3000|INT|ENE|Beira Baixa
