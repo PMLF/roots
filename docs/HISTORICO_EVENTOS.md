@@ -173,12 +173,42 @@ Dois mecanismos diferentes:
 **B. Conhecimento de atributos (`observacao`)** — o que se sabe sobre o *estado* de alguém. Mesmo com o facto público (um jogador marcou 12 golos), **não** se vê:
 
 - atributos e potencial de jogadores e staff, **personalidade**, forma interna e moral;
-- **finanças** dos clubes e termos dos contratos (só uma faixa pública estimada, p. ex. "orçamento médio-baixo", com erro);
+- **finanças** dos clubes e termos dos contratos: só se vê um **estado descritivo** ("Rico", "Em risco"…, §5.1), com possibilidade de erro;
 - qualidade real do staff.
 
 Como se descobre: olheiros, agentes, relatórios, jogar contra, treinar com, tempo de convívio. Cada observação guarda **estimativa com margem** e fica **desatualizada** com o tempo (a ficha mostra "visto há 2 épocas"). O teu próprio clube sabe mais (atributos conhecidos em semanas; personalidade em rótulos, ver `PERSONALIDADE.md` §7).
 
 **Anti-fuga.** A UI **nunca** lê as tabelas da verdade. Há um módulo único `Vista` (`src/engine/vista`) que devolve `{ publico, conhecido? }` para cada entidade, aplicando `vis` e `observacao`. Uma regra de lint proíbe importar o repositório de "verdade" em `src/ui`, e há teste que tenta ler campos ocultos sem observação e tem de falhar.
+
+### 5.1 Estimativa pública das finanças (em palavras, como no FM)
+
+A imprensa só publica uma **palavra** sobre cada clube. Calcula-se a partir de duas medidas, e a palavra depende do escalão.
+
+**1. Saúde (absoluta; tem prioridade)**, medida em meses de folga: `folga = (saldo − dívida de curto prazo) / custos mensais`.
+
+| Estado | Condição |
+|---|---|
+| **À beira da falência** | `folga < 0` e dívida > 50 % das receitas anuais, ou salários em atraso há ≥ 3 meses |
+| **Em risco** | `folga < 1` ou saldo negativo |
+| **Apertado** | `1 ≤ folga < 3` |
+| *(sem aviso)* | `folga ≥ 3` → mostra-se a riqueza |
+
+**2. Riqueza (relativa ao escalão)**: percentil de `recursos = receitas anuais + saldo` entre os clubes **do mesmo escalão** (todas as distritais juntas). Por isso 2 M€ fazem de um clube distrital **Rico**, e na Primeira Liga são **Pobre**.
+
+| Percentil | Primeira Liga | Segunda / Terceira Liga | CP | Distrital |
+|---|---|---|---|---|
+| ≥ 90 | Poderoso | Muito rico | Rico | Rico |
+| 70-90 | Rico | Rico | Folgado | Folgado |
+| 40-70 | Remediado | Estável | Estável | Estável |
+| 15-40 | Modesto | Modesto | Modesto | Modesto |
+| < 15 | Pobre | Pobre | Pobre | Pobre |
+
+**Regras de apresentação**
+
+- O que se mostra é **uma palavra**, sem números. O teu clube vê tudo exato.
+- Para clubes rivais, a palavra pode vir **uma banda ao lado** com probabilidade `p = 25 %` (reduz com a qualidade da fonte). Uma observação de `grupo='financas'` (relatório, contacto no clube) elimina o erro e dá um **intervalo** ("entre 300 e 500 mil €").
+- As palavras e percentis são parâmetros (RZ-006), a calibrar com o harness.
+- Eventos públicos de dinheiro (`PREMIO_ESTADO`, obras anunciadas, patrocínios) mudam o estado de imediato na próxima atualização mensal.
 
 ## 6. Corrupção v1 (RZ-127)
 
@@ -217,7 +247,7 @@ SANCAO | ABSOLVICAO — pode chegar épocas depois e aplicar-se a épocas passad
 1. **Propostas que recebes:** um rival ou apostador quer que percas um jogo; um agente propõe comissão oculta; um autarca oferece favor na licença. Aceitar dá benefício imediato e cria um caso com prova a acumular.
 2. **Propostas que podes fazer:** corromper um árbitro ou jogadores adversários, pedir um favor ao autarca. A resposta depende da `integridade` do alvo: se for alta, **denuncia** e o escândalo cai em cima de ti.
 3. **À tua volta sem o saberes:** um jogador, treinador ou dirigente teu aceita dinheiro e o evento é `secreto`; só vês sinais (resultados estranhos, relatório do olheiro, queda de confiança). Podes investigar internamente.
-4. **Consequências:** se o caso rebentar, o clube e o presidente (tu) sofrem sanções; as consequências para o jogador-presidente têm teto (ver Perguntas em aberto) para não terminar o jogo de forma abrupta.
+4. **Consequências:** se o caso rebentar, o clube e o presidente (tu) sofrem sanções: **perda de reputação** e **coima**, sempre. O **despedimento** é possível mas **muito raro**: exige um caso muito grave (p. ex. resultado combinado com prova alta) **ou** uma posição já frágil por outras razões (confiança do conselho, da Câmara e dos adeptos baixa, resultados e finanças maus). Ser despedido não acaba o jogo: ficas sem o clube, com a reputação afetada, e podes aceitar outro.
 
 ## 7. Passagem de época sem perdas
 
@@ -275,7 +305,7 @@ SELECT * FROM confronto_direto WHERE (a = ? AND b = ?) OR (a = ? AND b = ?);
 - `jogo_facto`: ~7 linhas/jogo → ~23 mil/época; 50 épocas ≈ 1,2 M linhas.
 - `participacao`: ~25 linhas/jogo → ~80 mil/época; 50 épocas ≈ 4 M linhas.
 - Eventos genéricos: algumas dezenas de milhar/época.
-- Ordem de grandeza: **100-300 MB em 50 épocas**. Medimos no RZ-123; se pesar, política de compactação: depois de N épocas (15 por omissão) detalhe de minutos/notas de escalões baixos passa a agregados, mantendo sempre resultados, golos, cartões e lesões.
+- Ordem de grandeza: **100-300 MB em 50 épocas**. **Decidido: guarda-se tudo, para sempre.** Se o harness (RZ-123) mostrar problemas, a compactação fica como opção futura, configurável.
 
 ## 11. Exportar, importar, migrar
 
@@ -283,8 +313,10 @@ SELECT * FROM confronto_direto WHERE (a = ? AND b = ?) OR (a = ? AND b = ?);
 - **Importar:** só o `.sqlite`; o NDJSON serve para análise (não reconstitui o estado por si só).
 - **Migrar:** `PRAGMA user_version` + scripts numerados; eventos com `v` próprios convertidos ao ler.
 
-## 12. Perguntas em aberto
+## 12. Decisões tomadas (14-10-2026)
 
-1. **Teto de sanções ao jogador-presidente:** perda de reputação + coima + afastamento temporário (joga-se com um "testa de ferro" que limita o poder), ou nunca pode ser banido para sempre?
-2. **Faixa pública das finanças:** o jogador deve ver uma estimativa de imprensa dos orçamentos rivais (com erro), ou nada?
-3. **Compactação de detalhe antigo:** 15 épocas serve, ou queres tudo para sempre?
+1. **Sanções ao jogador-presidente:** perda de reputação + coima; despedimento só em casos muito graves ou com posição já frágil (§6.2).
+2. **Finanças dos rivais:** estado descritivo em palavras, relativo ao escalão (§5.1).
+3. **Histórico:** guarda-se tudo, sem compactação por omissão (§10).
+
+Sem perguntas em aberto neste documento.

@@ -89,13 +89,13 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 - [ ] **RZ-113** (P1, L) **Distritais variáveis**: `n' = n − p + r` (p = campeão promovido), mínimo 8, máximo 14, **Bolsa distrital**; mínimo duro de 6 no MVP. → RZ-111, 125
 - [ ] **RZ-125** (P1, M) **Fase de Promoção**: 20 campeões distritais em 4 grupos de 5 (zonas A-D), todos contra todos a uma volta, 2 sobem por grupo (8 ao todo). → RZ-102
 - [ ] **RZ-126** (P2, M) **Gerador de clubes novos** para a Bolsa vazia (nome por modelos, estatísticas, presidente, notícia). → RZ-113
-- [ ] **RZ-127** (P1, L) **Corrupção v1** (decidido a 14-10-2026): quatro tipos — licenciamento, obra amiga (desvio do prémio da Câmara), comissões escondidas e **resultados combinados**; casos de vida longa com prova acumulada, alertas, investigação, escândalo e sanções (inclui retroativas). Atinge o jogador como alvo, como autor e como espectador. Árbitro mínimo como `Pessoa`. → RZ-004, RZ-005, RZ-128
+- [ ] **RZ-127** (P1, L) **Corrupção v1** (decidido a 14-10-2026): quatro tipos — licenciamento, obra amiga (desvio do prémio da Câmara), comissões escondidas e **resultados combinados**; casos de vida longa com prova acumulada, alertas, investigação, escândalo e sanções (inclui retroativas). Atinge o jogador como alvo, como autor e como espectador. Árbitro mínimo como `Pessoa`. → RZ-004, RZ-005, RZ-128 Despedimento do jogador só em casos muito graves ou com posição frágil.
 - [ ] **RZ-128** (P1, L) **Camada de persistência SQLite**: esquema de `docs/HISTORICO_EVENTOS.md`, interface `Repositorio` (adaptadores memória, Node, browser com worker + OPFS), migrações, exportação `.sqlite` + NDJSON, teste de consistência das derivadas. → RZ-005
 - [ ] **RZ-129** (P1, M) **Camada `Vista` (conhecimento)**: tabela de observações, estimativas com margem, desatualização, regra de lint que impede a UI de ler a "verdade"; ligação ao olheiro (RZ-201/202). → RZ-128
 - [ ] **RZ-124** (P1, M) Testes unitários das regras de pirâmide, prémio e distritais (casos: r=0, r=1, r≥2, excedente, bolsa vazia, empate total no prémio).
 
 ### Clube e cidade (versão mínima)
-- [ ] **RZ-114** (P1, L) Finanças do clube: bilheteira, patrocínios, prémios, salários, custos; orçamento anual.
+- [ ] **RZ-114** (P1, L) Finanças do clube: bilheteira, patrocínios, prémios, salários, custos; orçamento anual. Inclui o **estado descritivo** público ("Rico", "Em risco"…, `HISTORICO_EVENTOS` §5.1).
 - [ ] **RZ-115** (P1, L) **Assistência v1**: bacia de adeptos × forma × **importância do jogo** (final ×2,5, decisão de subida/descida, **grande visitante** puxa mais gente ao estádio pequeno, dérbi) × preço, limitada pela **capacidade do estádio**.
 - [ ] **RZ-116** (P1, M) Estádio v1: capacidade por setor e uma obra de ampliação com custo e prazo.
 - [ ] **RZ-117** (P1, L) Plantel: fichas, contratos simples, desenvolvimento por época, rescisões.
@@ -188,10 +188,8 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 3. **Fair play**: níveis discretos (3-5) ou controlo contínuo?
 4. A base do FM pode ser exportada com jogadores? (RZ-008)
 5. Formato da Fase de Promoção: uma volta com 4 jogos serve, ou preferes eliminatórias?
-6. Teto das sanções de corrupção ao jogador-presidente (HISTORICO_EVENTOS §12).
-7. Faixa pública das finanças rivais e compactação de detalhe antigo (HISTORICO_EVENTOS §12).
 
-*Resolvidas a 14-10-2026:* prémio de 2 M€ de uso livre; Serpa Atlético é de Serpa; alcunhas/mascotes em falta preenchidos; CP continua 4×10 com Fase de Promoção em vez de 20 subidas diretas.
+*Resolvidas a 14-10-2026:* sanções de corrupção ao jogador (reputação + coima; despedimento raro); finanças rivais em palavras relativas ao escalão; histórico guardado na íntegra; prémio de 2 M€ de uso livre; Serpa Atlético é de Serpa; alcunhas/mascotes em falta preenchidos; CP continua 4×10 com Fase de Promoção em vez de 20 subidas diretas.
 
 ## 13. Rastreabilidade — nada ficou de fora
 
