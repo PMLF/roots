@@ -4,14 +4,15 @@ Jogo de browser de gestão de futebol português com **clubes ligados a cidades*
 
 ## Ler primeiro
 1. `BACKLOG.md` — fonte de verdade: o que fazer, por fases e prioridade.
-2. `docs/DESIGN_REGRAS.md` — pirâmide, prémio do Estado, distritais variáveis, sinergias.
+2. `docs/DESIGN_REGRAS.md` (pirâmide, prémio, distritais, sinergias), `docs/MODELO_DADOS.md`, `docs/PERSONALIDADE.md`, `docs/HISTORICO_EVENTOS.md`.
 3. `data/` — 298 clubes, 276 concelhos, rivalidades. Fontes editáveis em `data/src/`; `python3 tools/build_dados.py` regenera e valida; `python3 tools/build_xlsx.py` gera `Clubes_Raizes.xlsx`.
 
 ## Stack e convenções
-- Next.js + TypeScript + React; sem backend; persistência local + exportação JSON.
+- Next.js + TypeScript + React; sem backend; persistência em **SQLite** (WASM/OPFS no browser, better-sqlite3 em Node) — ver `docs/HISTORICO_EVENTOS.md`.
 - **Motor de simulação em TypeScript puro** (`src/engine`), sem imports de React/DOM, testável headless. UI em `src/ui`.
 - Tudo o que tem números (assistência, golos, lesões, prémios) tem parâmetros em ficheiro de configuração e passa no harness de calibração antes de ser dado como feito.
-- Histórico = log de eventos append-only; módulos de arquivo/hall of fame leem daí.
+- Histórico = log de eventos append-only + factos de jogo; derivadas reconstruíveis; nada se apaga na passagem de época.
+- A UI só lê através de `Vista` (público + observações); nunca a "verdade" oculta (personalidade, atributos, finanças).
 - Personalidade = um sistema único (traços + memória) para todas as pessoas e entidades.
 
 ## Regras de trabalho

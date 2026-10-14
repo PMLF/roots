@@ -22,7 +22,7 @@ Um jogo de **histórias** mais do que de simulação. Ciclo central: **descobrir
 | D1 | Jogo de **browser** em Next.js + TypeScript + React, sem backend | O Pedro domina esta stack; jogo é sobretudo ecrãs de dados |
 | D2 | **Motor de simulação em TypeScript puro**, separado da UI | Testável sem interface (50 épocas em segundos) e portável (desktop/Godot) |
 | D3 | **Não usar Unity** | Interface/dados é o que pesa; o Claude não corre o editor do Unity nem faz a ligação visual; o motor testável em TS é a vantagem |
-| D4 | Persistência local (IndexedDB/SQLite) + **exportação JSON**; **histórico append-only** | "Todos os dados importantes guardados num histórico" |
+| D4 | Persistência em **SQLite** (WASM + OPFS no browser; `better-sqlite3` no harness), um ficheiro por save, exportável; **histórico append-only** com derivadas reconstruíveis (`docs/HISTORICO_EVENTOS.md`) | Consultas rápidas para as páginas, nada se perde entre épocas, informação pública vs. oculta |
 | D5 | **Mundo largo mas raso** (níveis de detalhe) | Simular ao pormenor só o que interessa; resto estatístico |
 | D6 | Clubes fictícios; o utilizador pode importar a sua própria base | Evita problemas de licenciamento |
 | D7 | Cidade = **painel de variáveis e obras**, não *city builder* com ruas | Evita derrapar para outro jogo |
@@ -60,7 +60,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 - [x] **RZ-002** (P1, S) Ligar o GitHub ao Claude (conector ou pasta local) e fazer o primeiro commit com `data/`, `docs/` e este backlog.
 - [x] **RZ-003** (P1, L) Documento de design da fase 0: **modelo de dados** de jogador, clube, estádio (por setores), cidade/concelho, pessoa, staff, contrato, competição, evento do histórico. Escrever em `docs/MODELO_DADOS.md`.
 - [x] **RZ-004** (P1, M) Especificar o **sistema de personalidade** único (traços: ambição, lealdade, vaidade, paciência, integridade…, mais memória de promessas cumpridas/falhadas) usado por jogadores, treinadores, agentes, presidentes da Câmara, empresários, adeptos. → `docs/PERSONALIDADE.md`
-- [ ] **RZ-005** (P1, M) Formato do **histórico**: log de eventos append-only, versionado, esquema por tipo de evento (jogo, golo, cartão, lesão, transferência, contrato, obra, eleição, promessa, prémio, subida/descida); exportação/importação JSON. Os módulos de hall of fame, arquivo "dos que escaparam" e crónica leem daqui.
+- [x] **RZ-005** (P1, M) Formato do **histórico** e da base de dados: eventos append-only versionados, factos de jogo compactos, derivadas reconstruíveis, processos de vida longa, camada de conhecimento (público vs. oculto), transição de épocas sem perdas. → `docs/HISTORICO_EVENTOS.md`
 - [ ] **RZ-006** (P1, S) Ficheiro de **parâmetros** central (`PREMIO_CLUBE`, `PREMIO_CIDADE`, `DIST_*`, `CP_*`, pesos de assistência…). Valores iniciais em `Clubes_Raizes.xlsx` › Parâmetros e `docs/DESIGN_REGRAS.md`.
 - [ ] **RZ-007** (P1, M) Importador dos CSV (`data/clubes.csv`, `cidades.csv`, `rivalidades.csv`, `distritos.csv`) para o modelo, com validação (os mesmos testes de `tools/build_dados.py`).
 - [ ] **RZ-008** (P2, S) Verificar se o editor do FM exporta a base "Portugal Alternativo" (jogadores, nomes, personalidades) para poupar a geração do mundo.
@@ -72,7 +72,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 **Meta:** jogar 5 épocas seguidas num distrito, com Avançar, jogos com estatísticas completas, subidas e descidas, prémio do Estado e distritais a mudar de tamanho.
 
 ### Motor e dados
-- [ ] **RZ-101** (P1, M) Esqueleto Next.js, estado do jogo, guardar/carregar local. → RZ-003
+- [ ] **RZ-101** (P1, M) Esqueleto Next.js, estado do jogo, guardar/carregar local. → RZ-003, RZ-128
 - [ ] **RZ-102** (P1, M) Calendários (todos contra todos, ida e volta) por liga, com número variável de clubes e folgas por jornada.
 - [ ] **RZ-103** (P1, L) Gerador de jogadores: nomes, origem (inclui países "estranhos"), atributos, potencial com margem, personalidade, ligação à cidade. → RZ-004
 - [ ] **RZ-104** (P1, XL) **Motor de jogo por oportunidades** (≈20-30 por equipa): cada remate tem xG; golos, assistências, defesas, cantos, faltas, posse; sem motor visual.
@@ -89,7 +89,9 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 - [ ] **RZ-113** (P1, L) **Distritais variáveis**: `n' = n − p + r` (p = campeão promovido), mínimo 8, máximo 14, **Bolsa distrital**; mínimo duro de 6 no MVP. → RZ-111, 125
 - [ ] **RZ-125** (P1, M) **Fase de Promoção**: 20 campeões distritais em 4 grupos de 5 (zonas A-D), todos contra todos a uma volta, 2 sobem por grupo (8 ao todo). → RZ-102
 - [ ] **RZ-126** (P2, M) **Gerador de clubes novos** para a Bolsa vazia (nome por modelos, estatísticas, presidente, notícia). → RZ-113
-- [ ] **RZ-127** (P1, L) **Corrupção v1** (decidido a 14-10-2026): propostas ilícitas, risco de investigação/escândalo e sanções, ligadas a `integridade`. Tipos do MVP a confirmar com o Pedro (ver `docs/HISTORICO_EVENTOS.md`). → RZ-004, RZ-005
+- [ ] **RZ-127** (P1, L) **Corrupção v1** (decidido a 14-10-2026): quatro tipos — licenciamento, obra amiga (desvio do prémio da Câmara), comissões escondidas e **resultados combinados**; casos de vida longa com prova acumulada, alertas, investigação, escândalo e sanções (inclui retroativas). Atinge o jogador como alvo, como autor e como espectador. Árbitro mínimo como `Pessoa`. → RZ-004, RZ-005, RZ-128
+- [ ] **RZ-128** (P1, L) **Camada de persistência SQLite**: esquema de `docs/HISTORICO_EVENTOS.md`, interface `Repositorio` (adaptadores memória, Node, browser com worker + OPFS), migrações, exportação `.sqlite` + NDJSON, teste de consistência das derivadas. → RZ-005
+- [ ] **RZ-129** (P1, M) **Camada `Vista` (conhecimento)**: tabela de observações, estimativas com margem, desatualização, regra de lint que impede a UI de ler a "verdade"; ligação ao olheiro (RZ-201/202). → RZ-128
 - [ ] **RZ-124** (P1, M) Testes unitários das regras de pirâmide, prémio e distritais (casos: r=0, r=1, r≥2, excedente, bolsa vazia, empate total no prémio).
 
 ### Clube e cidade (versão mínima)
@@ -186,6 +188,8 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 3. **Fair play**: níveis discretos (3-5) ou controlo contínuo?
 4. A base do FM pode ser exportada com jogadores? (RZ-008)
 5. Formato da Fase de Promoção: uma volta com 4 jogos serve, ou preferes eliminatórias?
+6. Teto das sanções de corrupção ao jogador-presidente (HISTORICO_EVENTOS §12).
+7. Faixa pública das finanças rivais e compactação de detalhe antigo (HISTORICO_EVENTOS §12).
 
 *Resolvidas a 14-10-2026:* prémio de 2 M€ de uso livre; Serpa Atlético é de Serpa; alcunhas/mascotes em falta preenchidos; CP continua 4×10 com Fase de Promoção em vez de 20 subidas diretas.
 
@@ -216,3 +220,6 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 | Prémio do Estado: 2 M€ clube + 1 M€ cidade por distrito | DESIGN §3, RZ-112, 307 |
 | Distritais variáveis; Fase de Promoção entre campeões de distritos diferentes; várias descidas do mesmo distrito; clube novo | DESIGN §1 e §4, RZ-113, 125, 126, 124 |
 | Plataforma/integração | §3, RZ-001-002 |
+| Dados de fácil leitura pelas páginas; épocas ligadas sem perdas; base de dados | D4, RZ-005, 128, `docs/HISTORICO_EVENTOS.md` |
+| Golos/cartões/lesões de todos os clubes públicos; personalidades, atributos e finanças só com observação | `HISTORICO_EVENTOS` §5, RZ-129, RZ-201-202 |
+| Corrupção no MVP, incluindo resultados combinados | RZ-127, `HISTORICO_EVENTOS` §6 |

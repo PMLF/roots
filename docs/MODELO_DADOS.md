@@ -5,12 +5,13 @@ Esquema conceptual para o motor (`src/engine`). Os tipos TypeScript saem daqui. 
 ## 0. Princípios
 
 1. **Normalizado e por IDs.** Cada entidade tem um `id` estável (string *slug*, p. ex. `sc-cascais`, `p-000123`). Referências entre entidades são sempre IDs, nunca objetos embutidos. O estado do jogo é um grafo plano serializável em JSON.
-2. **Estado vs. histórico.** O *estado* é o agora (tabelas abaixo). O *histórico* é um log de eventos append-only (§12) de onde se reconstroem arquivos, hall of fame e crónicas. Nunca se apaga nem reescreve um evento.
-3. **Níveis de detalhe (D5).** Cada entidade tem `lod`: `0` detalhe total (o teu clube, adversários próximos), `1` ficha completa mas simulação estatística, `2` ficha mínima (gerada ao ser vista), `3` só agregados. Entidades promovem/despromovem de nível conforme o interesse do jogador.
-4. **Determinismo.** Todo o motor recebe uma `seed` e um gerador pseudoaleatório explícito; mesma seed + mesmas decisões = mesmo mundo. Obrigatório para o harness de calibração.
-5. **Sem referências a clubes reais (D6).** Dados importáveis (RZ-904) seguem o mesmo esquema.
-6. **Dinheiro em euros inteiros** (`number` inteiro, sem decimais); percentagens em 0-1; atributos em 1-20; reputação e traços conforme abaixo.
-7. **Tempo.** `Data = { ano, mes, dia }` (calendário real); `Epoca = ano de início` (2026 = 2026/27). O motor avança por dias; os jogos têm `jornada`.
+2. **Estado vs. histórico.** O *estado* é o agora (tabelas abaixo). O *histórico* é um log de eventos append-only (§12) de onde se reconstroem arquivos, hall of fame e crónicas. Nunca se apaga nem reescreve um evento. Persistência em SQLite; detalhes, esquema e visibilidade em `HISTORICO_EVENTOS.md`.
+3. **Verdade vs. conhecimento.** Atributos, potencial, personalidade, finanças e termos de contratos são *verdade* oculta; a UI vê-os só através de observações (`HISTORICO_EVENTOS.md` §5). Estatísticas de jogo (golos, cartões, lesões, minutos) são públicas.
+4. **Níveis de detalhe (D5).** Cada entidade tem `lod`: `0` detalhe total (o teu clube, adversários próximos), `1` ficha completa mas simulação estatística, `2` ficha mínima (gerada ao ser vista), `3` só agregados. Entidades promovem/despromovem de nível conforme o interesse do jogador.
+5. **Determinismo.** Todo o motor recebe uma `seed` e um gerador pseudoaleatório explícito; mesma seed + mesmas decisões = mesmo mundo. Obrigatório para o harness de calibração.
+6. **Sem referências a clubes reais (D6).** Dados importáveis (RZ-904) seguem o mesmo esquema.
+7. **Dinheiro em euros inteiros** (`number` inteiro, sem decimais); percentagens em 0-1; atributos em 1-20; reputação e traços conforme abaixo.
+8. **Tempo.** `Data = { ano, mes, dia }` (calendário real); `Epoca = ano de início` (2026 = 2026/27). O motor avança por dias; os jogos têm `jornada`.
 
 ## 1. Mundo e calendário
 
@@ -168,7 +169,7 @@ Desempates: pontos → confronto direto → diferença de golos → golos marcad
 
 ## 12. Evento do histórico
 
-Esquema mínimo (detalhe em RZ-005):
+Esquema mínimo; **a versão final está em `HISTORICO_EVENTOS.md`** (visibilidade `publico|privado|secreto`, `causa`, `corrige`, factos de jogo compactos):
 
 ```ts
 type Evento = {
