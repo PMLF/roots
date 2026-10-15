@@ -1,4 +1,5 @@
 "use client";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { guardar, ler } from "@/ui/armazenamento";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -16,12 +17,27 @@ type Props<L> = {
   ordemInicial?: Ordem;
 };
 
+function lerOrdem(v: string | null, colunas: readonly { id: string }[]): Ordem | undefined {
+  const [coluna, direcao] = (v ?? "").split(":");
+  return coluna && (direcao === "asc" || direcao === "desc") && colunas.some((c) => c.id === coluna) ? { coluna, direcao } : undefined;
+}
+
 const eListaDeTexto = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
 
 /** A tabela única do jogo (TOM_E_UX §3.6): ordenar, filtrar, escolher colunas, exportar, setas e Enter. */
 export function Tabela<L>({ id, colunas, linhas, chave, celula = {}, nomeFicheiro, ordemInicial = null }: Props<L>) {
   const { t } = useT();
-  const [ordem, setOrdem] = useState<Ordem>(ordemInicial);
+  const params = useSearchParams();
+  // A ordenação escolhida fica no URL (`ord=coluna:asc|desc`, sem nova entrada no histórico) para sobreviver a «Voltar».
+  const [ordem, setOrdemEstado] = useState<Ordem>(() => lerOrdem(params.get("ord"), colunas) ?? ordemInicial);
+  const setOrdem = (f: (o: Ordem) => Ordem) => {
+    const nova = f(ordem);
+    setOrdemEstado(nova);
+    const url = new URL(window.location.href);
+    if (nova) url.searchParams.set("ord", `${nova.coluna}:${nova.direcao}`);
+    else url.searchParams.delete("ord");
+    window.history.replaceState(window.history.state, "", url);
+  };
   const [texto, setTexto] = useState("");
   const [visiveis, setVisiveis] = useState<string[] | undefined>(undefined);
   const [escolher, setEscolher] = useState(false);
@@ -89,7 +105,7 @@ export function Tabela<L>({ id, colunas, linhas, chave, celula = {}, nomeFicheir
               <th key={c.id} className={c.numerica ? "num" : undefined} aria-sort={ordem?.coluna === c.id ? (ordem.direcao === "asc" ? "ascending" : "descending") : "none"}>
                 <button type="button" className="cabecalho" onClick={() => setOrdem((o) => proximaOrdem(o, c.id))}>
                   {c.titulo}
-                  {ordem?.coluna === c.id ? (ordem.direcao === "asc" ? " ▲" : " ▼") : ""}
+                  <span className="seta" aria-hidden="true">{ordem?.coluna === c.id ? (ordem.direcao === "asc" ? "▲" : "▼") : "↕"}</span>
                 </button>
               </th>
             ))}

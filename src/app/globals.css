@@ -233,3 +233,8 @@ legend { padding: 0 6px; color: var(--suave); }
 .menu-interruptor [aria-checked="true"] .interruptor { background: var(--aviso); }
 .menu-interruptor [aria-checked="true"] .interruptor::after { transform: translateX(12px); }
 @media (prefers-reduced-motion: reduce) { .interruptor, .interruptor::after { transition: none; } }
+
+/* ---- Tabelas: cabeçalhos clicáveis para ordenar ---- */
+.cabecalho { cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.cabecalho .seta { font-size: 10px; opacity: .35; }
+th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:hover .seta { opacity: 1; }
