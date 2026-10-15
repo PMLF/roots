@@ -8,7 +8,7 @@ Jogo de browser de gestão de futebol português com **clubes ligados a cidades*
 ## Ler primeiro
 1. `BACKLOG.md` — fonte de verdade: o que fazer, por fases e prioridade.
 2. `docs/DESIGN_REGRAS.md` (pirâmide, prémio, distritais, sinergias), `docs/MODELO_DADOS.md`, `docs/PERSONALIDADE.md`, `docs/HISTORICO_EVENTOS.md`, `docs/TOM_E_UX.md`, `docs/UI_SISTEMA.md`, `docs/GERACAO_MUNDO.md`, `docs/CIDADE.md`.
-3. `data/` — 298 clubes, 276 concelhos, rivalidades. Fontes editáveis em `data/src/`; `python3 tools/build_dados.py` regenera e valida; `python3 tools/build_xlsx.py` gera `Clubes_Raizes.xlsx`.
+3. `data/` — 298 clubes, 275 concelhos, rivalidades. Fontes editáveis em `data/src/`; `python3 tools/build_dados.py` regenera e valida; `python3 tools/build_xlsx.py` gera `Clubes_Raizes.xlsx`.
 
 ## Stack e convenções
 - Next.js + TypeScript + React; sem backend; persistência em **SQLite** (WASM/OPFS no browser, better-sqlite3 em Node) — ver `docs/HISTORICO_EVENTOS.md`.

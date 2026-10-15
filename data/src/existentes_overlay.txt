@@ -13,7 +13,7 @@ SC Ilha do Pico|Madalena|AC Horta
 GD Terceirense 1917|Angra do Heroísmo|FC Praia da Vitória
 AD Câmara de Lobos|Câmara de Lobos|SC Funchal
 CN Machico|Machico|GD Santa Cruz
-Clube Sport Sagres|Faro|GD Olhanense
+Clube Sport Sagres|Vila do Bispo|GD Olhanense|Sagres
 Serpa Atlético Clube|Serpa|AC Moura|Serpa
 CD Matelense|Vimioso|AD Mirandelense|Matela
 Atlético de Coimbra|Coimbra|Coimbra Sport Clube
@@ -42,7 +42,7 @@ Torres Vedras FC|Torres Vedras|Lourinhã FC
 UD Saldanha|Lisboa|AD Alfama
 GD Lomba|Gondomar|SC Valongo
 SC Valongo|Valongo|GD Lomba
-FC Varziela|Porto|CD Gaia
+FC Varziela|Felgueiras|CD Gaia|Varziela
 UD Ílhavo|Ílhavo|Aveirense Futebol Clube
 Atlético Oliveira de Azeméis|Oliveira de Azeméis|AC Santa Maria da Feira
 FC Elvas Fronteira|Elvas|SC Campo Maior

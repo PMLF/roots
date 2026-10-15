@@ -105,7 +105,7 @@ albufeira@albufeira,Albufeira,Albufeira,Faro,21000,cidade,sim,AC Albufeirense
 alcoutim@alcoutim,Alcoutim,Alcoutim,Faro,1800,vila,sim,AC Alcoutim
 aljezur@aljezur,Aljezur,Aljezur,Faro,4200,vila,sim,AD Aljezur
 castro-marim@castro-marim,Castro Marim,Castro Marim,Faro,4600,vila,sim,CD Castromarinense
-faro@faro,Faro,Faro,Faro,33500,cidade,sim,Clube Sport Sagres
+faro@faro,Faro,Faro,Faro,33500,cidade,sim,Juventude de Faro
 carvoeiro@lagoa-algarve,Carvoeiro,Lagoa (Algarve),Faro,3200,vila,não,AC Lagoense
 lagos@lagos,Lagos,Lagos,Faro,16500,cidade,sim,AD Lagos
 loule@loule,Loulé,Loulé,Faro,36000,cidade,sim,Louletano Atlético
@@ -113,9 +113,9 @@ monchique@monchique,Monchique,Monchique,Faro,3800,vila,sim,GD Monchiquense
 olhao@olhao,Olhão,Olhão,Faro,22500,cidade,sim,GD Olhanense
 portimao@portimao,Portimão,Portimão,Faro,29500,cidade,sim,FC Portimão
 silves@silves,Silves,Silves,Faro,18500,cidade,sim,UD Silvense
-sao-bras-de-alportel@sao-bras-de-alportel,São Brás de Alportel,São Brás de Alportel,Faro,6100,vila,sim,GD São Brás de Alportel
 tavira@tavira,Tavira,Tavira,Faro,14300,cidade,sim,GD Tavirense
 vila-real-de-santo-antonio@vila-real-de-santo-antonio,Vila Real de Santo António,Vila Real de Santo António,Faro,11000,cidade,sim,UD Vila Real de Santo António
+sagres@vila-do-bispo,Sagres,Vila do Bispo,Faro,1900,vila,não,Clube Sport Sagres
 almeida@almeida,Almeida,Almeida,Guarda,4200,vila,sim,UD Almeidense
 celorico-da-beira@celorico-da-beira,Celorico da Beira,Celorico da Beira,Guarda,5200,vila,sim,FC Celorico da Beira
 castelo-rodrigo@figueira-de-castelo-rodrigo,Castelo Rodrigo,Figueira de Castelo Rodrigo,Guarda,450,aldeia,não,AC Rodriguense
@@ -196,6 +196,7 @@ sousel@sousel,Sousel,Sousel,Portalegre,3200,vila,sim,CD Sousel
 amarante@amarante,Amarante,Amarante,Porto,26000,cidade,sim,UD Amarante
 baiao@baiao,Baião,Baião,Porto,9600,cidade,sim,SC Baionense
 felgueiras@felgueiras,Felgueiras,Felgueiras,Porto,28000,cidade,sim,UD Felgueiras
+varziela@felgueiras,Varziela,Felgueiras,Porto,900,aldeia,não,FC Varziela
 lomba@gondomar,Lomba,Gondomar,Porto,3000,vila,não,GD Lomba
 lousada@lousada,Lousada,Lousada,Porto,23500,cidade,sim,Lousada Desportivo
 maia@maia,Maia,Maia,Porto,103000,cidade,sim,Maia Atlético Clube
@@ -205,7 +206,6 @@ matosinhos@matosinhos,Matosinhos,Matosinhos,Porto,129500,cidade,sim,FC Leixonens
 paredes@paredes,Paredes,Paredes,Porto,42800,cidade,sim,GD Paredes
 pacos-de-ferreira@pacos-de-ferreira,Paços de Ferreira,Paços de Ferreira,Porto,27800,cidade,sim,SC Paços de Ferreira
 penafiel@penafiel,Penafiel,Penafiel,Porto,36200,cidade,sim,Atlético Penafidelense
-porto@porto,Porto,Porto,Porto,173800,cidade,sim,FC Varziela
 povoa-de-varzim@povoa-de-varzim,Póvoa de Varzim,Póvoa de Varzim,Porto,33200,cidade,sim,AC Póvoa de Varzim
 santo-tirso@santo-tirso,Santo Tirso,Santo Tirso,Porto,34000,cidade,sim,UD Tirsense
 trofa@trofa,Trofa,Trofa,Porto,18500,cidade,sim,Trofa Atlético Clube

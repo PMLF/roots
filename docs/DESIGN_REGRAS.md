@@ -130,7 +130,7 @@ Cada clube pertence a um **concelho** (= a Câmara e o orçamento municipal). Ca
 | Ficheiro | Conteúdo |
 |---|---|
 | `clubes.csv` | 298 clubes: 58 do ficheiro original + 240 novos (40 CP + 200 distritais) |
-| `cidades.csv` | 276 concelhos com população, orçamento municipal, setores, polo e presidente da Câmara com 5 traços de personalidade |
+| `cidades.csv` | 275 concelhos com população, orçamento municipal, setores, polo e presidente da Câmara com 5 traços de personalidade |
 | `distritos.csv` | Contagem por escalão e série do CP de cada distrito |
 | `rivalidades.csv` | Pares de rivais com marcas de mútuo/mesmo concelho/mesmo polo |
 | `src/` | Fontes editáveis; `python3 tools/build_dados.py` regenera tudo e valida |

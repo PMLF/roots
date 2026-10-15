@@ -10,6 +10,8 @@ Zambujeira do Mar|Odemira|1000
 Lomba|Gondomar|3000
 Moita dos Ferreiros|Lourinhã|1100
 Matela|Vimioso|150
+Sagres|Vila do Bispo|1900
+Varziela|Felgueiras|900
 Vila do Corvo|Corvo|400
 Caldas das Taipas|Guimarães|6500
 Izeda|Bragança|1000

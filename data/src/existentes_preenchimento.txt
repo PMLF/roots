@@ -3,7 +3,7 @@ CD Matelense|Transmontanos|Montanheiro
 Atlético de Coimbra|Conimbricenses|Lente
 JD Golegã||Cavalo Lusitano
 Serpa Atlético Clube|Queijeiros|Queijo Serpa
-Clube Sport Sagres|Farenses|Camaleão
+Clube Sport Sagres|Navegadores|Camaleão
 FC Estrela Serrana|Serranos|Estrela
 SU Évora Velha|Eborenses|Templo Romano
 Académico da Guarda|Altaneiros|Cão de Guarda
@@ -20,7 +20,7 @@ Atlético Oliveira de Azeméis||Oliveira Falante
 CA Zambujeira do Mar|Zambujeirenses|Percebe
 FC Elvas Fronteira|Elvenses|Ameixa de Elvas
 FC Montemor-o-Velho||Grão de Arroz
-FC Varziela||Tripeiro
+FC Varziela|Varzielenses|Lavrador
 SC Marvão|Marvanenses|Águia
 UD Odemira|Odemirenses|Framboesa
 UD Ílhavo||Bacalhau
