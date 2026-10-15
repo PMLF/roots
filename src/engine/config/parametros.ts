@@ -73,6 +73,35 @@ export type Parametros = {
   cidade: { eleicoesAutarquicasAnos: number };
   /** Estatuto das localidades (RZ-136; docs/CIDADE.md §6b): limiares de população com histerese. */
   localidade: { limiarVila: number; limiarCidade: number; histerese: number };
+  /** Motor de jogo por oportunidades (RZ-104; docs/MOTOR_JOGO.md). Escalas de atributos: 1-20. */
+  jogo: {
+    /** Minutos regulares e acréscimos (total, sorteado por jogo). */
+    duracao: number;
+    acrescimos: { min: number; max: number };
+    /** Oportunidades por equipa num jogo equilibrado (o total do jogo é o dobro). */
+    oportunidadesPorEquipa: number;
+    /** Vantagem de jogar em casa, em pontos de "controlo" (1-20). */
+    vantagemCasa: number;
+    /** Pontos de diferença de controlo que dão ~73 % das oportunidades ao mais forte. */
+    escalaControlo: number;
+    /** Quanto a diferença ataque-defesa (em pontos de atributo) pesa no remate e no xG. */
+    sensibilidade: { remate: number; xg: number };
+    pRemateBase: number;
+    /** xG de uma oportunidade: base + amplitude · u^expoente, com u uniforme. Média ≈ base + amplitude/(expoente+1). */
+    xg: { base: number; amplitude: number; expoente: number; min: number; max: number };
+    penalti: { xg: number; pPorFalta: number };
+    /** Peso do finalizador e do guarda-redes na probabilidade de golo (em unidades de logit por 10 pontos de atributo). */
+    peso: { finalizacao: number; guardaRedes: number };
+    pBloqueado: number;
+    aBaliza: { base: number; porXg: number; max: number };
+    cantos: { pSeBloqueado: number; pSeDefendido: number; pRemate: number; fatorXg: number };
+    faltas: { porEquipa: number; pLivreRemate: number };
+    pAssistido: number;
+    /** Peso de cada posição a rematar, a assistir e a cabecear (cantos). */
+    pesoRemate: Record<string, number>;
+    pesoAssistencia: Record<string, number>;
+    pesoCabeceamento: Record<string, number>;
+  };
   /** Geração do mundo e das pessoas (GERACAO_MUNDO, MODELO_DADOS §15). */
   mundo: {
     talento: {
@@ -194,6 +223,26 @@ export const PARAMETROS_PADRAO: Parametros = {
   },
   cidade: { eleicoesAutarquicasAnos: 4 },
   localidade: { limiarVila: 1500, limiarCidade: 8000, histerese: 0.1 },
+  jogo: {
+    duracao: 90,
+    acrescimos: { min: 3, max: 8 },
+    oportunidadesPorEquipa: 24,
+    vantagemCasa: 0.9,
+    escalaControlo: 4,
+    sensibilidade: { remate: 0.3, xg: 0.2 },
+    pRemateBase: 0.42,
+    xg: { base: 0.02, amplitude: 0.42, expoente: 4, min: 0.01, max: 0.85 },
+    penalti: { xg: 0.76, pPorFalta: 0.012 },
+    peso: { finalizacao: 0.9, guardaRedes: 0.9 },
+    pBloqueado: 0.2,
+    aBaliza: { base: 0.28, porXg: 1.4, max: 0.95 },
+    cantos: { pSeBloqueado: 0.25, pSeDefendido: 0.2, pRemate: 0.35, fatorXg: 0.65 },
+    faltas: { porEquipa: 12, pLivreRemate: 0.06 },
+    pAssistido: 0.72,
+    pesoRemate: { GR: 0, DD: 0.4, DC: 0.5, DE: 0.4, MDC: 0.5, MC: 1.4, MO: 3, ED: 3, EE: 3, PL: 5 },
+    pesoAssistencia: { GR: 0.05, DD: 1.5, DC: 0.4, DE: 1.5, MDC: 1, MC: 3, MO: 3, ED: 2.5, EE: 2.5, PL: 1.2 },
+    pesoCabeceamento: { GR: 0, DD: 0.4, DC: 3, DE: 0.4, MDC: 1, MC: 0.6, MO: 0.4, ED: 0.4, EE: 0.4, PL: 2.5 },
+  },
   mundo: {
     talento: { muIndice0: 6.5, muIndice100: 10.5, sigma: 2.4, epsIndice0: 0.004, epsIndice100: 0.02, paretoAlfa: 2.4, paretoEscala: 3 },
     qualidadeAlvo: {
@@ -291,6 +340,14 @@ export function validarParametros(p: Parametros): string[] {
   if (!(k.personalidade.limiarBaixo < k.personalidade.limiarAlto)) erros.push("conhecimento.personalidade: limiarBaixo < limiarAlto");
   if (k.personalidade.maxRotulos < 1) erros.push("conhecimento.personalidade: maxRotulos ≥ 1");
   if (k.personalidade.probTrocaPiorQualidade < 0 || k.personalidade.probTrocaPiorQualidade > 1) erros.push("conhecimento.personalidade: probTrocaPiorQualidade entre 0 e 1");
+  const j = p.jogo;
+  if (!(j.duracao > 0 && j.acrescimos.min >= 0 && j.acrescimos.min <= j.acrescimos.max)) erros.push("jogo: duracao > 0 e 0 ≤ acrescimos.min ≤ max");
+  if (!(j.oportunidadesPorEquipa > 0 && j.escalaControlo > 0)) erros.push("jogo: oportunidadesPorEquipa e escalaControlo > 0");
+  for (const [n, x] of [["pRemateBase", j.pRemateBase], ["pBloqueado", j.pBloqueado], ["pAssistido", j.pAssistido], ["penalti.xg", j.penalti.xg], ["penalti.pPorFalta", j.penalti.pPorFalta], ["faltas.pLivreRemate", j.faltas.pLivreRemate], ["cantos.pSeBloqueado", j.cantos.pSeBloqueado], ["cantos.pSeDefendido", j.cantos.pSeDefendido], ["cantos.pRemate", j.cantos.pRemate], ["aBaliza.max", j.aBaliza.max]] as const)
+    if (!(x >= 0 && x <= 1)) erros.push(`jogo.${n} entre 0 e 1`);
+  if (!(j.xg.min > 0 && j.xg.min < j.xg.max && j.xg.max < 1 && j.xg.base >= 0 && j.xg.amplitude > 0 && j.xg.expoente > 0)) erros.push("jogo.xg: 0 < min < max < 1, base ≥ 0, amplitude e expoente > 0");
+  for (const t of [j.pesoRemate, j.pesoAssistencia, j.pesoCabeceamento])
+    for (const pos of ["GR", "DD", "DC", "DE", "MDC", "MC", "MO", "ED", "EE", "PL"]) if (!(((t[pos] as number | undefined) ?? -1) >= 0)) erros.push(`jogo: peso em falta ou negativo para ${pos}`);
   const lo = p.localidade;
   if (!(lo.limiarVila > 0 && lo.limiarVila < lo.limiarCidade)) erros.push("localidade: 0 < limiarVila < limiarCidade");
   if (!(lo.histerese >= 0 && lo.histerese < 0.5)) erros.push("localidade.histerese entre 0 e 0.5");
