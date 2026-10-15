@@ -57,3 +57,5 @@ Coimbra Sport Clube|Coimbra|Atlético de Coimbra
 FC Montemor-o-Velho|Montemor-o-Velho|UD Sourense
 União Desportiva Vimiosa|Vimioso|UD Izeda
 Grémio Ferroviário do Entroncamento|Entroncamento|JD Golegã
+Atlético de Chaves|Chaves|SC Flaviense
+Sambrasense Atlético Clube|São Brás de Alportel|Louletano Atlético

@@ -65,6 +65,8 @@ O que se guarda está em **inglês** (posições GK, RB, CB, LB, DM, CM, AM, RW,
 - **Página da liga** (`type=competition`): cartão horizontal «Destaques da competição» no topo (primeiro de cada estatística); carregar nele abre o top 10 de cada lista e a classificação de todas as equipas em ataque e defesa. Por baixo, à esquerda a classificação com zonas (campeão dourado, subida verde, descida vermelha) e à direita as duas jornadas empilhadas (a mais antiga em cima) com «Anterior/Seguinte». Separadores: Resumo, Clubes, História.
 - Sem época a correr (antes do RZ-119) o calendário é uma **prévia** e a tabela segue a reputação; um aviso di-lo. Destaques ficam vazios até haver jogos. Competições a eliminar: RZ-151.
 
+- **Estatísticas (RZ-153):** o cartão de destaques não tem título; carregar nele ou em «Ver mais» abre o separador `tab=stats` (top 10, equipas, jogadores). O conteúdo ocupa a largura toda de `<main>`; cartões lado a lado esticam à mesma altura. Segunda Liga com 20 clubes.
+
 ## 4. Fica para depois
 
 Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já existem e abrem uma ficha «em breve»; separadores *Jogos*, *Carreira*, *História* (precisam de jogos e eventos); conjuntos de colunas com nome; atalhos por secção; «Caixa»/jornal e barra inferior com dados (RZ-120).

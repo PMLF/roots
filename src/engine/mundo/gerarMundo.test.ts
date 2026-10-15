@@ -27,7 +27,7 @@ describe("distribuir posições", () => {
   });
 });
 
-describe("gerarMundo (298 clubes)", () => {
+describe("gerarMundo (300 clubes)", () => {
   const t0 = Date.now();
   const lote = mundo("teste-1");
   const ms = Date.now() - t0;

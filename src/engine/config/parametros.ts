@@ -319,7 +319,7 @@ export const PARAMETROS_PADRAO: Parametros = {
   premios: { clube: 2_000_000, cidade: 1_000_000 },
   piramide: {
     primeiraLiga: { clubes: 20, descem: 3 },
-    segundaLiga: { clubes: 18, sobem: 3, descem: 3 },
+    segundaLiga: { clubes: 20, sobem: 3, descem: 3 },
     terceiraLiga: { clubes: 20, sobem: 3, descem: 4 },
     cp: { series: 4, clubesPorSerie: 10, sobemPorSerie: 1 },
     promocao: { grupos: 4, campeoesPorGrupo: 5, promovidosPorGrupo: 2, voltas: 1 },

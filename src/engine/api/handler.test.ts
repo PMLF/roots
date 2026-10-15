@@ -36,7 +36,7 @@ describe("handler do motor", () => {
     expect(await tratar({ id: 5, tipo: "estadoMundo", entrada: null }, s2)).toBeNull(); // ver o estado não gera nada
     const fases = new Set<string>();
     const r = await tratar({ id: 6, tipo: "criarMundo", entrada: { seed: "abc" } }, s2, (p) => fases.add(p.fase));
-    expect(r).toMatchObject({ seed: "abc", clubes: 298, jaExistia: false });
+    expect(r).toMatchObject({ seed: "abc", clubes: 300, jaExistia: false });
     expect(r.pessoas).toBeGreaterThan(12000);
     expect([...fases]).toEqual(expect.arrayContaining(["clubes", "livres", "validar", "guardar"]));
     expect(await tratar({ id: 10, tipo: "estadoMundo", entrada: null }, s2)).toMatchObject({ seed: "abc", jaExistia: true, pessoas: r.pessoas });
@@ -89,7 +89,7 @@ describe("handler do motor", () => {
     const sl = servicosDeTeste();
     await tratar({ id: 30, tipo: "criarMundo", entrada: { seed: "loc" } }, sl);
     const { repositorio } = await sl.abrirRepositorio();
-    expect(repositorio.localidades().length).toBe(297);
+    expect(repositorio.localidades().length).toBe(298);
     repositorio.atualizarLocalidade("matela@vimioso", { populacao: 1700, estatuto: "vila", data: "2031-06-30", epoca: 5 });
     const f = (await tratar({ id: 31, tipo: "fichaLocalidade", entrada: { id: "matela@vimioso" } }, sl))!;
     expect(f).toMatchObject({ estatuto: "vila", populacao: 1700, desde: "2031-06-30", historico: [{ de: "aldeia", para: "vila", populacao: 1700 }] });
@@ -109,7 +109,7 @@ describe("handler do motor", () => {
     expect(b.pessoas).toBe(a.pessoas);
     expect(depois.filter((x) => x.k === "pessoa").map((x) => x.id)).not.toEqual(antes.filter((x) => x.k === "pessoa").map((x) => x.id));
     const { repositorio } = await sl.abrirRepositorio();
-    expect(repositorio.localidades().length).toBe(297);
+    expect(repositorio.localidades().length).toBe(298);
     expect(repositorio.meta("seed")).toBe("segunda");
   });
 
@@ -120,9 +120,9 @@ describe("handler do motor", () => {
     repositorio.guardarMundo({ pessoas: [{ id: "p1", nome: "A B", nomeDesportivo: "A B", nascimento: "2000-01-01", nacionalidade: "pt", papeis: ["jogador"], personalidade: {}, arquetipo: "comum", lod: 2 }], jogadores: [], contratos: [], cargos: [] });
     expect(repositorio.localidades()).toEqual([]);
     expect(await tratar({ id: 50, tipo: "estadoMundo", entrada: null }, sl)).toMatchObject({ jaExistia: true });
-    expect(repositorio.localidades().length).toBe(297);
+    expect(repositorio.localidades().length).toBe(298);
     expect(await tratar({ id: 51, tipo: "estadoMundo", entrada: null }, sl)).toMatchObject({ jaExistia: true }); // idempotente
-    expect(repositorio.localidades().length).toBe(297);
+    expect(repositorio.localidades().length).toBe(298);
   });
 });
 
@@ -218,6 +218,8 @@ describe("competition page (RZ-145)", () => {
     expect(d.highlights.defenceRanking).toHaveLength(20);
     expect(d.highlights.defenceRanking[0]!.value).toBe(0);
     expect(d.highlights.mostYellow).toHaveLength(2);
+    expect(d.players.length).toBeGreaterThanOrEqual(22);
+    expect(d.players.find((p) => p.goals === 3)).toMatchObject({ games: 1, minutes: 90 });
     expect(d.highlights.bestRated).toEqual([]); // só 1 jogo com nota, mínimo é 3
   });
 });

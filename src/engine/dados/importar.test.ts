@@ -39,22 +39,22 @@ describe("importarDados com os CSV reais", () => {
   const d = importarOk();
 
   it("tem os totais esperados", () => {
-    expect(d.clubes).toHaveLength(298);
-    expect(d.cidades).toHaveLength(275);
+    expect(d.clubes).toHaveLength(300);
+    expect(d.cidades).toHaveLength(276);
     expect(d.distritos).toHaveLength(20);
-    expect(d.rivalidades).toHaveLength(209);
+    expect(d.rivalidades).toHaveLength(211);
   });
 
-  it("respeita a pirâmide: 20/18/20 + 4×10 CP + 20×10 distritais", () => {
+  it("respeita a pirâmide: 20/20/20 + 4×10 CP + 20×10 distritais", () => {
     const n = (e: string) => d.clubes.filter((c) => c.escalao === e).length;
-    expect([n("primeiraLiga"), n("segundaLiga"), n("terceiraLiga"), n("cp"), n("distrital")]).toEqual([20, 18, 20, 40, 200]);
+    expect([n("primeiraLiga"), n("segundaLiga"), n("terceiraLiga"), n("cp"), n("distrital")]).toEqual([20, 20, 20, 40, 200]);
     for (const s of ["A", "B", "C", "D"]) expect(d.clubes.filter((c) => c.liga === `CP Série ${s}`)).toHaveLength(10);
   });
 
   it("liga cada clube ao seu concelho e vice-versa", () => {
     const cidades = new Map(d.cidades.map((c) => [c.id, c]));
     for (const c of d.clubes) expect(cidades.get(c.cidade)?.clubes).toContain(c.id);
-    expect(d.cidades.reduce((s, c) => s + c.clubes.length, 0)).toBe(298);
+    expect(d.cidades.reduce((s, c) => s + c.clubes.length, 0)).toBe(300);
   });
 
   it("converte os traços do autarca de 1-10 para 1-20 e guarda apoioDesporto à parte", () => {
@@ -147,7 +147,7 @@ describe("importarDados rejeita dados maus (acumula todos os erros)", () => {
 describe("localidades (RZ-136)", () => {
   it("cada clube tem a sua localidade, dentro do mesmo concelho", () => {
     const d = importarOk();
-    expect(d.localidades.length).toBe(297);
+    expect(d.localidades.length).toBe(298);
     const porId = new Map(d.localidades.map((l) => [l.id, l]));
     for (const c of d.clubes) {
       const l = porId.get(c.localidadeId)!;

@@ -85,7 +85,6 @@ legend { padding: 0 6px; color: var(--suave); }
 .topo > button { border-radius: 999px; padding: 5px 12px; color: var(--suave); }
 
 .centro { grid-area: centro; overflow: auto; padding: 8px 24px 32px; }
-.centro > * { max-width: 1120px; }
 .barra { grid-area: barra; display: flex; gap: 20px; padding: 8px 24px; color: var(--suave); font-size: 12px; border-top: 1px solid var(--linha); background: var(--fundo); }
 .barra b { color: var(--texto); font-weight: 600; }
 
@@ -279,14 +278,10 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .jornadas-barra h2 { font-size: 16px; }
 .jornadas-par { display: grid; gap: 12px; }
 .jornadas-par .jogos-lista li { font-size: 13px; }
-.painel-destaques { position: relative; cursor: pointer; }
-.painel-destaques-botao { position: absolute; top: -34px; right: 0; border: 0; background: none; color: var(--suave); padding: 2px 8px; }
-.painel-destaques-botao:hover { color: var(--texto); background: none; }
 .destaque-mosaicos { display: grid; grid-template-columns: repeat(auto-fit, minmax(125px, 1fr)); gap: 8px 16px; }
 .destaque-mosaico { display: flex; flex-direction: column; font-size: 13px; min-width: 0; }
 .destaque-mosaico > .suave { font-size: 12px; }
 .destaque-valor { font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
-.destaque-detalhe { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px 28px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--linha); cursor: default; }
 .bloco-lista h3 { font-size: 13px; margin: 0 0 6px; }
 .seletor-ligas { position: relative; display: inline-block; margin: 6px 0 14px; }
 .seletor-ligas > button { border-radius: 999px; padding: 5px 14px; background: var(--painel); }
@@ -298,7 +293,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .seletor-painel fieldset > label { grid-column: auto; }
 .seletor-painel label { display: flex; align-items: center; gap: 8px; line-height: 1.3; }
 .seletor-painel input[type="checkbox"] { margin: 0; flex: none; }
-.ligas-grelha { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 364px)); gap: 14px; align-items: start; justify-content: start; }
+.ligas-grelha { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, calc((100% - 28px) / 3))); gap: 14px; align-items: stretch; justify-content: start; }
 .ligas-grelha .cartao { padding: 12px 14px 14px; }
 .cartao-sub { margin: -4px 0 6px; font-size: 12px; }
 .ligas-grelha .tabela td, .ligas-grelha .tabela th { padding: 3px 6px; font-size: 12.5px; }
@@ -307,3 +302,13 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .destaques-mini li { display: flex; flex-direction: column; min-width: 0; }
 .destaques-mini li > span:last-child { font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .legenda-zonas { margin-top: 6px; }
+
+/* ---- Destaques (cartão sem título) e separador Estatísticas ---- */
+.cartao-destaques { cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: start; }
+.cartao-destaques .destaque-mosaicos { min-width: 0; }
+.cartao-destaques-mais { border: 0; background: none; color: var(--destaque-texto); padding: 2px 6px; white-space: nowrap; font-weight: 600; }
+.cartao-destaques-mais:hover { background: none; text-decoration: underline; }
+.estatisticas { display: grid; gap: 14px; }
+.estatisticas-tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; align-items: stretch; }
+.estatisticas .destaque-lista li { font-size: 14px; }
+.destaque-lista .detalhe { color: var(--suave); font-size: 12px; margin-left: 6px; }

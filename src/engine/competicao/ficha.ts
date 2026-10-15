@@ -39,6 +39,8 @@ export type Round = {
 };
 
 export type PlayerStat = { player: string; name: string; club: string; clubName: string; value: number; games: number };
+/** Linha completa de um jogador na competição (separador Estatísticas). */
+export type PlayerRow = { player: string; name: string; club: string; clubName: string; position: string; age: number; games: number; minutes: number; goals: number; assists: number; yellow: number; red: number; rating?: number };
 export type ClubStat = { club: string; name: string; value: number };
 
 export type Highlights = {
@@ -70,6 +72,8 @@ export type CompetitionPage = {
   gamesPlayed: number;
   gamesTotal: number;
   highlights: Highlights;
+  /** Todos os jogadores com jogos ou golos nesta competição. */
+  players: PlayerRow[];
 };
 
 /** Quantos sobem e quantos descem em cada escalão (DESIGN_REGRAS §1). O campeão é sempre marcado. */
@@ -90,6 +94,12 @@ export function zoneOf(position: number, total: number, tier: Escalao, params: P
   if (position <= promoted) return "promotion";
   if (relegated > 0 && position > total - relegated) return "relegation";
   return undefined;
+}
+
+/** Idade a 1 de julho do ano inicial (a data de arranque do mundo). */
+function ageOn(birth: string, year: number): number {
+  const [y = 0, m = 1, d = 1] = birth.split("-").map(Number);
+  return year - y - (m > 7 || (m === 7 && d > 1) ? 1 : 0);
 }
 
 export function competitionPage(repo: Repositorio, dados: DadosBase, params: Parametros, league: string, season = 1): CompetitionPage | undefined {
@@ -162,6 +172,15 @@ export function competitionPage(repo: Repositorio, dados: DadosBase, params: Par
     defenceRanking,
   };
 
+  const players = stats.filter((s) => s.jogos > 0 || s.golos > 0 || s.assistencias > 0).map((s): PlayerRow => {
+    const pub = repo.pessoaPublica(s.jogador);
+    return {
+      player: s.jogador, name: pub?.nomeDesportivo ?? s.jogador, club: s.clube, clubName: clubName.get(s.clube) ?? s.clube,
+      position: pub?.jogador?.posicao ?? "", age: pub ? ageOn(pub.nascimento, params.calendario.anoInicial) : 0, games: s.jogos, minutes: s.minutos, goals: s.golos,
+      assists: s.assistencias, yellow: s.amarelos, red: s.vermelhos,
+      ...(s.avgRating !== undefined && s.ratedGames >= minRatedGames ? { rating: Math.round(s.avgRating * 100) / 100 } : {}),
+    };
+  });
   return {
     league,
     tier,
@@ -177,5 +196,6 @@ export function competitionPage(repo: Repositorio, dados: DadosBase, params: Par
     gamesPlayed: results.size,
     gamesTotal: jogos.length,
     highlights,
+    players,
   };
 }

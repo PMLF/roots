@@ -548,5 +548,19 @@
   "competicoes.padrao": "Padrão",
   "competicoes.profissionais": "Ligas profissionais",
   "competicoes.melhorAtaque": "Melhor ataque",
-  "competicoes.melhorDefesa": "Melhor defesa"
+  "competicoes.melhorDefesa": "Melhor defesa",
+  "separador.estatisticas": "Estatísticas",
+  "destaques.verMais": "Ver mais",
+  "coluna.jogador": "Jogador",
+  "coluna.golos": "Golos",
+  "coluna.assistencias": "Assist.",
+  "coluna.nota": "Nota",
+  "coluna.amarelos": "Amarelos",
+  "coluna.vermelhos": "Vermelhos",
+  "coluna.minutos": "Minutos",
+  "coluna.jogos": "Jogos",
+  "coluna.golosJogo": "Golos/jogo",
+  "coluna.sofridosJogo": "Sofridos/jogo",
+  "estatisticas.equipas": "Equipas",
+  "estatisticas.jogadores": "Todos os jogadores"
 }

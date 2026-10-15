@@ -6,7 +6,7 @@ export const TIPOS_FICHA: readonly TipoEntidadeFicha[] = ["clube", "cidade", "lo
 export const TIPO_URL: Record<TipoEntidadeFicha, string> = { clube: "club", cidade: "city", localidade: "locality", pessoa: "person", competicao: "competition" };
 export const SEPARADOR_URL: Record<string, string> = {
   resumo: "summary", plantel: "squad", staff: "staff", jogos: "matches", historia: "history", carreira: "career",
-  clubes: "clubs", autarca: "mayor", classificacao: "table", conhecimento: "knowledge",
+  clubes: "clubs", autarca: "mayor", classificacao: "table", conhecimento: "knowledge", estatisticas: "stats",
 };
 export const separadorDoUrl = (v: string | null): string | undefined => Object.entries(SEPARADOR_URL).find(([, u]) => u === v)?.[0];
 
@@ -28,5 +28,5 @@ export const SEPARADORES: Record<TipoEntidadeFicha, readonly string[]> = {
   pessoa: ["resumo", "carreira", "historia"],
   cidade: ["resumo", "clubes", "autarca", "historia"],
   localidade: ["resumo", "clubes", "historia"],
-  competicao: ["resumo", "clubes", "historia"],
+  competicao: ["resumo", "estatisticas", "clubes", "historia"],
 };
