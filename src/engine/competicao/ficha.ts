@@ -11,6 +11,8 @@ import { derivados, type Escalao, type NivelReputacao, type Parametros } from ".
 import type { DadosBase } from "../dados/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { JogoAgendado } from "../persistencia/tipos";
+import { nomeDaEpoca } from "../epoca/anoDoSave";
+import { epocaAtual } from "../epoca/piramideEpoca";
 import { tabelaDaCompeticao } from "./tabela";
 
 export type Zone = "champion" | "promotion" | "relegation";
@@ -62,6 +64,10 @@ export type CompetitionPage = {
   tier: Escalao;
   district?: string;
   season: number;
+  /** «2026/27» */
+  seasonLabel: string;
+  /** Épocas do save, da primeira à atual. */
+  seasons: { season: number; label: string }[];
   /** Calendário gerado só para mostrar (ainda não está gravado no save). */
   preview: boolean;
   clubs: { id: string; name: string; locality: string; reputation: number; reputationLevel: NivelReputacao; capacity: number }[];
@@ -102,7 +108,7 @@ function ageOn(birth: string, year: number): number {
   return year - y - (m > 7 || (m === 7 && d > 1) ? 1 : 0);
 }
 
-export function competitionPage(repo: Repositorio, dados: DadosBase, params: Parametros, league: string, season = 1): CompetitionPage | undefined {
+export function competitionPage(repo: Repositorio, dados: DadosBase, params: Parametros, league: string, season = epocaAtual(repo)): CompetitionPage | undefined {
   const clubs = dados.clubes.filter((c) => c.liga === league);
   if (clubs.length < 2) return undefined;
   const tier = (clubs[0] as { escalao: Escalao }).escalao;
@@ -176,7 +182,7 @@ export function competitionPage(repo: Repositorio, dados: DadosBase, params: Par
     const pub = repo.pessoaPublica(s.jogador);
     return {
       player: s.jogador, name: pub?.nomeDesportivo ?? s.jogador, club: s.clube, clubName: clubName.get(s.clube) ?? s.clube,
-      position: pub?.jogador?.posicao ?? "", age: pub ? ageOn(pub.nascimento, params.calendario.anoInicial) : 0, games: s.jogos, minutes: s.minutos, goals: s.golos,
+      position: pub?.jogador?.posicao ?? "", age: pub ? ageOn(pub.nascimento, params.calendario.anoInicial + season - 1) : 0, games: s.jogos, minutes: s.minutos, goals: s.golos,
       assists: s.assistencias, yellow: s.amarelos, red: s.vermelhos,
       ...(s.avgRating !== undefined && s.ratedGames >= minRatedGames ? { rating: Math.round(s.avgRating * 100) / 100 } : {}),
     };
@@ -186,6 +192,8 @@ export function competitionPage(repo: Repositorio, dados: DadosBase, params: Par
     tier,
     ...(tier === "distrital" ? { district: (clubs[0] as { distrito: string }).distrito } : {}),
     season,
+    seasonLabel: nomeDaEpoca(season, params.calendario.anoInicial),
+    seasons: Array.from({ length: epocaAtual(repo) }, (_, i) => ({ season: i + 1, label: nomeDaEpoca(i + 1, params.calendario.anoInicial) })),
     preview,
     clubs: [...clubs]
       .sort((a, b) => b.reputacao - a.reputacao || a.nome.localeCompare(b.nome, "pt"))

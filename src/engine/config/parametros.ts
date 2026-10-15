@@ -48,12 +48,14 @@ export type Parametros = {
     mesFimEpoca: number;
     janelas: { abre: { mes: number; dia: number }; fecha: { mes: number; dia: number } }[];
     diasPorAvanco: number;
-    /** A época 1 começa em agosto deste ano (2026 → 2026/27). */
+    /** Ano em que começa a época 1 (2026 → 2026/27). É só o valor por omissão: cada save guarda o seu (`ano.inicial`), calculado a partir da data real em que foi criado. As épocas mudam a 1 de julho (`mesInicioEpoca`). */
     anoInicial: number;
     /** Dia a partir do qual se procura o primeiro sábado de jornada. */
     primeiraJornada: { mes: number; dia: number };
     /** Último dia em que pode haver jornadas das ligas (a Fase de Promoção joga-se depois). */
     ultimaJornadaAte: { mes: number; dia: number };
+    /** Escalões que acabam mais cedo que `ultimaJornadaAte` (as distritais, para dar tempo à Fase de Promoção até maio). */
+    ultimaJornadaPorEscalao: Partial<Record<Escalao, { mes: number; dia: number }>>;
     /** Fins de semana sem jogos (inclusivo). `de` em agosto-dezembro é do ano em que a época começa; em janeiro-julho, do seguinte. */
     pausas: { motivo: string; de: { mes: number; dia: number }; ate: { mes: number; dia: number } }[];
     /** Dias da semana de jogo por escalão (0 = domingo … 6 = sábado); os jogos de uma jornada repartem-se por eles. */
@@ -343,8 +345,8 @@ export const PARAMETROS_PADRAO: Parametros = {
     ],
   },
   calendario: {
-    mesInicioEpoca: 8,
-    mesFimEpoca: 5,
+    mesInicioEpoca: 7,
+    mesFimEpoca: 6,
     janelas: [
       { abre: { mes: 7, dia: 1 }, fecha: { mes: 8, dia: 31 } },
       { abre: { mes: 1, dia: 1 }, fecha: { mes: 1, dia: 31 } },
@@ -353,6 +355,7 @@ export const PARAMETROS_PADRAO: Parametros = {
     anoInicial: 2026,
     primeiraJornada: { mes: 8, dia: 15 },
     ultimaJornadaAte: { mes: 5, dia: 18 },
+    ultimaJornadaPorEscalao: { distrital: { mes: 4, dia: 5 } },
     pausas: [
       { motivo: "seleções (setembro)", de: { mes: 9, dia: 4 }, ate: { mes: 9, dia: 10 } },
       { motivo: "seleções (outubro)", de: { mes: 10, dia: 9 }, ate: { mes: 10, dia: 15 } },
@@ -527,7 +530,7 @@ export function validarParametros(p: Parametros): string[] {
 
   const c = p.calendario;
   const dataOk = (d: { mes: number; dia: number }) => d.mes >= 1 && d.mes <= 12 && d.dia >= 1 && d.dia <= 31;
-  for (const d of [c.primeiraJornada, c.ultimaJornadaAte, ...c.pausas.flatMap((x) => [x.de, x.ate])]) if (!dataOk(d)) erros.push("calendario: datas com mês 1-12 e dia 1-31");
+  for (const d of [c.primeiraJornada, c.ultimaJornadaAte, ...Object.values(c.ultimaJornadaPorEscalao), ...c.pausas.flatMap((x) => [x.de, x.ate])]) if (!dataOk(d)) erros.push("calendario: datas com mês 1-12 e dia 1-31");
   for (const [esc, dias] of Object.entries(c.diasDeJogo))
     if (dias.length === 0 || dias.some((x) => x < 0 || x > 6)) erros.push(`calendario.diasDeJogo.${esc}: dias entre 0 e 6, pelo menos um`);
   if (c.jornadasFinaisSimultaneas < 0) erros.push("calendario: jornadasFinaisSimultaneas ≥ 0");

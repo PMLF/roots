@@ -1,5 +1,5 @@
 import { criarData } from "../calendario/datas";
-import { PARAMETROS_PADRAO } from "../config/parametros";
+import { PARAMETROS_PADRAO, type Parametros } from "../config/parametros";
 import { VERSAO_ESQUEMA as ESQUEMA_BD } from "../persistencia/esquema";
 import type { Repositorio } from "../persistencia/repositorio";
 import { importarDados } from "../dados/importar";
@@ -9,6 +9,7 @@ import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
 import { avancar, estadoDoTempo } from "../epoca/avancar";
+import { parametrosDoSave, anoDaEpocaQueContem, anoInicialDoSave, nomeDaEpoca } from "../epoca/anoDoSave";
 import { dadosDaEpoca, dadosDaPiramide, epocaAtual, historicoDeDivisoes } from "../epoca/piramideEpoca";
 import { vistaDoPlano } from "../epoca/vistaDoPlano";
 import { confirmarJogo, guardarPlano } from "../epoca/planoDeJogo";
@@ -34,6 +35,8 @@ export type Servicos = {
     versaoSqlite: string;
     motivoMemoria?: string;
   }>;
+  /** A data real de agora; define a época 1 do save (RZ-160). Por omissão o relógio do sistema. */
+  agora?(): Date;
 };
 
 /** Trata um pedido. Sem DOM nem worker, para ser testada diretamente. */
@@ -86,11 +89,11 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return pesquisar(m.entrada.q, indiceDePesquisa(repositorio, atuais), m.entrada.limite ?? 12);
     }
     case "fichaPessoa": {
-      const { repositorio, dados } = await contexto(servicos);
+      const { repositorio, dados, params } = await contexto(servicos);
       const ficha = vistaDoGamer(repositorio).ficha(m.entrada.id);
       if (!ficha) return null;
       const vista = vistaDoGamer(repositorio);
-      const saida: FichaPessoaDados = { ficha, stats: vista.statsJogador(m.entrada.id) };
+      const saida: FichaPessoaDados = { ficha, stats: vista.statsJogador(m.entrada.id), anoInicial: params.calendario.anoInicial };
       const contrato = repositorio.contrato(m.entrada.id);
       if (contrato) saida.contrato = { inicio: contrato.inicio, fim: contrato.fim };
       const nivel = nivelDoJogador(repositorio, m.entrada.id, ficha.publico.jogador?.posicao, ficha.atributos?.campos, m.entrada.verTudo === true);
@@ -103,7 +106,7 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return saida;
     }
     case "fichaClube": {
-      const { repositorio, dados, base } = await contexto(servicos);
+      const { repositorio, dados, base, params } = await contexto(servicos);
       const c = dados.clubes.find((x) => x.id === m.entrada.id);
       if (!c) return null;
       const verTudo = m.entrada.verTudo === true;
@@ -121,9 +124,9 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
         plantel: vista.plantel(c.id),
         cargos: vista.cargos({ clube: c.id }),
         escalao: c.escalao,
-        nivelReputacao: nivelDeReputacao(c.reputacao, PARAMETROS_PADRAO),
+        nivelReputacao: nivelDeReputacao(c.reputacao, params),
         estadioDetalhe: { propriedade: c.estadio.propriedade, zona: c.estadio.localizacao.zona, distanciaCentroKm: c.estadio.localizacao.distanciaCentroKm, transportes: c.estadio.localizacao.transportes, acessoRodoviario: c.estadio.localizacao.acessoRodoviario, estacionamento: c.estadio.localizacao.estacionamento, terrenoExpansao: c.estadio.localizacao.terrenoExpansao },
-        historicoDivisoes: historicoDeDivisoes(repositorio, base, c.id),
+        historicoDivisoes: historicoDeDivisoes(repositorio, base, c.id).map((h) => ({ ...h, label: nomeDaEpoca(h.epoca, params.calendario.anoInicial) })),
         plantelExtra: {},
       };
       for (const j of saida.plantel) {
@@ -144,11 +147,11 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return saida;
     }
     case "fichaLocalidade": {
-      const { repositorio, dados } = await contexto(servicos);
+      const { repositorio, dados, params } = await contexto(servicos);
       const base = dados.localidades.find((x) => x.id === m.entrada.id);
       if (!base) return null;
       // antes de haver mundo mostra-se o estado de arranque
-      const atual = repositorio.localidade(m.entrada.id) ?? { populacao: base.populacao, estatuto: base.estatuto, desde: criarData(PARAMETROS_PADRAO.calendario.anoInicial, 7, 1) };
+      const atual = repositorio.localidade(m.entrada.id) ?? { populacao: base.populacao, estatuto: base.estatuto, desde: criarData(params.calendario.anoInicial, 7, 1) };
       const cidade = dados.cidades.find((x) => x.id === base.cidade);
       const historico = repositorio
         .eventosDe({ k: "localidade", id: base.id }, { apenasPublicos: true, tipo: "LOCALIDADE_ESTATUTO" })
@@ -167,19 +170,19 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
     case "competicoes":
       return competicoesDoMundo((await contexto(servicos)).dados);
     case "competitionPage": {
-      const { repositorio, dados, base } = await contexto(servicos);
+      const { repositorio, dados, base, params } = await contexto(servicos);
       const atual = epocaAtual(repositorio);
       const epoca = m.entrada.season ?? atual;
       if (epoca < 1 || epoca > atual) return null;
-      return competitionPage(repositorio, epoca === atual ? dados : dadosDaPiramide(repositorio, base, epoca), PARAMETROS_PADRAO, m.entrada.league, epoca) ?? null;
+      return competitionPage(repositorio, epoca === atual ? dados : dadosDaPiramide(repositorio, base, epoca), params, m.entrada.league, epoca) ?? null;
     }
     case "laboratorioJogo": {
-      const { repositorio, dados } = await contexto(servicos);
-      return jogoLab(repositorio, dados, PARAMETROS_PADRAO, m.entrada);
+      const { repositorio, dados, params } = await contexto(servicos);
+      return jogoLab(repositorio, dados, params, m.entrada);
     }
     case "laboratorioLiga": {
-      const { repositorio, dados } = await contexto(servicos);
-      return ligaLab(repositorio, dados, PARAMETROS_PADRAO, m.entrada);
+      const { repositorio, dados, params } = await contexto(servicos);
+      return ligaLab(repositorio, dados, params, m.entrada);
     }
     case "clubeDoGamer": {
       const { repositorio } = await servicos.abrirRepositorio();
@@ -195,16 +198,16 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return { id: m.entrada.id };
     }
     case "plano": {
-      const { repositorio, dados } = await contexto(servicos);
+      const { repositorio, dados, params } = await contexto(servicos);
       const clube = repositorio.meta("clube.gamer");
-      return clube ? vistaDoPlano(repositorio, dados, PARAMETROS_PADRAO, clube) : null;
+      return clube ? vistaDoPlano(repositorio, dados, params, clube) : null;
     }
     case "guardarPlano": {
-      const { repositorio, dados } = await contexto(servicos);
+      const { repositorio, dados, params } = await contexto(servicos);
       const clube = repositorio.meta("clube.gamer");
       if (!clube) throw new Error("Ainda não escolheste o clube");
       guardarPlano(repositorio, clube, { tatica: m.entrada.tatica, ...(m.entrada.onze ? { onze: m.entrada.onze } : {}) });
-      return vistaDoPlano(repositorio, dados, PARAMETROS_PADRAO, clube) as NonNullable<ReturnType<typeof vistaDoPlano>>;
+      return vistaDoPlano(repositorio, dados, params, clube) as NonNullable<ReturnType<typeof vistaDoPlano>>;
     }
     case "confirmarJogo": {
       const { repositorio } = await servicos.abrirRepositorio();
@@ -212,12 +215,12 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return { jogo: m.entrada.jogo };
     }
     case "estadoTempo": {
-      const { repositorio, dados } = await contexto(servicos);
-      return estadoDoTempo(repositorio, dados, PARAMETROS_PADRAO);
+      const { repositorio, dados, params } = await contexto(servicos);
+      return estadoDoTempo(repositorio, dados, params);
     }
     case "avancar": {
-      const { repositorio, dados } = await contexto(servicos);
-      return avancar(repositorio, dados, PARAMETROS_PADRAO, m.entrada.modo, m.entrada.clube ?? repositorio.meta("clube.gamer"));
+      const { repositorio, dados, params } = await contexto(servicos);
+      return avancar(repositorio, dados, params, m.entrada.modo, m.entrada.clube ?? repositorio.meta("clube.gamer"));
     }
     case "plantel": {
       const { repositorio } = await servicos.abrirRepositorio();
@@ -258,9 +261,9 @@ function verdadeDaPessoa(r: Repositorio, id: string): VerdadePessoa | undefined 
 }
 
 /** Repositório + dados com a liga atual de cada clube (RZ-159); `base` são os dados de arranque. */
-async function contexto(servicos: Servicos): Promise<{ repositorio: Repositorio; dados: DadosBase; base: DadosBase; paises: Pais[] }> {
+async function contexto(servicos: Servicos): Promise<{ repositorio: Repositorio; dados: DadosBase; base: DadosBase; paises: Pais[]; params: Parametros }> {
   const [{ repositorio }, jogo] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
-  return { repositorio, dados: dadosDaEpoca(repositorio, jogo.dados), base: jogo.dados, paises: jogo.paises };
+  return { repositorio, dados: dadosDaEpoca(repositorio, jogo.dados), base: jogo.dados, paises: jogo.paises, params: parametrosDoSave(repositorio, PARAMETROS_PADRAO) };
 }
 
 type DadosDoJogo = { dados: DadosBase; paises: Pais[] };
@@ -291,32 +294,35 @@ async function criarMundo(seed: string, servicos: Servicos, aoProgredir: (p: Pro
     return resumoExistente(repositorio, dados);
   }
   const t0 = Date.now();
-  const params = PARAMETROS_PADRAO;
+  const agora = servicos.agora?.() ?? new Date();
+  const ano = anoDaEpocaQueContem(agora.getFullYear(), agora.getMonth() + 1, PARAMETROS_PADRAO);
+  const params: Parametros = { ...PARAMETROS_PADRAO, calendario: { ...PARAMETROS_PADRAO.calendario, anoInicial: ano } };
   const lote = gerarMundo({ seed, dados, paises, params, aoProgredir: (fase, feito, total) => aoProgredir({ fase, feito, total }) });
   aoProgredir({ fase: "validar", feito: 0, total: 1 });
   const v = validarMundo(lote, dados, paises, params);
   if (v.erros.length > 0) throw new Error("Mundo gerado inválido:\n" + v.erros.slice(0, 10).join("\n"));
   repositorio.transacao(() => {
     repositorio.definirMeta("seed", seed);
+    repositorio.definirMeta("ano.inicial", String(ano));
     repositorio.definirMeta("mundo.jogadores", String(lote.jogadores.length));
-    guardarLocalidadesDeArranque(repositorio, dados);
+    guardarLocalidadesDeArranque(repositorio, dados, ano);
     repositorio.guardarMundo(lote, (feito, total) => aoProgredir({ fase: "guardar", feito, total }));
   });
   return { seed, clubes: dados.clubes.length, pessoas: lote.pessoas.length, jogadores: lote.jogadores.length, ms: Date.now() - t0, avisos: v.avisos, jaExistia: false };
 }
 
-function guardarLocalidadesDeArranque(r: Repositorio, dados: DadosBase): void {
+function guardarLocalidadesDeArranque(r: Repositorio, dados: DadosBase, ano: number): void {
   r.guardarLocalidades(
     dados.localidades.map((l) => ({
       id: l.id, nome: l.nome, cidade: l.cidade, populacao: l.populacao, estatuto: l.estatuto,
-      desde: criarData(PARAMETROS_PADRAO.calendario.anoInicial, 7, 1),
+      desde: criarData(ano, 7, 1),
     })),
   );
 }
 
 /** Saves criados antes da migração 4 não têm localidades: preenche-as com o estado de arranque (idempotente). */
 function completarLocalidades(r: Repositorio, dados: DadosBase): void {
-  if (r.localidades().length === 0) guardarLocalidadesDeArranque(r, dados);
+  if (r.localidades().length === 0) guardarLocalidadesDeArranque(r, dados, Number(r.meta("ano.inicial") ?? PARAMETROS_PADRAO.calendario.anoInicial));
 }
 
 function resumoExistente(r: Repositorio, dados: DadosBase): ResumoMundoCriado {
@@ -329,7 +335,7 @@ function resumoExistente(r: Repositorio, dados: DadosBase): ResumoMundoCriado {
  */
 function vistaDoGamer(r: Repositorio, observador?: string): Vista {
   const clube = observador ?? r.meta("clube.gamer") ?? "";
-  const hoje = criarData(PARAMETROS_PADRAO.calendario.anoInicial, 7, 1);
+  const hoje = criarData(anoInicialDoSave(r, PARAMETROS_PADRAO), 7, 1);
   return new Vista(r, { observador: clube, participantes: new Set(clube ? [`clube:${clube}`] : []), data: hoje, epoca: 1 }, PARAMETROS_PADRAO.conhecimento);
 }
 

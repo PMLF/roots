@@ -4,9 +4,10 @@ import { tratar, type Servicos } from "../api/handler";
 import { RepositorioMemoria } from "../persistencia/repositorioMemoria";
 
 const ler = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
-const servicos = (): Servicos => {
+const servicos = (agora = new Date(2026, 9, 15)): Servicos => {
   const repositorio = new RepositorioMemoria();
   return {
+    agora: () => agora,
     abrirRepositorio: async () => ({ repositorio, backend: "memoria" as const, versaoSqlite: "teste" }),
     carregarDados: async () => ({ clubes: ler("clubes"), cidades: ler("cidades"), localidades: ler("localidades"), rivalidades: ler("rivalidades"), distritos: ler("distritos"), paises: ler("paises") }),
   };
@@ -27,6 +28,20 @@ describe("clube do save", () => {
   }, 60000);
 });
 
+describe("época inicial", () => {
+  it("vem da data real de criação do save: a 1 de julho muda a época", async () => {
+    for (const [data, ano] of [[new Date(2026, 5, 30), 2025], [new Date(2026, 6, 1), 2026], [new Date(2027, 9, 14), 2027]] as const) {
+      const s = servicos(data);
+      await tratar({ id: 1, tipo: "criarMundo", entrada: { seed: "ano" } }, s);
+      const t = await tratar({ id: 2, tipo: "estadoTempo", entrada: null }, s);
+      expect(t.hoje).toBe(`${ano}-07-01`);
+      expect(t.proximoDiaDeJogos! >= `${ano}-08-15`).toBe(true);
+      const pagina = await tratar({ id: 3, tipo: "competitionPage", entrada: { league: "Primeira Liga" } }, s);
+      expect(pagina!.seasonLabel).toBe(`${ano}/${String((ano + 1) % 100).padStart(2, "0")}`);
+    }
+  }, 120000);
+});
+
 describe("avançar no tempo", () => {
   it("joga os jogos de cada dia, grava-os e passa à frente", async () => {
     const s = servicos();
@@ -34,7 +49,7 @@ describe("avançar no tempo", () => {
     const { repositorio: repo } = await s.abrirRepositorio();
     const antes = await tratar({ id: 2, tipo: "estadoTempo", entrada: null }, s);
     expect(antes.epoca).toBe(1);
-    expect(antes.hoje).toBe("2026-08-01");
+    expect(antes.hoje).toBe("2026-07-01");
     expect(antes.porJogar).toBeGreaterThan(3000);
     expect(antes.proximoDiaDeJogos! >= "2026-08-15").toBe(true);
 
@@ -84,6 +99,13 @@ describe("avançar no tempo", () => {
     expect(jogos).toBeGreaterThan(inicio.porJogar); // ligas + Fase de Promoção
     expect(lesoes).toBeGreaterThan(100);
     expect(vermelhos).toBeGreaterThan(50);
+    // as distritais acabam cedo e a Fase de Promoção joga-se até maio
+    const ultima = (c: string) => repo.jogosDaCompeticao(c, 1).map((j) => j.data).sort().pop()!;
+    const distritais = (await tratar({ id: 9, tipo: "competicoes", entrada: null }, s)).filter((c) => c.escalao === "distrital");
+    expect(distritais.length).toBe(20);
+    for (const d of distritais) expect(ultima(d.liga) <= "2027-04-06").toBe(true);
+    for (const g of ["A", "B", "C", "D"]) expect(repo.jogosDaCompeticao(`Fase de Promoção ${g}`, 1).length).toBe(10);
+    for (const g of ["A", "B", "C", "D"]) expect(ultima(`Fase de Promoção ${g}`) <= "2027-05-31").toBe(true);
     expect(resumo!.campeoes.length).toBe(7);
     expect(resumo!.movimentos.length).toBeGreaterThan(20);
     expect(repo.meta("epoca")).toBe("2");

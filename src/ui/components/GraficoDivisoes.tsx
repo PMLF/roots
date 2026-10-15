@@ -5,11 +5,9 @@ import { useT } from "@/ui/i18n/LocaleProvider";
 
 const NIVEIS: readonly Escalao[] = ["primeiraLiga", "segundaLiga", "terceiraLiga", "cp", "distrital"];
 
-/** Épocas como «2026/27» (a época 1 começa em `anoInicial`). */
-export const nomeDaEpoca = (epoca: number, anoInicial = 2026) => `${anoInicial + epoca - 1}/${String((anoInicial + epoca) % 100).padStart(2, "0")}`;
 
 /** Percurso do clube pelas divisões: uma linha por época, o escalão mais alto em cima. Subidas a verde, descidas a vermelho. */
-export function GraficoDivisoes({ pontos }: { pontos: { epoca: number; escalao: Escalao; liga: string }[] }) {
+export function GraficoDivisoes({ pontos }: { pontos: { epoca: number; label: string; escalao: Escalao; liga: string }[] }) {
   const { t } = useT();
   const L = 560, A = 190, ex = 150, dx = 24, topo = 16, passoY = (A - topo - 28) / (NIVEIS.length - 1);
   const ordenados = [...pontos].sort((a, b) => a.epoca - b.epoca);
@@ -32,8 +30,8 @@ export function GraficoDivisoes({ pontos }: { pontos: { epoca: number; escalao: 
         })}
         {ordenados.map((p, i) => (
           <g key={p.epoca}>
-            <circle cx={x(i)} cy={y(p.escalao)} r={5} className="grafico-ponto"><title>{`${nomeDaEpoca(p.epoca)} · ${p.liga}`}</title></circle>
-            <text x={x(i)} y={A - 6} textAnchor="middle" className="grafico-eixo">{nomeDaEpoca(p.epoca)}</text>
+            <circle cx={x(i)} cy={y(p.escalao)} r={5} className="grafico-ponto"><title>{`${p.label} · ${p.liga}`}</title></circle>
+            <text x={x(i)} y={A - 6} textAnchor="middle" className="grafico-eixo">{p.label}</text>
           </g>
         ))}
       </svg>

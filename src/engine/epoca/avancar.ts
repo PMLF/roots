@@ -119,8 +119,11 @@ export function avancar(repo: Repositorio, base: DadosBase, params: Parametros, 
   const etapaDeEpoca = (): "livre" | "gerou" | "fechou" => {
     const dados = dadosDaEpoca(repo, base);
     const epoca = epocaAtual(repo);
-    if (jogosPorJogar(repo, dados, epoca).length > 0) return "livre";
-    if (!gruposDaPromocao(repo, epoca)) { gerarFasePromocao(repo, dados, params, epoca); return "gerou"; }
+    const pendentes = jogosPorJogar(repo, dados, epoca);
+    // A Fase de Promoção marca-se assim que acabam as distritais (cedo, para se jogar até maio), com as outras ligas ainda a decorrer.
+    const distritais = new Set(dados.clubes.filter((c) => c.escalao === "distrital").map((c) => c.liga));
+    if (!gruposDaPromocao(repo, epoca) && !pendentes.some((j) => distritais.has(j.competicao))) { gerarFasePromocao(repo, dados, params, epoca); return "gerou"; }
+    if (pendentes.length > 0) return "livre";
     resumoEpoca = fecharEpoca(repo, dados, params, epoca);
     return "fechou";
   };

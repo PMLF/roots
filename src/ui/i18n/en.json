@@ -209,6 +209,8 @@
   "hoje.desceste": "Your club was relegated.",
   "hoje.subiste": "Your club was promoted!",
   "hoje.movimentos": "{n} clubs changed division.",
+  "competicoes.epoca": "Season",
+  "competicoes.epocaAtual": "{epoca} (current)",
   "hoje.seguirVazio": "No matches scheduled.",
   "hoje.avancar": "Advance",
   "entidade.localidade": "Locality",

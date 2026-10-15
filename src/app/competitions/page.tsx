@@ -47,6 +47,9 @@ export default function PaginaCompeticoes() {
   const [aberto, setAberto] = useState(false);
   const seletor = useRef<HTMLDivElement>(null);
   const [paginas, setPaginas] = useState<Record<string, CompetitionPage>>({});
+  /** Época escolhida; sem escolha mostra-se a época atual (o momento de agora). */
+  const [epoca, setEpoca] = useState<number | undefined>(undefined);
+  const chavePagina = (liga: string) => `${liga}|${epoca ?? "atual"}`;
 
   useEffect(() => {
     const guardadas = ler(CHAVE, eLista);
@@ -71,14 +74,14 @@ export default function PaginaCompeticoes() {
     let vivo = true;
     (async () => {
       for (const liga of escolhidas) {
-        if (paginas[liga] || !lista.some((c) => c.liga === liga)) continue;
-        const p = await motor.chamar("competitionPage", { league: liga });
-        if (vivo && p) setPaginas((antes) => ({ ...antes, [liga]: p }));
+        if (paginas[chavePagina(liga)] || !lista.some((c) => c.liga === liga)) continue;
+        const p = await motor.chamar("competitionPage", epoca ? { league: liga, season: epoca } : { league: liga });
+        if (vivo && p) setPaginas((antes) => ({ ...antes, [chavePagina(liga)]: p }));
       }
     })().catch(() => undefined);
     return () => { vivo = false; };
     // as páginas já carregadas não voltam a pedir-se
-  }, [motor, lista, escolhidas]);
+  }, [motor, lista, escolhidas, epoca]);
 
   const definir = (novas: string[]) => {
     setEscolhidas(novas);
@@ -89,6 +92,7 @@ export default function PaginaCompeticoes() {
       if (escolhidas.length > MINIMO) definir(escolhidas.filter((x) => x !== liga));
     } else definir([...escolhidas, liga]);
   };
+  const epocas = Object.values(paginas)[0]?.seasons ?? [];
   const visiveis = lista ? lista.filter((c) => escolhidas.includes(c.liga)) : [];
 
   return (
@@ -97,6 +101,14 @@ export default function PaginaCompeticoes() {
       {lista === null && <p className="vazio">{t("hoje.semMundo")}</p>}
       {lista && (
         <>
+          {epocas.length > 1 && (
+            <label className="seletor-epoca">
+              <span className="suave">{t("competicoes.epoca")}</span>{" "}
+              <select value={epoca ?? epocas[epocas.length - 1]!.season} onChange={(e) => { const v = Number(e.target.value); setEpoca(v === epocas[epocas.length - 1]!.season ? undefined : v); }}>
+                {[...epocas].reverse().map((x, i) => <option key={x.season} value={x.season}>{i === 0 ? t("competicoes.epocaAtual", { epoca: x.label }) : x.label}</option>)}
+              </select>
+            </label>
+          )}
           <div className="seletor-ligas" ref={seletor}>
             <button type="button" aria-expanded={aberto} aria-haspopup="true" onClick={() => setAberto((v) => !v)}>
               {t("competicoes.escolher")} ({escolhidas.length}/{lista.length}) <span aria-hidden="true">▾</span>
@@ -131,7 +143,7 @@ export default function PaginaCompeticoes() {
           {visiveis.length === 0 && <p className="vazio">{t("competicoes.semSelecao")}</p>}
           <div className="ligas-grelha">
             {visiveis.map((c) => {
-              const p = paginas[c.liga];
+              const p = paginas[chavePagina(c.liga)];
               return (
                 <Cartao key={c.liga} titulo={<Ligacao k="competicao" id={c.liga}>{c.liga}</Ligacao>}>
                   <p className="suave cartao-sub">{t("competicoes.clubes", { n: c.clubes })}</p>
