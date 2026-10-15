@@ -2,7 +2,7 @@
 import type { CompetitionPage } from "@/engine/api/contratos";
 import { Cartao, Dados, Topo } from "@/ui/components/Cartao";
 import { Chip } from "@/ui/components/Atributos";
-import { CartaoEquipas, ListasDestaques } from "@/ui/components/competicao/Destaques";
+import { PainelDestaques } from "@/ui/components/competicao/Destaques";
 import { Jornadas } from "@/ui/components/competicao/Jornadas";
 import { TabelaLiga } from "@/ui/components/competicao/TabelaLiga";
 import { Ficha } from "@/ui/components/Ficha";
@@ -37,19 +37,13 @@ export function FichaCompeticao({ d }: { d: CompetitionPage }) {
   const resumo = (
     <div className="liga-pagina">
       {d.preview && <p className="aviso-previa">{t("competicao.previa")}</p>}
+      <PainelDestaques h={d.highlights} />
       <div className="liga-topo">
         <Cartao titulo={t("separador.classificacao")}>
           <TabelaLiga page={d} />
         </Cartao>
-        <div className="liga-destaques">
-          <CartaoEquipas h={d.highlights} />
-          <ListasDestaques h={d.highlights} quais={["scorers", "assists"]} />
-        </div>
+        <Jornadas page={d} />
       </div>
-      <div className="cartoes">
-        <ListasDestaques h={d.highlights} quais={["rated", "yellow", "red"]} />
-      </div>
-      <Jornadas page={d} />
     </div>
   );
 

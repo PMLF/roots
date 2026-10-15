@@ -49,6 +49,10 @@ export type Highlights = {
   mostRed: PlayerStat[];
   bestAttack?: ClubStat;
   bestDefence?: ClubStat;
+  /** Todas as equipas, da que marcou mais à que marcou menos (vazio antes do primeiro jogo). */
+  attackRanking: ClubStat[];
+  /** Todas as equipas, da que sofreu menos à que sofreu mais. */
+  defenceRanking: ClubStat[];
 };
 
 export type CompetitionPage = {
@@ -137,16 +141,20 @@ export function competitionPage(repo: Repositorio, dados: DadosBase, params: Par
   const top = (key: "golos" | "assistencias" | "amarelos" | "vermelhos") =>
     stats.filter((s) => s[key] > 0).sort((a, b) => b[key] - a[key] || b.jogos - a.jogos || (a.jogador < b.jogador ? -1 : 1)).slice(0, topN).map((s) => named(s, s[key]));
   const played = table.filter((r) => r.played > 0);
-  const bestAttack = played.length ? [...played].sort((a, b) => b.goalsFor - a.goalsFor || a.position - b.position)[0] : undefined;
-  const bestDefence = played.length ? [...played].sort((a, b) => a.goalsAgainst - b.goalsAgainst || a.position - b.position)[0] : undefined;
+  const attackRanking = played.length ? [...table].sort((a, b) => b.goalsFor - a.goalsFor || a.position - b.position).map((r): ClubStat => ({ club: r.club, name: r.name, value: r.goalsFor })) : [];
+  const defenceRanking = played.length ? [...table].sort((a, b) => a.goalsAgainst - b.goalsAgainst || a.position - b.position).map((r): ClubStat => ({ club: r.club, name: r.name, value: r.goalsAgainst })) : [];
+  const bestAttack = attackRanking[0];
+  const bestDefence = defenceRanking[0];
   const highlights: Highlights = {
     topScorers: top("golos"),
     topAssists: top("assistencias"),
     bestRated: stats.filter((s) => s.avgRating !== undefined && s.ratedGames >= minRatedGames).sort((a, b) => (b.avgRating as number) - (a.avgRating as number) || (a.jogador < b.jogador ? -1 : 1)).slice(0, topN).map((s) => named(s, Math.round((s.avgRating as number) * 100) / 100)),
     mostYellow: top("amarelos"),
     mostRed: top("vermelhos"),
-    ...(bestAttack ? { bestAttack: { club: bestAttack.club, name: bestAttack.name, value: bestAttack.goalsFor } } : {}),
-    ...(bestDefence ? { bestDefence: { club: bestDefence.club, name: bestDefence.name, value: bestDefence.goalsAgainst } } : {}),
+    ...(bestAttack ? { bestAttack } : {}),
+    ...(bestDefence ? { bestDefence } : {}),
+    attackRanking,
+    defenceRanking,
   };
 
   return {

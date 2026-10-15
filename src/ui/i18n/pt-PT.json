@@ -533,5 +533,20 @@
   "competicoes.nenhuma": "Nenhuma",
   "competicoes.semSelecao": "Escolhe as ligas que queres ver.",
   "competicoes.melhorMarcador": "Melhor marcador",
-  "competicoes.melhorJogador": "Melhor jogador"
+  "competicoes.melhorJogador": "Melhor jogador",
+  "destaques.titulo": "Destaques da competição",
+  "destaques.mais": "Ver mais",
+  "destaques.menos": "Ver menos",
+  "destaques.melhorMarcador": "Melhor marcador",
+  "destaques.melhorAssistente": "Melhor assistente",
+  "destaques.melhorJogador": "Melhor jogador",
+  "destaques.maisAmarelos": "Mais amarelos",
+  "destaques.maisVermelhos": "Mais vermelhos",
+  "destaques.ataques": "Ataques (golos marcados)",
+  "destaques.defesas": "Defesas (golos sofridos)",
+  "competicoes.minimo": "Tens de manter pelo menos {n} ligas.",
+  "competicoes.padrao": "Padrão",
+  "competicoes.profissionais": "Ligas profissionais",
+  "competicoes.melhorAtaque": "Melhor ataque",
+  "competicoes.melhorDefesa": "Melhor defesa"
 }
