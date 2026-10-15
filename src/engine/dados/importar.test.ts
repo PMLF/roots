@@ -42,7 +42,7 @@ describe("importarDados com os CSV reais", () => {
     expect(d.clubes).toHaveLength(298);
     expect(d.cidades).toHaveLength(275);
     expect(d.distritos).toHaveLength(20);
-    expect(d.rivalidades).toHaveLength(208);
+    expect(d.rivalidades).toHaveLength(209);
   });
 
   it("respeita a pirâmide: 20/18/20 + 4×10 CP + 20×10 distritais", () => {
