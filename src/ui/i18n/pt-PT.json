@@ -11,8 +11,6 @@
   "idioma.rotulo": "Idioma",
   "idioma.pt-PT": "Português",
   "idioma.en": "English",
-  "caixa.titulo": "Caixa de entrada",
-  "caixa.vazia": "Sem mensagens. Avança para ver o que acontece.",
   "barra.data": "Data",
   "barra.orcamento": "Orçamento",
   "barra.humor": "Humor da cidade",
@@ -435,8 +433,6 @@
   "coluna.estado": "Estado",
   "coluna.qualidade": "Qualidades",
   "coluna.desde": "Desde",
-  "dev.verTudo.sim": "Ver tudo: sim",
-  "dev.verTudo.nao": "Ver tudo: não",
   "dev.verTudo.dica": "Developer: mostra a verdade oculta em vez do que o gamer sabe",
   "dev.cartao": "Developer · verdade oculta",
   "dev.arquetipo": "Arquétipo",
@@ -479,5 +475,6 @@
   "grafico.vazio": "O percurso começa nesta época. Cada subida e descida fica registada aqui.",
   "estadio.lugares": "lugares",
   "pessoa.personalidadeDesconhecida": "Ainda não sabes como ele é.",
-  "pessoa.naoObservadoCurto": "Ainda não viste esta pessoa em ação. Um olheiro ou os jogos vão revelando os valores."
+  "pessoa.naoObservadoCurto": "Ainda não viste esta pessoa em ação. Um olheiro ou os jogos vão revelando os valores.",
+  "dev.verTudo.rotulo": "Ver tudo"
 }

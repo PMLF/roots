@@ -16,12 +16,10 @@ type Props = {
   topo?: ReactNode;
   /** Conteúdo por separador; os que faltam aparecem como "em breve", na ordem fixa do tipo. */
   separadores: Separadores;
-  /** Coluna lateral de ligações. */
-  lateral?: ReactNode;
 };
 
 /** Estrutura comum a todas as entidades (TOM_E_UX §3.2): cabeçalho, números-chave, separadores fixos, ligações. */
-export function Ficha({ tipo, titulo, subtitulo, numeros = [], topo, separadores, lateral }: Props) {
+export function Ficha({ tipo, titulo, subtitulo, numeros = [], topo, separadores }: Props) {
   const { t } = useT();
   const ids = SEPARADORES[tipo];
   const [ativo, setAtivo] = useState(ids[0] as string);
@@ -63,12 +61,6 @@ export function Ficha({ tipo, titulo, subtitulo, numeros = [], topo, separadores
             {separadores[ativo] ?? <p className="vazio">{t("ficha.embreve")}</p>}
           </div>
         </div>
-        {lateral && (
-          <aside className="ficha-lateral" aria-label={t("ficha.ligacoes")}>
-            <h2>{t("ficha.ligacoes")}</h2>
-            {lateral}
-          </aside>
-        )}
       </div>
     </article>
   );

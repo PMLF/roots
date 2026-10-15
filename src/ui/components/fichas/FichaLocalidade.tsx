@@ -46,12 +46,6 @@ export function FichaLocalidade({ d }: { d: FichaLocalidadeDados }) {
           <p className="vazio">{t("localidade.semHistoria")}</p>
         ),
       }}
-      lateral={
-        <ul className="ligacoes">
-          <li><Ligacao k="cidade" id={d.cidade.id}>{d.cidade.nome}</Ligacao></li>
-          {d.clubes.map((c) => <li key={c.id}><Ligacao k="clube" id={c.id}>{c.nome}</Ligacao></li>)}
-        </ul>
-      }
     />
   );
 }

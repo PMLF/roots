@@ -186,12 +186,6 @@ export function FichaPessoa({ d, verTudo }: { d: FichaPessoaDados; verTudo: bool
       titulo={p.nomeDesportivo}
       topo={<Topo titulo={p.nomeDesportivo} etiquetas={etiquetas} cartao={<Dados linhas={dados} />} />}
       separadores={{ resumo }}
-      lateral={
-        <ul className="ligacoes">
-          {d.clube && <li><Ligacao k="clube" id={d.clube.id}>{d.clube.nome}</Ligacao></li>}
-          {d.naturalDe && <li><Ligacao k="cidade" id={d.naturalDe.id}>{d.naturalDe.nome}</Ligacao></li>}
-        </ul>
-      }
     />
   );
 }
