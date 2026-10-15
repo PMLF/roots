@@ -25,7 +25,8 @@ export function useTempo() {
     const aoMudar = () => { forcar((n) => n + 1); carregar(); };
     carregar();
     window.addEventListener(EVENTO, aoMudar);
-    return () => { vivo = false; window.removeEventListener(EVENTO, aoMudar); };
+    window.addEventListener("raizes:mundo", aoMudar);
+    return () => { vivo = false; window.removeEventListener(EVENTO, aoMudar); window.removeEventListener("raizes:mundo", aoMudar); };
   }, [motor]);
 
   const avancar = useCallback(async (modo: Modo) => {

@@ -9,6 +9,8 @@ import { useModoDev, useVerTudo } from "@/ui/dev";
 import { Icone, type NomeIcone } from "@/ui/components/Icone";
 import { Pesquisa } from "@/ui/components/Pesquisa";
 import { useTempo } from "@/ui/useTempo";
+import { SeletorClube, useClubes } from "@/ui/components/ComClube";
+import { useMeuClube } from "@/ui/meuClube";
 
 type ItemMenu = { chave: Chave; icone: NomeIcone; href?: string; ativoQuando: (caminho: string) => boolean; /** Ferramenta de developer: só no modo dev (`ui/dev.ts`). */ soDev?: true };
 
@@ -35,6 +37,8 @@ const eDensidade = (v: unknown): v is Densidade => v === "normal" || v === "comp
 export function Shell({ children }: { children: ReactNode }) {
   const { t, locale, setLocale } = useT();
   const tempo = useTempo();
+  const clubes = useClubes();
+  const [meuClube, escolherClube] = useMeuClube();
   const caminho = usePathname() ?? "/";
   const router = useRouter();
   const dev = useModoDev();
@@ -83,6 +87,11 @@ export function Shell({ children }: { children: ReactNode }) {
             <p className="menu-grupo">{t("menu.developer")}</p>
             <ul>
               {itens.filter((m) => m.soDev).map((m) => <ItemDoMenu key={m.chave} m={m} caminho={caminho} />)}
+              {clubes && (
+                <li className="menu-clube-dev" title={t("dev.clube.dica")}>
+                  <SeletorClube clubes={clubes} aberto0={false} {...(meuClube ? { atual: meuClube } : {})} aoEscolher={(id) => void escolherClube(id, true)} />
+                </li>
+              )}
               <li className="menu-interruptor">
                 <button type="button" onClick={() => definirVerTudo(!verTudo)} role="switch" aria-checked={verTudo} title={t("dev.verTudo.dica")} data-testid="ver-tudo">
                   <Icone nome="olho" />

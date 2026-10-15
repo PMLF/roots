@@ -587,5 +587,7 @@
   "hoje.aAvancar": "Playing…",
   "hoje.fimDeEpoca": "The season is over: every match has been played.",
   "hoje.resumoAvanco": "Across the world: {jogos, plural, one {# match} other {# matches}}, {lesoes, plural, one {# injury} other {# injuries}}, {cartoes, plural, one {# card} other {# cards}}.",
-  "hoje.homemDoJogo": "best: {nome} ({nota})"
+  "hoje.homemDoJogo": "best: {nome} ({nota})",
+  "meuClube.comecar": "Choose the club you will start the save with. You can only change if you are sacked or resign.",
+  "dev.clube.dica": "Developers only: switch the save's club for testing"
 }

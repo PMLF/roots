@@ -140,6 +140,13 @@ export type PedidosMotor = {
   /** Laboratório: simula um jogo entre dois clubes sem gravar nada no save. */
   laboratorioJogo: { entrada: { casa: string; fora: string; seed: string; taticaCasa?: Partial<Tatica>; taticaFora?: Partial<Tatica> }; saida: JogoLab };
   /** Laboratório: simula uma liga inteira (uma época) sem gravar nada no save. */
+  /** O clube do gamer neste save (`null` enquanto não escolheu). */
+  clubeDoGamer: { entrada: null; saida: { id: string } | null };
+  /**
+   * Escolhe o clube do save. Só se pode escolher uma vez: depois, só mudando de clube por demissão ou despedimento
+   * (RZ-157). `forcar` é a troca dos developers (seletor da barra lateral, só no modo dev).
+   */
+  escolherClube: { entrada: { id: string; forcar?: boolean }; saida: { id: string } };
   /** A data do save, a época e quantos jogos faltam (prepara o calendário da época na primeira vez). */
   estadoTempo: { entrada: null; saida: EstadoTempo };
   /** Avança no tempo e joga os jogos desses dias (RZ-119). Com `clube`, o jogo desse clube guarda todo o detalhe e pára o avanço (`proximoJogo`). */

@@ -587,5 +587,7 @@
   "hoje.aAvancar": "A jogar…",
   "hoje.fimDeEpoca": "A época acabou: todos os jogos foram disputados.",
   "hoje.resumoAvanco": "No mundo: {jogos, plural, one {# jogo} other {# jogos}}, {lesoes, plural, one {# lesão} other {# lesões}}, {cartoes, plural, one {# cartão} other {# cartões}}.",
-  "hoje.homemDoJogo": "melhor: {nome} ({nota})"
+  "hoje.homemDoJogo": "melhor: {nome} ({nota})",
+  "meuClube.comecar": "Escolhe o clube com que vais começar o save. Só poderás mudar se fores despedido ou te despedires.",
+  "dev.clube.dica": "Só para developers: troca o clube do save para testar"
 }

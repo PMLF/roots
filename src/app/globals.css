@@ -320,3 +320,8 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .seletor-lista button.ativo { background: var(--destaque-fundo); }
 .pagina-clube > h1 { margin-bottom: 4px; }
 .acoes { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 0; }
+.menu-clube-dev .seletor-ligas { margin: 0; display: block; }
+.menu-clube-dev .seletor-ligas > button { width: 100%; text-align: left; border-radius: var(--r-s); }
+.menu-clube-dev .seletor-painel { position: static; width: auto; max-height: 40vh; box-shadow: none; margin-top: 6px; padding: 8px; }
+.menu-clube-dev input[type="search"] { width: 100%; min-width: 0; }
+.menu-clube-dev .seletor-lista .suave { display: none; }

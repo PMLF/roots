@@ -175,13 +175,26 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
       return ligaLab(repositorio, dados, PARAMETROS_PADRAO, m.entrada);
     }
+    case "clubeDoGamer": {
+      const { repositorio } = await servicos.abrirRepositorio();
+      const id = repositorio.meta("clube.gamer");
+      return id ? { id } : null;
+    }
+    case "escolherClube": {
+      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      if (!dados.clubes.some((c) => c.id === m.entrada.id)) throw new Error("Clube desconhecido");
+      const atual = repositorio.meta("clube.gamer");
+      if (atual && atual !== m.entrada.id && m.entrada.forcar !== true) throw new Error("O clube do save já foi escolhido: só muda se fores despedido ou te despedires");
+      repositorio.definirMeta("clube.gamer", m.entrada.id);
+      return { id: m.entrada.id };
+    }
     case "estadoTempo": {
       const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
       return estadoDoTempo(repositorio, dados, PARAMETROS_PADRAO);
     }
     case "avancar": {
       const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
-      return avancar(repositorio, dados, PARAMETROS_PADRAO, m.entrada.modo, m.entrada.clube);
+      return avancar(repositorio, dados, PARAMETROS_PADRAO, m.entrada.modo, m.entrada.clube ?? repositorio.meta("clube.gamer"));
     }
     case "plantel": {
       const { repositorio } = await servicos.abrirRepositorio();

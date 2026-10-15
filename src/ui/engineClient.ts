@@ -24,7 +24,9 @@ export class MotorCliente {
   chamar<K extends TipoPedido>(tipo: K, entrada: PedidosMotor[K]["entrada"], progresso?: (p: ProgressoMundo) => void): Promise<PedidosMotor[K]["saida"]> {
     const id = ++this.seq;
     return new Promise((ok, erro) => {
-      this.pendentes.set(id, { ok: ok as (v: unknown) => void, erro, ...(progresso ? { progresso } : {}) });
+      // Criar ou reiniciar o mundo muda tudo o que as páginas já leram: avisa-as.
+      const aoFim = tipo === "criarMundo" || tipo === "reiniciarMundo" ? () => window.dispatchEvent(new Event("raizes:mundo")) : undefined;
+      this.pendentes.set(id, { ok: ((v: unknown) => { ok(v as never); aoFim?.(); }), erro, ...(progresso ? { progresso } : {}) });
       this.worker.postMessage({ id, tipo, entrada } as Mensagem);
     });
   }

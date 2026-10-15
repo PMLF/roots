@@ -12,6 +12,21 @@ const servicos = (): Servicos => {
   };
 };
 
+describe("clube do save", () => {
+  it("escolhe-se uma vez; só os developers (forcar) podem trocar", async () => {
+    const s = servicos();
+    await tratar({ id: 1, tipo: "criarMundo", entrada: { seed: "clube" } }, s);
+    expect(await tratar({ id: 2, tipo: "clubeDoGamer", entrada: null }, s)).toBeNull();
+    const [a, b] = await tratar({ id: 3, tipo: "clubes", entrada: null }, s);
+    await tratar({ id: 4, tipo: "escolherClube", entrada: { id: a!.id } }, s);
+    expect(await tratar({ id: 5, tipo: "clubeDoGamer", entrada: null }, s)).toEqual({ id: a!.id });
+    await expect(tratar({ id: 6, tipo: "escolherClube", entrada: { id: b!.id } }, s)).rejects.toThrow();
+    await tratar({ id: 7, tipo: "escolherClube", entrada: { id: b!.id, forcar: true } }, s);
+    expect(await tratar({ id: 8, tipo: "clubeDoGamer", entrada: null }, s)).toEqual({ id: b!.id });
+    await expect(tratar({ id: 9, tipo: "escolherClube", entrada: { id: "nao-existe", forcar: true } }, s)).rejects.toThrow();
+  }, 60000);
+});
+
 describe("avançar no tempo", () => {
   it("joga os jogos de cada dia, grava-os e passa à frente", async () => {
     const s = servicos();
