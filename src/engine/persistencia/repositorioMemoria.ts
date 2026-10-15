@@ -132,6 +132,10 @@ export class RepositorioMemoria implements Repositorio {
     return e ? clone(e) : undefined;
   }
 
+  totalEventos(): number {
+    return this.eventos.length;
+  }
+
   eventosDe(entidade: Pick<EntidadeRef, "k" | "id">, f: FiltroEventos = {}): Evento[] {
     const ids = this.porEntidade.get(chaveEnt(entidade)) ?? [];
     const out: Evento[] = [];

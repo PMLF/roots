@@ -42,6 +42,7 @@ export interface Repositorio {
   // --- história
   acrescentarEvento(e: EventoNovo): number;
   evento(id: number): Evento | undefined;
+  totalEventos(): number;
   /** Mais recentes primeiro. */
   eventosDe(entidade: Pick<EntidadeRef, "k" | "id">, filtro?: FiltroEventos): Evento[];
   contar(tipo: string, entidade?: Pick<EntidadeRef, "k" | "id">, intervalo?: { desdeEpoca?: number; ateEpoca?: number }): number;

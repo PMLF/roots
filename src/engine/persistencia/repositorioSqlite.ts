@@ -123,6 +123,10 @@ export class RepositorioSqlite implements Repositorio {
     return this.paraEventos(this.d.todos("SELECT * FROM evento WHERE id = ?", [id]))[0];
   }
 
+  totalEventos(): number {
+    return num(this.d.todos("SELECT COUNT(*) AS n FROM evento")[0]?.n);
+  }
+
   eventosDe(entidade: Pick<EntidadeRef, "k" | "id">, f: FiltroEventos = {}): Evento[] {
     const onde = ["x.k = ?", "x.id = ?"];
     const p: ValorSql[] = [entidade.k, entidade.id];

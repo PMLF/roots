@@ -4,12 +4,13 @@
   "private": true,
   "description": "Raízes — jogo de browser de gestão de futebol português ligado às cidades",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "pnpm sqlite:copiar && next dev",
+    "build": "pnpm sqlite:copiar && next build",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.engine.json && tsc --noEmit -p tsconfig.worker.json",
     "lint": "eslint .",
     "test": "vitest run",
-    "ci": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
+    "ci": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "sqlite:copiar": "node tools/copiar-sqlite-wasm.mjs"
   },
   "engines": {
     "node": ">=22"

@@ -81,6 +81,7 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       expect(r.eventosDe(c, { tipo: "SUBIDA", limite: 1 }).map((e) => e.id)).toEqual([3]);
       expect(r.eventosDe(c, { desdeEpoca: 2, ateEpoca: 2 }).map((e) => e.id)).toEqual([2]);
       expect(r.eventosDe({ k: "clube", id: "ninguem" })).toEqual([]);
+      expect(r.totalEventos()).toBe(4);
     });
 
     it("contar, ultimo e ultimos", () => {

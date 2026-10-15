@@ -27,5 +27,10 @@
   "inicio.premioCidade": "State prize to the city",
   "inicio.promovidos": "Promoted to the Campeonato de Portugal each year",
   "inicio.distritais": "District league size (target / minimum / maximum)",
-  "inicio.autosave": "Autosave every {dias, plural, one {day} other {# days}}"
+  "inicio.autosave": "Autosave every {dias, plural, one {day} other {# days}}",
+  "inicio.bd": "Database",
+  "inicio.bdAEspera": "Opening the database…",
+  "inicio.bdErro": "Could not open the database: {erro}",
+  "inicio.bdOpfs": "SQLite {sqlite} (schema {esquema}) stored in the browser. Opened {aberturas, plural, one {# time} other {# times}}; {eventos, plural, one {# event} other {# events}} in the history.",
+  "inicio.bdMemoria": "SQLite {sqlite} (schema {esquema}) in memory only: data is lost when the page closes. Reason: {motivo}"
 }

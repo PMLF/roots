@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { MotorCliente } from "@/ui/engineClient";
 import type { Parametros } from "@/engine/config/parametros";
+import type { DiagnosticoBd } from "@/engine/api/contratos";
 import { derivados } from "@/engine/config/parametros";
 
 type Estado =
@@ -13,6 +14,7 @@ type Estado =
 export default function Inicio() {
   const { t, locale } = useT();
   const [estado, setEstado] = useState<Estado>({ fase: "espera" });
+  const [bd, setBd] = useState<{ fase: "espera" } | { fase: "ok"; d: DiagnosticoBd } | { fase: "erro"; erro: string }>({ fase: "espera" });
 
   useEffect(() => {
     const motor = new MotorCliente();
@@ -22,6 +24,10 @@ export default function Inicio() {
       try {
         const [v, parametros] = await Promise.all([motor.chamar("versao", null), motor.chamar("parametros", null)]);
         await motor.chamar("ping", { eco: "olá" });
+        motor
+          .chamar("bd", null)
+          .then((d) => vivo && setBd({ fase: "ok", d }))
+          .catch((e) => vivo && setBd({ fase: "erro", erro: e instanceof Error ? e.message : String(e) }));
         if (vivo) setEstado({ fase: "ligado", versao: v.motor, esquema: v.esquema, ms: Math.round(performance.now() - inicio), parametros });
       } catch (e) {
         if (vivo) setEstado({ fase: "erro", erro: e instanceof Error ? e.message : String(e) });
@@ -40,6 +46,16 @@ export default function Inicio() {
       {estado.fase === "ligado" && (
         <>
           <p data-testid="motor-estado">{t("inicio.motorLigado", { versao: estado.versao, esquema: estado.esquema, ms: estado.ms })}</p>
+          <h2>{t("inicio.bd")}</h2>
+          {bd.fase === "espera" && <p data-testid="bd-estado">{t("inicio.bdAEspera")}</p>}
+          {bd.fase === "erro" && <p data-testid="bd-estado" className="erro">{t("inicio.bdErro", { erro: bd.erro })}</p>}
+          {bd.fase === "ok" && (
+            <p data-testid="bd-estado" data-backend={bd.d.backend} data-aberturas={bd.d.aberturas}>
+              {bd.d.persistente
+                ? t("inicio.bdOpfs", { sqlite: bd.d.sqlite, esquema: bd.d.esquema, aberturas: bd.d.aberturas, eventos: bd.d.eventos })
+                : t("inicio.bdMemoria", { sqlite: bd.d.sqlite, esquema: bd.d.esquema, motivo: bd.d.motivoMemoria ?? "?" })}
+            </p>
+          )}
           <h2>{t("inicio.regras")}</h2>
           <table className="tabela">
             <tbody>
