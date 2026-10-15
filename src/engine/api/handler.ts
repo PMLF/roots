@@ -8,6 +8,7 @@ import { gerarMundo } from "../mundo/gerarMundo";
 import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
+import { fichaCompeticao } from "../competicao/ficha";
 import { nivelDeReputacao } from "../clube/reputacao";
 import { nivelGeral } from "../mundo/nivel";
 import { CHAVE } from "../mundo/jogador";
@@ -161,6 +162,10 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
     }
     case "competicoes":
       return competicoesDoMundo((await dadosDoJogo(servicos)).dados);
+    case "fichaCompeticao": {
+      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      return fichaCompeticao(repositorio, dados, PARAMETROS_PADRAO, m.entrada.liga) ?? null;
+    }
     case "laboratorioJogo": {
       const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
       return jogoLab(repositorio, dados, PARAMETROS_PADRAO, m.entrada);

@@ -14,6 +14,7 @@ type ItemMenu = { chave: Chave; icone: NomeIcone; href?: string; ativoQuando: (c
 // Máximo 2 níveis (TOM_E_UX §3.5): secção no menu, separadores dentro da página. Sem href = ainda não existe.
 const MENU: ItemMenu[] = [
   { chave: "menu.hoje", icone: "hoje", href: "/", ativoQuando: (c) => c === "/" },
+  { chave: "menu.competicoes", icone: "competicoes", href: "/competicoes/", ativoQuando: (c) => c.startsWith("/competicoes") },
   { chave: "menu.clube", icone: "clube", ativoQuando: () => false },
   { chave: "menu.plantel", icone: "plantel", ativoQuando: () => false },
   { chave: "menu.jogos", icone: "jogos", ativoQuando: () => false },
@@ -113,7 +114,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <button type="button" onClick={() => router.back()}>← {t("migalhas.voltar")}</button>
             <Link href="/">{t("menu.hoje")}</Link>
             <span aria-hidden="true">›</span>
-            <span aria-current="page">{t(caminho.startsWith("/ficha") ? "migalhas.ficha" : caminho.startsWith("/laboratorio") ? "menu.laboratorio" : "menu.mundo")}</span>
+            <span aria-current="page">{t(caminho.startsWith("/ficha") ? "migalhas.ficha" : caminho.startsWith("/laboratorio") ? "menu.laboratorio" : caminho.startsWith("/competicoes") ? "migalhas.competicoes" : "menu.mundo")}</span>
           </nav>
         )}
         {children}

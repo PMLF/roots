@@ -59,6 +59,10 @@ O que se guarda está em **inglês** (posições GK, RB, CB, LB, DM, CM, AM, RW,
 - **Cores do clube:** retângulo do tamanho da linha de texto antes do nome: lisa, dividida ao meio, maioria (`Azul 80% e branco`) ou riscas verticais/horizontais.
 - Placeholders («?») marcam dados que ainda não existem; a preencher nos itens respetivos.
 
+## 3e. Competições
+- Menu «Competições» → `/competicoes/`: ligas e séries por escalão (distritais em colunas). Cada uma abre a ficha `k=competicao` (id = nome da liga) com Resumo, Classificação (tabela ordenável com os desempates do motor), Jogos (por jornada) e História.
+- Sem época a correr (antes do RZ-119), o calendário é uma **prévia** gerada com a semente do mundo e a tabela segue a reputação; um aviso di-lo. Subidas e descidas são «?» até ao RZ-111.
+
 ## 4. Fica para depois
 
 Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já existem e abrem uma ficha «em breve»; separadores *Jogos*, *Carreira*, *História* (precisam de jogos e eventos); conjuntos de colunas com nome; atalhos por secção; «Caixa»/jornal e barra inferior com dados (RZ-120).

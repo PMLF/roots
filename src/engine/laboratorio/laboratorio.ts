@@ -16,14 +16,14 @@ import type { EquipaJogo, FormacaoId, Tatica } from "../jogo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import { RepositorioMemoria } from "../persistencia/repositorioMemoria";
 
-export type CompeticaoResumo = { liga: string; escalao: Escalao; clubes: number };
+export type CompeticaoResumo = { liga: string; escalao: Escalao; clubes: number; /** Só nas distritais. */ distrito?: string };
 
 /** As ligas/séries do mundo, da mais alta para a mais baixa. */
 export function competicoesDoMundo(dados: DadosBase): CompeticaoResumo[] {
   const ordem: Escalao[] = ["primeiraLiga", "segundaLiga", "terceiraLiga", "cp", "distrital"];
   const m = new Map<string, CompeticaoResumo>();
   for (const c of dados.clubes) {
-    const l = m.get(c.liga) ?? m.set(c.liga, { liga: c.liga, escalao: c.escalao, clubes: 0 }).get(c.liga)!;
+    const l = m.get(c.liga) ?? m.set(c.liga, { liga: c.liga, escalao: c.escalao, clubes: 0, ...(c.escalao === "distrital" ? { distrito: c.distrito } : {}) }).get(c.liga)!;
     l.clubes++;
   }
   return [...m.values()].sort((a, b) => ordem.indexOf(a.escalao) - ordem.indexOf(b.escalao) || a.liga.localeCompare(b.liga, "pt"));

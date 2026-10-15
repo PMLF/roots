@@ -166,3 +166,21 @@ describe("fichas ricas e «ver tudo»", () => {
     expect(Object.keys(devPres.verdade?.personalidade ?? {}).length).toBeGreaterThan(3);
   });
 });
+
+describe("ficha da competição (RZ-145)", () => {
+  it("lista clubes, prévia do calendário e tabela a zeros; liga desconhecida dá null", async () => {
+    const s = servicosDeTeste();
+    await tratar({ id: 70, tipo: "criarMundo", entrada: { seed: "liga" } }, s);
+    const lista = await tratar({ id: 71, tipo: "competicoes", entrada: null }, s);
+    expect(lista.find((c) => c.escalao === "distrital")?.distrito).toBeTruthy();
+    const d = (await tratar({ id: 72, tipo: "fichaCompeticao", entrada: { liga: "Primeira Liga" } }, s))!;
+    expect(d.previa).toBe(true);
+    expect(d.clubes).toHaveLength(20);
+    expect(d.jornadas).toHaveLength(38);
+    expect(d.jogosTotais).toBe(380);
+    expect(d.tabela).toHaveLength(20);
+    expect(d.tabela.every((l) => l.pontos === 0 && l.jogos === 0)).toBe(true);
+    expect(d.clubes[0]!.reputacao).toBeGreaterThanOrEqual(d.clubes[19]!.reputacao);
+    expect(await tratar({ id: 73, tipo: "fichaCompeticao", entrada: { liga: "Inexistente" } }, s)).toBeNull();
+  });
+});
