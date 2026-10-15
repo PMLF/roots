@@ -242,5 +242,19 @@
   "momento.ocasiaoFalhada": "{jogador} desperdiça uma grande ocasião para {clube}.",
   "momento.marcador": "{casa} {golosCasa}-{golosFora} {fora}",
   "momento.expulsao": "{jogador} é expulso e {clube} fica com menos um.",
-  "momento.expulsaoSegundoAmarelo": "{jogador} vê o segundo amarelo e é expulso; {clube} fica com menos um."
+  "momento.expulsaoSegundoAmarelo": "{jogador} vê o segundo amarelo e é expulso; {clube} fica com menos um.",
+  "momento.lesao": "{jogador} lesiona-se ({tipo}, {gravidade}).",
+  "momento.lesaoSubstituto": "Entra {substituto}.",
+  "momento.lesaoSemSuplente": "{clube} fica sem suplente e joga com menos um.",
+  "lesao.tipo.pancada": "pancada",
+  "lesao.tipo.muscular": "lesão muscular",
+  "lesao.tipo.entorse": "entorse",
+  "lesao.tipo.tendao": "lesão no tendão",
+  "lesao.tipo.ligamentos": "lesão nos ligamentos",
+  "lesao.tipo.fratura": "fratura",
+  "lesao.gravidade.1": "ligeira",
+  "lesao.gravidade.2": "moderada",
+  "lesao.gravidade.3": "grave",
+  "lesao.gravidade.4": "muito grave",
+  "lesao.gravidade.5": "gravíssima"
 }

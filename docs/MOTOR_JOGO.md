@@ -102,7 +102,19 @@ Código: `formacoes.ts` (formações e efeitos, sem dependências), `tatica.ts` 
 
 `estadoDisciplinar` (puro) e `suspensosDoClube` (lê `Repositorio.cartoes` e `jornadasJogadas`) dizem quem falha o próximo jogo; `semSuspensos` tira-os dos candidatos ao onze. Quem chama (loop de jogos, RZ-109/119) filtra o plantel antes de montar a equipa.
 
-## 9. Ligação ao resto
+## 9. Lesões e forma (RZ-107)
+
+Código em `src/engine/lesoes/` (`lesao.ts`, `forma.ts`, `estado.ts`), parâmetros em `parametros.lesoes`.
+
+- **Risco** (`riscoPor90`): base ≈ 1,6 % por jogador e jogo (≈ 0,36 lesões por jogo, as duas equipas), multiplicada por: **forma** baixa (fadiga e calendário apertado), **relvado** mau (0-1, `EntradaJogo.relvado`), aptidão física baixa, **staff médico** fraco (`EquipaJogo.medico`, 1-20), **fair play duro do adversário** (1 cavalheiro ×0,75 … 5 agressivo ×1,5), **intensidade** alta, **cansaço** durante o jogo e **recaída** (quem regressou há menos de 28 dias da mesma lesão: `JogadorEmCampo.recaida`).
+- **Lesão** (`sortearLesao`): gravidade 1 ligeira (40 %, 3-10 dias) · 2 moderada (33 %, 10-28) · 3 grave (18 %, 28-70) · 4 muito grave (7 %, 70-180) · 5 gravíssima (2 %, 180-300); o tipo depende da gravidade (pancada, muscular, entorse, tendão, ligamentos, fratura). Staff médico bom encurta a paragem (±2 % por ponto); uma recaída é do mesmo tipo e dura ×1,35.
+- **No jogo:** o lesionado sai e não volta (nem com `alterarEquipa`). Se há `banco`, entra o suplente da mesma posição (guarda-redes só por guarda-redes) e há um evento `substituicao`; sem suplente a equipa joga com menos um (mesma penalização de um expulso). A escolha livre de substituições e o limite de 5 continuam no RZ-215.
+- **Relatório e registo:** minutos de quem saiu e de quem entrou, lesão por jogador, momento-chave «lesão»; factos `L` (`gravidade:n`) e `S` (`sai:<id>`); participações dos suplentes (`titular: false`); `registoDoJogo` devolve os eventos `LESAO` para acrescentar com `acrescentarEvento`.
+- **Histórico e estado** (`estado.ts`): cada lesão é um evento público `LESAO` (`{ tipo, gravidade, dias, ate, recaida, jogo?, minuto? }`, entidades pessoa «lesionado» + clube + jogo). `estadoFisico` diz se está lesionado hoje, quantos dias faltam, se regressou há pouco (risco de recaída) e quantas lesões tem; `lesionadosDoClube` e `semLesionados` filtram o plantel antes de montar o onze.
+- **Forma** (`formaDoJogador`): 1 descansado; cada jogo e cada 90 minutos nos últimos 14 dias cansam, os dias de descanso recuperam; quem regressa de lesão volta a 0,8 e sobe 0,02 por dia. Vai para `JogadorEmCampo.forma`.
+- **Ainda por ligar** (loop de dias, RZ-109/119): sortear lesões de **treino** (`pTreinoPorDia`) e escrever os eventos; calcular a forma e o `recaida` de cada jogador antes de cada jogo.
+
+## 10. Ligação ao resto
 
 - `registoDoJogo(...)` converte o resultado em `JogoNovo` + factos (G, A, P) + participações, prontos para `Repositorio.registarJogo` (RZ-122 liga isto ao calendário).
-- Fora desta tarefa, de propósito: lesões (RZ-107), nível de detalhe (RZ-109), jogo ao vivo com ritmo e pausa (RZ-130) e comentário (RZ-131). Os eventos já trazem os dados de que precisam.
+- Fora desta tarefa, de propósito: nível de detalhe (RZ-109), jogo ao vivo com ritmo e pausa (RZ-130) e comentário (RZ-131). Os eventos já trazem os dados de que precisam.

@@ -143,6 +143,56 @@ export type Parametros = {
     /** Momentos-chave do jogo (RZ-105). */
     momentos: { xgGrande: number };
   };
+  /** Lesões e forma (RZ-107; docs/MOTOR_JOGO.md §9). */
+  lesoes: {
+    /** Probabilidade base de um jogador se lesionar num jogo de 90 minutos (equipa e adversário normais, relvado médio). */
+    pPorJogadorJogo: number;
+    /** Multiplicadores do risco. */
+    risco: {
+      /** Por ponto de «forma» abaixo de 1 (fadiga, calendário apertado). */
+      porForma: number;
+      /** Relvado 0 (péssimo) … 1 (perfeito): risco ×(1 + (0,5 − relvado) · `relvado`). */
+      relvado: number;
+      /** Por ponto de aptidão física abaixo de 10 (acima de 10 baixa o risco). */
+      porAptidaoFisica: number;
+      /** Por ponto de qualidade médica abaixo de 10 (staff médico melhor, menos lesões). */
+      porMedico: number;
+      /** Fair play do adversário (1 cavalheiro … 5 agressivo). */
+      fairPlayAdversario: number[];
+      /** Por nível de intensidade da própria equipa acima de 3. */
+      intensidade: number;
+      /** Acrescento ao risco de quem regressou há pouco da mesma lesão (recaída). */
+      recaida: number;
+      /** Quanto o cansaço (pontos de força perdidos) soma ao risco, por ponto. */
+      fadiga: number;
+    };
+    /** Distribuição das gravidades (1 ligeira … 5 gravíssima), somam 1, e dias de paragem [mín, máx] de cada uma. */
+    gravidades: { peso: number; dias: [number, number] }[];
+    /** Por ponto de qualidade médica acima de 10, encurta a paragem (e alonga abaixo). */
+    recuperacaoPorMedico: number;
+    /** Uma recaída dura mais. */
+    duracaoRecaida: number;
+    /** Dias após o regresso em que ainda se está em risco de recaída. */
+    janelaRecaida: number;
+    /** Probabilidade diária de lesão em treino (jogador com forma 1, relvado/staff normais). */
+    pTreinoPorDia: number;
+    /** Forma (0,7-1,1): calendário e descanso. */
+    forma: {
+      /** Valor de um jogador descansado. */
+      base: number;
+      /** Perda por jogo nos últimos `janela` dias (além do primeiro). */
+      porJogoRecente: number;
+      janela: number;
+      /** Perda por cada 90 minutos jogados nos últimos `janela` dias. */
+      por90: number;
+      /** Ganho por dia de descanso desde o último jogo, até `base`. */
+      recuperacaoPorDia: number;
+      /** Forma de quem regressa de lesão, a crescer `recuperacaoPorDia` por dia. */
+      aoRegressar: number;
+      min: number;
+      max: number;
+    };
+  };
   /** Castigos disciplinares (RZ-106; docs/MOTOR_JOGO.md §8). Contam por competição e época. */
   disciplina: {
     /** Amarelos acumulados que dão um jogo de suspensão (de 5 em 5). */
@@ -316,6 +366,22 @@ export const PARAMETROS_PADRAO: Parametros = {
     notas: { base: 6, min: 3, max: 10, ruido: 0.25, golo: 0.9, assistencia: 0.5, remateABaliza: 0.1, ocasiaoFalhada: -0.2, penaltiFalhado: -0.7, falta: -0.08, penaltiConcedido: -0.5, defesa: 0.2, golosSofridos: -0.25, amarelo: -0.15, vermelho: -1.2, balizaZero: 0.5, resultado: 0.3 },
     momentos: { xgGrande: 0.3 },
   },
+  lesoes: {
+    pPorJogadorJogo: 0.016,
+    risco: { porForma: 2, relvado: 0.9, porAptidaoFisica: 0.03, porMedico: 0.015, fairPlayAdversario: [0.75, 0.88, 1, 1.25, 1.5], intensidade: 0.07, recaida: 1.2, fadiga: 0.25 },
+    gravidades: [
+      { peso: 0.4, dias: [3, 10] },
+      { peso: 0.33, dias: [10, 28] },
+      { peso: 0.18, dias: [28, 70] },
+      { peso: 0.07, dias: [70, 180] },
+      { peso: 0.02, dias: [180, 300] },
+    ],
+    recuperacaoPorMedico: 0.02,
+    duracaoRecaida: 1.35,
+    janelaRecaida: 28,
+    pTreinoPorDia: 0.0009,
+    forma: { base: 1, porJogoRecente: 0.025, janela: 14, por90: 0.015, recuperacaoPorDia: 0.02, aoRegressar: 0.8, min: 0.7, max: 1.1 },
+  },
   disciplina: {
     amarelosPorSuspensao: 5,
     vermelhoDireto: { jogos: 1, pMaisUm: 0.35, max: 4 },
@@ -438,6 +504,11 @@ export function validarParametros(p: Parametros): string[] {
   if (!(k.personalidade.limiarBaixo < k.personalidade.limiarAlto)) erros.push("conhecimento.personalidade: limiarBaixo < limiarAlto");
   if (k.personalidade.maxRotulos < 1) erros.push("conhecimento.personalidade: maxRotulos ≥ 1");
   if (k.personalidade.probTrocaPiorQualidade < 0 || k.personalidade.probTrocaPiorQualidade > 1) erros.push("conhecimento.personalidade: probTrocaPiorQualidade entre 0 e 1");
+  const le = p.lesoes;
+  if (!(le.pPorJogadorJogo >= 0 && le.pPorJogadorJogo <= 1 && le.pTreinoPorDia >= 0 && le.pTreinoPorDia <= 1)) erros.push("lesoes: probabilidades entre 0 e 1");
+  if (le.gravidades.length !== 5 || Math.abs(le.gravidades.reduce((a, g) => a + g.peso, 0) - 1) > 1e-9 || !le.gravidades.every((g) => g.dias[0] >= 1 && g.dias[1] >= g.dias[0])) erros.push("lesoes.gravidades: 5 níveis, pesos a somar 1 e dias [mín ≥ 1, máx ≥ mín]");
+  if (le.risco.fairPlayAdversario.length !== 5) erros.push("lesoes.risco.fairPlayAdversario: 5 níveis");
+  if (!(le.forma.min < le.forma.max && le.forma.min <= le.forma.aoRegressar && le.forma.aoRegressar <= le.forma.max && le.forma.base >= le.forma.min && le.forma.base <= le.forma.max)) erros.push("lesoes.forma: min < max e base/aoRegressar dentro dos limites");
   const dis = p.disciplina;
   if (!(Number.isInteger(dis.amarelosPorSuspensao) && dis.amarelosPorSuspensao >= 1 && dis.vermelhoDireto.jogos >= 1 && dis.vermelhoDireto.max >= dis.vermelhoDireto.jogos && dis.vermelhoDireto.pMaisUm >= 0 && dis.vermelhoDireto.pMaisUm < 1 && dis.segundoAmarelo.jogos >= 1)) erros.push("disciplina: amarelosPorSuspensao inteiro ≥ 1, vermelhoDireto.jogos ≥ 1 ≤ max, 0 ≤ pMaisUm < 1, segundoAmarelo.jogos ≥ 1");
   const t = p.tatica;

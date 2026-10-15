@@ -131,7 +131,7 @@ Regras:
 
 | Grupo | Tipos | Visibilidade típica |
 |---|---|---|
-| Jogo | `JOGO_JOGADO`, `GOLO_NOTAVEL`, `HATTRICK`, `CARTAO_VERMELHO`, `LESAO`, `LESAO_RECUPERADA`, `SUSPENSAO`, `SUSPENSAO_CUMPRIDA`, `JOGO_ADIADO` | público |
+| Jogo | `JOGO_JOGADO`, `GOLO_NOTAVEL`, `HATTRICK`, `CARTAO_VERMELHO`, `LESAO` (dados em MOTOR_JOGO §9; a recuperação deriva de `ate`, sem evento próprio), `LESAO_RECUPERADA` (reservado), `SUSPENSAO`, `SUSPENSAO_CUMPRIDA`, `JOGO_ADIADO` | público |
 | Competição | `INICIO_EPOCA`, `CALENDARIO_GERADO`, `CLASSIFICACAO_FINAL`, `TITULO`, `SUBIDA`, `DESCIDA`, `FASE_PROMOCAO`, `CLUBE_NOVO`, `DISTRITAL_REDIMENSIONADA`, `LICENCA_NEGADA`, `FIM_EPOCA` | público |
 | Dinheiro | `PREMIO_ESTADO`, `DESTINO_PREMIO_CAMARA`, `PATROCINIO_ASSINADO`, `FECHO_FINANCEIRO` (mensal, por clube) | prémios públicos; resto privado |
 | Pessoas | `JOGADOR_GERADO`, `CONTRATO_ASSINADO`, `CONTRATO_TERMINADO`, `TRANSFERENCIA`, `EMPRESTIMO`, `RENOVACAO`, `PEDIDO_SAIDA`, `TREINADOR_CONTRATADO`, `TREINADOR_DEMITIDO`, `REFORMA` | transferência pública (valor aproximado); termos do contrato privados |

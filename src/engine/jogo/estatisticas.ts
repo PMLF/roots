@@ -6,6 +6,7 @@
 import { Rng, limitar } from "../aleatorio/rng";
 import type { Parametros } from "../config/parametros";
 import type { Posicao } from "../mundo/tipos";
+import type { Lesao } from "../lesoes/lesao";
 import { outroLado, type EntradaJogo, type EquipaJogo, type EventoJogo, type EstatLado, type Lado, type Origem, type ResumoJogo } from "./tipos";
 
 export type EstatJogador = {
@@ -24,6 +25,8 @@ export type EstatJogador = {
   amarelos: number;
   /** 1 se foi expulso (vermelho direto ou segundo amarelo). */
   vermelhos: number;
+  /** Lesão sofrida neste jogo. */
+  lesao?: Lesao;
   /** Só guarda-redes: remates à baliza defendidos. */
   defesas: number;
   golosSofridos: number;
@@ -40,6 +43,7 @@ export type MomentoChave =
   | { tipo: "golo"; minuto: number; lado: Lado; jogador: string; assistente?: string; origem: Origem; contexto: ContextoGolo; golosCasa: number; golosFora: number }
   | { tipo: "penalti-falhado"; minuto: number; lado: Lado; jogador: string; guardaRedes?: string; defendido: boolean }
   | { tipo: "grande-defesa"; minuto: number; lado: Lado; jogador: string; guardaRedes: string; xg: number }
+  | { tipo: "lesao"; minuto: number; lado: Lado; jogador: string; lesao: Lesao; substituto?: string }
   | { tipo: "expulsao"; minuto: number; lado: Lado; jogador: string; segundoAmarelo: boolean }
   | { tipo: "ocasiao-falhada"; minuto: number; lado: Lado; jogador: string; xg: number };
 
@@ -91,8 +95,8 @@ export function relatorioDoJogo(
   const n = pj.notas;
   const jogadores = new Map<string, EstatJogador>();
   for (const lado of ["casa", "fora"] as const) {
-    for (const j of equipas[lado].onze) {
-      jogadores.set(j.id, { id: j.id, lado, clube: equipas[lado].clube, posicao: j.posicao, minutos: resumo.duracao, golos: 0, assistencias: 0, remates: 0, aBaliza: 0, xg: 0, penaltisFalhados: 0, faltas: 0, amarelos: 0, vermelhos: 0, defesas: 0, golosSofridos: 0, nota: n.base });
+    for (const [j, minutos] of [...equipas[lado].onze.map((x) => [x, resumo.duracao] as const), ...(equipas[lado].banco ?? []).map((x) => [x, 0] as const)]) {
+      jogadores.set(j.id, { id: j.id, lado, clube: equipas[lado].clube, posicao: j.posicao, minutos, golos: 0, assistencias: 0, remates: 0, aBaliza: 0, xg: 0, penaltisFalhados: 0, faltas: 0, amarelos: 0, vermelhos: 0, defesas: 0, golosSofridos: 0, nota: n.base });
     }
   }
   const obter = (id: string): EstatJogador => {
@@ -117,6 +121,23 @@ export function relatorioDoJogo(
       const inf = obter(e.jogador);
       inf.faltas++;
       somar(e.jogador, e.penalti ? n.penaltiConcedido : n.falta);
+      continue;
+    }
+    if (e.tipo === "lesao") {
+      const j = obter(e.jogador);
+      j.lesao = e.lesao;
+      j.minutos = Math.min(j.minutos, e.minuto);
+      momentos.push({ tipo: "lesao", minuto: e.minuto, lado: e.lado, jogador: e.jogador, lesao: e.lesao });
+      continue;
+    }
+    if (e.tipo === "substituicao") {
+      const sai = obter(e.sai);
+      const entra = obter(e.entra);
+      sai.minutos = Math.min(sai.minutos, e.minuto);
+      entra.minutos = resumo.duracao - e.minuto;
+      entra.posicao = sai.posicao;
+      const m = momentos.find((x) => x.tipo === "lesao" && x.jogador === e.sai);
+      if (m && m.tipo === "lesao") m.substituto = e.entra;
       continue;
     }
     if (e.tipo === "cartao") {
@@ -196,7 +217,7 @@ export function relatorioDoJogo(
     j.golosSofridos = j.posicao === "GR" ? dele : 0;
   }
 
-  const lista = [...jogadores.values()];
+  const lista = [...jogadores.values()].filter((j) => j.minutos > 0);
   const melhor = [...lista].sort((a, b) => b.nota - a.nota || b.golos + b.assistencias - (a.golos + a.assistencias) || b.xg - a.xg || a.id.localeCompare(b.id))[0] as EstatJogador;
   momentos.sort((a, b) => a.minuto - b.minuto);
   return {

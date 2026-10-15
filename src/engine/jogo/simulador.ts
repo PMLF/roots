@@ -9,13 +9,14 @@
 import { Rng, limitar } from "../aleatorio/rng";
 import type { Parametros } from "../config/parametros";
 import { forcaEquipa, type ForcaEquipa } from "./equipa";
+import { riscoPor90, sortearLesao } from "../lesoes/lesao";
 import { TATICA_PADRAO, fadigaEm, multiplicadorFaltas } from "./formacoes";
 import { outroLado, type EntradaJogo, type EquipaJogo, type EstatLado, type EventoJogo, type JogadorEmCampo, type Lado, type Origem, type ResumoJogo, type Tatica } from "./tipos";
 
 const logit = (p: number): number => Math.log(p / (1 - p));
 const sigmoide = (x: number): number => 1 / (1 + Math.exp(-x));
 
-const novoLado = (): EstatLado => ({ golos: 0, oportunidades: 0, remates: 0, aBaliza: 0, bloqueados: 0, xg: 0, cantos: 0, faltas: 0, minutosPosse: 0, amarelos: 0, vermelhos: 0 });
+const novoLado = (): EstatLado => ({ golos: 0, oportunidades: 0, remates: 0, aBaliza: 0, bloqueados: 0, xg: 0, cantos: 0, faltas: 0, minutosPosse: 0, amarelos: 0, vermelhos: 0, lesoes: 0 });
 
 function escolherPonderado<T>(rng: Rng, itens: readonly T[], peso: (x: T) => number): T {
   let total = 0;
@@ -45,12 +46,19 @@ export class SimuladorJogo {
   private ultimo = 0;
   /** Expulsos de cada lado: não voltam a jogar, nem com `alterarEquipa`. */
   private readonly expulsos: Record<Lado, Set<string>> = { casa: new Set(), fora: new Set() };
+  /** Lesionados sem suplente: jogam menos um (penalização igual à de um expulso). */
+  private readonly semSuplente: Record<Lado, number> = { casa: 0, fora: 0 };
+  private readonly relvado: number;
+  /** Quem se lesionou neste jogo não volta. */
+  private readonly riscosBase: Record<Lado, number[] | undefined> = { casa: undefined, fora: undefined };
+  private readonly lesionados: Record<Lado, Set<string>> = { casa: new Set(), fora: new Set() };
   private readonly amarelos: Record<Lado, Set<string>> = { casa: new Set(), fora: new Set() };
   private readonly stats: Record<Lado, EstatLado> = { casa: novoLado(), fora: novoLado() };
 
   constructor(entrada: EntradaJogo, params: Parametros) {
     this.p = params.jogo;
     this.params = params;
+    this.relvado = entrada.relvado ?? 0.5;
     this.rng = new Rng(entrada.seed, `jogo/${entrada.id}`);
     const a = this.p.acrescimos;
     this.duracao = this.p.duracao + this.rng.derivar("acrescimos").inteiro(a.min, a.max);
@@ -75,8 +83,10 @@ export class SimuladorJogo {
 
   /** Muda a equipa (substituições, tática…) a partir do minuto seguinte. */
   alterarEquipa(lado: Lado, equipa: EquipaJogo): void {
-    this.equipas[lado] = { ...equipa, onze: equipa.onze.filter((j) => !this.expulsos[lado].has(j.id)) };
+    const fora = (j: JogadorEmCampo) => this.expulsos[lado].has(j.id) || this.lesionados[lado].has(j.id);
+    this.equipas[lado] = { ...equipa, onze: equipa.onze.filter((j) => !fora(j)), ...(equipa.banco ? { banco: equipa.banco.filter((j) => !fora(j)) } : {}) };
     this.forcas[lado] = this.calcularForca(this.equipas[lado]);
+    this.riscosBase[lado] = undefined;
   }
 
   /** Simula até ao minuto indicado (inclusive) e devolve os eventos novos, por ordem. */
@@ -116,7 +126,7 @@ export class SimuladorJogo {
     for (const lado of ["casa", "fora"] as const) {
       const f = fadigaEm(m, this.duracao, this.tatica(lado), this.params.tatica);
       const b = this.forcas[lado];
-      const x = this.expulsos[lado].size;
+      const x = this.expulsos[lado].size + this.semSuplente[lado];
       this.efetivas[lado] = { ...b, ataque: b.ataque - f * 0.5 - pen.ataque * x, controlo: b.controlo - f - pen.controlo * x, defesa: b.defesa - f - pen.defesa * x };
     }
     // estilos que reagem ao adversário: o contra-ataque rende mais quanto mais bola o outro tem; o jogo direto explora linhas altas
@@ -146,6 +156,7 @@ export class SimuladorJogo {
     for (const lado of ["casa", "fora"] as const) {
       if (r.prob((this.p.faltas.porEquipa * multiplicadorFaltas(this.tatica(lado), this.params.tatica)) / this.duracao)) this.falta(r, m, lado, out);
     }
+    for (const lado of ["casa", "fora"] as const) this.possivelLesao(r, m, lado, out);
   }
 
   private diferenca(lado: Lado): number {
@@ -223,6 +234,50 @@ export class SimuladorJogo {
     this.remate(r, m, lado, out, cabeceador, marcador.id === cabeceador.id ? undefined : marcador, xg, "canto", profundidade + 1);
   }
 
+  /** Risco de lesão neste minuto: soma dos riscos individuais; se acontece, escolhe-se quem, ponderado pelo risco. */
+  private possivelLesao(r: Rng, m: number, lado: Lado, out: EventoJogo[]): void {
+    const eq = this.equipas[lado];
+    const t = this.tatica(lado);
+    const fadiga = fadigaEm(m, this.duracao, t, this.params.tatica);
+    // o cansaço multiplica o risco de todos por igual: calcula-se uma vez por equipa e muda-se só quando a equipa muda
+    const base = (this.riscosBase[lado] ??= eq.onze.map(
+      (j) =>
+        riscoPor90({ forma: j.forma, aptidaoFisica: j.atributos.aptidaoFisica, relvado: this.relvado, medico: eq.medico ?? 10, fairPlayAdversario: this.tatica(outroLado(lado)).fairPlay, intensidade: t.intensidade, recaida: !!j.recaida }, this.params) / this.duracao,
+    ));
+    const fator = 1 + this.params.lesoes.risco.fadiga * fadiga;
+    const riscos = base.map((x) => x * fator);
+    const total = riscos.reduce((a, b) => a + b, 0);
+    if (!r.prob(total)) return;
+    let x = r.float() * total;
+    let k = 0;
+    for (; k < riscos.length - 1; k++) {
+      x -= riscos[k] as number;
+      if (x < 0) break;
+    }
+    const jogador = eq.onze[k] as JogadorEmCampo;
+    const lesao = sortearLesao(r, this.params, { medico: eq.medico ?? 10, ...(jogador.recaida ? { recaida: jogador.recaida } : {}) });
+    this.stats[lado].lesoes++;
+    this.lesionados[lado].add(jogador.id);
+    out.push({ tipo: "lesao", minuto: m, lado, jogador: jogador.id, lesao });
+    // o suplente: mesma posição se houver; guarda-redes só por guarda-redes
+    const banco = eq.banco ?? [];
+    const entra =
+      banco.find((b) => b.posicao === jogador.posicao) ??
+      (jogador.posicao === "GR" ? undefined : banco.filter((b) => b.posicao !== "GR").reduce<JogadorEmCampo | undefined>((a, b) => (!a || b.atributos.finalizacao + b.atributos.desarme + b.atributos.passe > a.atributos.finalizacao + a.atributos.desarme + a.atributos.passe ? b : a), undefined));
+    const onze = eq.onze.filter((j) => j.id !== jogador.id);
+    if (entra) {
+      onze.push({ ...entra, posicao: jogador.posicao });
+      this.equipas[lado] = { ...eq, onze, banco: banco.filter((b) => b.id !== entra.id) };
+      out.push({ tipo: "substituicao", minuto: m, lado, sai: jogador.id, entra: entra.id, motivo: "lesao" });
+    } else {
+      this.equipas[lado] = { ...eq, onze };
+      this.semSuplente[lado]++;
+    }
+    this.forcas[lado] = this.calcularForca(this.equipas[lado]);
+    this.riscosBase[lado] = undefined;
+    this.atualizarEfetivas(m);
+  }
+
   /** Cartão por uma falta: vermelho direto, amarelo (e vermelho se já tinha um). O expulso sai do jogo. */
   private cartao(r: Rng, m: number, lado: Lado, out: EventoJogo[], inf: JogadorEmCampo, penalti: boolean): void {
     const c = this.p.cartoes;
@@ -245,6 +300,7 @@ export class SimuladorJogo {
     this.expulsos[lado].add(inf.id);
     this.equipas[lado] = { ...this.equipas[lado], onze: this.equipas[lado].onze.filter((j) => j.id !== inf.id) };
     this.forcas[lado] = this.calcularForca(this.equipas[lado]);
+    this.riscosBase[lado] = undefined;
     this.atualizarEfetivas(m);
   }
 

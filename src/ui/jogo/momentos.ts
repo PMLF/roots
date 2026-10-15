@@ -31,6 +31,10 @@ export function momentoEmTexto(locale: Locale, m: MomentoChave, nomes: NomesJogo
     case "grande-defesa":
       frase = traduzir(locale, "momento.grandeDefesa", { jogador, guardaRedes: nomes.jogador(m.guardaRedes) });
       break;
+    case "lesao":
+      frase = traduzir(locale, "momento.lesao", { jogador, tipo: traduzir(locale, `lesao.tipo.${m.lesao.tipo}` as Chave), gravidade: traduzir(locale, `lesao.gravidade.${m.lesao.gravidade}` as Chave) });
+      frase += m.substituto ? ` ${traduzir(locale, "momento.lesaoSubstituto", { substituto: nomes.jogador(m.substituto) })}` : ` ${traduzir(locale, "momento.lesaoSemSuplente", { clube })}`;
+      break;
     case "expulsao":
       frase = traduzir(locale, m.segundoAmarelo ? "momento.expulsaoSegundoAmarelo" : "momento.expulsao", { jogador, clube });
       break;

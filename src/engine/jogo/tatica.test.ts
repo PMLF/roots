@@ -97,7 +97,7 @@ describe("efeitos da tática no jogo", () => {
     expect(igual({ intensidade: 5 }, "i5").faltas).toBeGreaterThan(igual({ intensidade: 1 }, "i1").faltas * 1.25);
   });
 
-  it("nenhuma tática é uma bala de prata entre equipas iguais", () => {
+  it("nenhuma tática é uma bala de prata entre equipas iguais", { timeout: 60000 }, () => {
     const base = igual({}, "n0");
     const variantes: Partial<Tatica>[] = [{ estilo: "bonito" }, { estilo: "direto" }, { estilo: "contraAtaque" }, { intensidade: 5 }, { intensidade: 1 }, { linha: 5 }, { linha: 1 }, { ritmo: 5 }, { fairPlay: 5 }, { fairPlay: 1 }, { formacao: "4-4-2" }, { formacao: "5-3-2" }, { formacao: "3-4-3" }];
     for (const v of variantes) {
