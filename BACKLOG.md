@@ -79,6 +79,11 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 
 **Meta:** jogar 5 épocas seguidas num distrito, com Avançar, jogos com estatísticas completas, subidas e descidas, prémio do Estado e distritais a mudar de tamanho.
 
+### Interface — prioridade alta (pedido do Pedro, 15-10-2026: fazer **antes** de continuar o motor)
+
+- [ ] **RZ-144** (P1, L) **Redesenho visual da interface**: mais moderna, limpa e agradável de ver, **sem ser berrante**; intuitiva, informativa e funcional. Entregáveis: *tokens* de design (cor, tipografia, espaçamento, raios, sombras discretas, estados de foco/hover/desativado), modo claro e escuro, hierarquia clara (títulos, números tabulares, cartões e tabelas com ar), ícones simples, estados vazios e de carregamento cuidados, responsivo, acessibilidade (contraste, teclado). Rever `Shell`, `Tabela`, `Ficha`, «Hoje», Mundo e Laboratório. Segue `docs/TOM_E_UX.md` e `docs/UI_SISTEMA.md` (atualizar). Pedir feedback ao Pedro com capturas antes e depois.
+- [ ] **RZ-145** (P1, XL) **Páginas em falta do menu**: hoje só há pessoa, clube, localidade/cidade, Mundo e Laboratório; **Clube, Plantel, Jogos e Cidade estão por ligar**. Fazer páginas reais, lidas pela `Vista`, a funcionar já com os dados do mundo (sem esperar pelo ciclo de dias): **Competições** (lista por escalão e distrito; ficha da competição com tabela e desempates, jornadas, artilheiros e calendário, usando RZ-110), **Clube** (visão geral do clube: estádio, cargos, plantel, calendário e resultados), **Plantel** (tabela de jogadores com filtros), **Jogos** (calendário e resultados, relatório de um jogo), **Cidade** (RZ-133), e **«Hoje»** com conteúdo. Enquanto não houver clube escolhido (RZ-138/134), mostrar um seletor de clube. Nenhum item do menu fica «em breve». → RZ-144 (aplicar o novo desenho), RZ-110
+
 ### Motor e dados
 - [x] **RZ-101** (P1, M) Esqueleto Next.js (exportação estática), TypeScript estrito, **motor num Web Worker** com contrato tipado, i18n pt-PT/en (ICU), shell da interface, lint das fronteiras de arquitetura, testes (Vitest) e CI (GitHub Actions). *Guardar/carregar o estado passa a ser RZ-128 e RZ-134.* Gestor de pacotes: **pnpm** (campo `packageManager`; `pnpm run ci`). → `README.md`
 - [x] **RZ-102** (P1, M) Calendários (todos contra todos, ida e volta) por liga, com número variável de clubes e folgas por jornada. ✔ `src/engine/calendario` (círculo + casa/fora máx. 2 seguidos, datas com pausas e quartas-feiras, validação) e tabelas `calendario_jogo`/`calendario_folga` (migração 2). Copas e Fase de Promoção usam isto (RZ-125).
@@ -265,6 +270,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 | Jogos ao vivo minuto a minuto; intervenção ao vivo mais tarde | D12, RZ-130, 131, 215 |
 | Tom realista, imprensa cor-de-rosa, nomes realistas | D13, `docs/TOM_E_UX.md`, RZ-313 |
 | UI densa e bem organizada | RZ-009, `docs/TOM_E_UX.md` §3 |
+| Interface moderna, limpa e completa, com prioridade alta (15-10-2026) | RZ-144, RZ-145 |
 | Jogadores de qualquer país com probabilidades diferentes | RZ-132, `MODELO_DADOS` §15 |
 | Steam, 2D, mapa da cidade, amigos a jogar | D14, §10b |
 | Gerar pessoas e nomes por nacionalidade; saves diferentes; tempo de criação | RZ-103, 132, `docs/GERACAO_MUNDO.md` |
