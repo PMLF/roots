@@ -130,7 +130,7 @@ describe("estado físico a partir do histórico", () => {
 // ---------- no jogo
 
 function comBanco(eq: EquipaJogo, n = 7): EquipaJogo {
-  const posicoes = ["GR", "DC", "DD", "MC", "MC", "ED", "PL"] as const;
+  const posicoes = ["GK", "CB", "RB", "CM", "CM", "RW", "ST"] as const;
   const banco: JogadorEmCampo[] = Array.from({ length: n }, (_, i) => ({ ...(eq.onze[1] as JogadorEmCampo), id: `${eq.clube}-b${i}`, posicao: posicoes[i % posicoes.length] as JogadorEmCampo["posicao"] }));
   return { ...eq, banco };
 }
@@ -270,7 +270,7 @@ describe("lesões nas estatísticas e no registo", () => {
       expect(rel.jogadores.every((j) => j.minutos > 0)).toBe(true);
 
       const r = new RepositorioMemoria();
-      const reg = registoDoJogo({ id: e.id, competicao: "PL", epoca: 1, jornada: 1, data: "2026-09-05" }, e.casa, e.fora, eventos, resumo, rel);
+      const reg = registoDoJogo({ id: e.id, competicao: "ST", epoca: 1, jornada: 1, data: "2026-09-05" }, e.casa, e.fora, eventos, resumo, rel);
       expect(reg.factos.filter((f) => f.tipo === "L")).toHaveLength(ls.length);
       expect(reg.factos.find((f) => f.tipo === "L")?.extra).toBe(`gravidade:${l.lesao.gravidade}`);
       expect(reg.factos.filter((f) => f.tipo === "S")).toHaveLength(eventos.filter((x) => x.tipo === "substituicao").length);

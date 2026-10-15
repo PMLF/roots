@@ -9,9 +9,9 @@ export type ForcaEquipa = { ataque: number; controlo: number; defesa: number; gu
 
 type Grupo = { pesos: Partial<Record<Posicao, number>>; atributos: readonly Atributo[] };
 
-const ATAQUE: Grupo = { pesos: { PL: 1, ED: 0.8, EE: 0.8, MO: 0.7, MC: 0.3 }, atributos: ["finalizacao", "drible", "desmarcacao", "velocidade", "tecnica"] };
-const CONTROLO: Grupo = { pesos: { MC: 1, MDC: 0.8, MO: 0.8, ED: 0.3, EE: 0.3, DD: 0.2, DE: 0.2 }, atributos: ["passe", "visao", "controloBola", "decisao", "trabalhoEquipa"] };
-const DEFESA: Grupo = { pesos: { DC: 1, MDC: 0.8, DD: 0.7, DE: 0.7, MC: 0.3 }, atributos: ["desarme", "marcacao", "posicionamento", "antecipacao"] };
+const ATAQUE: Grupo = { pesos: { ST: 1, RW: 0.8, LW: 0.8, AM: 0.7, CM: 0.3 }, atributos: ["finalizacao", "drible", "desmarcacao", "velocidade", "tecnica"] };
+const CONTROLO: Grupo = { pesos: { CM: 1, DM: 0.8, AM: 0.8, RW: 0.3, LW: 0.3, RB: 0.2, LB: 0.2 }, atributos: ["passe", "visao", "controloBola", "decisao", "trabalhoEquipa"] };
+const DEFESA: Grupo = { pesos: { CB: 1, DM: 0.8, RB: 0.7, LB: 0.7, CM: 0.3 }, atributos: ["desarme", "marcacao", "posicionamento", "antecipacao"] };
 const GR_ATRIBUTOS: readonly Atributo[] = ["reflexos", "manuseamento", "posicionamentoGR", "saidas"];
 
 const media = (a: Atributos, ks: readonly Atributo[]): number => ks.reduce((s, k) => s + a[k], 0) / ks.length;
@@ -33,7 +33,7 @@ function ponderada(onze: readonly JogadorEmCampo[], g: Grupo): number {
  * Com `tatica` e `params`, somam-se os efeitos da formação realmente em campo, do estilo, da intensidade, da linha e do fair play (RZ-108).
  */
 export function forcaEquipa(onze: readonly JogadorEmCampo[], tatica?: Tatica, params?: Parametros): ForcaEquipa {
-  const gr = onze.find((j) => j.posicao === "GR");
+  const gr = onze.find((j) => j.posicao === "GK");
   const base = {
     ataque: ponderada(onze, ATAQUE),
     controlo: ponderada(onze, CONTROLO),
@@ -61,13 +61,13 @@ export function onzeComValor(candidatos: readonly CandidatoOnze[], formacao: rea
   const onze: JogadorEmCampo[] = [];
   let total = 0;
   // o guarda-redes primeiro, para não ser gasto fora de sítio
-  const ordem = [...formacao].sort((a, b) => (a === "GR" ? -1 : b === "GR" ? 1 : 0));
+  const ordem = [...formacao].sort((a, b) => (a === "GK" ? -1 : b === "GK" ? 1 : 0));
   for (const pos of ordem) {
     let melhor = -1;
     let valor = -Infinity;
     livres.forEach((c, i) => {
       const apt = c.posicoes.find((p) => p.pos === pos)?.aptidao;
-      const fator = apt === undefined ? (pos === "GR" ? 0.1 : 0.45) : apt / 20;
+      const fator = apt === undefined ? (pos === "GK" ? 0.1 : 0.45) : apt / 20;
       const v = qualidadeAtual(c.atributos as Atributos, pos) * fator;
       if (v > valor || (v === valor && melhor >= 0 && c.pessoa < (livres[melhor] as CandidatoOnze).pessoa)) {
         valor = v;

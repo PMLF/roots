@@ -63,8 +63,8 @@ Dentro de cada escalão, o clube sobe ou desce conforme a **reputação** e as *
 
 ## 5. Atributos, posições e roles
 
-- **Posições:** GR, DD, DC, DE, MDC, MC, MO, ED, EE, PL, com aptidão 1-20 por posição.
-- **Atributos** (1-20): técnicos, mentais, físicos, e específicos de GR. Cada posição tem um **perfil** (médias e desvios) a que se soma a qualidade individual.
+- **Posições** (guardadas em inglês; a interface traduz): GK, RB, CB, LB, DM, CM, AM, RW, LW, ST, com aptidão 1-20 por posição.
+- **Atributos** (1-20): técnicos, mentais, físicos, e específicos de GK. Cada posição tem um **perfil** (médias e desvios) a que se soma a qualidade individual.
 - **Qualidade-alvo** do plantel: depende do escalão e da reputação do clube; os melhores jogadores do mundo (cauda) só aparecem em países de índice alto, ou raramente fora deles.
 - **Roles** (p. ex. "defesa construtor", "ponta-de-lança móvel") **não se guardam**: são calculados dos atributos (adequação a cada role), para evoluírem com o jogador.
 - **Potencial** é oculto; cada olheiro vê uma estimativa com erro (`HISTORICO_EVENTOS` §5).

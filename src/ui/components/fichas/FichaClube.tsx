@@ -7,6 +7,7 @@ import { Tabela } from "@/ui/components/Tabela";
 import type { Chave } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import type { Coluna } from "@/ui/tabela/logica";
+import { siglaPosicao } from "@/ui/i18n/posicao";
 import { usePaises } from "@/ui/usePaises";
 
 export function FichaClube({ d }: { d: FichaClubeDados }) {
@@ -17,7 +18,7 @@ export function FichaClube({ d }: { d: FichaClubeDados }) {
   const plantel: Coluna<PessoaVista>[] = [
     { id: "nome", titulo: t("coluna.nome"), valor: (p) => p.nomeDesportivo },
     { id: "idade", titulo: t("coluna.idade"), valor: (p) => p.idade, numerica: true },
-    { id: "pos", titulo: t("coluna.posicao"), valor: (p) => p.jogador?.posicao ?? "" },
+    { id: "pos", titulo: t("coluna.posicao"), valor: (p) => siglaPosicao(t, p.jogador?.posicao ?? "") },
     { id: "pais", titulo: t("coluna.pais"), valor: (p) => pais(p.nacionalidade) },
     { id: "pe", titulo: t("coluna.pe"), valor: (p) => p.jogador?.pe ?? "" },
     { id: "altura", titulo: t("coluna.altura"), valor: (p) => p.jogador?.alturaCm ?? 0, numerica: true },

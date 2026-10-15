@@ -7,6 +7,7 @@ import { Tabela } from "@/ui/components/Tabela";
 import { Valor } from "@/ui/components/Valor";
 import type { Chave } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
+import { nomePosicao } from "@/ui/i18n/posicao";
 import type { Coluna } from "@/ui/tabela/logica";
 import { usePaises } from "@/ui/usePaises";
 import { mostrarEstimativa } from "@/ui/valor";
@@ -63,7 +64,7 @@ export function FichaPessoa({ d }: { d: FichaPessoaDados }) {
       subtitulo={p.nome}
       numeros={[
         { rotulo: t("coluna.idade"), valor: p.idade },
-        ...(j ? [{ rotulo: t("coluna.posicao"), valor: j.posicao }] : p.funcao ? [{ rotulo: t("coluna.funcao"), valor: t(`funcao.${p.funcao}` as Chave) }] : []),
+        ...(j ? [{ rotulo: t("coluna.posicao"), valor: nomePosicao(t, j.posicao) }] : p.funcao ? [{ rotulo: t("coluna.funcao"), valor: t(`funcao.${p.funcao}` as Chave) }] : []),
         { rotulo: t("coluna.pais"), valor: pais(p.nacionalidade) },
         ...(d.clube ? [{ rotulo: t("entidade.clube"), valor: <Ligacao k="clube" id={d.clube.id}>{d.clube.nome}</Ligacao> }] : []),
       ]}

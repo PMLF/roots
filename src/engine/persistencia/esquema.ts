@@ -151,8 +151,15 @@ CREATE TABLE localidade (
 CREATE INDEX ix_localidade_cidade ON localidade(cidade);
 `;
 
+
+const V5 = `
+-- Posições em inglês no código e na base de dados (pedido do Pedro, 15-10-2026): GR→GK, DD→RB, DC→CB, DE→LB,
+-- MDC→DM, MC→CM, MO→AM, ED→RW, EE→LW, PL→ST. A interface traduz pelo idioma. Os saves antigos migram aqui.
+UPDATE jogador SET posicoes = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(posicoes, '"pos":"GR"', '"pos":"GK"'), '"pos":"DD"', '"pos":"RB"'), '"pos":"DC"', '"pos":"CB"'), '"pos":"DE"', '"pos":"LB"'), '"pos":"MDC"', '"pos":"DM"'), '"pos":"MC"', '"pos":"CM"'), '"pos":"MO"', '"pos":"AM"'), '"pos":"ED"', '"pos":"RW"'), '"pos":"EE"', '"pos":"LW"'), '"pos":"PL"', '"pos":"ST"');
+`;
+
 /** A posição no array + 1 é o número da versão do esquema. */
-export const MIGRACOES: readonly string[] = [V1, V2, V3, V4];
+export const MIGRACOES: readonly string[] = [V1, V2, V3, V4, V5];
 export const VERSAO_ESQUEMA = MIGRACOES.length;
 
 export function versaoDoFicheiro(d: DriverSql): number {

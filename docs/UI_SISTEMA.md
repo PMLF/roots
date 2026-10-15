@@ -32,6 +32,10 @@ Menu à esquerda com **no máximo 2 níveis** (secção no menu, separadores na 
 
 A ficha de clube liga à **localidade** (aldeia, vila ou cidade) e ao **concelho**. A ficha da localidade (`k=localidade`) mostra estatuto, população, clubes e as mudanças de estatuto (`docs/CIDADE.md` §6b). A pesquisa encontra as localidades que não são sede de concelho.
 
+## 3b. Posições e outros códigos
+
+O que se guarda está em **inglês** (posições GK, RB, CB, LB, DM, CM, AM, RW, LW, ST; mais tarde tudo o resto, RZ-143). A interface mostra a **sigla** (`posicao.<código>`: em pt-PT GR, DD, DC, DE, MDC, MC, MO, ED, EE, PL) ou o **nome** (`posicao.nome.<código>`) no idioma escolhido, com `siglaPosicao`/`nomePosicao` (`src/ui/i18n/posicao.ts`). Nunca mostrar um código guardado sem passar por aqui.
+
 ## 4. Fica para depois
 
 Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já existem e abrem uma ficha «em breve»; separadores *Jogos*, *Carreira*, *História* (precisam de jogos e eventos); conjuntos de colunas com nome; atalhos por secção; «Caixa»/jornal e barra inferior com dados (RZ-120).

@@ -462,7 +462,7 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
         { id: "p3", nome: "Luca Rossi", nomeDesportivo: "Luca Rossi", nascimento: "1998-01-01", nacionalidade: "it", papeis: ["jogador"], personalidade: { lealdade: 5 }, arquetipo: "mercenario", lod: 2 },
       ],
       jogadores: [
-        { pessoa: "p1", posicoes: [{ pos: "MC", aptidao: 20 }, { pos: "MDC", aptidao: 12 }], atributos: { passe: 14 }, potencial: 15.5, alturaCm: 180, pesoKg: 75, pe: "D", clube: "X", estado: "ativo" },
+        { pessoa: "p1", posicoes: [{ pos: "CM", aptidao: 20 }, { pos: "DM", aptidao: 12 }], atributos: { passe: 14 }, potencial: 15.5, alturaCm: 180, pesoKg: 75, pe: "D", clube: "X", estado: "ativo" },
         { pessoa: "p3", posicoes: [{ pos: "PL", aptidao: 20 }], atributos: { finalizacao: 12 }, potencial: 12, alturaCm: 184, pesoKg: 80, pe: "E", estado: "livre" },
       ],
       contratos: [{ pessoa: "p1", clube: "X", salarioMensal: 1200, inicio: "2025-07-01", fim: "2028-06-30" }],
@@ -484,7 +484,7 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       const r = criar();
       r.guardarMundo(lote());
       const f = r.pessoaPublica("p1")!;
-      expect(f).toMatchObject({ nomeDesportivo: "João Silva", clube: "X", naturalDe: "porto", jogador: { posicao: "MC", alturaCm: 180, pe: "D", estado: "ativo" } });
+      expect(f).toMatchObject({ nomeDesportivo: "João Silva", clube: "X", naturalDe: "porto", jogador: { posicao: "CM", alturaCm: 180, pe: "D", estado: "ativo" } });
       const texto = JSON.stringify(f);
       for (const proibido of ["potencial", "atributos", "personalidade", "lealdade", "aptidao", "arquetipo", "salario"]) expect(texto).not.toContain(proibido);
       expect(r.pessoaPublica("p3")?.jogador?.estado).toBe("livre");
@@ -494,7 +494,7 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       const r = criar();
       r.guardarMundo(lote());
       expect(r.indicePessoas()).toEqual([
-        { id: "p1", nome: "João Pedro Silva", nomeDesportivo: "João Silva", clube: "X", posicao: "MC" },
+        { id: "p1", nome: "João Pedro Silva", nomeDesportivo: "João Silva", clube: "X", posicao: "CM" },
         { id: "p2", nome: "Ana Costa", nomeDesportivo: "Ana Costa", clube: "X", funcao: "presidente" },
         { id: "p3", nome: "Luca Rossi", nomeDesportivo: "Luca Rossi", posicao: "PL" },
       ]);

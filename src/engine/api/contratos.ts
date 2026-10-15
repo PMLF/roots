@@ -1,5 +1,7 @@
 import type { Parametros } from "../config/parametros";
 import type { ResultadoPesquisa } from "../pesquisa/pesquisar";
+import type { CompeticaoResumo, JogoLab, LigaLab } from "../laboratorio/laboratorio";
+import type { FormacaoId, Tatica } from "../jogo/tipos";
 import type { FichaPessoa, PessoaVista } from "../vista/tipos";
 
 /** Resultado do autodiagnóstico da base de dados (RZ-128): escreve um evento e lê-o de volta. */
@@ -70,7 +72,7 @@ export type FichaLocalidadeDados = {
   historico: { data: string; de: EstatutoLocalidade; para: EstatutoLocalidade; populacao: number }[];
 };
 
-export type { ResultadoPesquisa };
+export type { ResultadoPesquisa, CompeticaoResumo, JogoLab, LigaLab };
 
 export type ClubeResumo = { id: string; nome: string; liga: string };
 
@@ -93,6 +95,12 @@ export type PedidosMotor = {
   fichaLocalidade: { entrada: { id: string }; saida: FichaLocalidadeDados | null };
   /** Apaga o save atual e gera um mundo novo com esta seed (RZ-137). Emite progresso como `criarMundo`. */
   reiniciarMundo: { entrada: { seed: string }; saida: ResumoMundoCriado };
+  /** Laboratório (RZ-139): as ligas e séries do mundo. */
+  competicoes: { entrada: null; saida: CompeticaoResumo[] };
+  /** Laboratório: simula um jogo entre dois clubes sem gravar nada no save. */
+  laboratorioJogo: { entrada: { casa: string; fora: string; seed: string; taticaCasa?: Partial<Tatica>; taticaFora?: Partial<Tatica> }; saida: JogoLab };
+  /** Laboratório: simula uma liga inteira (uma época) sem gravar nada no save. */
+  laboratorioLiga: { entrada: { liga: string; seed: string; formacao?: FormacaoId }; saida: LigaLab };
   /** Plantel público de um clube, lido através da `Vista` (sem atributos, potencial nem personalidade). */
   plantel: { entrada: { clube: string }; saida: PessoaVista[] };
 };

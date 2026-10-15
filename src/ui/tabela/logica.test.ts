@@ -3,10 +3,10 @@ import { colunasDoConjunto, filtrar, ordenar, paraCsv, proximaOrdem, type Coluna
 
 type L = { nome: string; idade: number; pos: string };
 const linhas: L[] = [
-  { nome: "Álvaro Dias", idade: 31, pos: "DC" },
-  { nome: "Bruno Costa", idade: 19, pos: "MC" },
-  { nome: "Zé Maria", idade: 31, pos: "GR" },
-  { nome: "alberto Sá", idade: 24, pos: "PL" },
+  { nome: "Álvaro Dias", idade: 31, pos: "CB" },
+  { nome: "Bruno Costa", idade: 19, pos: "CM" },
+  { nome: "Zé Maria", idade: 31, pos: "GK" },
+  { nome: "alberto Sá", idade: 24, pos: "ST" },
 ];
 const colunas: Coluna<L>[] = [
   { id: "nome", titulo: "Nome", valor: (l) => l.nome },
@@ -37,13 +37,13 @@ describe("tabela: ordenar", () => {
 
 describe("tabela: filtrar, exportar, conjuntos", () => {
   it("filtro com várias palavras em colunas diferentes", () => {
-    expect(filtrar(linhas, colunas, "alvaro dc").map((l) => l.nome)).toEqual(["Álvaro Dias"]);
+    expect(filtrar(linhas, colunas, "alvaro cb").map((l) => l.nome)).toEqual(["Álvaro Dias"]);
     expect(filtrar(linhas, colunas, "   ")).toHaveLength(4);
     expect(filtrar(linhas, colunas, "31")).toHaveLength(2);
   });
   it("CSV com ; BOM e aspas", () => {
-    const csv = paraCsv([{ nome: 'Rui "Pé" Alves; Jr', idade: 20, pos: "MC" }], colunas);
-    expect(csv).toBe('﻿Nome;Idade;Posição\r\n"Rui ""Pé"" Alves; Jr";20;MC\r\n');
+    const csv = paraCsv([{ nome: 'Rui "Pé" Alves; Jr', idade: 20, pos: "CM" }], colunas);
+    expect(csv).toBe('﻿Nome;Idade;Posição\r\n"Rui ""Pé"" Alves; Jr";20;CM\r\n');
   });
   it("conjunto de colunas mantém a ordem e ignora ids em falta", () => {
     expect(colunasDoConjunto(colunas, { nome: "x", colunas: ["pos", "nome", "fantasma"] }).map((c) => c.id)).toEqual(["pos", "nome"]);

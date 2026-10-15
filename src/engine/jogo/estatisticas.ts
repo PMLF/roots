@@ -72,7 +72,7 @@ export type RelatorioJogo = {
   homemDoJogo: string;
 };
 
-const defensivo: Partial<Record<Posicao, number>> = { GR: 1, DD: 1, DC: 1, DE: 1, MDC: 0.5 };
+const defensivo: Partial<Record<Posicao, number>> = { GK: 1, RB: 1, CB: 1, LB: 1, DM: 0.5 };
 const arredondar = (x: number, casas: number) => Math.round(x * 10 ** casas) / 10 ** casas;
 
 /** `proprios` e `adversario` são os golos ANTES deste golo; `jaPerdia` diz se a equipa já perdeu em algum momento do jogo. */
@@ -222,7 +222,7 @@ export function relatorioDoJogo(
     nota += (rng.derivar(j.id).float() * 2 - 1) * n.ruido;
     j.nota = arredondar(limitar(nota, n.min, n.max), 1);
     j.xg = arredondar(j.xg, 3);
-    j.golosSofridos = j.posicao === "GR" ? dele : 0;
+    j.golosSofridos = j.posicao === "GK" ? dele : 0;
   }
 
   const lista = [...jogadores.values()].filter((j) => j.minutos > 0);

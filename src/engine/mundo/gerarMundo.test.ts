@@ -22,7 +22,7 @@ describe("distribuir posições", () => {
   it.each([20, 23, 25, 26, 28])("plantel de %i: soma certa, 2+ GR, todas as posições", (n) => {
     const xs = distribuirPosicoes(n, P.mundo.lugaresPorPosicao);
     expect(xs).toHaveLength(n);
-    expect(xs.filter((x) => x === "GR").length).toBeGreaterThanOrEqual(2);
+    expect(xs.filter((x) => x === "GK").length).toBeGreaterThanOrEqual(2);
     expect(new Set(xs).size).toBe(10);
   });
 });

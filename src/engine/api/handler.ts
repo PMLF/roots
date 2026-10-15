@@ -7,6 +7,7 @@ import type { DadosBase, FontesCsv } from "../dados/tipos";
 import { gerarMundo } from "../mundo/gerarMundo";
 import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
+import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
 import { Vista } from "../vista/vista";
 import { indexar, pesquisar, type EntradaIndice, type Indexada } from "../pesquisa/pesquisar";
 import type { ClubeResumo, DiagnosticoBd, FichaClubeDados, FichaLocalidadeDados, FichaPessoaDados, RefEntidade, EstatutoLocalidade, Mensagem, PedidosMotor, ProgressoMundo, ResumoMundoCriado, TipoPedido } from "./contratos";
@@ -126,6 +127,16 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
         historico,
       };
       return saida;
+    }
+    case "competicoes":
+      return competicoesDoMundo((await dadosDoJogo(servicos)).dados);
+    case "laboratorioJogo": {
+      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      return jogoLab(repositorio, dados, PARAMETROS_PADRAO, m.entrada);
+    }
+    case "laboratorioLiga": {
+      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      return ligaLab(repositorio, dados, PARAMETROS_PADRAO, m.entrada);
     }
     case "plantel": {
       const { repositorio } = await servicos.abrirRepositorio();

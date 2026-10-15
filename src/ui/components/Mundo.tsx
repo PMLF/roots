@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useT } from "@/ui/i18n/LocaleProvider";
+import { siglaPosicao } from "@/ui/i18n/posicao";
 import type { MotorCliente } from "@/ui/engineClient";
 import type { ClubeResumo, ProgressoMundo, ResumoMundoCriado } from "@/engine/api/contratos";
 import type { PessoaVista } from "@/engine/vista/tipos";
@@ -123,7 +124,7 @@ export function Mundo({ motor }: { motor: MotorCliente }) {
             <thead><tr><th>{t("mundo.colNome")}</th><th>{t("mundo.colIdade")}</th><th>{t("mundo.colPos")}</th><th>{t("mundo.colPais")}</th></tr></thead>
             <tbody>
               {plantel.map((j) => (
-                <tr key={j.id}><td>{j.nomeDesportivo}</td><td>{j.idade}</td><td>{j.jogador?.posicao}</td><td>{j.nacionalidade}</td></tr>
+                <tr key={j.id}><td>{j.nomeDesportivo}</td><td>{j.idade}</td><td>{siglaPosicao(t, j.jogador?.posicao ?? "")}</td><td>{j.nacionalidade}</td></tr>
               ))}
             </tbody>
           </table>

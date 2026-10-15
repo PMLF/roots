@@ -267,7 +267,7 @@ export type Parametros = {
     /** Tamanho do plantel por escalão. */
     plantel: Record<Escalao, number>;
     /** Lugares por posição num plantel-base de 25 (escala-se para o tamanho do plantel). */
-    lugaresPorPosicao: Record<"GR" | "DD" | "DC" | "DE" | "MDC" | "MC" | "MO" | "ED" | "EE" | "PL", number>;
+    lugaresPorPosicao: Record<"GK" | "RB" | "CB" | "LB" | "DM" | "CM" | "AM" | "RW" | "LW" | "ST", number>;
     /** Jogadores sem clube e pessoas fora do plantel. */
     livres: number;
     staffPorClube: number;
@@ -386,9 +386,9 @@ export const PARAMETROS_PADRAO: Parametros = {
     faltas: { porEquipa: 12, pLivreRemate: 0.06 },
     cartoes: { pAmarelo: 0.17, pAmareloPenalti: 0.5, pVermelhoDireto: 0.003, pVermelhoPenalti: 0.06, jaAmarelo: { falta: 0.4, cartao: 0.55 }, penalizacaoExpulso: { ataque: 1.6, controlo: 1.8, defesa: 1.4 } },
     pAssistido: 0.72,
-    pesoRemate: { GR: 0, DD: 0.4, DC: 0.5, DE: 0.4, MDC: 0.5, MC: 1.4, MO: 3, ED: 3, EE: 3, PL: 5 },
-    pesoAssistencia: { GR: 0.05, DD: 1.5, DC: 0.4, DE: 1.5, MDC: 1, MC: 3, MO: 3, ED: 2.5, EE: 2.5, PL: 1.2 },
-    pesoCabeceamento: { GR: 0, DD: 0.4, DC: 3, DE: 0.4, MDC: 1, MC: 0.6, MO: 0.4, ED: 0.4, EE: 0.4, PL: 2.5 },
+    pesoRemate: { GK: 0, RB: 0.4, CB: 0.5, LB: 0.4, DM: 0.5, CM: 1.4, AM: 3, RW: 3, LW: 3, ST: 5 },
+    pesoAssistencia: { GK: 0.05, RB: 1.5, CB: 0.4, LB: 1.5, DM: 1, CM: 3, AM: 3, RW: 2.5, LW: 2.5, ST: 1.2 },
+    pesoCabeceamento: { GK: 0, RB: 0.4, CB: 3, LB: 0.4, DM: 1, CM: 0.6, AM: 0.4, RW: 0.4, LW: 0.4, ST: 2.5 },
     notas: { base: 6, min: 3, max: 10, ruido: 0.25, golo: 0.9, assistencia: 0.5, remateABaliza: 0.1, ocasiaoFalhada: -0.2, penaltiFalhado: -0.7, falta: -0.08, penaltiConcedido: -0.5, defesa: 0.2, golosSofridos: -0.25, amarelo: -0.15, vermelho: -1.2, balizaZero: 0.5, resultado: 0.3 },
     momentos: { xgGrande: 0.3 },
   },
@@ -446,7 +446,7 @@ export const PARAMETROS_PADRAO: Parametros = {
     qualidadePorReputacao: 2,
     estrangeirosVariacaoReputacao: 0.35,
     plantel: { primeiraLiga: 28, segundaLiga: 26, terceiraLiga: 25, cp: 23, distrital: 20 },
-    lugaresPorPosicao: { GR: 3, DD: 2, DC: 4, DE: 2, MDC: 2, MC: 3, MO: 2, ED: 2, EE: 2, PL: 3 },
+    lugaresPorPosicao: { GK: 3, RB: 2, CB: 4, LB: 2, DM: 2, CM: 3, AM: 2, RW: 2, LW: 2, ST: 3 },
     livres: 3000,
     staffPorClube: 6,
     outros: { empresarios: 500, dirigentesAdeptos: 400, agentes: 150, arbitros: 250, jornalistas: 200, staffLivres: 500 },
@@ -558,7 +558,7 @@ export function validarParametros(p: Parametros): string[] {
     if (!(x >= 0 && x <= 1)) erros.push(`jogo.${n} entre 0 e 1`);
   if (!(j.xg.min > 0 && j.xg.min < j.xg.max && j.xg.max < 1 && j.xg.base >= 0 && j.xg.amplitude > 0 && j.xg.expoente > 0)) erros.push("jogo.xg: 0 < min < max < 1, base ≥ 0, amplitude e expoente > 0");
   for (const t of [j.pesoRemate, j.pesoAssistencia, j.pesoCabeceamento])
-    for (const pos of ["GR", "DD", "DC", "DE", "MDC", "MC", "MO", "ED", "EE", "PL"]) if (!(((t[pos] as number | undefined) ?? -1) >= 0)) erros.push(`jogo: peso em falta ou negativo para ${pos}`);
+    for (const pos of ["GK", "RB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "ST"]) if (!(((t[pos] as number | undefined) ?? -1) >= 0)) erros.push(`jogo: peso em falta ou negativo para ${pos}`);
   const lo = p.localidade;
   if (!(lo.limiarVila > 0 && lo.limiarVila < lo.limiarCidade)) erros.push("localidade: 0 < limiarVila < limiarCidade");
   if (!(lo.histerese >= 0 && lo.histerese < 0.5)) erros.push("localidade.histerese entre 0 e 0.5");

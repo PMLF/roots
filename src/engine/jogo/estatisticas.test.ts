@@ -62,10 +62,10 @@ describe("estatísticas pós-jogo", () => {
     for (let i = 0; i < 400; i++) {
       const { r } = relatorio(entrada(`m${i}`));
       for (const j of r.jogadores) {
-        if (j.posicao !== "GR" && j.posicao !== "DC") {
+        if (j.posicao !== "GK" && j.posicao !== "CB") {
           if (j.golos > 0) { marcadores += j.nota; nMarc++; } else { naoMarcadores += j.nota; nNao++; }
         }
-        if (j.posicao === "GR") {
+        if (j.posicao === "GK") {
           if (j.golosSofridos === 0) { grZero += j.nota; nZero++; } else { grSofre += j.nota; nSofre++; }
         }
         const meu = j.lado === "casa" ? r.golosCasa : r.golosFora;
