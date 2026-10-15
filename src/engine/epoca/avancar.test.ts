@@ -73,20 +73,31 @@ describe("avançar no tempo", () => {
     await tratar({ id: 1, tipo: "criarMundo", entrada: { seed: "epoca" } }, s);
     const { repositorio: repo } = await s.abrirRepositorio();
     const inicio = await tratar({ id: 2, tipo: "estadoTempo", entrada: null }, s);
-    let lesoes = 0, vermelhos = 0, jogos = 0, fim = false, guarda = 0;
-    while (!fim && guarda++ < 60) {
+    let lesoes = 0, vermelhos = 0, jogos = 0, fim = false, guarda = 0, resumo: Awaited<ReturnType<typeof tratar<"avancar">>>["resumoEpoca"];
+    while (!fim && guarda++ < 80) {
       const r = await tratar({ id: 3, tipo: "avancar", entrada: { modo: "semana" } }, s);
       for (const d of r.dias) for (const j of d.jogos) { jogos++; lesoes += j.lesoes.length; vermelhos += j.cartoes.filter((c) => c.cor === "vermelho").length; }
       fim = r.fimDeEpoca;
+      resumo = r.resumoEpoca;
     }
     expect(fim).toBe(true);
-    expect(jogos).toBe(inicio.porJogar);
+    expect(jogos).toBeGreaterThan(inicio.porJogar); // ligas + Fase de Promoção
     expect(lesoes).toBeGreaterThan(100);
     expect(vermelhos).toBeGreaterThan(50);
-    expect(repo.eventosDe({ k: "competicao", id: "Primeira Liga" }).length).toBeGreaterThanOrEqual(0);
-    const pagina = await tratar({ id: 4, tipo: "competitionPage", entrada: { league: "Primeira Liga" } }, s);
-    expect(pagina!.gamesPlayed).toBe(380);
-    expect(pagina!.table.every((l) => l.played === 38)).toBe(true);
+    expect(resumo!.campeoes.length).toBe(7);
+    expect(resumo!.movimentos.length).toBeGreaterThan(20);
+    expect(repo.meta("epoca")).toBe("2");
+    expect(repo.meta("piramide.2")).toBeDefined();
+    const nova = await tratar({ id: 4, tipo: "estadoTempo", entrada: null }, s);
+    expect(nova.epoca).toBe(2);
+    expect(nova.porJogar).toBeGreaterThan(3000);
+    const antiga = await tratar({ id: 5, tipo: "competitionPage", entrada: { league: "Primeira Liga", season: 1 } }, s);
+    expect(antiga!.gamesPlayed).toBe(380);
+    expect(antiga!.table.every((l) => l.played === 38)).toBe(true);
+    const atual = await tratar({ id: 6, tipo: "competitionPage", entrada: { league: "Primeira Liga" } }, s);
+    expect(atual!.gamesPlayed).toBe(0);
+    const subiu = resumo!.movimentos.find((m) => m.motivo !== "descida" && m.para === "primeira");
+    if (subiu) expect(atual!.table.some((l) => l.club === subiu.clube)).toBe(true);
   }, 600000);
 });
 
