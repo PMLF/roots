@@ -1,98 +1,168 @@
 /**
- * Ficha de uma liga ou série (RZ-145): clubes, classificação e calendário. Lê o repositório; se a época ainda não tem
- * calendário gravado (antes do ciclo de dias, RZ-119) mostra uma **prévia** gerada com a semente do mundo, sem gravar nada.
+ * Página de uma liga ou série (RZ-145): classificação com zonas, jornadas, destaques (marcadores, assistentes, melhores
+ * jogadores, cartões, melhor ataque e defesa) e clubes. Lê o repositório; se a época ainda não tem calendário gravado
+ * (antes do ciclo de dias, RZ-119) mostra uma **prévia** gerada com a semente do mundo, sem gravar nada.
+ * Código novo em inglês (CLAUDE.md); os tipos de escalão herdam os nomes antigos até ao RZ-143.
  */
 import { Rng } from "../aleatorio/rng";
 import { gerarCalendarioLiga, paraRepositorio } from "../calendario/calendario";
 import { nivelDeReputacao } from "../clube/reputacao";
-import type { Escalao, NivelReputacao, Parametros } from "../config/parametros";
+import { derivados, type Escalao, type NivelReputacao, type Parametros } from "../config/parametros";
 import type { DadosBase } from "../dados/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { JogoAgendado } from "../persistencia/tipos";
 import { tabelaDaCompeticao } from "./tabela";
 
-export type LinhaCompeticao = {
-  posicao: number;
-  clube: string;
-  nome: string;
-  jogos: number;
-  vitorias: number;
-  empates: number;
-  derrotas: number;
-  golosMarcados: number;
-  golosSofridos: number;
-  diferenca: number;
-  pontos: number;
-  desempatePor?: string;
+export type Zone = "champion" | "promotion" | "relegation";
+
+export type TableRow = {
+  position: number;
+  club: string;
+  name: string;
+  played: number;
+  won: number;
+  drawn: number;
+  lost: number;
+  goalsFor: number;
+  goalsAgainst: number;
+  goalDifference: number;
+  points: number;
+  tiebreak?: string;
+  zone?: Zone;
 };
 
-export type JornadaCompeticao = { numero: number; data: string; jogos: { id: string; casa: string; fora: string; casaNome: string; foraNome: string; golosCasa?: number; golosFora?: number }[]; folga?: string };
+export type Round = {
+  number: number;
+  date: string;
+  matches: { id: string; home: string; away: string; homeName: string; awayName: string; homeGoals?: number; awayGoals?: number }[];
+  bye?: string;
+};
 
-export type FichaCompeticaoDados = {
-  liga: string;
-  escalao: Escalao;
-  distrito?: string;
-  epoca: number;
+export type PlayerStat = { player: string; name: string; club: string; clubName: string; value: number; games: number };
+export type ClubStat = { club: string; name: string; value: number };
+
+export type Highlights = {
+  topScorers: PlayerStat[];
+  topAssists: PlayerStat[];
+  bestRated: PlayerStat[];
+  mostYellow: PlayerStat[];
+  mostRed: PlayerStat[];
+  bestAttack?: ClubStat;
+  bestDefence?: ClubStat;
+};
+
+export type CompetitionPage = {
+  league: string;
+  tier: Escalao;
+  district?: string;
+  season: number;
   /** Calendário gerado só para mostrar (ainda não está gravado no save). */
-  previa: boolean;
-  clubes: { id: string; nome: string; localidade: string; reputacao: number; nivelReputacao: NivelReputacao; capacidade: number }[];
-  tabela: LinhaCompeticao[];
-  jornadas: JornadaCompeticao[];
-  jogosJogados: number;
-  jogosTotais: number;
+  preview: boolean;
+  clubs: { id: string; name: string; locality: string; reputation: number; reputationLevel: NivelReputacao; capacity: number }[];
+  table: TableRow[];
+  rounds: Round[];
+  /** Última jornada com pelo menos um jogo disputado (0 se a época não começou). */
+  currentRound: number;
+  gamesPlayed: number;
+  gamesTotal: number;
+  highlights: Highlights;
 };
 
-export function fichaCompeticao(repo: Repositorio, dados: DadosBase, params: Parametros, liga: string, epoca = 1): FichaCompeticaoDados | undefined {
-  const clubes = dados.clubes.filter((c) => c.liga === liga);
-  if (clubes.length < 2) return undefined;
-  const escalao = (clubes[0] as { escalao: Escalao }).escalao;
-  const nome = new Map(clubes.map((c) => [c.id, c.nome] as const));
-  const rep = new Map(clubes.map((c) => [c.id, c.reputacao] as const));
+/** Quantos sobem e quantos descem em cada escalão (DESIGN_REGRAS §1). O campeão é sempre marcado. */
+export function zoneSizes(tier: Escalao, params: Parametros): { promoted: number; relegated: number } {
+  const p = params.piramide;
+  switch (tier) {
+    case "primeiraLiga": return { promoted: 0, relegated: p.primeiraLiga.descem };
+    case "segundaLiga": return { promoted: p.segundaLiga.sobem, relegated: p.segundaLiga.descem };
+    case "terceiraLiga": return { promoted: p.terceiraLiga.sobem, relegated: p.terceiraLiga.descem };
+    case "cp": return { promoted: p.cp.sobemPorSerie, relegated: Math.round(derivados(params).descemPorSerieMedia) };
+    case "distrital": return { promoted: 0, relegated: 0 };
+  }
+}
+
+export function zoneOf(position: number, total: number, tier: Escalao, params: Parametros): Zone | undefined {
+  const { promoted, relegated } = zoneSizes(tier, params);
+  if (position === 1) return "champion";
+  if (position <= promoted) return "promotion";
+  if (relegated > 0 && position > total - relegated) return "relegation";
+  return undefined;
+}
+
+export function competitionPage(repo: Repositorio, dados: DadosBase, params: Parametros, league: string, season = 1): CompetitionPage | undefined {
+  const clubs = dados.clubes.filter((c) => c.liga === league);
+  if (clubs.length < 2) return undefined;
+  const tier = (clubs[0] as { escalao: Escalao }).escalao;
+  const clubName = new Map(clubs.map((c) => [c.id, c.nome] as const));
+  const reputation = new Map(clubs.map((c) => [c.id, c.reputacao] as const));
   const seed = repo.meta("seed") ?? "?";
 
-  let { jogos, folgas } = repo.calendario(liga, epoca);
-  let previa = false;
-  const datas = new Map<number, string>();
+  let { jogos, folgas } = repo.calendario(league, season);
+  let preview = false;
   if (jogos.length === 0) {
-    previa = true;
-    const cal = gerarCalendarioLiga({ competicao: liga, escalao, clubes: clubes.map((c) => c.id) }, epoca, params.calendario, new Rng(`${seed}|cal|${liga}`));
+    preview = true;
+    const cal = gerarCalendarioLiga({ competicao: league, escalao: tier, clubes: clubs.map((c) => c.id) }, season, params.calendario, new Rng(`${seed}|cal|${league}`));
     ({ jogos, folgas } = paraRepositorio(cal));
   }
-  for (const j of jogos) datas.set(j.jornada, j.data);
-  const resultados = new Map(repo.jogosDaCompeticao(liga, epoca).map((j) => [j.id, j] as const));
-  const porJornada = new Map<number, JogoAgendado[]>();
-  for (const j of jogos) (porJornada.get(j.jornada) ?? porJornada.set(j.jornada, []).get(j.jornada)!).push(j);
-  const jornadas = [...porJornada.keys()].sort((a, b) => a - b).map((n): JornadaCompeticao => {
-    const folga = folgas.find((f) => f.jornada === n)?.clube;
+  const results = new Map(repo.jogosDaCompeticao(league, season).map((j) => [j.id, j] as const));
+  const byRound = new Map<number, JogoAgendado[]>();
+  for (const j of jogos) (byRound.get(j.jornada) ?? byRound.set(j.jornada, []).get(j.jornada)!).push(j);
+  const rounds = [...byRound.keys()].sort((a, b) => a - b).map((n): Round => {
+    const games = byRound.get(n) ?? [];
+    const bye = folgas.find((f) => f.jornada === n)?.clube;
     return {
-      numero: n,
-      data: datas.get(n) ?? "",
-      jogos: (porJornada.get(n) ?? []).map((j) => {
-        const r = resultados.get(j.id) as { golosCasa?: number; golosFora?: number } | undefined;
-        return { id: j.id, casa: j.casa, fora: j.fora, casaNome: nome.get(j.casa) ?? j.casa, foraNome: nome.get(j.fora) ?? j.fora, ...(r?.golosCasa !== undefined ? { golosCasa: r.golosCasa } : {}), ...(r?.golosFora !== undefined ? { golosFora: r.golosFora } : {}) };
+      number: n,
+      date: games[0]?.data ?? "",
+      matches: games.map((j) => {
+        const r = results.get(j.id);
+        return { id: j.id, home: j.casa, away: j.fora, homeName: clubName.get(j.casa) ?? j.casa, awayName: clubName.get(j.fora) ?? j.fora, ...(r ? { homeGoals: r.golosCasa, awayGoals: r.golosFora } : {}) };
       }),
-      ...(folga ? { folga: nome.get(folga) ?? folga } : {}),
+      ...(bye ? { bye: clubName.get(bye) ?? bye } : {}),
     };
   });
+  const currentRound = rounds.reduce((last, r) => (r.matches.some((m) => m.homeGoals !== undefined) ? r.number : last), 0);
 
-  const tabela = tabelaDaCompeticao(repo, liga, epoca, escalao === "cp" || escalao === "distrital" ? "promocao" : "liga", params, { seed, reputacao: rep });
-  // Sem calendário gravado a tabela não conhece os clubes: completa-se com todos a zeros, por reputação.
-  const linhas: LinhaCompeticao[] = tabela.length > 0
-    ? tabela.map((l) => ({ posicao: l.posicao, clube: l.clube, nome: nome.get(l.clube) ?? l.clube, jogos: l.jogos, vitorias: l.vitorias, empates: l.empates, derrotas: l.derrotas, golosMarcados: l.golosMarcados, golosSofridos: l.golosSofridos, diferenca: l.diferenca, pontos: l.pontos, ...(l.desempatePor ? { desempatePor: l.desempatePor } : {}) }))
-    : [...clubes].sort((a, b) => b.reputacao - a.reputacao || a.nome.localeCompare(b.nome, "pt")).map((c, i) => ({ posicao: i + 1, clube: c.id, nome: c.nome, jogos: 0, vitorias: 0, empates: 0, derrotas: 0, golosMarcados: 0, golosSofridos: 0, diferenca: 0, pontos: 0 }));
+  const ordered = tabelaDaCompeticao(repo, league, season, tier === "cp" || tier === "distrital" ? "promocao" : "liga", params, { seed, reputacao: reputation });
+  const rows = ordered.length > 0
+    ? ordered.map((l) => ({ position: l.posicao, club: l.clube, name: clubName.get(l.clube) ?? l.clube, played: l.jogos, won: l.vitorias, drawn: l.empates, lost: l.derrotas, goalsFor: l.golosMarcados, goalsAgainst: l.golosSofridos, goalDifference: l.diferenca, points: l.pontos, ...(l.desempatePor ? { tiebreak: l.desempatePor } : {}) }))
+    : [...clubs].sort((a, b) => b.reputacao - a.reputacao || a.nome.localeCompare(b.nome, "pt")).map((c, i) => ({ position: i + 1, club: c.id, name: c.nome, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 }));
+  const table: TableRow[] = rows.map((r) => {
+    const zone = zoneOf(r.position, rows.length, tier, params);
+    return zone ? { ...r, zone } : r;
+  });
+
+  // destaques
+  const { topN, minRatedGames } = params.competitionView;
+  const stats = repo.playerStatsForCompetition(league, season);
+  const named = (s: (typeof stats)[number], value: number): PlayerStat => ({ player: s.jogador, name: repo.pessoaPublica(s.jogador)?.nomeDesportivo ?? s.jogador, club: s.clube, clubName: clubName.get(s.clube) ?? s.clube, value, games: s.jogos });
+  const top = (key: "golos" | "assistencias" | "amarelos" | "vermelhos") =>
+    stats.filter((s) => s[key] > 0).sort((a, b) => b[key] - a[key] || b.jogos - a.jogos || (a.jogador < b.jogador ? -1 : 1)).slice(0, topN).map((s) => named(s, s[key]));
+  const played = table.filter((r) => r.played > 0);
+  const bestAttack = played.length ? [...played].sort((a, b) => b.goalsFor - a.goalsFor || a.position - b.position)[0] : undefined;
+  const bestDefence = played.length ? [...played].sort((a, b) => a.goalsAgainst - b.goalsAgainst || a.position - b.position)[0] : undefined;
+  const highlights: Highlights = {
+    topScorers: top("golos"),
+    topAssists: top("assistencias"),
+    bestRated: stats.filter((s) => s.avgRating !== undefined && s.ratedGames >= minRatedGames).sort((a, b) => (b.avgRating as number) - (a.avgRating as number) || (a.jogador < b.jogador ? -1 : 1)).slice(0, topN).map((s) => named(s, Math.round((s.avgRating as number) * 100) / 100)),
+    mostYellow: top("amarelos"),
+    mostRed: top("vermelhos"),
+    ...(bestAttack ? { bestAttack: { club: bestAttack.club, name: bestAttack.name, value: bestAttack.goalsFor } } : {}),
+    ...(bestDefence ? { bestDefence: { club: bestDefence.club, name: bestDefence.name, value: bestDefence.goalsAgainst } } : {}),
+  };
 
   return {
-    liga,
-    escalao,
-    ...(escalao === "distrital" ? { distrito: (clubes[0] as { distrito: string }).distrito } : {}),
-    epoca,
-    previa,
-    clubes: [...clubes]
+    league,
+    tier,
+    ...(tier === "distrital" ? { district: (clubs[0] as { distrito: string }).distrito } : {}),
+    season,
+    preview,
+    clubs: [...clubs]
       .sort((a, b) => b.reputacao - a.reputacao || a.nome.localeCompare(b.nome, "pt"))
-      .map((c) => ({ id: c.id, nome: c.nome, localidade: c.localidade, reputacao: c.reputacao, nivelReputacao: nivelDeReputacao(c.reputacao, params), capacidade: c.estadio.capacidade })),
-    tabela: linhas,
-    jornadas,
-    jogosJogados: resultados.size,
-    jogosTotais: jogos.length,
+      .map((c) => ({ id: c.id, name: c.nome, locality: c.localidade, reputation: c.reputacao, reputationLevel: nivelDeReputacao(c.reputacao, params), capacity: c.estadio.capacidade })),
+    table,
+    rounds,
+    currentRound,
+    gamesPlayed: results.size,
+    gamesTotal: jogos.length,
+    highlights,
   };
 }

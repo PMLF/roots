@@ -23,7 +23,7 @@ export default function Hoje() {
       <h1>{t("hoje.titulo")}</h1>
       {mundo === null && (
         <p data-testid="hoje-sem-mundo">
-          {t("hoje.semMundo")} <Link href="/mundo/">{t("hoje.criarMundo")}</Link>
+          {t("hoje.semMundo")} <Link href="/world/">{t("hoje.criarMundo")}</Link>
         </p>
       )}
       {mundo && <p className="suave" data-testid="hoje-mundo">{t("hoje.mundo", { seed: mundo.seed, pessoas: mundo.pessoas })}</p>}

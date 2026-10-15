@@ -14,13 +14,13 @@ type ItemMenu = { chave: Chave; icone: NomeIcone; href?: string; ativoQuando: (c
 // Máximo 2 níveis (TOM_E_UX §3.5): secção no menu, separadores dentro da página. Sem href = ainda não existe.
 const MENU: ItemMenu[] = [
   { chave: "menu.hoje", icone: "hoje", href: "/", ativoQuando: (c) => c === "/" },
-  { chave: "menu.competicoes", icone: "competicoes", href: "/competicoes/", ativoQuando: (c) => c.startsWith("/competicoes") },
+  { chave: "menu.competicoes", icone: "competicoes", href: "/competitions/", ativoQuando: (c) => c.startsWith("/competitions") },
   { chave: "menu.clube", icone: "clube", ativoQuando: () => false },
   { chave: "menu.plantel", icone: "plantel", ativoQuando: () => false },
   { chave: "menu.jogos", icone: "jogos", ativoQuando: () => false },
   { chave: "menu.cidade", icone: "cidade", ativoQuando: () => false },
-  { chave: "menu.mundo", icone: "mundo", href: "/mundo/", ativoQuando: (c) => c.startsWith("/mundo"), soDev: true },
-  { chave: "menu.laboratorio", icone: "laboratorio", href: "/laboratorio/", ativoQuando: (c) => c.startsWith("/laboratorio"), soDev: true },
+  { chave: "menu.mundo", icone: "mundo", href: "/world/", ativoQuando: (c) => c.startsWith("/world"), soDev: true },
+  { chave: "menu.laboratorio", icone: "laboratorio", href: "/lab/", ativoQuando: (c) => c.startsWith("/lab"), soDev: true },
 ];
 
 type Tema = "auto" | "claro" | "escuro";
@@ -114,7 +114,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <button type="button" onClick={() => router.back()}>← {t("migalhas.voltar")}</button>
             <Link href="/">{t("menu.hoje")}</Link>
             <span aria-hidden="true">›</span>
-            <span aria-current="page">{t(caminho.startsWith("/ficha") ? "migalhas.ficha" : caminho.startsWith("/laboratorio") ? "menu.laboratorio" : caminho.startsWith("/competicoes") ? "migalhas.competicoes" : "menu.mundo")}</span>
+            <span aria-current="page">{t(caminho.startsWith("/profile") ? "migalhas.ficha" : caminho.startsWith("/lab") ? "menu.laboratorio" : caminho.startsWith("/competitions") ? "migalhas.competicoes" : "menu.mundo")}</span>
           </nav>
         )}
         {children}

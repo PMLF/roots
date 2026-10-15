@@ -247,3 +247,40 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .jogos-lista li { display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: baseline; }
 .jogos-lista li > :first-child { text-align: right; }
 .jogos-lista .resultado { min-width: 36px; text-align: center; font-variant-numeric: tabular-nums; }
+
+/* ---- Páginas de competição: zonas, destaques, jornadas, seletor de ligas ---- */
+:root { --zona-campeao: #c9a227; --zona-subida: #1e8e3e; --zona-descida: #d32f2f; }
+.tabela tr.zona td:first-child, .tabela tr.zona th:first-child { box-shadow: inset 4px 0 0 var(--zona-cor); }
+.tabela tr.zona { background: color-mix(in srgb, var(--zona-cor) 12%, transparent); }
+.zona-champion { --zona-cor: var(--zona-campeao); }
+.zona-promotion { --zona-cor: var(--zona-subida); }
+.zona-relegation { --zona-cor: var(--zona-descida); }
+.tabela tr.zona-champion td:nth-child(2) { font-weight: 650; }
+.legenda-zonas { list-style: none; display: flex; gap: 16px; flex-wrap: wrap; margin: 10px 0 0; padding: 0; color: var(--suave); font-size: 12px; }
+.zona-amostra { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--zona-cor); vertical-align: -1px; }
+.liga-pagina { display: grid; gap: 14px; }
+.liga-pagina > .aviso-previa { margin: 0; }
+.liga-topo { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(260px, 1fr); gap: 14px; align-items: stretch; }
+.liga-destaques { display: grid; gap: 14px; align-content: start; }
+@media (max-width: 1000px) { .liga-topo { grid-template-columns: 1fr; } }
+.destaque-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; counter-reset: pos; }
+.destaque-lista li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; counter-increment: pos; }
+.destaque-lista li::before { content: counter(pos); color: var(--suave); width: 1.2em; font-variant-numeric: tabular-nums; }
+.destaque-lista li > span { flex: 1; min-width: 0; }
+.destaque-lista b { font-variant-numeric: tabular-nums; }
+.jornadas-barra { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; }
+.jornadas-barra h2 { margin: 0; font-size: 18px; }
+.jornadas-barra .espaco { margin-left: auto; }
+.jornadas-par { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
+.estado-jornada { margin: -4px 0 8px; font-size: 12px; }
+.seletor-ligas { margin: 10px 0 16px; background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 8px 14px; }
+.seletor-ligas summary { cursor: pointer; font-weight: 600; }
+.seletor-ligas fieldset { border: 0; padding: 0; margin: 10px 0 0; display: flex; flex-wrap: wrap; gap: 6px 18px; }
+.seletor-ligas legend { font-size: 12px; color: var(--suave); padding: 0; margin-bottom: 4px; }
+.seletor-acoes { display: flex; gap: 8px; margin-top: 10px; }
+.ligas-grelha { display: grid; grid-template-columns: repeat(auto-fit, minmax(460px, 1fr)); gap: 14px; align-items: stretch; }
+.cartao-sub { margin: -4px 0 8px; font-size: 13px; }
+.destaques-mini { list-style: none; margin: 0 0 12px; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 18px; font-size: 13px; }
+.destaques-mini li { display: flex; flex-direction: column; }
+.destaques-mini li > span:last-child { font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { .ligas-grelha { grid-template-columns: 1fr; } .destaques-mini { grid-template-columns: 1fr; } }

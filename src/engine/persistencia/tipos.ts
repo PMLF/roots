@@ -88,6 +88,9 @@ export type LinhaClassificacao = {
   pontos: number;
 };
 
+/** Estatísticas de um jogador numa competição e época, com a nota média das participações com nota. */
+export type PlayerCompetitionStats = LinhaStatJogador & { avgRating?: number; ratedGames: number };
+
 export type LinhaStatJogador = {
   jogador: string;
   epoca: number;

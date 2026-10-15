@@ -17,6 +17,7 @@ import type {
   JogoNovo,
   LinhaClassificacao,
   LinhaStatJogador,
+  PlayerCompetitionStats,
   Marcador,
   Observacao,
   ObservacaoNova,
@@ -87,6 +88,8 @@ export interface Repositorio {
   jogosDaCompeticao(competicao: string, epoca: number): Jogo[];
   classificacao(competicao: string, epoca: number): LinhaClassificacao[];
   statsJogador(jogador: string): LinhaStatJogador[];
+  /** Estatísticas de todos os jogadores numa competição e época (golos, assistências, cartões, nota média). Só quem já jogou ou foi convocado. */
+  playerStatsForCompetition(competition: string, season: number): PlayerCompetitionStats[];
   /** Acrescenta uma sanção retroativa: não reescreve nenhum jogo nem evento. */
   ajustarClassificacao(a: AjusteClassificacao): void;
   /** Recalcula todas as derivadas a partir da história. Deve dar o mesmo que o incremental. */

@@ -1,6 +1,6 @@
 import type { Parametros } from "../config/parametros";
 import type { ResultadoPesquisa } from "../pesquisa/pesquisar";
-import type { FichaCompeticaoDados } from "../competicao/ficha";
+import type { CompetitionPage } from "../competicao/ficha";
 import type { CompeticaoResumo, JogoLab, LigaLab } from "../laboratorio/laboratorio";
 import type { FormacaoId, Tatica } from "../jogo/tipos";
 import type { Escalao, NivelReputacao } from "../config/parametros";
@@ -109,7 +109,7 @@ export type FichaLocalidadeDados = {
   historico: { data: string; de: EstatutoLocalidade; para: EstatutoLocalidade; populacao: number }[];
 };
 
-export type { ResultadoPesquisa, CompeticaoResumo, JogoLab, LigaLab, FichaCompeticaoDados };
+export type { ResultadoPesquisa, CompeticaoResumo, JogoLab, LigaLab, CompetitionPage };
 
 export type ClubeResumo = { id: string; nome: string; liga: string };
 
@@ -134,8 +134,8 @@ export type PedidosMotor = {
   reiniciarMundo: { entrada: { seed: string }; saida: ResumoMundoCriado };
   /** Laboratório (RZ-139): as ligas e séries do mundo. */
   competicoes: { entrada: null; saida: CompeticaoResumo[] };
-  /** Ficha de uma liga ou série (RZ-145): clubes, classificação e calendário (prévia se a época ainda não começou). */
-  fichaCompeticao: { entrada: { liga: string }; saida: FichaCompeticaoDados | null };
+  /** Página de uma liga ou série (RZ-145): classificação com zonas, jornadas, destaques e clubes (prévia do calendário se a época ainda não começou). */
+  competitionPage: { entrada: { league: string }; saida: CompetitionPage | null };
   /** Laboratório: simula um jogo entre dois clubes sem gravar nada no save. */
   laboratorioJogo: { entrada: { casa: string; fora: string; seed: string; taticaCasa?: Partial<Tatica>; taticaFora?: Partial<Tatica> }; saida: JogoLab };
   /** Laboratório: simula uma liga inteira (uma época) sem gravar nada no save. */

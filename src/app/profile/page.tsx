@@ -1,7 +1,7 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import type { FichaClubeDados, FichaCompeticaoDados, FichaLocalidadeDados, FichaPessoaDados } from "@/engine/api/contratos";
+import type { FichaClubeDados, CompetitionPage, FichaLocalidadeDados, FichaPessoaDados } from "@/engine/api/contratos";
 import { FichaClube } from "@/ui/components/fichas/FichaClube";
 import { FichaCompeticao } from "@/ui/components/fichas/FichaCompeticao";
 import { FichaLocalidade } from "@/ui/components/fichas/FichaLocalidade";
@@ -20,7 +20,7 @@ type Estado =
   | { fase: "clube"; d: FichaClubeDados }
   | { fase: "pessoa"; d: FichaPessoaDados }
   | { fase: "localidade"; d: FichaLocalidadeDados }
-  | { fase: "competicao"; d: FichaCompeticaoDados };
+  | { fase: "competicao"; d: CompetitionPage };
 
 function Conteudo() {
   const { t } = useT();
@@ -47,7 +47,7 @@ function Conteudo() {
           const d = await motor.chamar("fichaLocalidade", { id });
           if (vivo) setEstado(d ? { fase: "localidade", d } : { fase: "nao-encontrada" });
         } else if (k === "competicao") {
-          const d = await motor.chamar("fichaCompeticao", { liga: id });
+          const d = await motor.chamar("competitionPage", { league: id });
           if (vivo) setEstado(d ? { fase: "competicao", d } : { fase: "nao-encontrada" });
         } else if (vivo) setEstado({ fase: "em-breve" }); // cidade (RZ-133): ainda sem ficha
       } catch (e) {

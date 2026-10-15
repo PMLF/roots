@@ -167,20 +167,53 @@ describe("fichas ricas e «ver tudo»", () => {
   });
 });
 
-describe("ficha da competição (RZ-145)", () => {
-  it("lista clubes, prévia do calendário e tabela a zeros; liga desconhecida dá null", async () => {
+describe("competition page (RZ-145)", () => {
+  it("lists clubs, previews the calendar, zero table with zones; unknown league gives null", async () => {
     const s = servicosDeTeste();
     await tratar({ id: 70, tipo: "criarMundo", entrada: { seed: "liga" } }, s);
     const lista = await tratar({ id: 71, tipo: "competicoes", entrada: null }, s);
     expect(lista.find((c) => c.escalao === "distrital")?.distrito).toBeTruthy();
-    const d = (await tratar({ id: 72, tipo: "fichaCompeticao", entrada: { liga: "Primeira Liga" } }, s))!;
-    expect(d.previa).toBe(true);
-    expect(d.clubes).toHaveLength(20);
-    expect(d.jornadas).toHaveLength(38);
-    expect(d.jogosTotais).toBe(380);
-    expect(d.tabela).toHaveLength(20);
-    expect(d.tabela.every((l) => l.pontos === 0 && l.jogos === 0)).toBe(true);
-    expect(d.clubes[0]!.reputacao).toBeGreaterThanOrEqual(d.clubes[19]!.reputacao);
-    expect(await tratar({ id: 73, tipo: "fichaCompeticao", entrada: { liga: "Inexistente" } }, s)).toBeNull();
+    const d = (await tratar({ id: 72, tipo: "competitionPage", entrada: { league: "Primeira Liga" } }, s))!;
+    expect(d.preview).toBe(true);
+    expect(d.clubs).toHaveLength(20);
+    expect(d.rounds).toHaveLength(38);
+    expect(d.gamesTotal).toBe(380);
+    expect(d.currentRound).toBe(0);
+    expect(d.table).toHaveLength(20);
+    expect(d.table.every((l) => l.points === 0 && l.played === 0)).toBe(true);
+    expect(d.table.map((l) => l.zone)).toEqual(["champion", ...Array(16).fill(undefined), "relegation", "relegation", "relegation"]);
+    expect(d.highlights.topScorers).toEqual([]);
+    expect(d.highlights.bestAttack).toBeUndefined();
+    const seg = (await tratar({ id: 74, tipo: "competitionPage", entrada: { league: "Segunda Liga" } }, s))!;
+    expect(seg.table.map((l) => l.zone).filter(Boolean)).toEqual(["champion", "promotion", "promotion", "relegation", "relegation", "relegation"]);
+    const dist = (await tratar({ id: 75, tipo: "competitionPage", entrada: { league: lista.find((c) => c.escalao === "distrital")!.liga } }, s))!;
+    expect(dist.table.map((l) => l.zone).filter(Boolean)).toEqual(["champion"]);
+    expect(await tratar({ id: 73, tipo: "competitionPage", entrada: { league: "Inexistente" } }, s)).toBeNull();
+  });
+
+  it("with matches played: table, current round and highlights", async () => {
+    const s = servicosDeTeste();
+    await tratar({ id: 80, tipo: "criarMundo", entrada: { seed: "liga2" } }, s);
+    const { repositorio: r } = await s.abrirRepositorio();
+    const pre = (await tratar({ id: 81, tipo: "competitionPage", entrada: { league: "Primeira Liga" } }, s))!;
+    const [m1, m2] = [pre.rounds[0]!.matches[0]!, pre.rounds[1]!.matches[0]!];
+    const jogo = (id: string, jornada: number, casa: string, fora: string, gc: number, gf: number) => {
+      const pc = r.plantelPublico(casa).filter((p) => p.jogador?.posicao !== "GK").slice(0, 11);
+      const pf = r.plantelPublico(fora).filter((p) => p.jogador?.posicao !== "GK").slice(0, 11);
+      const factos = Array.from({ length: gc }, (_, i) => ({ minuto: 10 + i * 10, tipo: "G" as const, jogador: pc[0]!.id, clube: casa }))
+        .concat(Array.from({ length: gf }, (_, i) => ({ minuto: 15 + i * 10, tipo: "G" as const, jogador: pf[0]!.id, clube: fora })));
+      const cartoes = [{ minuto: 50, tipo: "CA" as const, jogador: pf[1]!.id, clube: fora }];
+      const part = [...pc.map((p) => ({ jogador: p.id, clube: casa, titular: true, minutos: 90, nota: 7 })), ...pf.map((p) => ({ jogador: p.id, clube: fora, titular: true, minutos: 90, nota: 6 }))];
+      r.registarJogo({ id, competicao: "Primeira Liga", epoca: 1, jornada, data: "2026-08-16", casa, fora, golosCasa: gc, golosFora: gf }, [...factos, ...cartoes], part);
+    };
+    jogo("t1", 1, m1.home, m1.away, 3, 0);
+    jogo("t2", 2, m2.home, m2.away, 1, 1);
+    const d = (await tratar({ id: 82, tipo: "competitionPage", entrada: { league: "Primeira Liga" } }, s))!;
+    expect(d.gamesPlayed).toBe(2);
+    expect(d.table[0]).toMatchObject({ points: 3, played: 1 });
+    expect(d.highlights.topScorers[0]).toMatchObject({ value: 3 });
+    expect(d.highlights.bestAttack).toMatchObject({ value: 3 });
+    expect(d.highlights.mostYellow).toHaveLength(2);
+    expect(d.highlights.bestRated).toEqual([]); // só 1 jogo com nota, mínimo é 3
   });
 });

@@ -20,6 +20,7 @@ import type {
   JogoNovo,
   LinhaClassificacao,
   LinhaStatJogador,
+  PlayerCompetitionStats,
   Marcador,
   RegistoCartao,
   Observacao,
@@ -532,6 +533,31 @@ export class RepositorioMemoria implements Repositorio {
       })
       .filter((l) => l.jogador === jogador)
       .sort((a, b) => a.epoca - b.epoca || cmp(a.competicao, b.competicao) || cmp(a.clube, b.clube));
+  }
+
+  playerStatsForCompetition(competition: string, season: number): PlayerCompetitionStats[] {
+    const notas = new Map<string, { soma: number; n: number }>();
+    for (const r of this.jogos.values()) {
+      if (r.jogo.competicao !== competition || r.jogo.epoca !== season) continue;
+      for (const p of r.part) {
+        if (p.nota === undefined) continue;
+        const a = notas.get(p.jogador) ?? { soma: 0, n: 0 };
+        a.soma += p.nota;
+        a.n++;
+        notas.set(p.jogador, a);
+      }
+    }
+    return [...this.stats.entries()]
+      .map(([k, s]) => {
+        const [jog, epoca, clube, comp] = k.split("\u0000") as [string, string, string, string];
+        return { jogador: jog, epoca: Number(epoca), clube, competicao: comp, ...s };
+      })
+      .filter((l) => l.competicao === competition && l.epoca === season)
+      .map((l): PlayerCompetitionStats => {
+        const n = notas.get(l.jogador);
+        return { ...l, ratedGames: n?.n ?? 0, ...(n ? { avgRating: n.soma / n.n } : {}) };
+      })
+      .sort((a, b) => cmp(a.jogador, b.jogador));
   }
 
   ajustarClassificacao(a: AjusteClassificacao): void {

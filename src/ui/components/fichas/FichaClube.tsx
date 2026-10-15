@@ -41,23 +41,23 @@ export function FichaClube({ d, verTudo }: { d: FichaClubeDados; verTudo: boolea
   };
 
   const plantel: Coluna<PessoaVista>[] = [
-    { id: "nome", titulo: t("coluna.nome"), valor: (p) => p.nomeDesportivo },
+    { id: "name", titulo: t("coluna.nome"), valor: (p) => p.nomeDesportivo },
     { id: "pos", titulo: t("coluna.posicao"), valor: (p) => siglaPosicao(t, p.jogador?.posicao ?? "") },
-    { id: "idade", titulo: t("coluna.idade"), valor: (p) => p.idade, numerica: true },
-    { id: "nivel", titulo: t("coluna.nivel"), valor: (p) => nivelDe(p)?.valor ?? "", numerica: true },
-    { id: "pais", titulo: t("coluna.pais"), valor: (p) => pais(p.nacionalidade) },
-    { id: "pe", titulo: t("coluna.pe"), valor: (p) => (p.jogador ? t(`pe.${p.jogador.pe}` as Chave) : "") },
-    { id: "altura", titulo: t("coluna.altura"), valor: (p) => p.jogador?.alturaCm ?? 0, numerica: true },
-    { id: "peso", titulo: t("coluna.peso"), valor: (p) => p.jogador?.pesoKg ?? 0, numerica: true },
-    { id: "contrato", titulo: t("coluna.contrato"), valor: (p) => d.plantelExtra[p.id]?.contratoFim ?? "" },
-    { id: "estado", titulo: t("coluna.estado"), valor: (p) => (p.jogador ? t(`estado.${p.jogador.estado}` as Chave) : "") },
+    { id: "age", titulo: t("coluna.idade"), valor: (p) => p.idade, numerica: true },
+    { id: "level", titulo: t("coluna.nivel"), valor: (p) => nivelDe(p)?.valor ?? "", numerica: true },
+    { id: "country", titulo: t("coluna.pais"), valor: (p) => pais(p.nacionalidade) },
+    { id: "foot", titulo: t("coluna.pe"), valor: (p) => (p.jogador ? t(`pe.${p.jogador.pe}` as Chave) : "") },
+    { id: "height", titulo: t("coluna.altura"), valor: (p) => p.jogador?.alturaCm ?? 0, numerica: true },
+    { id: "weight", titulo: t("coluna.peso"), valor: (p) => p.jogador?.pesoKg ?? 0, numerica: true },
+    { id: "contract", titulo: t("coluna.contrato"), valor: (p) => d.plantelExtra[p.id]?.contratoFim ?? "" },
+    { id: "status", titulo: t("coluna.estado"), valor: (p) => (p.jogador ? t(`estado.${p.jogador.estado}` as Chave) : "") },
   ];
   const staff: Coluna<PessoaVista>[] = [
-    { id: "nome", titulo: t("coluna.nome"), valor: (p) => p.nomeDesportivo },
-    { id: "funcao", titulo: t("coluna.funcao"), valor: (p) => (p.funcao ? t(`funcao.${p.funcao}` as Chave) : "") },
-    { id: "idade", titulo: t("coluna.idade"), valor: (p) => p.idade, numerica: true },
-    { id: "pais", titulo: t("coluna.pais"), valor: (p) => pais(p.nacionalidade) },
-    { id: "qualidade", titulo: t("coluna.qualidade"), valor: (p) => { const q = verdade?.qualidadeStaff[p.id]; return q ? Object.entries(q).map(([k, v]) => `${t(`qualidade.${k}` as Chave)} ${v}`).join(" · ") : "?"; } },
+    { id: "name", titulo: t("coluna.nome"), valor: (p) => p.nomeDesportivo },
+    { id: "role", titulo: t("coluna.funcao"), valor: (p) => (p.funcao ? t(`funcao.${p.funcao}` as Chave) : "") },
+    { id: "age", titulo: t("coluna.idade"), valor: (p) => p.idade, numerica: true },
+    { id: "country", titulo: t("coluna.pais"), valor: (p) => pais(p.nacionalidade) },
+    { id: "quality", titulo: t("coluna.qualidade"), valor: (p) => { const q = verdade?.qualidadeStaff[p.id]; return q ? Object.entries(q).map(([k, v]) => `${t(`qualidade.${k}` as Chave)} ${v}`).join(" · ") : "?"; } },
   ];
 
   // plantel em números
@@ -163,12 +163,12 @@ export function FichaClube({ d, verTudo }: { d: FichaClubeDados; verTudo: boolea
       separadores={{
         resumo,
         plantel: d.plantel.length > 0 ? (
-          <Tabela id="plantel" nomeFicheiro={`plantel-${d.id}`} colunas={plantel} linhas={d.plantel} chave={(p) => p.id} celula={{ nome, nivel: nivelCelula }} ordemInicial={{ coluna: "pos", direcao: "asc" }} />
+          <Tabela id="plantel" nomeFicheiro={`plantel-${d.id}`} colunas={plantel} linhas={d.plantel} chave={(p) => p.id} celula={{ name: nome, level: nivelCelula }} ordemInicial={{ coluna: "pos", direcao: "asc" }} />
         ) : (
           <p className="vazio">{t("clube.semMundo")}</p>
         ),
         staff: d.cargos.length > 0 ? (
-          <Tabela id="staff" nomeFicheiro={`staff-${d.id}`} colunas={staff} linhas={d.cargos} chave={(p) => p.id} celula={{ nome }} />
+          <Tabela id="staff" nomeFicheiro={`staff-${d.id}`} colunas={staff} linhas={d.cargos} chave={(p) => p.id} celula={{ name: nome }} />
         ) : (
           <p className="vazio">{t("clube.semMundo")}</p>
         ),

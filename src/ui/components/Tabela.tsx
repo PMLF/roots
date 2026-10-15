@@ -15,6 +15,10 @@ type Props<L> = {
   celula?: Partial<Record<string, (l: L) => ReactNode>>;
   nomeFicheiro?: string;
   ordemInicial?: Ordem;
+  /** Sem filtro, escolha de colunas nem exportação (tabelas pequenas em cartões). */
+  simples?: boolean;
+  /** Classe CSS por linha (ex.: zonas da classificação). */
+  classeLinha?: (l: L) => string | undefined;
 };
 
 function lerOrdem(v: string | null, colunas: readonly { id: string }[]): Ordem | undefined {
@@ -25,17 +29,17 @@ function lerOrdem(v: string | null, colunas: readonly { id: string }[]): Ordem |
 const eListaDeTexto = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
 
 /** A tabela única do jogo (TOM_E_UX §3.6): ordenar, filtrar, escolher colunas, exportar, setas e Enter. */
-export function Tabela<L>({ id, colunas, linhas, chave, celula = {}, nomeFicheiro, ordemInicial = null }: Props<L>) {
+export function Tabela<L>({ id, colunas, linhas, chave, celula = {}, nomeFicheiro, ordemInicial = null, simples = false, classeLinha }: Props<L>) {
   const { t } = useT();
   const params = useSearchParams();
-  // A ordenação escolhida fica no URL (`ord=coluna:asc|desc`, sem nova entrada no histórico) para sobreviver a «Voltar».
-  const [ordem, setOrdemEstado] = useState<Ordem>(() => lerOrdem(params.get("ord"), colunas) ?? ordemInicial);
+  // A ordenação escolhida fica no URL (`sort=coluna:asc|desc`, sem nova entrada no histórico) para sobreviver a «Voltar».
+  const [ordem, setOrdemEstado] = useState<Ordem>(() => lerOrdem(params.get("sort"), colunas) ?? ordemInicial);
   const setOrdem = (f: (o: Ordem) => Ordem) => {
     const nova = f(ordem);
     setOrdemEstado(nova);
     const url = new URL(window.location.href);
-    if (nova) url.searchParams.set("ord", `${nova.coluna}:${nova.direcao}`);
-    else url.searchParams.delete("ord");
+    if (nova) url.searchParams.set("sort", `${nova.coluna}:${nova.direcao}`);
+    else url.searchParams.delete("sort");
     window.history.replaceState(window.history.state, "", url);
   };
   const [texto, setTexto] = useState("");
@@ -82,13 +86,13 @@ export function Tabela<L>({ id, colunas, linhas, chave, celula = {}, nomeFicheir
 
   return (
     <div className="tabela-caixa">
-      <div className="tabela-barra">
+      {!simples && <div className="tabela-barra">
         <input type="search" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={t("tabela.filtrar")} aria-label={t("tabela.filtrar")} />
         <span className="suave">{t("tabela.linhas", { n: mostradas.length, total: linhas.length })}</span>
         <button type="button" onClick={() => setEscolher((v) => !v)} aria-expanded={escolher}>{t("tabela.colunas")}</button>
         <button type="button" onClick={exportar}>{t("tabela.exportar")}</button>
-      </div>
-      {escolher && (
+      </div>}
+      {!simples && escolher && (
         <fieldset className="tabela-colunas">
           <legend>{t("tabela.colunas")}</legend>
           {colunas.map((c) => (
@@ -113,7 +117,7 @@ export function Tabela<L>({ id, colunas, linhas, chave, celula = {}, nomeFicheir
         </thead>
         <tbody ref={corpo} onKeyDown={teclas}>
           {mostradas.map((l) => (
-            <tr key={chave(l)} tabIndex={0}>
+            <tr key={chave(l)} tabIndex={0} className={classeLinha?.(l)}>
               {colunasVisiveis.map((c) => (
                 <td key={c.id} className={c.numerica ? "num" : undefined}>{celula[c.id] ? celula[c.id]!(l) : c.valor(l)}</td>
               ))}
