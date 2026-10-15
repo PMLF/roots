@@ -143,6 +143,19 @@ export type Parametros = {
     /** Momentos-chave do jogo (RZ-105). */
     momentos: { xgGrande: number };
   };
+  /** O que é notícia num jogo (RZ-109). */
+  historias: {
+    /** Golos de um jogador no mesmo jogo para haver hat-trick. */
+    hattrick: number;
+    /** Diferença de golos para uma goleada. */
+    goleada: number;
+    /** Um golo nos últimos N minutos que decide ou salva o resultado é notável. */
+    descontos: number;
+    /** Reviravolta: o vencedor chegou a perder por tantos golos. */
+    reviravolta: number;
+    /** Lesões desta gravidade ou mais são notícia própria. */
+    lesaoGrave: number;
+  };
   /** Lesões e forma (RZ-107; docs/MOTOR_JOGO.md §9). */
   lesoes: {
     /** Probabilidade base de um jogador se lesionar num jogo de 90 minutos (equipa e adversário normais, relvado médio). */
@@ -366,6 +379,7 @@ export const PARAMETROS_PADRAO: Parametros = {
     notas: { base: 6, min: 3, max: 10, ruido: 0.25, golo: 0.9, assistencia: 0.5, remateABaliza: 0.1, ocasiaoFalhada: -0.2, penaltiFalhado: -0.7, falta: -0.08, penaltiConcedido: -0.5, defesa: 0.2, golosSofridos: -0.25, amarelo: -0.15, vermelho: -1.2, balizaZero: 0.5, resultado: 0.3 },
     momentos: { xgGrande: 0.3 },
   },
+  historias: { hattrick: 3, goleada: 4, descontos: 3, reviravolta: 2, lesaoGrave: 4 },
   lesoes: {
     pPorJogadorJogo: 0.016,
     risco: { porForma: 2, relvado: 0.9, porAptidaoFisica: 0.03, porMedico: 0.015, fairPlayAdversario: [0.75, 0.88, 1, 1.25, 1.5], intensidade: 0.07, recaida: 1.2, fadiga: 0.25 },
@@ -504,6 +518,8 @@ export function validarParametros(p: Parametros): string[] {
   if (!(k.personalidade.limiarBaixo < k.personalidade.limiarAlto)) erros.push("conhecimento.personalidade: limiarBaixo < limiarAlto");
   if (k.personalidade.maxRotulos < 1) erros.push("conhecimento.personalidade: maxRotulos ≥ 1");
   if (k.personalidade.probTrocaPiorQualidade < 0 || k.personalidade.probTrocaPiorQualidade > 1) erros.push("conhecimento.personalidade: probTrocaPiorQualidade entre 0 e 1");
+  const hi = p.historias;
+  if (!(hi.hattrick >= 2 && hi.goleada >= 2 && hi.descontos >= 1 && hi.reviravolta >= 1 && hi.lesaoGrave >= 1 && hi.lesaoGrave <= 5)) erros.push("historias: hattrick ≥ 2, goleada ≥ 2, descontos ≥ 1, reviravolta ≥ 1, lesaoGrave entre 1 e 5");
   const le = p.lesoes;
   if (!(le.pPorJogadorJogo >= 0 && le.pPorJogadorJogo <= 1 && le.pTreinoPorDia >= 0 && le.pTreinoPorDia <= 1)) erros.push("lesoes: probabilidades entre 0 e 1");
   if (le.gravidades.length !== 5 || Math.abs(le.gravidades.reduce((a, g) => a + g.peso, 0) - 1) > 1e-9 || !le.gravidades.every((g) => g.dias[0] >= 1 && g.dias[1] >= g.dias[0])) erros.push("lesoes.gravidades: 5 níveis, pesos a somar 1 e dias [mín ≥ 1, máx ≥ mín]");
