@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { VERSAO_ESQUEMA, VERSAO_MOTOR, tratar, type Servicos } from "./handler";
 import { PARAMETROS_PADRAO } from "../config/parametros";
@@ -5,7 +6,11 @@ import { RepositorioMemoria } from "../persistencia/repositorioMemoria";
 
 function servicosDeTeste(): Servicos {
   const repositorio = new RepositorioMemoria();
-  return { abrirRepositorio: async () => ({ repositorio, backend: "memoria", versaoSqlite: "teste" }) };
+  const ler = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
+  return {
+    abrirRepositorio: async () => ({ repositorio, backend: "memoria", versaoSqlite: "teste" }),
+    carregarDados: async () => ({ clubes: ler("clubes"), cidades: ler("cidades"), rivalidades: ler("rivalidades"), distritos: ler("distritos"), paises: ler("paises") }),
+  };
 }
 
 describe("handler do motor", () => {
@@ -24,5 +29,20 @@ describe("handler do motor", () => {
     const b = await tratar({ id: 5, tipo: "bd", entrada: null }, s);
     expect(a).toMatchObject({ backend: "memoria", persistente: false, esquema: VERSAO_ESQUEMA, aberturas: 1, eventos: 1 });
     expect(b).toMatchObject({ aberturas: 2, eventos: 2 });
+  });
+
+  it("cria o mundo com progresso, depois reabre sem gerar outra vez, e o plantel vem pela Vista", async () => {
+    const s2 = servicosDeTeste();
+    const fases = new Set<string>();
+    const r = await tratar({ id: 6, tipo: "criarMundo", entrada: { seed: "abc" } }, s2, (p) => fases.add(p.fase));
+    expect(r).toMatchObject({ seed: "abc", clubes: 298, jaExistia: false });
+    expect(r.pessoas).toBeGreaterThan(12000);
+    expect([...fases]).toEqual(expect.arrayContaining(["clubes", "livres", "validar", "guardar"]));
+    const outra = await tratar({ id: 7, tipo: "criarMundo", entrada: { seed: "outra" } }, s2);
+    expect(outra).toMatchObject({ seed: "abc", jaExistia: true, pessoas: r.pessoas, jogadores: r.jogadores });
+    const clubes = await tratar({ id: 8, tipo: "clubes", entrada: null }, s2);
+    const plantel = await tratar({ id: 9, tipo: "plantel", entrada: { clube: clubes[0]!.id } }, s2);
+    expect(plantel.length).toBeGreaterThanOrEqual(20);
+    expect(JSON.stringify(plantel)).not.toMatch(/potencial|atributos|personalidade/);
   });
 });

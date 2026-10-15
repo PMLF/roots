@@ -115,8 +115,34 @@ CREATE TABLE calendario_folga (
 ) WITHOUT ROWID;
 `;
 
+const V3 = `
+-- Pessoas geradas (RZ-103). personalidade, atributos e potencial são "verdade oculta": a Vista não os lê.
+CREATE TABLE pessoa (
+  id TEXT PRIMARY KEY, nome TEXT NOT NULL, nome_desportivo TEXT NOT NULL, nascimento TEXT NOT NULL,
+  nacionalidade TEXT NOT NULL, natural_de TEXT, papeis TEXT NOT NULL, personalidade TEXT NOT NULL,
+  arquetipo TEXT NOT NULL, lod INTEGER NOT NULL CHECK (lod IN (1, 2, 3))
+) WITHOUT ROWID;
+CREATE INDEX ix_pessoa_nome ON pessoa(nome_desportivo);
+CREATE TABLE jogador (
+  pessoa TEXT PRIMARY KEY REFERENCES pessoa(id), posicoes TEXT NOT NULL, atributos TEXT NOT NULL, potencial REAL NOT NULL,
+  altura INTEGER NOT NULL, peso INTEGER NOT NULL, pe TEXT NOT NULL, clube TEXT, estado TEXT NOT NULL
+) WITHOUT ROWID;
+CREATE INDEX ix_jogador_clube ON jogador(clube);
+CREATE TABLE contrato (
+  id INTEGER PRIMARY KEY, pessoa TEXT NOT NULL REFERENCES pessoa(id), clube TEXT NOT NULL,
+  salario_mensal INTEGER NOT NULL, inicio TEXT NOT NULL, fim TEXT NOT NULL
+);
+CREATE INDEX ix_contrato_pessoa ON contrato(pessoa);
+CREATE INDEX ix_contrato_clube ON contrato(clube);
+CREATE TABLE cargo (
+  pessoa TEXT PRIMARY KEY REFERENCES pessoa(id), funcao TEXT NOT NULL, clube TEXT, cidade TEXT, qualidade TEXT
+) WITHOUT ROWID;
+CREATE INDEX ix_cargo_clube ON cargo(clube);
+CREATE INDEX ix_cargo_cidade ON cargo(cidade);
+`;
+
 /** A posição no array + 1 é o número da versão do esquema. */
-export const MIGRACOES: readonly string[] = [V1, V2];
+export const MIGRACOES: readonly string[] = [V1, V2, V3];
 export const VERSAO_ESQUEMA = MIGRACOES.length;
 
 export function versaoDoFicheiro(d: DriverSql): number {

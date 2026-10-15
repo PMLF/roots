@@ -75,3 +75,27 @@ export function observarPersonalidade(
   const valores: ValoresObservados = { v: 1, rotulos };
   return repo.acrescentarObservacao({ observador: p.observador, alvoK: p.alvo.k, alvoId: p.alvo.id, grupo: p.grupo, valores, qualidade: q, fonte: p.fonte, data: p.data, epoca: p.epoca });
 }
+
+/**
+ * O clube conhece bem o seu próprio plantel (fonte "proprioClube"): cria as observações iniciais de
+ * atributos, potencial e personalidade de cada jogador. Chama-se uma vez no início do save (e ao contratar).
+ */
+export function observarPlantelProprio(
+  repo: Repositorio,
+  clube: string,
+  quando: { data: Data; epoca: number },
+  rng: Rng,
+  k: Conhecimento,
+): number {
+  let n = 0;
+  for (const j of repo.jogadoresDoClube(clube)) {
+    const p = repo.pessoa(j.pessoa);
+    if (!p) continue;
+    const base = { observador: clube, alvo: { k: "pessoa" as const, id: j.pessoa }, fonte: "proprioClube" as const, ...quando };
+    observarCampos(repo, { ...base, grupo: "atributos" }, j.atributos, [1, 20], rng, k);
+    observarCampos(repo, { ...base, grupo: "potencial" }, { potencial: j.potencial }, [1, 20], rng, k);
+    observarPersonalidade(repo, { ...base, grupo: "personalidade" }, p.personalidade, rng, k);
+    n++;
+  }
+  return n;
+}

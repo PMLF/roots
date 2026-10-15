@@ -87,3 +87,12 @@ Dentro de cada escalão, o clube sobe ou desce conforme a **reputação** e as *
 - `pessoa` guarda o fixo (nome, nascimento, nacionalidade, personalidade); atributos em colunas ou JSON compacto (45 números por jogador). O potencial real fica em campo "verdade" que a `Vista` não devolve.
 - Geração em **Web Worker** com barra de progresso; transação única por lote.
 - Reutilizável para gerar novos jogadores todos os anos (juniores, regens), clubes novos (RZ-126) e árbitros.
+
+## 8. Estado da implementação (RZ-103 / RZ-132)
+
+- Código em `src/engine/mundo/` (`gerarMundo`, `jogador`, `nomes`, `listas`, `bloqueio`, `paises`, `talento`, `validar`) e `src/engine/personalidade/gerar.ts`. Dados: `data/paises.csv` (51 países, 19 famílias de nomes).
+- **Determinismo:** cada clube, a cidade, os "outros" e os livres têm o seu fluxo (`Rng.derivar`). Acrescentar um clube de outro escalão não muda os plantéis dos restantes; dentro do mesmo escalão a reputação é normalizada pelo conjunto do escalão.
+- **Qualidade:** `qualidadeAlvo` por escalão + deslocação pela reputação (`qualidadePorReputacao`); a idade desconta os jovens e os veteranos; a qualidade atual é a média dos atributos-chave da posição, e o potencial nunca fica abaixo dela.
+- **Nacionalidade:** % de estrangeiros do escalão × (1 ± `estrangeirosVariacaoReputacao` consoante a reputação); país sorteado por `pesoParaPortugal × densidade(q | país)`, com a cauda rara.
+- **Medido (298 clubes):** ~13,8 mil pessoas (9,4 mil jogadores, 3 mil sem clube), ~2,5 s a gerar. Menos do que os ~15-25 mil da tabela do §1 porque ainda não há juniores nem academias (lod 2, sob demanda) nem ligas estrangeiras.
+- **Visibilidade:** a verdade (atributos, potencial, personalidade) fica nas tabelas `jogador`/`pessoa`; `pessoaPublica`, `plantelPublico` e `cargosPublicos` devolvem só factos públicos e é por aí que a `Vista` lê. O clube só vê atributos/potencial/personalidade dos seus jogadores depois de `observarPlantelProprio`.

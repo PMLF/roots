@@ -2,7 +2,7 @@
  * Tipos do que a interface pode ver (RZ-129). Nada aqui referencia a "verdade" oculta:
  * só factos públicos e estimativas com margem vindas de observações.
  */
-import type { Data, TipoEntidade } from "../persistencia/tipos";
+import type { Data, PessoaPublica, TipoEntidade } from "../persistencia/tipos";
 
 export type Alvo = { k: TipoEntidade; id: string };
 
@@ -36,4 +36,19 @@ export type Conhecimento = Frescura & {
   observacoes: number;
   campos: Record<string, Estimativa & Frescura>;
   rotulos: Rotulo[];
+};
+
+/** Factos públicos de uma pessoa, com a idade à data da Vista. */
+export type PessoaVista = PessoaPublica & { idade: number };
+
+/**
+ * Ficha de uma pessoa tal como o gamer a conhece (RZ-129 + RZ-103): factos públicos sempre;
+ * atributos, potencial e personalidade só se alguém os observou (e com margem de erro).
+ */
+export type FichaPessoa = {
+  publico: PessoaVista;
+  atributos?: Conhecimento;
+  potencial?: Conhecimento;
+  /** Rótulos de traços extremos (`conhecimento.rotulos`), nunca números. */
+  personalidade?: Conhecimento;
 };

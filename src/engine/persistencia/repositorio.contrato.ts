@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { Repositorio } from "./repositorio";
-import type { EventoNovo, JogoFacto, JogoNovo, Participacao } from "./tipos";
+import type { EventoNovo, JogoFacto, JogoNovo, LoteMundoReg, Participacao } from "./tipos";
 
 export const ev = (tipo: string, extra: Partial<EventoNovo> = {}): EventoNovo => ({
   tipo,
@@ -334,6 +334,62 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       const r = criar();
       expect(() => r.guardarCalendario([j("q", 1, "2026-08-22", "X", "Y"), j("q", 2, "2026-08-29", "Y", "X")], [])).toThrow();
       expect(r.calendario("SL", 1).jogos).toEqual([]);
+    });
+  });
+
+  describe(`Repositorio (${nome}): pessoas`, () => {
+    const lote = (): LoteMundoReg => ({
+      pessoas: [
+        { id: "p1", nome: "João Pedro Silva", nomeDesportivo: "João Silva", nascimento: "2000-03-01", nacionalidade: "pt", naturalDe: "porto", papeis: ["jogador"], personalidade: { lealdade: 15, ambicao: 9 }, arquetipo: "lider", lod: 1 },
+        { id: "p2", nome: "Ana Costa", nomeDesportivo: "Ana Costa", nascimento: "1975-05-05", nacionalidade: "pt", papeis: ["presidente"], personalidade: { lealdade: 10 }, arquetipo: "comum", lod: 2 },
+        { id: "p3", nome: "Luca Rossi", nomeDesportivo: "Luca Rossi", nascimento: "1998-01-01", nacionalidade: "it", papeis: ["jogador"], personalidade: { lealdade: 5 }, arquetipo: "mercenario", lod: 2 },
+      ],
+      jogadores: [
+        { pessoa: "p1", posicoes: [{ pos: "MC", aptidao: 20 }, { pos: "MDC", aptidao: 12 }], atributos: { passe: 14 }, potencial: 15.5, alturaCm: 180, pesoKg: 75, pe: "D", clube: "X", estado: "ativo" },
+        { pessoa: "p3", posicoes: [{ pos: "PL", aptidao: 20 }], atributos: { finalizacao: 12 }, potencial: 12, alturaCm: 184, pesoKg: 80, pe: "E", estado: "livre" },
+      ],
+      contratos: [{ pessoa: "p1", clube: "X", salarioMensal: 1200, inicio: "2025-07-01", fim: "2028-06-30" }],
+      cargos: [{ pessoa: "p2", funcao: "presidente", clube: "X", cidade: "porto" }],
+    });
+
+    it("guarda e devolve a verdade e os factos públicos", () => {
+      const r = criar();
+      r.guardarMundo(lote());
+      expect(r.totalPessoas()).toBe(3);
+      expect(r.pessoa("p1")?.personalidade).toEqual({ lealdade: 15, ambicao: 9 });
+      expect(r.jogador("p1")?.potencial).toBe(15.5);
+      expect(r.contrato("p1")?.salarioMensal).toBe(1200);
+      expect(r.cargo("p2")?.funcao).toBe("presidente");
+      expect(r.jogadoresDoClube("X").map((j) => j.pessoa)).toEqual(["p1"]);
+      expect(r.pessoa("nada")).toBeUndefined();
+    });
+    it("a ficha pública não contém atributos, potencial nem personalidade", () => {
+      const r = criar();
+      r.guardarMundo(lote());
+      const f = r.pessoaPublica("p1")!;
+      expect(f).toMatchObject({ nomeDesportivo: "João Silva", clube: "X", naturalDe: "porto", jogador: { posicao: "MC", alturaCm: 180, pe: "D", estado: "ativo" } });
+      const texto = JSON.stringify(f);
+      for (const proibido of ["potencial", "atributos", "personalidade", "lealdade", "aptidao", "arquetipo", "salario"]) expect(texto).not.toContain(proibido);
+      expect(r.pessoaPublica("p3")?.jogador?.estado).toBe("livre");
+      expect(r.pessoaPublica("p2")).toMatchObject({ funcao: "presidente", clube: "X" });
+    });
+    it("plantel e cargos públicos", () => {
+      const r = criar();
+      r.guardarMundo(lote());
+      expect(r.plantelPublico("X").map((p) => p.id)).toEqual(["p1"]);
+      expect(r.cargosPublicos({ clube: "X" }).map((p) => p.id)).toEqual(["p2"]);
+      expect(r.cargosPublicos({ cidade: "porto" }).map((p) => p.id)).toEqual(["p2"]);
+      expect(r.cargosPublicos({})).toEqual([]);
+    });
+    it("recusa um segundo mundo e desfaz tudo se algo falhar", () => {
+      const r = criar();
+      r.guardarMundo(lote());
+      expect(() => r.guardarMundo(lote())).toThrow();
+      const r2 = criar();
+      const mau = lote();
+      mau.jogadores.push({ ...mau.jogadores[0]!, pessoa: "fantasma" });
+      expect(() => r2.guardarMundo(mau)).toThrow();
+      expect(r2.totalPessoas()).toBe(0);
     });
   });
 }

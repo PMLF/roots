@@ -17,8 +17,13 @@ let modulo: Promise<Sqlite3Static> | undefined;
 
 /** URL de public/sqlite/index.mjs, respeitando o basePath (tools/copiar-sqlite-wasm.mjs copia-o para lá). */
 export function urlSqlite(): string {
+  return urlPublica("sqlite/index.mjs");
+}
+
+/** URL de um ficheiro de `public/`, respeitando o basePath. */
+export function urlPublica(caminho: string): string {
   const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-  return `${self.location.origin}${base}/sqlite/index.mjs`;
+  return `${self.location.origin}${base}/${caminho}`;
 }
 
 const sqlite = () =>
