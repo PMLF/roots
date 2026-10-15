@@ -85,7 +85,14 @@ export default function Hoje() {
         <section className="painel" aria-labelledby="h-seguir">
           <h2 id="h-seguir">{t("hoje.seguir")}</h2>
           {proximo ? <p>{t("hoje.proximo", { jogo: `${proximo.home ? "" : "@ "}${proximo.opponentName}` })} <span className="suave">· {proximo.date}</span></p> : <p className="vazio">{t("hoje.seguirVazio")}</p>}
-          {tempo.estado?.porJogar === 0 && <p className="suave">{t("hoje.fimDeEpoca")}</p>}
+          {tempo.ultimo?.resumoEpoca && (
+            <div className="resumo-epoca">
+              <p><b>{t("hoje.epocaAcabou", { epoca: tempo.ultimo.resumoEpoca.epoca })}</b></p>
+              <p className="suave">{t("hoje.campeoes")}: {tempo.ultimo.resumoEpoca.campeoes.map((c) => `${c.nome} (${c.liga})`).join(" · ")}</p>
+              {meu && tempo.ultimo.resumoEpoca.movimentos.filter((m) => m.clube === meu).map((m) => <p key={m.clube}>{t(m.motivo === "descida" ? "hoje.desceste" : "hoje.subiste")}</p>)}
+              <p className="suave">{t("hoje.movimentos", { n: tempo.ultimo.resumoEpoca.movimentos.length })}</p>
+            </div>
+          )}
           {tempo.pausa && (
             <>
               <p><b>{t("hoje.jogoHoje", { jogo: `${tempo.pausa.emCasa ? "" : "@ "}${tempo.pausa.adversario}` })}</b></p>

@@ -9,6 +9,7 @@ import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
 import { avancar, estadoDoTempo } from "../epoca/avancar";
+import { dadosDaEpoca, dadosDaPiramide, epocaAtual, historicoDeDivisoes } from "../epoca/piramideEpoca";
 import { vistaDoPlano } from "../epoca/vistaDoPlano";
 import { confirmarJogo, guardarPlano } from "../epoca/planoDeJogo";
 import { competitionPage } from "../competicao/ficha";
@@ -61,11 +62,11 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return saida;
     }
     case "clubes": {
-      const { dados } = await dadosDoJogo(servicos);
+      const { dados } = await contexto(servicos);
       return dados.clubes.map((c): ClubeResumo => ({ id: c.id, nome: c.nome, liga: c.liga }));
     }
     case "estadoMundo": {
-      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const { repositorio, dados } = await contexto(servicos);
       if (repositorio.totalPessoas() === 0) return null;
       completarLocalidades(repositorio, dados);
       return resumoExistente(repositorio, dados);
@@ -81,11 +82,11 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
     case "paises":
       return (await dadosDoJogo(servicos)).paises.map((p) => ({ id: p.id, nome: p.nome }));
     case "pesquisar": {
-      const [{ repositorio }, jogo] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
-      return pesquisar(m.entrada.q, indiceDePesquisa(repositorio, jogo.dados), m.entrada.limite ?? 12);
+      const { repositorio, dados: atuais } = await contexto(servicos);
+      return pesquisar(m.entrada.q, indiceDePesquisa(repositorio, atuais), m.entrada.limite ?? 12);
     }
     case "fichaPessoa": {
-      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const { repositorio, dados } = await contexto(servicos);
       const ficha = vistaDoGamer(repositorio).ficha(m.entrada.id);
       if (!ficha) return null;
       const vista = vistaDoGamer(repositorio);
@@ -102,7 +103,7 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return saida;
     }
     case "fichaClube": {
-      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const { repositorio, dados, base } = await contexto(servicos);
       const c = dados.clubes.find((x) => x.id === m.entrada.id);
       if (!c) return null;
       const verTudo = m.entrada.verTudo === true;
@@ -122,7 +123,7 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
         escalao: c.escalao,
         nivelReputacao: nivelDeReputacao(c.reputacao, PARAMETROS_PADRAO),
         estadioDetalhe: { propriedade: c.estadio.propriedade, zona: c.estadio.localizacao.zona, distanciaCentroKm: c.estadio.localizacao.distanciaCentroKm, transportes: c.estadio.localizacao.transportes, acessoRodoviario: c.estadio.localizacao.acessoRodoviario, estacionamento: c.estadio.localizacao.estacionamento, terrenoExpansao: c.estadio.localizacao.terrenoExpansao },
-        historicoDivisoes: [{ epoca: 1, escalao: c.escalao, liga: c.liga }],
+        historicoDivisoes: historicoDeDivisoes(repositorio, base, c.id),
         plantelExtra: {},
       };
       for (const j of saida.plantel) {
@@ -143,7 +144,7 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return saida;
     }
     case "fichaLocalidade": {
-      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const { repositorio, dados } = await contexto(servicos);
       const base = dados.localidades.find((x) => x.id === m.entrada.id);
       if (!base) return null;
       // antes de haver mundo mostra-se o estado de arranque
@@ -164,17 +165,20 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return saida;
     }
     case "competicoes":
-      return competicoesDoMundo((await dadosDoJogo(servicos)).dados);
+      return competicoesDoMundo((await contexto(servicos)).dados);
     case "competitionPage": {
-      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
-      return competitionPage(repositorio, dados, PARAMETROS_PADRAO, m.entrada.league) ?? null;
+      const { repositorio, dados, base } = await contexto(servicos);
+      const atual = epocaAtual(repositorio);
+      const epoca = m.entrada.season ?? atual;
+      if (epoca < 1 || epoca > atual) return null;
+      return competitionPage(repositorio, epoca === atual ? dados : dadosDaPiramide(repositorio, base, epoca), PARAMETROS_PADRAO, m.entrada.league, epoca) ?? null;
     }
     case "laboratorioJogo": {
-      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const { repositorio, dados } = await contexto(servicos);
       return jogoLab(repositorio, dados, PARAMETROS_PADRAO, m.entrada);
     }
     case "laboratorioLiga": {
-      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const { repositorio, dados } = await contexto(servicos);
       return ligaLab(repositorio, dados, PARAMETROS_PADRAO, m.entrada);
     }
     case "clubeDoGamer": {
@@ -183,7 +187,7 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return id ? { id } : null;
     }
     case "escolherClube": {
-      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const { repositorio, dados } = await contexto(servicos);
       if (!dados.clubes.some((c) => c.id === m.entrada.id)) throw new Error("Clube desconhecido");
       const atual = repositorio.meta("clube.gamer");
       if (atual && atual !== m.entrada.id && m.entrada.forcar !== true) throw new Error("O clube do save já foi escolhido: só muda se fores despedido ou te despedires");
@@ -191,12 +195,12 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return { id: m.entrada.id };
     }
     case "plano": {
-      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const { repositorio, dados } = await contexto(servicos);
       const clube = repositorio.meta("clube.gamer");
       return clube ? vistaDoPlano(repositorio, dados, PARAMETROS_PADRAO, clube) : null;
     }
     case "guardarPlano": {
-      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const { repositorio, dados } = await contexto(servicos);
       const clube = repositorio.meta("clube.gamer");
       if (!clube) throw new Error("Ainda não escolheste o clube");
       guardarPlano(repositorio, clube, { tatica: m.entrada.tatica, ...(m.entrada.onze ? { onze: m.entrada.onze } : {}) });
@@ -208,11 +212,11 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return { jogo: m.entrada.jogo };
     }
     case "estadoTempo": {
-      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const { repositorio, dados } = await contexto(servicos);
       return estadoDoTempo(repositorio, dados, PARAMETROS_PADRAO);
     }
     case "avancar": {
-      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const { repositorio, dados } = await contexto(servicos);
       return avancar(repositorio, dados, PARAMETROS_PADRAO, m.entrada.modo, m.entrada.clube ?? repositorio.meta("clube.gamer"));
     }
     case "plantel": {
@@ -251,6 +255,12 @@ function verdadeDaPessoa(r: Repositorio, id: string): VerdadePessoa | undefined 
     ...(ct ? { salarioMensal: ct.salarioMensal } : {}),
     ...(cg?.qualidade ? { qualidade: cg.qualidade } : {}),
   };
+}
+
+/** Repositório + dados com a liga atual de cada clube (RZ-159); `base` são os dados de arranque. */
+async function contexto(servicos: Servicos): Promise<{ repositorio: Repositorio; dados: DadosBase; base: DadosBase; paises: Pais[] }> {
+  const [{ repositorio }, jogo] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+  return { repositorio, dados: dadosDaEpoca(repositorio, jogo.dados), base: jogo.dados, paises: jogo.paises };
 }
 
 type DadosDoJogo = { dados: DadosBase; paises: Pais[] };
