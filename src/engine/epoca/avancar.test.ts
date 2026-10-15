@@ -39,21 +39,33 @@ describe("avançar no tempo", () => {
     expect(antes.proximoDiaDeJogos! >= "2026-08-15").toBe(true);
 
     const clube = (await tratar({ id: 3, tipo: "clubes", entrada: null }, s))[0]!;
-    const r = await tratar({ id: 4, tipo: "avancar", entrada: { modo: "proximoJogo", clube: clube.id } }, s);
-    expect(r.dias.length).toBeGreaterThan(10); // de 1 de agosto até ao primeiro jogo do clube
-    const doClube = r.dias.at(-1)!.jogos.find((j) => j.casa === clube.id || j.fora === clube.id)!;
+    await tratar({ id: 31, tipo: "escolherClube", entrada: { id: clube.id } }, s);
+    // pára antes do jogo do clube, sem o jogar
+    const r = await tratar({ id: 4, tipo: "avancar", entrada: { modo: "proximoJogo" } }, s);
+    expect(r.pausa).toBeDefined();
+    expect(r.pausa!.casa === clube.id || r.pausa!.fora === clube.id).toBe(true);
+    expect(r.estado.hoje).toBe(r.pausa!.data);
+    expect(repo.jogo(r.pausa!.jogo)).toBeUndefined();
+    expect(r.dias.length).toBeGreaterThan(10); // de 1 de agosto até à véspera
+    // outra tentativa sem confirmar continua parada
+    const outra = await tratar({ id: 41, tipo: "avancar", entrada: { modo: "dia" } }, s);
+    expect(outra.dias).toHaveLength(0);
+    expect(outra.pausa!.jogo).toBe(r.pausa!.jogo);
+    // confirmado, joga o dia com o jogo do clube em detalhe
+    await tratar({ id: 42, tipo: "confirmarJogo", entrada: { jogo: r.pausa!.jogo } }, s);
+    const jogo = await tratar({ id: 43, tipo: "avancar", entrada: { modo: "dia" } }, s);
+    expect(jogo.pausa).toBeUndefined();
+    const doClube = jogo.dias[0]!.jogos.find((j) => j.casa === clube.id || j.fora === clube.id)!;
     expect(doClube.nivel).toBe(0);
     expect(repo.jogo(doClube.id)).toBeDefined();
-    const todos = r.dias.flatMap((d) => d.jogos);
+    const todos = [...r.dias, ...jogo.dias].flatMap((d) => d.jogos);
     expect(todos.length).toBeGreaterThan(10);
     expect(todos.filter((j) => j.nivel === 1).length).toBe(todos.length - todos.filter((j) => j.nivel === 0).length);
-    expect(r.estado.hoje).toBe(r.dias.at(-1)!.data.replace(/\d\d$/, (d) => String(Number(d) + 1).padStart(2, "0")));
-    expect(r.estado.porJogar).toBe(antes.porJogar - todos.length);
+    expect(jogo.estado.porJogar).toBe(antes.porJogar - todos.length);
 
     // um dia a seguir não repete jogos
     const r2 = await tratar({ id: 5, tipo: "avancar", entrada: { modo: "dia" } }, s);
-    expect(r2.dias).toHaveLength(1);
-    for (const j of r2.dias[0]!.jogos) expect(todos.map((x) => x.id)).not.toContain(j.id);
+    for (const j of r2.dias.flatMap((d) => d.jogos)) expect(todos.map((x) => x.id)).not.toContain(j.id);
   }, 120000);
 
   it("uma época inteira: lesões e suspensões acontecem e todos os jogos são jogados", async () => {
@@ -76,4 +88,29 @@ describe("avançar no tempo", () => {
     expect(pagina!.gamesPlayed).toBe(380);
     expect(pagina!.table.every((l) => l.played === 38)).toBe(true);
   }, 600000);
+});
+
+describe("plano de jogo", () => {
+  it("guarda tática e onze, valida e usa-os no jogo do clube", async () => {
+    const s = servicos();
+    await tratar({ id: 1, tipo: "criarMundo", entrada: { seed: "plano" } }, s);
+    const clube = (await tratar({ id: 2, tipo: "clubes", entrada: null }, s))[0]!;
+    expect(await tratar({ id: 3, tipo: "plano", entrada: null }, s)).toBeNull();
+    await tratar({ id: 4, tipo: "escolherClube", entrada: { id: clube.id } }, s);
+    const p = (await tratar({ id: 5, tipo: "plano", entrada: null }, s))!;
+    expect(p.automatico).toBe(true);
+    expect(p.onze).toHaveLength(11);
+    expect(p.plantel.length).toBeGreaterThan(18);
+    expect(p.proximoJogo?.confirmado).toBe(false);
+
+    // formação 4-4-2 com o onze proposto reorganizado: rejeita posições que não batem
+    await expect(tratar({ id: 6, tipo: "guardarPlano", entrada: { tatica: { ...p.tatica, formacao: "4-4-2" }, onze: p.onze.map((o) => ({ jogador: o.jogador, posicao: o.posicao })) } }, s)).rejects.toThrow();
+    await expect(tratar({ id: 7, tipo: "guardarPlano", entrada: { tatica: { ...p.tatica, intensidade: 9 as never }, onze: null } }, s)).rejects.toThrow();
+    const novo = await tratar({ id: 8, tipo: "guardarPlano", entrada: { tatica: { ...p.tatica, estilo: "direto", ritmo: 5 }, onze: p.onze.map((o) => ({ jogador: o.jogador, posicao: o.posicao })) } }, s);
+    expect(novo.automatico).toBe(false);
+    expect(novo.tatica).toMatchObject({ estilo: "direto", ritmo: 5 });
+    expect((await tratar({ id: 9, tipo: "plano", entrada: null }, s))!.onze.map((o) => o.jogador)).toEqual(p.onze.map((o) => o.jogador));
+    const volta = await tratar({ id: 10, tipo: "guardarPlano", entrada: { tatica: novo.tatica, onze: null } }, s);
+    expect(volta.automatico).toBe(true);
+  }, 60000);
 });

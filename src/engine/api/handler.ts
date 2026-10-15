@@ -9,6 +9,8 @@ import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
 import { avancar, estadoDoTempo } from "../epoca/avancar";
+import { vistaDoPlano } from "../epoca/vistaDoPlano";
+import { confirmarJogo, guardarPlano } from "../epoca/planoDeJogo";
 import { competitionPage } from "../competicao/ficha";
 import { nivelDeReputacao } from "../clube/reputacao";
 import { nivelGeral } from "../mundo/nivel";
@@ -187,6 +189,23 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       if (atual && atual !== m.entrada.id && m.entrada.forcar !== true) throw new Error("O clube do save já foi escolhido: só muda se fores despedido ou te despedires");
       repositorio.definirMeta("clube.gamer", m.entrada.id);
       return { id: m.entrada.id };
+    }
+    case "plano": {
+      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const clube = repositorio.meta("clube.gamer");
+      return clube ? vistaDoPlano(repositorio, dados, PARAMETROS_PADRAO, clube) : null;
+    }
+    case "guardarPlano": {
+      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const clube = repositorio.meta("clube.gamer");
+      if (!clube) throw new Error("Ainda não escolheste o clube");
+      guardarPlano(repositorio, clube, { tatica: m.entrada.tatica, ...(m.entrada.onze ? { onze: m.entrada.onze } : {}) });
+      return vistaDoPlano(repositorio, dados, PARAMETROS_PADRAO, clube) as NonNullable<ReturnType<typeof vistaDoPlano>>;
+    }
+    case "confirmarJogo": {
+      const { repositorio } = await servicos.abrirRepositorio();
+      confirmarJogo(repositorio, m.entrada.jogo);
+      return { jogo: m.entrada.jogo };
     }
     case "estadoTempo": {
       const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);

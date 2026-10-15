@@ -9,12 +9,11 @@ import { criarData, somarDias } from "../calendario/datas";
 import { gerarCalendariosDaEpoca, paraRepositorio, type DefinicaoLiga } from "../calendario/calendario";
 import type { Escalao, Parametros } from "../config/parametros";
 import type { DadosBase } from "../dados/tipos";
-import { suspensosDoClube } from "../disciplina/castigos";
 import { jogarJogo, nivelDoJogo } from "../jogo/detalhe";
 import { onzeAutomatico, type CandidatoOnze } from "../jogo/equipa";
-import { FORMACOES, TATICA_PADRAO } from "../jogo/formacoes";
+import { TATICA_PADRAO } from "../jogo/formacoes";
+import { indisponiveis, jogoConfirmado, lerPlano, onzeDoPlano, type Plano } from "./planoDeJogo";
 import type { EquipaJogo } from "../jogo/tipos";
-import { EVENTO_LESAO } from "../lesoes/estado";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data, JogoAgendado } from "../persistencia/tipos";
 
@@ -41,7 +40,10 @@ export type EstadoTempo = { hoje: Data; epoca: number; /** Jogos por disputar ne
 
 export type Modo = "dia" | "semana" | "proximoJogo";
 
-export type ResultadoAvanco = { de: Data; ate: Data; dias: ResumoDia[]; fimDeEpoca: boolean; estado: EstadoTempo };
+/** O avanço parou antes do jogo do clube do gamer: falta confirmar onze e tática. */
+export type Pausa = { jogo: string; data: Data; competicao: string; jornada: number; casa: string; fora: string; casaNome: string; foraNome: string };
+
+export type ResultadoAvanco = { de: Data; ate: Data; dias: ResumoDia[]; fimDeEpoca: boolean; estado: EstadoTempo; pausa?: Pausa };
 
 const MAX_DIAS = 400;
 
@@ -89,29 +91,14 @@ function candidatosDoClube(repo: Repositorio, clube: string): CandidatoOnze[] {
   return repo.jogadoresDoClube(clube).filter((j) => j.estado === "ativo").map((j) => ({ pessoa: j.pessoa, posicoes: j.posicoes, atributos: j.atributos, alturaCm: j.alturaCm }));
 }
 
-/** Quem está lesionado no dia `hoje` num clube (um só pedido ao histórico). */
-function lesionadosDoClube(repo: Repositorio, clube: string, hoje: Data): Set<string> {
-  const fora = new Set<string>();
-  for (const e of repo.eventosDe({ k: "clube", id: clube }, { tipo: EVENTO_LESAO })) {
-    const ate = (e.dados as { ate?: Data }).ate;
-    const j = e.entidades.find((x) => x.k === "pessoa" && x.papel === "lesionado");
-    if (j && ate && e.data <= hoje && ate > hoje) fora.add(j.id);
-  }
-  return fora;
-}
-
-const MIN_DISPONIVEIS = 12;
-
-function equipaParaJogo(repo: Repositorio, clube: string, competicao: string, epoca: number, jornada: number, hoje: Data, seed: string, params: Parametros): EquipaJogo {
+function equipaParaJogo(repo: Repositorio, clube: string, competicao: string, epoca: number, jornada: number, hoje: Data, seed: string, params: Parametros, plano?: Plano): EquipaJogo {
   const todos = candidatosDoClube(repo, clube);
-  const lesionados = lesionadosDoClube(repo, clube, hoje);
-  const suspensos = new Set(suspensosDoClube(repo, clube, todos.map((c) => c.pessoa), competicao, epoca, jornada, seed, params).map((s) => s.jogador));
-  const disponiveis = todos.filter((c) => !lesionados.has(c.pessoa) && !suspensos.has(c.pessoa));
-  const usar = disponiveis.length >= MIN_DISPONIVEIS ? disponiveis : todos; // plantel desfalcado: joga quem houver
-  const tatica = { ...TATICA_PADRAO };
-  const onze = onzeAutomatico(usar, FORMACOES[tatica.formacao]);
+  const fora = indisponiveis(repo, clube, todos.map((c) => c.pessoa), competicao, epoca, jornada, hoje, seed, params);
+  const tatica = plano?.tatica ?? { ...TATICA_PADRAO };
+  const onze = onzeDoPlano(plano ?? { tatica }, todos, new Set(fora.keys()));
   const emCampo = new Set(onze.map((j) => j.id));
-  const banco = onzeAutomatico(usar.filter((c) => !emCampo.has(c.pessoa))).slice(0, 7);
+  const disponiveis = todos.filter((c) => !emCampo.has(c.pessoa) && !fora.has(c.pessoa));
+  const banco = onzeAutomatico(disponiveis.length >= 7 ? disponiveis : todos.filter((c) => !emCampo.has(c.pessoa))).slice(0, 7);
   return { clube, onze, tatica, banco };
 }
 
@@ -126,8 +113,8 @@ export function avancarDia(repo: Repositorio, dados: DadosBase, params: Parametr
     for (const g of repo.jogosDoDia(hoje)) {
       if (repo.jogo(g.id)) continue;
       const nivel = nivelDoJogo(g.casa, g.fora, clubeGamer);
-      const casa = equipaParaJogo(repo, g.casa, g.competicao, epoca, g.jornada, hoje, seed, params);
-      const fora = equipaParaJogo(repo, g.fora, g.competicao, epoca, g.jornada, hoje, seed, params);
+      const casa = equipaParaJogo(repo, g.casa, g.competicao, epoca, g.jornada, hoje, seed, params, g.casa === clubeGamer ? lerPlano(repo, g.casa) : undefined);
+      const fora = equipaParaJogo(repo, g.fora, g.competicao, epoca, g.jornada, hoje, seed, params, g.fora === clubeGamer ? lerPlano(repo, g.fora) : undefined);
       const r = jogarJogo({ seed, id: g.id, casa, fora }, nivel, { id: g.id, competicao: g.competicao, epoca, jornada: g.jornada, data: hoje }, params);
       const { evento } = repo.registarJogo(r.registo.jogo, r.registo.factos, r.registo.participacoes);
       for (const l of r.registo.lesoes) repo.acrescentarEvento({ ...l, causa: evento });
@@ -156,12 +143,20 @@ export function avancar(repo: Repositorio, dados: DadosBase, params: Parametros,
   const inicio = estadoDoTempo(repo, dados, params);
   const dias: ResumoDia[] = [];
   const limite = modo === "dia" ? 1 : modo === "semana" || !clubeGamer ? 7 : MAX_DIAS;
+  let pausa: Pausa | undefined;
   while (dias.length < limite) {
     if (jogosPorJogar(repo, dados, inicio.epoca).length === 0) break;
+    const hoje = repo.meta("data.hoje") as Data;
+    const dele = clubeGamer ? repo.jogosDoDia(hoje).find((g) => (g.casa === clubeGamer || g.fora === clubeGamer) && !repo.jogo(g.id)) : undefined;
+    if (dele && !jogoConfirmado(repo, dele.id)) {
+      const nome = (id: string) => dados.clubes.find((c) => c.id === id)?.nome ?? id;
+      pausa = { jogo: dele.id, data: hoje, competicao: dele.competicao, jornada: dele.jornada, casa: dele.casa, fora: dele.fora, casaNome: nome(dele.casa), foraNome: nome(dele.fora) };
+      break;
+    }
     const d = avancarDia(repo, dados, params, clubeGamer);
     dias.push(d);
     if (modo === "proximoJogo" && clubeGamer && d.jogos.some((j) => j.nivel === 0)) break;
   }
   const estado = estadoDoTempo(repo, dados, params);
-  return { de: inicio.hoje, ate: estado.hoje, dias, fimDeEpoca: estado.porJogar === 0, estado };
+  return { de: inicio.hoje, ate: estado.hoje, dias, fimDeEpoca: estado.porJogar === 0, estado, ...(pausa ? { pausa } : {}) };
 }
