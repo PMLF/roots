@@ -25,6 +25,7 @@ import type {
   ObservacaoNova,
   LoteMundoReg,
   Participacao,
+  PessoaIndice,
   PessoaPublica,
   PessoaReg,
   PontosPorResultado,
@@ -124,6 +125,19 @@ export class RepositorioMemoria implements Repositorio {
   }
   totalPessoas(): number {
     return this.pessoas.size;
+  }
+  indicePessoas(): PessoaIndice[] {
+    return [...this.pessoas.values()]
+      .sort((a, b) => cmp(a.id, b.id))
+      .map((p) => {
+        const j = this.jogadoresMap.get(p.id);
+        const c = this.cargos.get(p.id);
+        const clube = j?.clube ?? c?.clube;
+        return {
+          id: p.id, nome: p.nome, nomeDesportivo: p.nomeDesportivo,
+          ...(clube !== undefined ? { clube } : {}), ...(j ? { posicao: j.posicoes[0]!.pos } : {}), ...(c ? { funcao: c.funcao } : {}),
+        };
+      });
   }
   private publica(id: string): PessoaPublica {
     const p = this.pessoas.get(id) as PessoaReg;

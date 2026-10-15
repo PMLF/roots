@@ -178,3 +178,6 @@ export type PessoaPublica = {
   funcao?: string;
   jogador?: { posicao: string; alturaCm: number; pesoKg: number; pe: "D" | "E" | "A"; estado: "ativo" | "livre" };
 };
+
+/** Entrada do índice de pesquisa de pessoas: só factos públicos. */
+export type PessoaIndice = { id: string; nome: string; nomeDesportivo: string; clube?: string; posicao?: string; funcao?: string };

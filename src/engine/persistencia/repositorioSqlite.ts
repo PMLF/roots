@@ -26,6 +26,7 @@ import type {
   ObservacaoNova,
   LoteMundoReg,
   Participacao,
+  PessoaIndice,
   PessoaPublica,
   PessoaReg,
   PontosPorResultado,
@@ -118,6 +119,20 @@ export class RepositorioSqlite implements Repositorio {
   }
   totalPessoas(): number {
     return num(this.d.todos("SELECT COUNT(*) AS n FROM pessoa")[0]?.n);
+  }
+  indicePessoas(): PessoaIndice[] {
+    return this.d
+      .todos(
+        "SELECT p.id, p.nome, p.nome_desportivo, j.posicoes, j.clube AS jclube, c.funcao, c.clube AS cclube FROM pessoa p LEFT JOIN jogador j ON j.pessoa = p.id LEFT JOIN cargo c ON c.pessoa = p.id ORDER BY p.id",
+      )
+      .map((r) => {
+        const clube = r.jclube ?? r.cclube;
+        const pos = r.posicoes === null ? undefined : (JSON.parse(txt(r.posicoes)) as { pos: string }[])[0]?.pos;
+        return {
+          id: txt(r.id), nome: txt(r.nome), nomeDesportivo: txt(r.nome_desportivo),
+          ...(clube !== null ? { clube: txt(clube) } : {}), ...(pos !== undefined ? { posicao: pos } : {}), ...(r.funcao !== null ? { funcao: txt(r.funcao) } : {}),
+        };
+      });
   }
   private publica(r: LinhaSql): PessoaPublica {
     const pos = r.posicoes === null || r.posicoes === undefined ? undefined : (JSON.parse(txt(r.posicoes)) as { pos: string }[])[0]?.pos;

@@ -47,4 +47,26 @@ describe("handler do motor", () => {
     expect(plantel.length).toBeGreaterThanOrEqual(20);
     expect(JSON.stringify(plantel)).not.toMatch(/potencial|atributos|personalidade/);
   });
+
+  it("pesquisa e fichas: clubes e cidades antes de haver mundo; pessoas depois", async () => {
+    const s3 = servicosDeTeste();
+    const antes = await tratar({ id: 11, tipo: "pesquisar", entrada: { q: "almada" } }, s3);
+    expect(antes.map((r) => r.k)).toEqual(expect.arrayContaining(["clube", "cidade"]));
+    expect(antes.every((r) => r.k !== "pessoa")).toBe(true);
+    await tratar({ id: 12, tipo: "criarMundo", entrada: { seed: "pesq" } }, s3);
+    const clubes = await tratar({ id: 13, tipo: "clubes", entrada: null }, s3);
+    const fc = (await tratar({ id: 14, tipo: "fichaClube", entrada: { id: clubes[0]!.id } }, s3))!;
+    expect(fc.plantel.length).toBeGreaterThanOrEqual(20);
+    expect(fc.cargos.map((c) => c.funcao)).toContain("presidente");
+    expect(fc.cidade.k).toBe("cidade");
+    const jog = fc.plantel[0]!;
+    const achados = await tratar({ id: 15, tipo: "pesquisar", entrada: { q: jog.nomeDesportivo } }, s3);
+    expect(achados.some((r) => r.k === "pessoa" && r.id === jog.id)).toBe(true);
+    const fp = (await tratar({ id: 16, tipo: "fichaPessoa", entrada: { id: jog.id } }, s3))!;
+    expect(fp.clube?.id).toBe(clubes[0]!.id);
+    expect(fp.ficha.atributos).toBeUndefined(); // ninguém o observou
+    expect(JSON.stringify(fp)).not.toMatch(/"potencial"|"personalidade"/);
+    expect(await tratar({ id: 17, tipo: "fichaPessoa", entrada: { id: "nao-existe" } }, s3)).toBeNull();
+    expect(await tratar({ id: 18, tipo: "fichaClube", entrada: { id: "nao-existe" } }, s3)).toBeNull();
+  });
 });

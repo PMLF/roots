@@ -18,6 +18,7 @@ import type {
   Observacao,
   ObservacaoNova,
   Participacao,
+  PessoaIndice,
   PessoaPublica,
   PessoaReg,
   LoteMundoReg,
@@ -90,6 +91,8 @@ export interface Repositorio {
   /** Guarda o mundo gerado numa só transação (`aoProgredir` é chamado por lotes). Recusa se já existirem pessoas. */
   guardarMundo(lote: LoteMundoReg, aoProgredir?: (feito: number, total: number) => void): void;
   totalPessoas(): number;
+  /** Todas as pessoas com os factos públicos mínimos para pesquisar (nome, clube, posição, função). */
+  indicePessoas(): PessoaIndice[];
   /** Factos públicos de uma pessoa: nome, idade, clube, posição, corpo. Nunca atributos, potencial nem personalidade. */
   pessoaPublica(id: string): PessoaPublica | undefined;
   /** Plantel público de um clube (jogadores ativos, por posição e nome). */
