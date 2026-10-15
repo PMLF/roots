@@ -5,13 +5,13 @@ Jogo de browser de gestão de futebol português ligado às cidades. Ver `BACKLO
 ## Comandos
 
 ```bash
-npm install
-npm run dev        # desenvolvimento em http://localhost:3000
-npm run typecheck  # tipos (UI, motor sem DOM, worker)
-npm run lint       # inclui as fronteiras de arquitetura
-npm test           # testes do motor e da interface
-npm run build      # exportação estática para out/
-npm run ci         # tudo o que corre na integração contínua
+pnpm install
+pnpm dev        # desenvolvimento em http://localhost:3000
+pnpm typecheck  # tipos (UI, motor sem DOM, worker)
+pnpm lint       # inclui as fronteiras de arquitetura
+pnpm test           # testes do motor e da interface
+pnpm build      # exportação estática para out/
+pnpm run ci         # tudo o que corre na integração contínua
 ```
 
 Dados em `data/` (regenerar com `python3 tools/build_dados.py`).

@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.engine.json && tsc --noEmit -p tsconfig.worker.json",
     "lint": "eslint .",
     "test": "vitest run",
-    "ci": "npm run typecheck && npm run lint && npm run test && npm run build"
+    "ci": "pnpm typecheck && pnpm lint && pnpm test && pnpm build"
   },
   "engines": {
     "node": ">=22"
@@ -29,5 +29,6 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.71.2",
     "vitest": "5.0.4"
-  }
+  },
+  "packageManager": "pnpm@10.28.0"
 }
