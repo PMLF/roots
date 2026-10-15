@@ -340,3 +340,14 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .feed li { padding: 0.25rem 0.5rem; border-left: 3px solid transparent; }
 .feed li.importante { border-left-color: currentColor; font-weight: 600; }
 .feed li.feed-remate, .feed li.feed-canto { opacity: 0.7; }
+
+.jogo-grelha { display: grid; gap: 1rem; align-items: start; }
+@media (min-width: 900px) { .jogo-grelha { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
+.jogo-lateral { display: grid; gap: 1rem; }
+.feed li.feed-outro { opacity: 0.8; font-style: italic; }
+.tabela-viva { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.tabela-viva th, .tabela-viva td { text-align: left; padding: 0.15rem 0.35rem; }
+.tabela-viva tr.destaque { font-weight: 700; background: color-mix(in srgb, currentColor 10%, transparent); }
+.tabela-viva tr.a-jogar { background: color-mix(in srgb, currentColor 5%, transparent); }
+.tabela-viva .sobe { color: var(--cor-sobe, #1a7f37); }
+.tabela-viva .desce { color: var(--cor-desce, #c0392b); }

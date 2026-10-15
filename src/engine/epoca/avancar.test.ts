@@ -110,6 +110,14 @@ describe("avançar no tempo", () => {
     expect(vivo.linhas.filter((l) => l.tipo === "golo").length).toBe(doClube.golosCasa + doClube.golosFora);
     expect(vivo.linhas.every((l, i, a) => i === 0 || a[i - 1]!.minuto <= l.minuto)).toBe(true);
     expect(vivo.linhas.some((l) => l.tipo === "remate" || l.tipo === "canto")).toBe(true);
+    expect(vivo.linhas[0]!.tipo).toBe("inicio");
+    expect(vivo.linhas.filter((l) => l.tipo === "golo").every((l) => l.situacao !== undefined)).toBe(true);
+    // tabela de antes e outros jogos da competição no mesmo dia
+    expect(vivo.tabela.length).toBeGreaterThanOrEqual(10);
+    expect(vivo.tabela.filter((l) => l.clube === vivo.casa.id || l.clube === vivo.fora.id).every((l) => l.jogos === 0)).toBe(true); // primeira jornada: ainda não jogaram
+    const mesmoDia = jogo.dias[0]!.jogos.filter((j) => j.competicao === vivo.competicao && j.id !== vivo.id);
+    expect(vivo.outros.map((o) => o.id).sort()).toEqual(mesmoDia.map((j) => j.id).sort());
+    for (const o of vivo.outros) expect(o.golos.length).toBe(o.golosCasa + o.golosFora);
     const todos = [...r.dias, ...jogo.dias].flatMap((d) => d.jogos);
     expect(todos.length).toBeGreaterThan(10);
     expect(todos.filter((j) => j.nivel === 1).length).toBe(todos.length - todos.filter((j) => j.nivel === 0).length);
