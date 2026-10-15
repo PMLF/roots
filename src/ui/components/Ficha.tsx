@@ -1,5 +1,6 @@
 "use client";
-import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import type { KeyboardEvent, ReactNode } from "react";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import type { Chave } from "@/ui/i18n";
 import { SEPARADORES, type TipoEntidadeFicha } from "@/ui/ligacoes";
@@ -22,7 +23,19 @@ type Props = {
 export function Ficha({ tipo, titulo, subtitulo, numeros = [], topo, separadores }: Props) {
   const { t } = useT();
   const ids = SEPARADORES[tipo];
-  const [ativo, setAtivo] = useState(ids[0] as string);
+  const router = useRouter();
+  const caminho = usePathname();
+  const params = useSearchParams();
+  // O separador vive no URL (`sep`) e cada mudança entra no histórico: «Voltar» regressa ao mesmo separador.
+  const pedido = params.get("sep");
+  const ativo = pedido && ids.includes(pedido) ? pedido : (ids[0] as string);
+  const setAtivo = (id: string) => {
+    if (id === ativo) return;
+    const novos = new URLSearchParams(params.toString());
+    novos.set("sep", id);
+    novos.delete("ord");
+    router.push(`${caminho}?${novos.toString()}`, { scroll: false });
+  };
   const rotulo = (id: string) => t(`separador.${id}` as Chave);
 
   const teclas = (e: KeyboardEvent<HTMLDivElement>) => {
