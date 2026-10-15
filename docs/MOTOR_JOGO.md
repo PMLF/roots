@@ -61,7 +61,19 @@ Eventos: `lance`, `remate` (resultado, origem, xG, finalizador, assistente, guar
 
 E que a força conta: com +2 pontos de qualidade a equipa da casa ganha ≈ 68 %, com +3 ≈ 78 %, com +6 mais de 85 %, e o mais fraco ainda ganha alguns jogos. `mundo.test.ts` confirma com o mundo gerado: a força média cresce a cada escalão, e um Primeira Liga ganha a um distrital mais de 75 % das vezes.
 
-## 6. Ligação ao resto
+## 6. Estatísticas pós-jogo (RZ-105)
+
+`relatorioDoJogo(entrada, equipas, eventos, resumo, params)` (`jogo/estatisticas.ts`) transforma o jogo no relatório da ficha do jogo. Não escreve texto: dá dados e a interface escreve.
+
+- **Por equipa:** o `ResumoJogo` (golos, remates, à baliza, bloqueados, xG, cantos, faltas, posse) e os golos ao intervalo.
+- **Golos:** lista por ordem com minuto, marcador, assistente, origem (jogada, canto, livre, penálti) e o marcador depois de cada um.
+- **Por jogador:** minutos, golos, assistências, remates, à baliza, xG, penáltis falhados, faltas, defesas (GR) e golos sofridos (GR), mais a **nota**.
+- **Nota (1-10):** base 6 + ações (golo, assistência, remate à baliza, grande ocasião falhada, penálti falhado, falta, penálti concedido, defesas do GR) + defesa (golos sofridos, baliza a zero, com peso por posição) + resultado (vitória/derrota) + um ruído estável tirado da seed e do id do jogo. Valores em `parametros.jogo.notas`. A nota vai para `participacao.nota` quando se passa o relatório a `registoDoJogo`.
+- **Homem do jogo:** a melhor nota; desempata por golos + assistências, xG e id.
+- **Momentos-chave:** golos com contexto (*abertura, empate, vantagem, reviravolta, redução, alargou*; reviravolta = passar para a frente depois de ter estado a perder), penáltis falhados (defendidos ou ao lado), grandes defesas e grandes ocasiões falhadas (xG ≥ `momentos.xgGrande`). São estruturados; `src/ui/jogo/momentos.ts` escreve-os em pt-PT e inglês (chaves `momento.*`). O comentário minuto a minuto continua a ser o RZ-131.
+- **Cartões e lesões:** entram no relatório com RZ-106 e RZ-107, quando o motor os gerar.
+
+## 7. Ligação ao resto
 
 - `registoDoJogo(...)` converte o resultado em `JogoNovo` + factos (G, A, P) + participações, prontos para `Repositorio.registarJogo` (RZ-122 liga isto ao calendário).
-- Fora desta tarefa, de propósito: cartões e castigos (RZ-106), lesões (RZ-107), tática e formações (RZ-108), notas, homem do jogo e momentos-chave em texto (RZ-105), nível de detalhe (RZ-109), jogo ao vivo com ritmo e pausa (RZ-130) e comentário (RZ-131). Os eventos já trazem os dados de que precisam.
+- Fora desta tarefa, de propósito: cartões e castigos (RZ-106), lesões (RZ-107), tática e formações (RZ-108), nível de detalhe (RZ-109), jogo ao vivo com ritmo e pausa (RZ-130) e comentário (RZ-131). Os eventos já trazem os dados de que precisam.

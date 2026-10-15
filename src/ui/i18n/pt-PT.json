@@ -225,5 +225,20 @@
   "mundo.reiniciarAviso": "Isto apaga o save atual e gera um mundo novo com uma semente nova. Não há volta a dar.",
   "mundo.reiniciarConfirmar": "Apagar e gerar de novo",
   "mundo.reiniciarCancelar": "Cancelar",
-  "localidade.estatuto": "Estatuto"
+  "localidade.estatuto": "Estatuto",
+  "momento.golo.abertura": "{jogador} abre o marcador ({clube}).",
+  "momento.golo.empate": "{jogador} empata o jogo ({clube}).",
+  "momento.golo.vantagem": "{jogador} coloca {clube} na frente.",
+  "momento.golo.reviravolta": "{jogador} vira o jogo para {clube}.",
+  "momento.golo.reducao": "{jogador} reduz para {clube}.",
+  "momento.golo.alargou": "{jogador} aumenta a vantagem de {clube}.",
+  "momento.golo.penalti": "{jogador} converte o penálti para {clube}.",
+  "momento.golo.canto": "{jogador} marca de cabeça, na sequência de um canto ({clube}).",
+  "momento.golo.livre": "{jogador} marca num livre direto ({clube}).",
+  "momento.assistencia": "Assistência de {assistente}.",
+  "momento.penaltiDefendido": "{guardaRedes} defende o penálti de {jogador}.",
+  "momento.penaltiFalhado": "{jogador} falha o penálti.",
+  "momento.grandeDefesa": "Grande defesa de {guardaRedes} a remate de {jogador}.",
+  "momento.ocasiaoFalhada": "{jogador} desperdiça uma grande ocasião para {clube}.",
+  "momento.marcador": "{casa} {golosCasa}-{golosFora} {fora}"
 }

@@ -101,6 +101,33 @@ export type Parametros = {
     pesoRemate: Record<string, number>;
     pesoAssistencia: Record<string, number>;
     pesoCabeceamento: Record<string, number>;
+    /** Notas dos jogadores (RZ-105), escala 1-10. Valores somados à nota base. */
+    notas: {
+      base: number;
+      min: number;
+      max: number;
+      /** Variação aleatória estável (±) por jogador e jogo. */
+      ruido: number;
+      golo: number;
+      assistencia: number;
+      /** Remate à baliza que não é golo (defendido). */
+      remateABaliza: number;
+      /** Grande ocasião falhada (xG ≥ momentos.xgGrande). */
+      ocasiaoFalhada: number;
+      penaltiFalhado: number;
+      falta: number;
+      penaltiConcedido: number;
+      /** Por defesa do guarda-redes. */
+      defesa: number;
+      /** Por golo sofrido, para defesas e guarda-redes (GR, DD, DC, DE; MDC a metade). */
+      golosSofridos: number;
+      /** Baliza a zero: bónus para GR, DD, DC, DE (MDC a metade). */
+      balizaZero: number;
+      /** Bónus de vitória e penalização de derrota para todos os onze. */
+      resultado: number;
+    };
+    /** Momentos-chave do jogo (RZ-105). */
+    momentos: { xgGrande: number };
   };
   /** Geração do mundo e das pessoas (GERACAO_MUNDO, MODELO_DADOS §15). */
   mundo: {
@@ -242,6 +269,8 @@ export const PARAMETROS_PADRAO: Parametros = {
     pesoRemate: { GR: 0, DD: 0.4, DC: 0.5, DE: 0.4, MDC: 0.5, MC: 1.4, MO: 3, ED: 3, EE: 3, PL: 5 },
     pesoAssistencia: { GR: 0.05, DD: 1.5, DC: 0.4, DE: 1.5, MDC: 1, MC: 3, MO: 3, ED: 2.5, EE: 2.5, PL: 1.2 },
     pesoCabeceamento: { GR: 0, DD: 0.4, DC: 3, DE: 0.4, MDC: 1, MC: 0.6, MO: 0.4, ED: 0.4, EE: 0.4, PL: 2.5 },
+    notas: { base: 6, min: 3, max: 10, ruido: 0.25, golo: 0.9, assistencia: 0.5, remateABaliza: 0.1, ocasiaoFalhada: -0.2, penaltiFalhado: -0.7, falta: -0.08, penaltiConcedido: -0.5, defesa: 0.2, golosSofridos: -0.25, balizaZero: 0.5, resultado: 0.3 },
+    momentos: { xgGrande: 0.3 },
   },
   mundo: {
     talento: { muIndice0: 6.5, muIndice100: 10.5, sigma: 2.4, epsIndice0: 0.004, epsIndice100: 0.02, paretoAlfa: 2.4, paretoEscala: 3 },
@@ -341,6 +370,8 @@ export function validarParametros(p: Parametros): string[] {
   if (k.personalidade.maxRotulos < 1) erros.push("conhecimento.personalidade: maxRotulos ≥ 1");
   if (k.personalidade.probTrocaPiorQualidade < 0 || k.personalidade.probTrocaPiorQualidade > 1) erros.push("conhecimento.personalidade: probTrocaPiorQualidade entre 0 e 1");
   const j = p.jogo;
+  if (!(j.notas.min < j.notas.base && j.notas.base < j.notas.max && j.notas.ruido >= 0)) erros.push("jogo.notas: min < base < max e ruido ≥ 0");
+  if (!(j.momentos.xgGrande > 0 && j.momentos.xgGrande < 1)) erros.push("jogo.momentos.xgGrande entre 0 e 1");
   if (!(j.duracao > 0 && j.acrescimos.min >= 0 && j.acrescimos.min <= j.acrescimos.max)) erros.push("jogo: duracao > 0 e 0 ≤ acrescimos.min ≤ max");
   if (!(j.oportunidadesPorEquipa > 0 && j.escalaControlo > 0)) erros.push("jogo: oportunidadesPorEquipa e escalaControlo > 0");
   for (const [n, x] of [["pRemateBase", j.pRemateBase], ["pBloqueado", j.pBloqueado], ["pAssistido", j.pAssistido], ["penalti.xg", j.penalti.xg], ["penalti.pPorFalta", j.penalti.pPorFalta], ["faltas.pLivreRemate", j.faltas.pLivreRemate], ["cantos.pSeBloqueado", j.cantos.pSeBloqueado], ["cantos.pSeDefendido", j.cantos.pSeDefendido], ["cantos.pRemate", j.cantos.pRemate], ["aBaliza.max", j.aBaliza.max]] as const)

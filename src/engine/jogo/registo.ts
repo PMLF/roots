@@ -1,14 +1,15 @@
 /** Do resultado do motor de jogo para o que a persistência guarda (RZ-104 → RZ-122). */
 import type { JogoFacto, JogoNovo, Participacao } from "../persistencia/tipos";
+import type { RelatorioJogo } from "./estatisticas";
 import type { EquipaJogo, EventoJogo, ResumoJogo } from "./tipos";
 
 export type MetaJogo = { id: string; competicao: string; epoca: number; jornada: number; data: string; importancia?: number; arbitro?: string; assistencia?: number; receita?: number; causa?: number };
 
 /**
  * Converte o jogo simulado em `JogoNovo` + factos + participações, prontos para `Repositorio.registarJogo`.
- * Golos (G), assistências (A) e penáltis falhados (P) são factos; os onze jogam o jogo todo (substituições: RZ-215).
+ * Golos (G), assistências (A) e penáltis falhados (P) são factos; os onze jogam o jogo todo (substituições: RZ-215). Com o `relatorio` (RZ-105), as participações levam a nota.
  */
-export function registoDoJogo(meta: MetaJogo, casa: EquipaJogo, fora: EquipaJogo, eventos: readonly EventoJogo[], resumo: ResumoJogo): { jogo: JogoNovo; factos: JogoFacto[]; participacoes: Participacao[] } {
+export function registoDoJogo(meta: MetaJogo, casa: EquipaJogo, fora: EquipaJogo, eventos: readonly EventoJogo[], resumo: ResumoJogo, relatorio?: RelatorioJogo): { jogo: JogoNovo; factos: JogoFacto[]; participacoes: Participacao[] } {
   const clube = { casa: casa.clube, fora: fora.clube };
   const factos: JogoFacto[] = [];
   for (const e of eventos) {
@@ -29,9 +30,12 @@ export function registoDoJogo(meta: MetaJogo, casa: EquipaJogo, fora: EquipaJogo
     ...(meta.arbitro !== undefined ? { arbitro: meta.arbitro } : {}),
     ...(meta.causa !== undefined ? { causa: meta.causa } : {}),
   };
-  const participacoes: Participacao[] = [
-    ...casa.onze.map((j) => ({ jogador: j.id, clube: casa.clube, titular: true, minutos: resumo.duracao })),
-    ...fora.onze.map((j) => ({ jogador: j.id, clube: fora.clube, titular: true, minutos: resumo.duracao })),
-  ];
+  const nota = (id: string) => relatorio?.jogadores.find((x) => x.id === id)?.nota;
+  const participar = (eq: EquipaJogo): Participacao[] =>
+    eq.onze.map((j) => {
+      const n = nota(j.id);
+      return { jogador: j.id, clube: eq.clube, titular: true, minutos: resumo.duracao, ...(n !== undefined ? { nota: n } : {}) };
+    });
+  const participacoes: Participacao[] = [...participar(casa), ...participar(fora)];
   return { jogo, factos, participacoes };
 }

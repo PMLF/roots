@@ -225,5 +225,20 @@
   "mundo.reiniciarAviso": "This deletes the current save and generates a new world with a new seed. There is no undo.",
   "mundo.reiniciarConfirmar": "Delete and generate again",
   "mundo.reiniciarCancelar": "Cancel",
-  "localidade.estatuto": "Status"
+  "localidade.estatuto": "Status",
+  "momento.golo.abertura": "{jogador} opens the scoring ({clube}).",
+  "momento.golo.empate": "{jogador} equalises ({clube}).",
+  "momento.golo.vantagem": "{jogador} puts {clube} ahead.",
+  "momento.golo.reviravolta": "{jogador} turns the game around for {clube}.",
+  "momento.golo.reducao": "{jogador} pulls one back for {clube}.",
+  "momento.golo.alargou": "{jogador} extends {clube}'s lead.",
+  "momento.golo.penalti": "{jogador} converts the penalty for {clube}.",
+  "momento.golo.canto": "{jogador} heads in from a corner ({clube}).",
+  "momento.golo.livre": "{jogador} scores from a direct free kick ({clube}).",
+  "momento.assistencia": "Assist by {assistente}.",
+  "momento.penaltiDefendido": "{guardaRedes} saves {jogador}'s penalty.",
+  "momento.penaltiFalhado": "{jogador} misses the penalty.",
+  "momento.grandeDefesa": "Great save by {guardaRedes} from {jogador}.",
+  "momento.ocasiaoFalhada": "{jogador} wastes a big chance for {clube}.",
+  "momento.marcador": "{casa} {golosCasa}-{golosFora} {fora}"
 }
