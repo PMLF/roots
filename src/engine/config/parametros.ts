@@ -41,6 +41,8 @@ export type Parametros = {
    * não ultrapassa a sua reputação. O último tem `min` 0. A interface mostra a palavra, nunca o número.
    */
   reputacao: { niveis: { nivel: NivelReputacao; min: number }[] };
+  /** Página de uma competição: quantos jogadores nas listas de destaques e quantos jogos com nota para entrar na lista de melhores. */
+  competitionView: { topN: number; minRatedGames: number };
   calendario: {
     mesInicioEpoca: number;
     mesFimEpoca: number;
@@ -329,6 +331,7 @@ export const PARAMETROS_PADRAO: Parametros = {
     liga: ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "vitorias", "sorteio"],
     promocao: ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "reputacaoMenor", "sorteio"],
   },
+  competitionView: { topN: 5, minRatedGames: 3 },
   reputacao: {
     niveis: [
       { nivel: "mundial", min: 9000 },

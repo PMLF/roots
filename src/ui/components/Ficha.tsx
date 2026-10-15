@@ -3,7 +3,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { KeyboardEvent, ReactNode } from "react";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import type { Chave } from "@/ui/i18n";
-import { SEPARADORES, type TipoEntidadeFicha } from "@/ui/ligacoes";
+import { SEPARADORES, SEPARADOR_URL, separadorDoUrl, type TipoEntidadeFicha } from "@/ui/ligacoes";
 
 export type Numero = { rotulo: string; valor: ReactNode };
 export type Separadores = Partial<Record<string, ReactNode>>;
@@ -26,14 +26,14 @@ export function Ficha({ tipo, titulo, subtitulo, numeros = [], topo, separadores
   const router = useRouter();
   const caminho = usePathname();
   const params = useSearchParams();
-  // O separador vive no URL (`sep`) e cada mudança entra no histórico: «Voltar» regressa ao mesmo separador.
-  const pedido = params.get("sep");
+  // O separador vive no URL (`tab`) e cada mudança entra no histórico: «Voltar» regressa ao mesmo separador.
+  const pedido = separadorDoUrl(params.get("tab"));
   const ativo = pedido && ids.includes(pedido) ? pedido : (ids[0] as string);
   const setAtivo = (id: string) => {
     if (id === ativo) return;
     const novos = new URLSearchParams(params.toString());
-    novos.set("sep", id);
-    novos.delete("ord");
+    novos.set("tab", SEPARADOR_URL[id] ?? id);
+    novos.delete("sort");
     router.push(`${caminho}?${novos.toString()}`, { scroll: false });
   };
   const rotulo = (id: string) => t(`separador.${id}` as Chave);

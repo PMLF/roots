@@ -203,6 +203,22 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       expect(r.statsJogador("A-12")[0]).toMatchObject({ jogos: 0, minutos: 0 }); // suplente não utilizado
     });
 
+    it("estatísticas de uma competição: golos, cartões e nota média por jogador", () => {
+      const r = criar();
+      const j1 = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 2, golosFora: 1 }, { cartoes: true });
+      r.registarJogo(j1.jogo, j1.factos, j1.part.map((p) => (p.jogador === "A-9" ? { ...p, nota: 8 } : p)));
+      const j2 = jogoSintetico("j2", { casa: "B", fora: "A", golosCasa: 0, golosFora: 1, jornada: 2 }, {});
+      r.registarJogo(j2.jogo, j2.factos, j2.part.map((p) => (p.jogador === "A-9" ? { ...p, nota: 6 } : p)));
+      const todos = r.playerStatsForCompetition("PL", 1);
+      const a9 = todos.find((x) => x.jogador === "A-9")!;
+      expect(a9).toMatchObject({ jogos: 2, ratedGames: 2, avgRating: 7 });
+      expect(a9.golos).toBeGreaterThanOrEqual(1);
+      expect(todos.find((x) => x.jogador === "B-5")).toMatchObject({ vermelhos: 1 });
+      expect(todos.find((x) => x.jogador === "A-4")?.avgRating).toBeUndefined();
+      expect(r.playerStatsForCompetition("PL", 2)).toEqual([]);
+      expect(r.playerStatsForCompetition("outra", 1)).toEqual([]);
+    });
+
     it("auto-golo conta para o resultado mas não para o marcador", () => {
       const r = criar();
       const j = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 0, golosFora: 1 }, { autoGolo: true });

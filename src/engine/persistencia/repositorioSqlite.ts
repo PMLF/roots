@@ -21,6 +21,7 @@ import type {
   JogoNovo,
   LinhaClassificacao,
   LinhaStatJogador,
+  PlayerCompetitionStats,
   Marcador,
   RegistoCartao,
   Observacao,
@@ -575,6 +576,24 @@ export class RepositorioSqlite implements Repositorio {
         jogador: txt(r.jogador), epoca: num(r.epoca), clube: txt(r.clube), competicao: txt(r.competicao), jogos: num(r.jogos),
         minutos: num(r.minutos), golos: num(r.golos), assistencias: num(r.assistencias), amarelos: num(r.amarelos), vermelhos: num(r.vermelhos),
       }));
+  }
+
+  playerStatsForCompetition(competition: string, season: number): PlayerCompetitionStats[] {
+    const notas = new Map(
+      this.d
+        .todos("SELECT p.jogador AS jogador, AVG(p.nota) AS media, COUNT(p.nota) AS n FROM participacao p JOIN jogo j ON j.id = p.jogo WHERE j.competicao = ? AND j.epoca = ? AND p.nota IS NOT NULL GROUP BY p.jogador", [competition, season])
+        .map((r) => [txt(r.jogador), { media: num(r.media), n: num(r.n) }] as const),
+    );
+    return this.d
+      .todos("SELECT * FROM stat_jogador_epoca WHERE competicao = ? AND epoca = ? ORDER BY jogador", [competition, season])
+      .map((r) => {
+        const n = notas.get(txt(r.jogador));
+        return {
+          jogador: txt(r.jogador), epoca: num(r.epoca), clube: txt(r.clube), competicao: txt(r.competicao), jogos: num(r.jogos),
+          minutos: num(r.minutos), golos: num(r.golos), assistencias: num(r.assistencias), amarelos: num(r.amarelos), vermelhos: num(r.vermelhos),
+          ratedGames: n?.n ?? 0, ...(n ? { avgRating: n.media } : {}),
+        };
+      });
   }
 
   ajustarClassificacao(a: AjusteClassificacao): void {
