@@ -1,0 +1,31 @@
+:root {
+  --fundo: #f6f7f9; --painel: #ffffff; --texto: #1b2430; --suave: #5d6b7d; --linha: #d9dee5;
+  --destaque: #1f6f4a; --aviso: #b3261e;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --fundo: #11161c; --painel: #181f27; --texto: #e6ebf0; --suave: #93a1b3; --linha: #2a3440; --destaque: #4cc38a; --aviso: #ff8a80; }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body { background: var(--fundo); color: var(--texto); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.shell { display: grid; grid-template-columns: 180px minmax(0, 1fr) 280px; grid-template-rows: auto 1fr auto; grid-template-areas: "topo topo topo" "menu centro caixa" "barra barra barra"; height: 100vh; }
+.topo { grid-area: topo; display: flex; align-items: center; gap: 12px; padding: 8px 16px; background: var(--painel); border-bottom: 1px solid var(--linha); }
+.subtitulo { color: var(--suave); }
+.idioma { margin-left: auto; display: flex; gap: 8px; align-items: center; color: var(--suave); }
+.menu { grid-area: menu; background: var(--painel); border-right: 1px solid var(--linha); padding: 8px 0; }
+.menu ul { list-style: none; margin: 0; padding: 0; }
+.menu li { padding: 8px 16px; }
+.menu li.ativo { border-left: 3px solid var(--destaque); font-weight: 600; }
+.menu li.inativo { color: var(--suave); }
+.centro { grid-area: centro; overflow: auto; padding: 16px 24px; }
+.caixa { grid-area: caixa; background: var(--painel); border-left: 1px solid var(--linha); padding: 12px 16px; overflow: auto; }
+.caixa h2 { font-size: 14px; margin: 0 0 8px; }
+.vazio { color: var(--suave); }
+.barra { grid-area: barra; display: flex; gap: 24px; padding: 6px 16px; background: var(--painel); border-top: 1px solid var(--linha); color: var(--suave); font-size: 13px; }
+h1 { font-size: 20px; margin: 0 0 12px; } h2 { font-size: 15px; margin: 16px 0 8px; }
+.tabela { border-collapse: collapse; min-width: 420px; background: var(--painel); }
+.tabela th, .tabela td { text-align: left; padding: 6px 12px; border-bottom: 1px solid var(--linha); font-weight: normal; font-variant-numeric: tabular-nums; }
+.tabela th { color: var(--suave); }
+.erro { color: var(--aviso); }
+@media (max-width: 900px) { .shell { grid-template-columns: 1fr; grid-template-areas: "topo" "menu" "centro" "caixa" "barra"; height: auto; } .menu ul { display: flex; overflow: auto; } }
