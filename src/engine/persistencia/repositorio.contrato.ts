@@ -308,4 +308,32 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       expect(r.observacoes("c3", { k: "pessoa", id: "p1" })).toEqual([]);
     });
   });
+
+  describe(`Repositorio (${nome}): calendário`, () => {
+    const j = (id: string, jornada: number, data: string, casa: string, fora: string) => ({ id, competicao: "SL", epoca: 1, jornada, data, casa, fora });
+    const jogos = [j("a", 1, "2026-08-22", "X", "Y"), j("b", 1, "2026-08-23", "Z", "W"), j("c", 2, "2026-08-29", "Y", "Z")];
+
+    it("guarda e consulta por liga, por clube e próximo jogo", () => {
+      const r = criar();
+      r.guardarCalendario(jogos, [{ competicao: "SL", epoca: 1, jornada: 2, clube: "X" }]);
+      const c = r.calendario("SL", 1);
+      expect(c.jogos.map((x) => x.id)).toEqual(["a", "b", "c"]);
+      expect(c.folgas).toEqual([{ competicao: "SL", epoca: 1, jornada: 2, clube: "X" }]);
+      expect(r.calendarioDoClube("Y", 1).map((x) => x.id)).toEqual(["a", "c"]);
+      expect(r.proximoJogo("Y", "2026-08-24")?.id).toBe("c");
+      expect(r.proximoJogo("Y", "2026-09-30")).toBeUndefined();
+      expect(r.calendario("SL", 2)).toEqual({ jogos: [], folgas: [] });
+    });
+    it("recusa um segundo calendário da mesma liga e época, sem deixar lixo", () => {
+      const r = criar();
+      r.guardarCalendario(jogos, []);
+      expect(() => r.guardarCalendario([j("d", 1, "2026-08-22", "X", "Y")], [])).toThrow();
+      expect(r.calendario("SL", 1).jogos).toHaveLength(3);
+    });
+    it("é atómico: um id repetido desfaz tudo", () => {
+      const r = criar();
+      expect(() => r.guardarCalendario([j("q", 1, "2026-08-22", "X", "Y"), j("q", 2, "2026-08-29", "Y", "X")], [])).toThrow();
+      expect(r.calendario("SL", 1).jogos).toEqual([]);
+    });
+  });
 }

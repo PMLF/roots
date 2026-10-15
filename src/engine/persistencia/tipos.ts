@@ -128,3 +128,8 @@ export type AjusteClassificacao = {
 };
 
 export type PontosPorResultado = { vitoria: number; empate: number };
+
+/** Jogo marcado no calendário (ainda sem resultado). Ao ser jogado passa a `jogo` (mesmo `id`). */
+export type JogoAgendado = { id: string; competicao: string; epoca: number; jornada: number; data: Data; casa: string; fora: string };
+/** Clube que folga numa jornada de uma liga com número ímpar de clubes. */
+export type FolgaAgendada = { competicao: string; epoca: number; jornada: number; clube: string };

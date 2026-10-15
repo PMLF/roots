@@ -338,3 +338,8 @@ SELECT * FROM confronto_direto WHERE (a = ? AND b = ?) OR (a = ? AND b = ?);
 3. **Histórico:** guarda-se tudo, sem compactação por omissão (§10).
 
 Sem perguntas em aberto neste documento.
+
+### 11c. Calendário (RZ-102)
+- Migração 2: `calendario_jogo` (jogos marcados, `id` igual ao do `jogo` quando for jogado) e `calendario_folga` (uma por jornada em ligas com nº ímpar de clubes). Não são história imutável: o calendário é planeado, o resultado é que fica na história.
+- `Repositorio`: `guardarCalendario`, `calendario`, `calendarioDoClube`, `proximoJogo`. Recusa um segundo calendário da mesma competição e época.
+- Geração: `gerarCalendarioLiga` (determinística por seed, fluxo próprio por competição) e `validarCalendario`; datas, pausas e dias de jogo vêm de `parametros.calendario`.

@@ -7,10 +7,13 @@ import { migrar, VERSAO_ESQUEMA } from "./esquema";
 import type { FiltroEventos, Repositorio } from "./repositorio";
 import type {
   AjusteClassificacao,
+  Data,
   EntidadeRef,
   Evento,
   EventoNovo,
+  FolgaAgendada,
   Jogo,
+  JogoAgendado,
   JogoFacto,
   JogoNovo,
   LinhaClassificacao,
@@ -73,6 +76,39 @@ export class RepositorioSqlite implements Repositorio {
   }
   definirMeta(chave: string, valor: string): void {
     this.d.executar("INSERT INTO meta (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor", [chave, valor]);
+  }
+
+  // ---------- calendário
+  guardarCalendario(jogos: readonly JogoAgendado[], folgas: readonly FolgaAgendada[]): void {
+    const chaves = new Set([...jogos, ...folgas].map((x) => `${x.competicao}\u0000${x.epoca}`));
+    this.transacao(() => {
+      for (const k of chaves) {
+        const [c, e] = k.split("\u0000") as [string, string];
+        if (num(this.d.todos("SELECT COUNT(*) AS n FROM calendario_jogo WHERE competicao = ? AND epoca = ?", [c, Number(e)])[0]?.n) > 0)
+          throw new Error(`Já existe calendário de ${c} na época ${e}`);
+      }
+      for (const j of jogos)
+        this.d.executar("INSERT INTO calendario_jogo (id, competicao, epoca, jornada, data, casa, fora) VALUES (?,?,?,?,?,?,?)", [j.id, j.competicao, j.epoca, j.jornada, j.data, j.casa, j.fora]);
+      for (const f of folgas)
+        this.d.executar("INSERT INTO calendario_folga (competicao, epoca, jornada, clube) VALUES (?,?,?,?)", [f.competicao, f.epoca, f.jornada, f.clube]);
+    });
+  }
+  private jogoAgendado(r: LinhaSql): JogoAgendado {
+    return { id: txt(r.id), competicao: txt(r.competicao), epoca: num(r.epoca), jornada: num(r.jornada), data: txt(r.data), casa: txt(r.casa), fora: txt(r.fora) };
+  }
+  calendario(competicao: string, epoca: number): { jogos: JogoAgendado[]; folgas: FolgaAgendada[] } {
+    const jogos = this.d.todos("SELECT * FROM calendario_jogo WHERE competicao = ? AND epoca = ? ORDER BY jornada, id", [competicao, epoca]).map((r) => this.jogoAgendado(r));
+    const folgas = this.d
+      .todos("SELECT * FROM calendario_folga WHERE competicao = ? AND epoca = ? ORDER BY jornada", [competicao, epoca])
+      .map((r) => ({ competicao: txt(r.competicao), epoca: num(r.epoca), jornada: num(r.jornada), clube: txt(r.clube) }));
+    return { jogos, folgas };
+  }
+  calendarioDoClube(clube: string, epoca: number): JogoAgendado[] {
+    return this.d.todos("SELECT * FROM calendario_jogo WHERE epoca = ? AND (casa = ? OR fora = ?) ORDER BY data, id", [epoca, clube, clube]).map((r) => this.jogoAgendado(r));
+  }
+  proximoJogo(clube: string, desde: Data): JogoAgendado | undefined {
+    const r = this.d.todos("SELECT * FROM calendario_jogo WHERE (casa = ? OR fora = ?) AND data >= ? ORDER BY data, id LIMIT 1", [clube, clube, desde])[0];
+    return r ? this.jogoAgendado(r) : undefined;
   }
 
   // ---------- história
