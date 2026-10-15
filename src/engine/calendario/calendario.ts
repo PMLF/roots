@@ -21,16 +21,16 @@ type Calend = Parametros["calendario"];
 const slug = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
-/** O ano civil de uma data (mês/dia) da época `epoca`: agosto-dezembro no ano em que começa, janeiro-julho no seguinte. */
-const anoDe = (epoca: number, mes: number, c: Calend) => (mes >= 8 ? c.anoInicial + epoca - 1 : c.anoInicial + epoca);
+/** O ano civil de uma data (mês/dia) da época `epoca`: do mês de início da época a dezembro no ano em que começa, de janeiro ao mês anterior no seguinte. */
+const anoDe = (epoca: number, mes: number, c: Calend) => (mes >= c.mesInicioEpoca ? c.anoInicial + epoca - 1 : c.anoInicial + epoca);
 const dataDaEpoca = (epoca: number, d: { mes: number; dia: number }, c: Calend): Data => criarData(anoDe(epoca, d.mes, c), d.mes, d.dia);
 
 type Slot = { data: Data; fimDeSemana: boolean };
 
 /** Sábados disponíveis na época (sem pausas e com o domingo ainda dentro do limite). */
-export function fimsDeSemanaDaEpoca(epoca: number, c: Calend): Data[] {
+export function fimsDeSemanaDaEpoca(epoca: number, c: Calend, escalao?: Escalao): Data[] {
   const inicio = proximoDiaDaSemana(dataDaEpoca(epoca, c.primeiraJornada, c), 6);
-  const fim = dataDaEpoca(epoca, c.ultimaJornadaAte, c);
+  const fim = dataDaEpoca(epoca, (escalao && c.ultimaJornadaPorEscalao[escalao]) || c.ultimaJornadaAte, c);
   const pausas = c.pausas.map((p) => ({ de: dataDaEpoca(epoca, p.de, c), ate: dataDaEpoca(epoca, p.ate, c) }));
   const naPausa = (d: Data) => pausas.some((p) => comparar(d, p.de) >= 0 && comparar(d, p.ate) <= 0);
   const out: Data[] = [];
@@ -46,8 +46,8 @@ function repartir(total: number, m: number): number[] {
 }
 
 /** As `rondas` datas-base de uma liga: fins de semana espaçados e, se faltarem, quartas-feiras antes de um fim de semana. */
-export function ranhurasDaLiga(rondas: number, epoca: number, c: Calend): Slot[] {
-  const W = fimsDeSemanaDaEpoca(epoca, c);
+export function ranhurasDaLiga(rondas: number, epoca: number, c: Calend, escalao?: Escalao): Slot[] {
+  const W = fimsDeSemanaDaEpoca(epoca, c, escalao);
   if (rondas <= W.length) return repartir(W.length, rondas).map((i) => ({ data: W[i] as Data, fimDeSemana: true }));
   const pausas = c.pausas.map((p) => ({ de: dataDaEpoca(epoca, p.de, c), ate: dataDaEpoca(epoca, p.ate, c) }));
   const livre = (d: Data) => !pausas.some((p) => comparar(d, p.de) >= 0 && comparar(d, p.ate) <= 0);
@@ -70,7 +70,7 @@ function dataDoJogo(slot: Slot, indice: number, dias: number[], simultanea: bool
 export function gerarCalendarioLiga(def: DefinicaoLiga, epoca: number, c: Calend, rng: Rng): CalendarioLiga {
   const voltas = def.voltas ?? 2;
   const rondas = todosContraTodos(def.clubes, voltas, rng.derivar(`rondas/${def.competicao}`));
-  const slots = ranhurasDaLiga(rondas.length, epoca, c);
+  const slots = ranhurasDaLiga(rondas.length, epoca, c, def.escalao);
   const dias = c.diasDeJogo[def.escalao];
   const jornadas: Jornada[] = rondas.map((r, i) => {
     const numero = i + 1;

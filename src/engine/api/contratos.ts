@@ -63,6 +63,8 @@ export type FichaPessoaDados = {
   naturalDe?: RefEntidade;
   /** Factos de jogo por época e competição (públicos). */
   stats: LinhaStatJogador[];
+  /** Ano em que começa a época 1 do save (2026 → «2026/27»). */
+  anoInicial: number;
   /** Contrato atual: as datas são públicas, o salário não. */
   contrato?: { inicio: string; fim: string };
   nivel?: NivelEstimado;
@@ -88,7 +90,7 @@ export type FichaClubeDados = {
   nivelReputacao: NivelReputacao;
   estadioDetalhe: { propriedade: string; zona: string; distanciaCentroKm: number; transportes: number; acessoRodoviario: number; estacionamento: number; terrenoExpansao: number };
   /** Divisão em que o clube esteve, por época (a história de subidas e descidas). */
-  historicoDivisoes: { epoca: number; escalao: Escalao; liga: string }[];
+  historicoDivisoes: { epoca: number; label: string; escalao: Escalao; liga: string }[];
   /** Por jogador do plantel: fim de contrato e nível geral. */
   plantelExtra: Record<string, { contratoFim?: string; nivel?: NivelEstimado }>;
   /** Por membro da equipa técnica: desde quando está no clube (contrato). */

@@ -13,6 +13,7 @@ import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
 import { calendarioDoGrupo, classificarGrupo, formarGrupos, promovidosDoGrupo } from "./fasePromocao";
 import { aplicarMovimentos, SERIES, type Movimento } from "./movimentos";
+import { parametrosDoSave } from "./anoDoSave";
 import { dadosDaEpoca, guardarPiramide, lerPiramide, ligasDaPiramide } from "./piramideEpoca";
 import { nomeGrupoPromocao, gruposDaPromocao, prepararEpoca } from "./preparar";
 
@@ -23,10 +24,11 @@ export type ResumoEpoca = {
   avisos: string[];
 };
 
-const serieDoDistrito = (dados: DadosBase) => (d: string): SerieCP => dados.distritos.find((x) => x.id === d)?.serieCP ?? "A";
+const serieDoDistrito = (dados: DadosBase) => (d: string): SerieCP => dados.distritos.find((x) => x.id === d || x.nome === d)?.serieCP ?? "A";
 
 /** Gera a Fase de Promoção (calendário gravado) quando as ligas acabaram. Devolve os grupos. */
-export function gerarFasePromocao(repo: Repositorio, dados: DadosBase, params: Parametros, epoca: number) {
+export function gerarFasePromocao(repo: Repositorio, dados: DadosBase, paramsBase: Parametros, epoca: number) {
+  const params = parametrosDoSave(repo, paramsBase);
   const seed = repo.meta("seed") ?? "?";
   const rep = new Map(dados.clubes.map((c) => [c.id, c.reputacao] as const));
   const campeoes = [...new Set(dados.clubes.filter((c) => c.escalao === "distrital").map((c) => c.liga))].flatMap((liga) => {
@@ -35,7 +37,8 @@ export function gerarFasePromocao(repo: Repositorio, dados: DadosBase, params: P
     return clube ? [{ clube, distrito: dados.clubes.find((c) => c.id === clube)!.distrito }] : [];
   });
   const { grupos } = formarGrupos(campeoes, serieDoDistrito(dados), params);
-  const fimDasLigas = criarData(params.calendario.anoInicial + epoca, params.calendario.ultimaJornadaAte.mes, params.calendario.ultimaJornadaAte.dia);
+  const fimDistritais = params.calendario.ultimaJornadaPorEscalao.distrital ?? params.calendario.ultimaJornadaAte;
+  const fimDasLigas = criarData(params.calendario.anoInicial + epoca, fimDistritais.mes, fimDistritais.dia);
   const primeiroSabado = proximoDiaDaSemana(somarDias(fimDasLigas, 8), 6);
   repo.transacao(() => {
     for (const g of grupos.filter((x) => x.clubes.length >= 2)) {
@@ -51,7 +54,8 @@ export function gerarFasePromocao(repo: Repositorio, dados: DadosBase, params: P
 }
 
 /** Fecha a época: classificações finais → movimentos → eventos → nova época com calendários. */
-export function fecharEpoca(repo: Repositorio, dados: DadosBase, params: Parametros, epoca: number): ResumoEpoca {
+export function fecharEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Parametros, epoca: number): ResumoEpoca {
+  const params = parametrosDoSave(repo, paramsBase);
   const seed = repo.meta("seed") ?? "?";
   const hoje = repo.meta("data.hoje") as Data;
   const rep = new Map(dados.clubes.map((c) => [c.id, c.reputacao] as const));
@@ -83,6 +87,6 @@ export function fecharEpoca(repo: Repositorio, dados: DadosBase, params: Paramet
     repo.definirMeta("epoca", String(epoca + 1));
     repo.definirMeta("data.hoje", criarData(params.calendario.anoInicial + epoca, params.calendario.mesInicioEpoca, 1));
   });
-  prepararEpoca(repo, dadosDaEpoca(repo, dados), params);
+  prepararEpoca(repo, dadosDaEpoca(repo, dados), paramsBase);
   return { epoca, campeoes, movimentos: r.movimentos.map((m) => ({ ...m, nome: nome.get(m.clube) ?? m.clube })), avisos: r.avisos };
 }

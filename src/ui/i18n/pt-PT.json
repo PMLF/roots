@@ -209,6 +209,8 @@
   "hoje.desceste": "O teu clube desceu de divisão.",
   "hoje.subiste": "O teu clube subiu de divisão!",
   "hoje.movimentos": "{n} clubes mudaram de divisão.",
+  "competicoes.epoca": "Época",
+  "competicoes.epocaAtual": "{epoca} (atual)",
   "hoje.seguirVazio": "Sem jogos marcados.",
   "hoje.avancar": "Avançar",
   "entidade.localidade": "Localidade",

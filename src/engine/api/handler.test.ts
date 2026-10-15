@@ -8,6 +8,7 @@ function servicosDeTeste(): Servicos {
   const repositorio = new RepositorioMemoria();
   const ler = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
   return {
+    agora: () => new Date(2026, 9, 15),
     abrirRepositorio: async () => ({ repositorio, backend: "memoria", versaoSqlite: "teste" }),
     carregarDados: async () => ({ clubes: ler("clubes"), cidades: ler("cidades"), localidades: ler("localidades"), rivalidades: ler("rivalidades"), distritos: ler("distritos"), paises: ler("paises") }),
   };
@@ -133,7 +134,7 @@ describe("fichas ricas e «ver tudo»", () => {
     const clube = (await tratar({ id: 61, tipo: "fichaClube", entrada: { id: "sc-cascais" } }, s))!;
     expect(clube.nivelReputacao).toBe("continental");
     expect(clube.escalao).toBe("primeiraLiga");
-    expect(clube.historicoDivisoes).toEqual([{ epoca: 1, escalao: "primeiraLiga", liga: "Primeira Liga" }]);
+    expect(clube.historicoDivisoes).toEqual([{ epoca: 1, label: "2026/27", escalao: "primeiraLiga", liga: "Primeira Liga" }]);
     expect(clube.verdade).toBeUndefined();
     expect(clube.estadioDetalhe.transportes).toBeGreaterThanOrEqual(0);
     const jogador = clube.plantel[0]!;

@@ -5,7 +5,7 @@ import { Atributos, Chip, type GrupoAtributos, type LinhaAtributo } from "@/ui/c
 import { Cartao, Dados, Topo } from "@/ui/components/Cartao";
 import { Ficha } from "@/ui/components/Ficha";
 import { Ligacao } from "@/ui/components/Ligacao";
-import { nomeDaEpoca } from "@/ui/components/GraficoDivisoes";
+import { nomeDaEpoca } from "@/engine/calendario/nomeEpoca";
 import { Valor } from "@/ui/components/Valor";
 import type { Chave } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -80,7 +80,7 @@ export function FichaPessoa({ d, verTudo }: { d: FichaPessoaDados; verTudo: bool
           <tbody>
             {stats.map((s) => (
               <tr key={`${s.epoca}-${s.competicao}-${s.clube}`}>
-                <td>{nomeDaEpoca(s.epoca)}</td><td>{s.competicao}</td>
+                <td>{nomeDaEpoca(s.epoca, d.anoInicial)}</td><td>{s.competicao}</td>
                 <td className="num">{s.jogos}</td><td className="num">{s.minutos}</td><td className="num">{s.golos}</td><td className="num">{s.assistencias}</td><td className="num">{s.amarelos}</td><td className="num">{s.vermelhos}</td>
               </tr>
             ))}

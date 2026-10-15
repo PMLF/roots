@@ -328,3 +328,5 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .formulario { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
 .formulario label { display: grid; gap: 4px; font-size: 13px; color: var(--suave); }
 .formulario select { width: 100%; }
+
+.seletor-epoca { display: inline-flex; align-items: center; gap: var(--espaco-1, 0.25rem); margin-right: 0.75rem; }

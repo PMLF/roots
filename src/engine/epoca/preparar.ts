@@ -6,6 +6,7 @@ import type { Escalao, Parametros } from "../config/parametros";
 import type { DadosBase } from "../dados/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data, JogoAgendado } from "../persistencia/tipos";
+import { parametrosDoSave } from "./anoDoSave";
 import { epocaAtual, guardarPiramide, piramideInicial } from "./piramideEpoca";
 
 export const nomeGrupoPromocao = (serie: string) => `Fase de Promoção ${serie}`;
@@ -17,7 +18,8 @@ export const ligasDoMundo = (dados: DadosBase): DefinicaoLiga[] => {
 };
 
 /** Garante que a época tem a pirâmide e os calendários gravados e que o save tem data. Idempotente. `dados` já traz as ligas da época. */
-export function prepararEpoca(repo: Repositorio, dados: DadosBase, params: Parametros): { hoje: Data; epoca: number } {
+export function prepararEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Parametros): { hoje: Data; epoca: number } {
+  const params = parametrosDoSave(repo, paramsBase);
   const epoca = epocaAtual(repo);
   if (repo.meta(`piramide.${epoca}`) === undefined) guardarPiramide(repo, epoca, piramideInicial(dados));
   const ligas = ligasDoMundo(dados).filter((l) => l.clubes.length >= 2);
