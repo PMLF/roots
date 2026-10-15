@@ -78,18 +78,22 @@ export function Shell({ children }: { children: ReactNode }) {
         {dev && (
           <div>
             <p className="menu-grupo">{t("menu.developer")}</p>
-            <ul>{itens.filter((m) => m.soDev).map((m) => <ItemDoMenu key={m.chave} m={m} caminho={caminho} />)}</ul>
+            <ul>
+              {itens.filter((m) => m.soDev).map((m) => <ItemDoMenu key={m.chave} m={m} caminho={caminho} />)}
+              <li className="menu-interruptor">
+                <button type="button" onClick={() => definirVerTudo(!verTudo)} role="switch" aria-checked={verTudo} title={t("dev.verTudo.dica")} data-testid="ver-tudo">
+                  <Icone nome="olho" />
+                  {t("dev.verTudo.rotulo")}
+                  <span className="interruptor" aria-hidden="true" />
+                </button>
+              </li>
+            </ul>
           </div>
         )}
       </nav>
       <header className="topo">
         <Pesquisa />
         <span className="espaco" />
-        {dev && (
-          <button type="button" onClick={() => definirVerTudo(!verTudo)} aria-pressed={verTudo} className={verTudo ? "dev-ativo" : undefined} title={t("dev.verTudo.dica")} data-testid="ver-tudo">
-            {t(verTudo ? "dev.verTudo.sim" : "dev.verTudo.nao")}
-          </button>
-        )}
         <button type="button" onClick={alternarTema} data-testid="tema" title={t("tema.rotulo")}>{t(`tema.${tema}` as Chave)}</button>
         <button type="button" onClick={alternarDensidade} aria-pressed={densidade === "compacta"} data-testid="densidade">
           {t(densidade === "compacta" ? "densidade.compacta" : "densidade.normal")}
@@ -114,12 +118,6 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
         {children}
       </main>
-      <aside className="caixa" aria-label={t("caixa.titulo")}>
-        <div className="caixa-cartao">
-          <h2>{t("caixa.titulo")}</h2>
-          <p className="vazio">{t("caixa.vazia")}</p>
-        </div>
-      </aside>
       <footer className="barra">
         <span>{t("barra.data")}: <b>{t("barra.semDados")}</b></span>
         <span>{t("barra.orcamento")}: <b>{t("barra.semDados")}</b></span>

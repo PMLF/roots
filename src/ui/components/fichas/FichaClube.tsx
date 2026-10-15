@@ -2,6 +2,7 @@
 import type { FichaClubeDados } from "@/engine/api/contratos";
 import type { PessoaVista } from "@/engine/vista/tipos";
 import { Chip } from "@/ui/components/Atributos";
+import { Cores } from "@/ui/components/Cores";
 import { Cartao, Dados, Topo } from "@/ui/components/Cartao";
 import { Ficha } from "@/ui/components/Ficha";
 import { GraficoDivisoes } from "@/ui/components/GraficoDivisoes";
@@ -80,7 +81,7 @@ export function FichaClube({ d, verTudo }: { d: FichaClubeDados; verTudo: boolea
       linhas={[
         { rotulo: t("clube.localidade"), valor: <><Ligacao k="localidade" id={d.localidade.id}>{d.localidade.nome}</Ligacao> <span className="suave">({t(`estatuto.${d.localidade.estatuto}` as Chave).toLowerCase()})</span></> },
         { rotulo: t("clube.concelho"), valor: <Ligacao k="cidade" id={d.cidade.id}>{d.cidade.nome}</Ligacao> },
-        { rotulo: t("clube.cores"), valor: d.cores },
+        { rotulo: t("clube.cores"), valor: <Cores texto={d.cores} /> },
         { rotulo: t("clube.alcunha"), valor: `${d.alcunha} · ${d.mascote}` },
         ...(presidente ? [{ rotulo: t("clube.presidente"), valor: nome(presidente) }] : []),
         ...(d.rival ? [{ rotulo: t("clube.rival"), valor: <Ligacao k="clube" id={d.rival.id}>{d.rival.nome}</Ligacao> }] : []),
@@ -112,6 +113,9 @@ export function FichaClube({ d, verTudo }: { d: FichaClubeDados; verTudo: boolea
             ...(verdade ? [{ rotulo: t("dev.caixa"), valor: new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(verdade.financas) }] : []),
           ]}
         />
+      </Cartao>
+      <Cartao titulo={t("cartao.jogos")}>
+        <Dados linhas={[{ rotulo: t("clube.proximoJogo"), valor: t("clube.semJogos") }, { rotulo: t("clube.ultimosJogos"), valor: "—" }, { rotulo: t("clube.classificacao"), valor: "—" }]} />
       </Cartao>
       <Cartao titulo={t("cartao.plantelNumeros")}>
         <Dados
@@ -145,9 +149,6 @@ export function FichaClube({ d, verTudo }: { d: FichaClubeDados; verTudo: boolea
           <Dados linhas={equipaTecnica.map((p) => ({ rotulo: t(`funcao.${p.funcao}` as Chave), valor: nome(p) }))} />
         )}
       </Cartao>
-      <Cartao titulo={t("cartao.jogos")}>
-        <Dados linhas={[{ rotulo: t("clube.proximoJogo"), valor: t("clube.semJogos") }, { rotulo: t("clube.ultimosJogos"), valor: "—" }, { rotulo: t("clube.classificacao"), valor: "—" }]} />
-      </Cartao>
       <Cartao titulo={t("cartao.divisoes")} larga>
         <GraficoDivisoes pontos={d.historicoDivisoes} />
       </Cartao>
@@ -172,14 +173,6 @@ export function FichaClube({ d, verTudo }: { d: FichaClubeDados; verTudo: boolea
           <p className="vazio">{t("clube.semMundo")}</p>
         ),
       }}
-      lateral={
-        <ul className="ligacoes">
-          <li><Ligacao k="localidade" id={d.localidade.id}>{d.localidade.nome}</Ligacao></li>
-          <li><Ligacao k="cidade" id={d.cidade.id}>{d.cidade.nome}</Ligacao></li>
-          {d.rival && <li><Ligacao k="clube" id={d.rival.id}>{d.rival.nome}</Ligacao></li>}
-          {presidente && <li><Ligacao k="pessoa" id={presidente.id}>{presidente.nomeDesportivo}</Ligacao> <span className="suave">· {t("funcao.presidente")}</span></li>}
-        </ul>
-      }
     />
   );
 }

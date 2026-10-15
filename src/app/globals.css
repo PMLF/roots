@@ -60,7 +60,7 @@ fieldset { border: 1px solid var(--linha); border-radius: var(--r-m); }
 legend { padding: 0 6px; color: var(--suave); }
 
 /* ---- Estrutura: menu à esquerda a toda a altura; topo, página e caixa à direita ---- */
-.shell { display: grid; grid-template-columns: 208px minmax(0, 1fr) 272px; grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "menu topo topo" "menu centro caixa" "menu barra barra"; height: 100vh; }
+.shell { display: grid; grid-template-columns: 208px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto; grid-template-areas: "menu topo" "menu centro" "menu barra"; height: 100vh; }
 .menu { grid-area: menu; background: var(--painel); border-right: 1px solid var(--linha); padding: 14px 10px; display: flex; flex-direction: column; gap: 14px; overflow: auto; }
 .marca { display: flex; align-items: center; gap: 10px; padding: 2px 8px 6px; }
 .marca-sinal { width: 30px; height: 30px; border-radius: 8px; background: var(--destaque); color: #fff; display: grid; place-items: center; flex: none; }
@@ -86,9 +86,6 @@ legend { padding: 0 6px; color: var(--suave); }
 
 .centro { grid-area: centro; overflow: auto; padding: 8px 24px 32px; }
 .centro > * { max-width: 1120px; }
-.caixa { grid-area: caixa; padding: 8px 16px 16px 0; overflow: auto; }
-.caixa-cartao { background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 14px 16px; min-height: 120px; }
-.caixa h2 { font-size: 14px; margin: 0 0 6px; }
 .barra { grid-area: barra; display: flex; gap: 20px; padding: 8px 24px; color: var(--suave); font-size: 12px; border-top: 1px solid var(--linha); background: var(--fundo); }
 .barra b { color: var(--texto); font-weight: 600; }
 
@@ -134,9 +131,6 @@ legend { padding: 0 6px; color: var(--suave); }
 .ficha-numeros div { display: flex; flex-direction: column; min-width: 110px; padding: 10px 14px; background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); }
 .ficha-numeros dt { color: var(--suave); font-size: 12px; }
 .ficha-numeros dd { margin: 2px 0 0; font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
-.ficha-corpo { display: grid; grid-template-columns: minmax(0, 1fr) 220px; gap: 18px; align-items: start; }
-.ficha-lateral { background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 14px 16px; }
-.ficha-lateral h2 { margin: 0 0 8px; font-size: 14px; }
 .ligacoes { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
 .separadores { display: flex; gap: 2px; border-bottom: 1px solid var(--linha); margin: 0 0 14px; overflow-x: auto; }
 .separadores button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 8px 14px; color: var(--suave); margin-bottom: -1px; }
@@ -159,9 +153,7 @@ legend { padding: 0 6px; color: var(--suave); }
 .lab-marcador { margin: 12px 0 4px; font-size: 22px; }
 
 /* ---- Adaptação a ecrãs mais pequenos ---- */
-@media (max-width: 1180px) { .shell { grid-template-columns: 208px minmax(0, 1fr); grid-template-areas: "menu topo" "menu centro" "menu barra"; } .caixa { display: none; } }
 @media (max-width: 900px) {
-  .ficha-corpo { grid-template-columns: 1fr; }
   .shell { grid-template-columns: 1fr; grid-template-areas: "menu" "topo" "centro" "barra"; height: auto; }
   .menu { flex-direction: row; align-items: center; padding: 8px 10px; border-right: 0; border-bottom: 1px solid var(--linha); }
   .menu ul { display: flex; overflow: auto; }
@@ -174,11 +166,11 @@ legend { padding: 0 6px; color: var(--suave); }
 .sr-so { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 /* ---- Fichas ricas (RZ-146): topo com cartão de identidade, cartões, atributos, gráfico ---- */
-.ficha-topo { display: flex; gap: 20px 32px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; margin: 0 0 20px; }
-.ficha-topo-nome { flex: 1 1 280px; min-width: 0; }
-.ficha-topo-nome h1 { font-size: 30px; margin: 0 0 8px; }
+.ficha-topo { display: grid; gap: 12px; margin: 0 0 18px; }
+.ficha-topo-nome { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; min-width: 0; }
+.ficha-topo-nome h1 { font-size: 30px; margin: 0; }
 .etiquetas { display: flex; gap: 6px; flex-wrap: wrap; margin: 0; }
-.ficha-topo-cartao { flex: 0 1 460px; background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 6px 16px; }
+.ficha-topo-cartao { background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 8px 18px; }
 .chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--linha-forte); background: var(--painel); font-size: 13px; }
 .chip a { color: inherit; }
 .chip-destaque { background: var(--destaque-fundo); border-color: transparent; color: var(--destaque-texto); font-weight: 600; }
@@ -188,7 +180,7 @@ legend { padding: 0 6px; color: var(--suave); }
 .dados > div:last-child { border-bottom: 0; }
 .dados dt { color: var(--suave); }
 .dados dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
-.cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; align-items: start; }
+.cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; align-items: stretch; }
 .cartao { background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 14px 18px 16px; min-width: 0; }
 .cartao.larga { grid-column: 1 / -1; }
 .cartao h2 { font-size: 15px; margin: 0 0 8px; }
@@ -228,7 +220,16 @@ legend { padding: 0 6px; color: var(--suave); }
 .grafico figcaption { margin-top: 4px; }
 
 .separador-corpo > p.vazio, .separador-corpo > .tabela-caixa, .separador-corpo > table { margin-top: 0; }
-.ficha-topo-cartao { flex-basis: 560px; }
-.ficha-topo-cartao .dados { grid-template-columns: 1fr 1fr; column-gap: 28px; }
-.ficha-topo-cartao .dados > div:nth-last-child(2):nth-child(odd) { border-bottom: 0; }
-@media (max-width: 700px) { .ficha-topo-cartao .dados { grid-template-columns: 1fr; } }
+.ficha-topo-cartao .dados { grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); column-gap: 36px; }
+.ficha-topo-cartao .dados > div, .ficha-topo-cartao .dados > div:last-child { border-bottom: 0; padding: 5px 0; }
+.cartao { display: flex; flex-direction: column; }
+.cores { display: inline-flex; align-items: center; gap: 8px; }
+.cores-amostra { width: 28px; height: 14px; border-radius: 3px; border: 1px solid var(--linha-forte); flex: none; }
+.menu li.menu-interruptor button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border: 0; background: none; color: var(--suave); border-radius: var(--r-s); text-align: left; }
+.menu li.menu-interruptor button:hover { background: var(--painel-2); color: var(--texto); }
+.interruptor { margin-left: auto; width: 28px; height: 16px; border-radius: 999px; background: var(--linha-forte); position: relative; flex: none; transition: background .15s; }
+.interruptor::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--painel); transition: transform .15s; }
+.menu-interruptor [aria-checked="true"] { color: var(--aviso); }
+.menu-interruptor [aria-checked="true"] .interruptor { background: var(--aviso); }
+.menu-interruptor [aria-checked="true"] .interruptor::after { transform: translateX(12px); }
+@media (prefers-reduced-motion: reduce) { .interruptor, .interruptor::after { transition: none; } }

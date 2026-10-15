@@ -11,8 +11,6 @@
   "idioma.rotulo": "Language",
   "idioma.pt-PT": "Português",
   "idioma.en": "English",
-  "caixa.titulo": "Inbox",
-  "caixa.vazia": "No messages. Advance to see what happens.",
   "barra.data": "Date",
   "barra.orcamento": "Budget",
   "barra.humor": "City mood",
@@ -435,8 +433,6 @@
   "coluna.estado": "Status",
   "coluna.qualidade": "Qualities",
   "coluna.desde": "Since",
-  "dev.verTudo.sim": "Show all: on",
-  "dev.verTudo.nao": "Show all: off",
   "dev.verTudo.dica": "Developer: shows the hidden truth instead of what the gamer knows",
   "dev.cartao": "Developer · hidden truth",
   "dev.arquetipo": "Archetype",
@@ -479,5 +475,6 @@
   "grafico.vazio": "The journey starts this season. Every promotion and relegation will be recorded here.",
   "estadio.lugares": "seats",
   "pessoa.personalidadeDesconhecida": "You don't know what they are like yet.",
-  "pessoa.naoObservadoCurto": "You haven't seen this person yet. A scout or matches will reveal the values."
+  "pessoa.naoObservadoCurto": "You haven't seen this person yet. A scout or matches will reveal the values.",
+  "dev.verTudo.rotulo": "Show all"
 }

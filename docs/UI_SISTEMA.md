@@ -55,6 +55,8 @@ O que se guarda está em **inglês** (posições GK, RB, CB, LB, DM, CM, AM, RW,
 - **Clube:** chips (dimensão em palavras, escalão, distrito), cartão de identidade, cartões Dimensão, Finanças, Plantel em números, Estádio, Equipa técnica, Jogos e gráfico de subidas e descidas. Tabela do plantel com posição, idade, nível, país, pé, altura, peso, contrato, estado.
 - **Reputação em palavras:** `parametros.reputacao.niveis` (Mundial ≥9000, Continental ≥6500, Nacional ≥3500, Regional ≥2000, Local ≥1000, Obscuro). O número só aparece como detalhe.
 - **«Ver tudo» (só developer):** pedido `verTudo` ao motor devolve a verdade oculta em campos `verdade` separados; a UI nunca importa a verdade do motor. Cartões com borda tracejada vermelha.
+- **Estrutura da ficha (RZ-148):** sem coluna lateral nem Caixa de entrada; topo = nome + chips numa linha e cartão de identidade por baixo, em colunas; cartões da mesma linha têm a mesma altura; «Ver tudo» é um interruptor no menu (grupo Developer).
+- **Cores do clube:** retângulo do tamanho da linha de texto antes do nome: lisa, dividida ao meio, maioria (`Azul 80% e branco`) ou riscas verticais/horizontais.
 - Placeholders («?») marcam dados que ainda não existem; a preencher nos itens respetivos.
 
 ## 4. Fica para depois
