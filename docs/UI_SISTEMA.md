@@ -2,6 +2,16 @@
 
 Concretiza `docs/TOM_E_UX.md` §3. Tudo o que está aqui existe em `src/ui` e tem testes de lógica (a parte pura) ou teste no navegador.
 
+## 0. Desenho visual (RZ-144)
+
+Calmo, claro e informativo; sem cores berrantes nem sombras (só nos pop-ups). Tudo em `src/app/globals.css`, por *tokens* (`--fundo`, `--painel`, `--texto`, `--suave`, `--linha`, `--destaque`, `--aviso`, `--r-s/--r-m`).
+- **Cor:** neutros frios com um toque de verde; o verde do relvado é a única cor de marca (menu ativo, ligações, botão primário). Aviso a vermelho só para erros e desatualizações.
+- **Tipo:** fonte do sistema, números tabulares, hierarquia por peso e espaço (títulos 28/24/16/14), linhas com menos de ~72 caracteres.
+- **Estrutura:** menu à esquerda a toda a altura com marca e ícones simples (`Icone.tsx`); topo com pesquisa, tema e densidade; página ao centro (máx. 1120 px); caixa à direita (some abaixo de 1180 px); barra de estado em baixo. Em ecrãs estreitos o menu passa para o topo.
+- **Cartões** (`.painel`, números-chave da ficha) e **tabelas** com raio pequeno, cabeçalho esbatido, linha realçada ao passar.
+- **Tema:** automático (segue o sistema), claro ou escuro, guardado por pessoa (`raizes.tema`). Densidade normal/compacta como antes.
+- Teclado: foco visível; `prefers-reduced-motion` respeitado.
+
 ## 1. Rotas (exportação estática, sem servidor)
 
 | Rota | O que é |
@@ -35,6 +45,10 @@ A ficha de clube liga à **localidade** (aldeia, vila ou cidade) e ao **concelho
 ## 3b. Posições e outros códigos
 
 O que se guarda está em **inglês** (posições GK, RB, CB, LB, DM, CM, AM, RW, LW, ST; mais tarde tudo o resto, RZ-143). A interface mostra a **sigla** (`posicao.<código>`: em pt-PT GR, DD, DC, DE, MDC, MC, MO, ED, EE, PL) ou o **nome** (`posicao.nome.<código>`) no idioma escolhido, com `siglaPosicao`/`nomePosicao` (`src/ui/i18n/posicao.ts`). Nunca mostrar um código guardado sem passar por aqui.
+
+## 3c. Modo developer
+
+**Laboratório** e **Mundo** são ferramentas, não jogo: só aparecem no menu no modo developer (`src/ui/dev.ts`: `pnpm dev`, ou build com `NEXT_PUBLIC_RAIZES_DEV=1`, ou `localStorage.setItem("raizes.dev", "true")` no browser). O Laboratório não mostra nada fora desse modo. A rota `/mundo/` continua alcançável pela ligação de «Hoje» enquanto não há mundo, só porque ainda é por onde se cria; o RZ-138 (nova save) passa essa função para o jogo e a página fica só para developers.
 
 ## 4. Fica para depois
 

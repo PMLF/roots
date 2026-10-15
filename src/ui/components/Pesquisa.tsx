@@ -1,4 +1,5 @@
 "use client";
+import { Icone } from "@/ui/components/Icone";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import type { ResultadoPesquisa } from "@/engine/api/contratos";
@@ -69,6 +70,7 @@ export function Pesquisa() {
   return (
     <>
       <button type="button" className="pesquisa-botao" onClick={() => setAberta(true)} data-testid="pesquisa-abrir">
+        <Icone nome="pesquisa" />
         {t("pesquisa.abrir")} <kbd>/</kbd>
       </button>
       {aberta && (
