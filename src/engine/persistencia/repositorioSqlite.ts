@@ -131,6 +131,10 @@ export class RepositorioSqlite implements Repositorio {
     const onde = ["x.k = ?", "x.id = ?"];
     const p: ValorSql[] = [entidade.k, entidade.id];
     if (f.apenasPublicos) onde.push("e.vis = 0");
+    if (f.vis) {
+      onde.push(`e.vis IN (${f.vis.map(() => "?").join(",") || "NULL"})`);
+      p.push(...f.vis.map(visNum));
+    }
     if (f.tipo !== undefined) {
       onde.push("e.tipo = ?");
       p.push(f.tipo);

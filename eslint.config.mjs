@@ -24,6 +24,18 @@ export default tseslint.config(
     },
   },
   {
+    // A Vista não pode ver a "verdade" nem criar observações: só lê factos públicos e observações já feitas.
+    files: ["src/engine/vista/**/*.ts"],
+    ignores: ["**/*.test.ts"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [
+        ...sem(MOTOR, "O motor não pode importar React, Next nem a UI.").patterns,
+        ...sem(SQLITE, "O motor usa a interface Repositorio.").patterns,
+        ...sem(["**/verdade/**", "**/conhecimento/**"], "A Vista não pode importar a verdade oculta nem o módulo que cria observações.").patterns,
+      ] }],
+    },
+  },
+  {
     // O worker é a casca que liga o motor ao browser: pode importar o driver sqlite-wasm.
     files: ["src/engine/worker/**/*.ts"],
     rules: {
@@ -34,7 +46,7 @@ export default tseslint.config(
     files: ["src/ui/**/*.{ts,tsx}", "src/app/**/*.{ts,tsx}"],
     rules: {
       "no-restricted-imports": ["error", { patterns: [
-        ...sem(["**/engine/verdade/**", "**/engine/repositorio/**", "**/engine/persistencia/**", "**/engine/worker/**"], "A UI só fala com o motor pelo cliente e lê dados pela Vista.").patterns,
+        ...sem(["**/engine/verdade/**", "**/engine/repositorio/**", "**/engine/persistencia/**", "**/engine/conhecimento/**", "**/engine/worker/**"], "A UI só fala com o motor pelo cliente e lê dados pela Vista.").patterns,
         ...sem(SQLITE, "A UI não acede à base de dados.").patterns,
       ] }],
     },

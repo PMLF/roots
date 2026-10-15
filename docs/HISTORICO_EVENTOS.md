@@ -210,6 +210,15 @@ A imprensa só publica uma **palavra** sobre cada clube. Calcula-se a partir de 
 - As palavras e percentis são parâmetros (RZ-006), a calibrar com o harness.
 - Eventos públicos de dinheiro (`PREMIO_ESTADO`, obras anunciadas, patrocínios) mudam o estado de imediato na próxima atualização mensal.
 
+### 5.2 Implementação da Vista (RZ-129)
+
+- `src/engine/vista/` só **lê**: eventos (públicos de todos + privados/secretos em que *nós* participamos, filtro por `vis` feito no repositório), jogos, marcadores, classificações e estatísticas de jogo (factos públicos) e **conhecimento** (observações). Não importa a verdade nem o módulo que cria observações (lint). A interface não importa `persistencia`, `conhecimento`, `verdade` nem `worker`.
+- `src/engine/conhecimento/observar.ts` é a ponte da verdade para o conhecimento: recebe os valores verdadeiros como argumento, soma ruído com desvio `σ(qualidade)` (interpolação entre `sigmaPiorQualidade` e `sigmaMelhorQualidade`, parâmetros) e grava só a estimativa em `observacao` (`{ campos: {nome: {est, sigma}}, rotulos }`).
+- **Combinar observações:** média ponderada pelo inverso da variância; a incerteza de cada observação cresce `1 + k × épocas`. Mais observações → margem menor; observações velhas pesam menos. `margem = z·σ` (z = 1,28 → intervalo a ~80 %, verificado por teste).
+- **Frescura:** `vistoEm`, `epocasDesde` e `desatualizado` (≥ 2 épocas, parâmetro).
+- **Personalidade:** só rótulos dos traços extremos (≤ 5 ou ≥ 15), máximo 3, os mais marcados primeiro; a faixa pode vir trocada com probabilidade `0,35 × (1 − qualidade)`.
+- `qualidadePorFonte` (parâmetros): próprio clube 0,9, olheiro 0,6, agente 0,4, jogo contra 0,35, imprensa 0,15; um olheiro concreto traz a sua qualidade (RZ-201).
+
 ## 6. Corrupção v1 (RZ-127)
 
 Quatro tipos no MVP, todos ligados a `integridade` e a um **caso** de vida longa:

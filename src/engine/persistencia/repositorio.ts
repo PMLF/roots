@@ -13,11 +13,14 @@ import type {
   Observacao,
   ObservacaoNova,
   Participacao,
+  Visibilidade,
 } from "./tipos";
 
 export type FiltroEventos = {
-  /** Só eventos públicos (o que qualquer interessado pode ver). */
+  /** Só eventos públicos (o que qualquer interessado pode ver). Atalho de `vis: ["publico"]`. */
   apenasPublicos?: boolean;
+  /** Só eventos com estas visibilidades. */
+  vis?: readonly Visibilidade[];
   tipo?: string;
   desdeEpoca?: number;
   ateEpoca?: number;
