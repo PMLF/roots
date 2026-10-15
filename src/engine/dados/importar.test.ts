@@ -6,7 +6,7 @@ import { importarDados, slug } from "./importar";
 import type { DadosBase, FontesCsv } from "./tipos";
 
 const ler = (f: string) => readFileSync(new URL(`../../../data/${f}.csv`, import.meta.url), "utf-8");
-const REAIS: FontesCsv = { clubes: ler("clubes"), cidades: ler("cidades"), rivalidades: ler("rivalidades"), distritos: ler("distritos") };
+const REAIS: FontesCsv = { clubes: ler("clubes"), cidades: ler("cidades"), localidades: ler("localidades"), rivalidades: ler("rivalidades"), distritos: ler("distritos") };
 
 function importarOk(fontes: FontesCsv = REAIS): DadosBase {
   const r = importarDados(fontes);
@@ -141,5 +141,37 @@ describe("importarDados rejeita dados maus (acumula todos os erros)", () => {
   it("os totais seguem os parâmetros (não estão fixos no código)", () => {
     const r = importarDados(REAIS, { ...PARAMETROS_PADRAO, distritais: { alvo: 12, min: 8, max: 14, minimoDuro: 8 } });
     expect(r.ok).toBe(false);
+  });
+});
+
+describe("localidades (RZ-136)", () => {
+  it("cada clube tem a sua localidade, dentro do mesmo concelho", () => {
+    const d = importarOk();
+    expect(d.localidades.length).toBe(297);
+    const porId = new Map(d.localidades.map((l) => [l.id, l]));
+    for (const c of d.clubes) {
+      const l = porId.get(c.localidadeId)!;
+      expect(l.cidade).toBe(c.cidade);
+      expect(l.clubes).toContain(c.id);
+    }
+    const matela = porId.get("matela@vimioso")!;
+    expect(matela).toMatchObject({ nome: "Matela", estatuto: "aldeia", sede: false, distrito: "Bragança" });
+    expect(porId.get("moita-dos-ferreiros@lourinha")).toMatchObject({ estatuto: "aldeia" });
+  });
+  it("recusa um estatuto incoerente com a população", () => {
+    const linhas = REAIS.localidades.split("\n");
+    const i = linhas.findIndex((l) => l.includes("matela@vimioso"));
+    linhas[i] = linhas[i]!.replace(",150,aldeia,", ",50000,aldeia,");
+    expect(erros({ ...REAIS, localidades: linhas.join("\n") }).join("\n")).toMatch(/não é coerente com o estatuto/);
+  });
+  it("recusa um clube cuja localidade não existe", () => {
+    const sem = REAIS.localidades.split("\n").filter((l) => !l.includes("matela@vimioso")).join("\n");
+    expect(erros({ ...REAIS, localidades: sem }).join("\n")).toMatch(/não existe em localidades\.csv/);
+  });
+  it("recusa uma localidade maior do que o concelho", () => {
+    const linhas = REAIS.localidades.split("\n");
+    const i = linhas.findIndex((l) => l.includes("matela@vimioso"));
+    linhas[i] = linhas[i]!.replace(",150,aldeia,", ",900000,cidade,");
+    expect(erros({ ...REAIS, localidades: linhas.join("\n") }).join("\n")).toMatch(/maior do que o concelho/);
   });
 });

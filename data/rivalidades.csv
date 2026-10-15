@@ -39,7 +39,7 @@ AC Torre de Moncorvo,SC Freixo de Espada à Cinta,não,não,sim,sim,sim
 AC Torre de Moncorvo,Vila Flor Desportivo,não,não,sim,sim,sim
 AC Vila Franca do Campo,AD Lagoa,não,não,sim,sim,sim
 AC Vila Franca do Campo,GD Vila do Porto,não,não,sim,sim,sim
-AC Vinhaense,CD Matelense,não,não,sim,sim,não
+AC Vinhaense,CD Matelense,não,não,sim,não,não
 AC Viseu,SC Tondela,sim,não,sim,sim,sim
 AC Viseu,UD Satanense,não,não,sim,sim,não
 AC Vouzelense,AD Oliveira de Frades,não,não,sim,sim,sim
@@ -67,7 +67,7 @@ AD Mafra,UD Ericeirense,sim,sim,sim,sim,sim
 AD Marinha Grande,Leiria FC,sim,não,sim,sim,não
 AD Melgacense,UD Monção,não,não,sim,sim,sim
 AD Mira,FC Figueira da Foz,não,não,sim,sim,não
-AD Mirandelense,CD Matelense,não,não,sim,sim,não
+AD Mirandelense,CD Matelense,não,não,sim,não,não
 AD Mirandelense,GD Macedo de Cavaleiros,sim,não,sim,sim,não
 AD Mirandelense,SC Murcense,não,não,não,sim,não
 AD Monsanto,GD Idanha-a-Nova,sim,sim,sim,sim,sim
@@ -118,7 +118,7 @@ CD Charneca,UA Almada,sim,sim,sim,sim,sim
 CD Gaia,FC Varziela,sim,não,sim,sim,não
 CD Manteigas,FC Estrela Serrana,não,não,sim,sim,não
 CD Marco de Canaveses,SC Baionense,sim,não,sim,sim,sim
-CD Matelense,UD Izeda,não,sim,sim,sim,não
+CD Matelense,UD Izeda,não,não,sim,não,não
 CD Mealhada,UD Anadiense,sim,não,sim,sim,sim
 CD Miranda do Douro,GD Mogadourense,sim,não,sim,sim,sim
 CD Mora,FC Arraiolos,não,não,sim,sim,sim

@@ -17,8 +17,8 @@ const buscar = async (f: string) => {
 
 const servicos: Servicos = {
   async carregarDados() {
-    const [clubes, cidades, rivalidades, distritos, paises] = await Promise.all(["clubes", "cidades", "rivalidades", "distritos", "paises"].map((n) => buscar(`${n}.csv`)));
-    return { clubes: clubes as string, cidades: cidades as string, rivalidades: rivalidades as string, distritos: distritos as string, paises: paises as string };
+    const [clubes, cidades, localidades, rivalidades, distritos, paises] = await Promise.all(["clubes", "cidades", "localidades", "rivalidades", "distritos", "paises"].map((n) => buscar(`${n}.csv`)));
+    return { clubes: clubes as string, cidades: cidades as string, localidades: localidades as string, rivalidades: rivalidades as string, distritos: distritos as string, paises: paises as string };
   },
   // Abre a base uma só vez por worker. O save "ativo" por omissão chama-se "atual" (ranhuras: RZ-134).
   abrirRepositorio() {

@@ -12,7 +12,7 @@ import { gerarMundo } from "./gerarMundo";
 import { importarPaises } from "./paises";
 
 const ler = (f: string) => readFileSync(`data/${f}`, "utf8");
-const d = importarDados({ clubes: ler("clubes.csv"), cidades: ler("cidades.csv"), rivalidades: ler("rivalidades.csv"), distritos: ler("distritos.csv") });
+const d = importarDados({ clubes: ler("clubes.csv"), cidades: ler("cidades.csv"), localidades: ler("localidades.csv"), rivalidades: ler("rivalidades.csv"), distritos: ler("distritos.csv") });
 const pr = importarPaises(ler("paises.csv"));
 if (!d.ok || !pr.ok) throw new Error("dados inválidos");
 const dados = d.dados;

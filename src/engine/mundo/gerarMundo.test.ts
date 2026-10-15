@@ -9,7 +9,7 @@ import { qualidadeAtual } from "./jogador";
 import { validarMundo } from "./validar";
 
 const ler = (f: string) => readFileSync(`data/${f}`, "utf8");
-const d = importarDados({ clubes: ler("clubes.csv"), cidades: ler("cidades.csv"), rivalidades: ler("rivalidades.csv"), distritos: ler("distritos.csv") });
+const d = importarDados({ clubes: ler("clubes.csv"), cidades: ler("cidades.csv"), localidades: ler("localidades.csv"), rivalidades: ler("rivalidades.csv"), distritos: ler("distritos.csv") });
 if (!d.ok) throw new Error(d.erros.join("\n"));
 const dados: DadosBase = d.dados;
 const pr = importarPaises(ler("paises.csv"));

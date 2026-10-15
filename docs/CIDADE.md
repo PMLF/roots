@@ -112,6 +112,17 @@ Se o estádio antigo é demolido ou fica em obras, o clube joga num **estádio t
 - Pesa, junto com a população, em **quantos jogadores nascem** no concelho e na qualidade do viveiro (RZ-103, RZ-212).
 - Alimenta o regresso à terra (RZ-207), o arquivo dos que escaparam (RZ-204) e a bacia de adeptos.
 
+## 6b. Localidades: aldeia, vila e cidade (RZ-136)
+
+O **concelho** é a «cidade» do jogo (Câmara, orçamento, autarca); o clube vive numa **localidade** dentro dele. O Sporting Moita dos Ferreiros é de uma aldeia do concelho da Lourinhã; o CD Matelense, da aldeia de Matela, em Vimioso. Cada localidade tem:
+
+- `população` e `estatuto`: **aldeia**, **vila** ou **cidade**. Dados de arranque em `data/localidades.csv` (gerado por `tools/build_dados.py` a partir de `data/src/localidades.txt`); a sede do concelho tem população estimada a partir do concelho. O estatuto de arranque deriva da população (limiares abaixo), por isso pode diferir do estatuto oficial real.
+- **Limiares** em `parametros.localidade`: vila a partir de 1 500 habitantes, cidade a partir de 8 000, com **histerese de 10 %** (`avaliarEstatuto` em `src/engine/localidade/estatuto.ts`): uma aldeia só passa a vila ao chegar a 1 650 e uma vila só volta a aldeia ao cair abaixo de 1 350. Assim o estatuto não oscila de época para época.
+- **Evolução** (RZ-309, ainda por fazer): uma vez por época, a população de cada localidade reage ao clube — assistência média e adeptos que o jogo traz, financiamento do clube e da Câmara, estádio, jogadores da terra. O motor chama `avaliarEstatuto` e `atualizarLocalidade`; uma mudança de estatuto grava o evento público `LOCALIDADE_ESTATUTO` (notícia: «Matela sobe a vila»). O concelho continua a ser a unidade das variáveis da §2.
+- No MVP cada localidade tem pelo menos um clube; as sedes sem clube e as freguesias vizinhas entram com o gerador de clubes novos (RZ-126).
+
+Em dados: um clube pertence a **uma** localidade (`clube.localidade_id`), e esta a **um** concelho. Várias localidades do mesmo concelho podem ter clube (Lourinhã e Moita dos Ferreiros).
+
 ## 7. Empresas
 
 No MVP, os **patrocínios dependem do setor** da cidade (sem empresas individuais). **Empresários com nome e personalidade** (RZ-311) são das primeiras coisas a entrar a seguir ao MVP.

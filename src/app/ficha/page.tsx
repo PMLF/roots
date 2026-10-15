@@ -1,8 +1,9 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import type { FichaClubeDados, FichaPessoaDados } from "@/engine/api/contratos";
+import type { FichaClubeDados, FichaLocalidadeDados, FichaPessoaDados } from "@/engine/api/contratos";
 import { FichaClube } from "@/ui/components/fichas/FichaClube";
+import { FichaLocalidade } from "@/ui/components/fichas/FichaLocalidade";
 import { FichaPessoa } from "@/ui/components/fichas/FichaPessoa";
 import { Ficha } from "@/ui/components/Ficha";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -15,7 +16,8 @@ type Estado =
   | { fase: "em-breve" }
   | { fase: "erro"; erro: string }
   | { fase: "clube"; d: FichaClubeDados }
-  | { fase: "pessoa"; d: FichaPessoaDados };
+  | { fase: "pessoa"; d: FichaPessoaDados }
+  | { fase: "localidade"; d: FichaLocalidadeDados };
 
 function Conteudo() {
   const { t } = useT();
@@ -37,6 +39,9 @@ function Conteudo() {
         } else if (k === "pessoa") {
           const d = await motor.chamar("fichaPessoa", { id });
           if (vivo) setEstado(d ? { fase: "pessoa", d } : { fase: "nao-encontrada" });
+        } else if (k === "localidade") {
+          const d = await motor.chamar("fichaLocalidade", { id });
+          if (vivo) setEstado(d ? { fase: "localidade", d } : { fase: "nao-encontrada" });
         } else if (vivo) setEstado({ fase: "em-breve" }); // cidade (RZ-133) e competição (RZ-110): ainda sem ficha
       } catch (e) {
         if (vivo) setEstado({ fase: "erro", erro: e instanceof Error ? e.message : String(e) });
@@ -53,6 +58,7 @@ function Conteudo() {
     case "em-breve": return <Ficha tipo={alvo.k} titulo={alvo.id} numeros={[]} separadores={{ resumo: <p className="vazio">{t("ficha.embreve")}</p> }} />;
     case "clube": return <FichaClube d={estado.d} />;
     case "pessoa": return <FichaPessoa d={estado.d} />;
+    case "localidade": return <FichaLocalidade d={estado.d} />;
   }
 }
 

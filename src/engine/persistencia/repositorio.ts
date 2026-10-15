@@ -1,5 +1,7 @@
 import type {
   AjusteClassificacao,
+  AtualizacaoLocalidade,
+  LocalidadeReg,
   CargoReg,
   ContratoReg,
   Data,
@@ -46,6 +48,12 @@ export interface Repositorio {
 
   /** Atómico e encadeável: se `fn` lançar, desfaz tudo o que fez (incluindo transações internas). */
   transacao<T>(fn: () => T): T;
+
+  /**
+   * Apaga tudo (história incluída) e deixa o save como novo. É o «novo mundo»: nunca se usa a meio de um jogo
+   * (as ranhuras e os saves exportados chegam com RZ-134). Fora de qualquer transação.
+   */
+  reiniciar(): void;
 
   // --- metadados do save (seed, versão do motor, …)
   meta(chave: string): string | undefined;
@@ -105,6 +113,18 @@ export interface Repositorio {
   contrato(pessoa: string): ContratoReg | undefined;
   cargo(pessoa: string): CargoReg | undefined;
   jogadoresDoClube(clube: string): JogadorReg[];
+
+  // --- localidades (RZ-136)
+  /** Guarda as localidades de arranque. Recusa se já existirem. */
+  guardarLocalidades(localidades: readonly LocalidadeReg[]): void;
+  localidade(id: string): LocalidadeReg | undefined;
+  /** Por id; com `cidade`, só as desse concelho. */
+  localidades(filtro?: { cidade?: string }): LocalidadeReg[];
+  /**
+   * Atualiza população e estatuto. Se o estatuto mudar, acrescenta o evento público LOCALIDADE_ESTATUTO
+   * ({ de, para, populacao }) e atualiza `desde`; devolve o id do evento (ou `undefined` se não mudou).
+   */
+  atualizarLocalidade(id: string, a: AtualizacaoLocalidade): { evento?: number };
 
   // --- conhecimento
   acrescentarObservacao(o: ObservacaoNova): number;

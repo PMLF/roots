@@ -71,6 +71,8 @@ export type Parametros = {
     memoria: { meiaVidaPositivaMeses: number; negativaBaseMeses: number; negativaPorPaciencia: number; maxPorPessoa: number };
   };
   cidade: { eleicoesAutarquicasAnos: number };
+  /** Estatuto das localidades (RZ-136; docs/CIDADE.md §6b): limiares de população com histerese. */
+  localidade: { limiarVila: number; limiarCidade: number; histerese: number };
   /** Geração do mundo e das pessoas (GERACAO_MUNDO, MODELO_DADOS §15). */
   mundo: {
     talento: {
@@ -191,6 +193,7 @@ export const PARAMETROS_PADRAO: Parametros = {
     memoria: { meiaVidaPositivaMeses: 12, negativaBaseMeses: 6, negativaPorPaciencia: 0.6, maxPorPessoa: 40 },
   },
   cidade: { eleicoesAutarquicasAnos: 4 },
+  localidade: { limiarVila: 1500, limiarCidade: 8000, histerese: 0.1 },
   mundo: {
     talento: { muIndice0: 6.5, muIndice100: 10.5, sigma: 2.4, epsIndice0: 0.004, epsIndice100: 0.02, paretoAlfa: 2.4, paretoEscala: 3 },
     qualidadeAlvo: {
@@ -288,6 +291,9 @@ export function validarParametros(p: Parametros): string[] {
   if (!(k.personalidade.limiarBaixo < k.personalidade.limiarAlto)) erros.push("conhecimento.personalidade: limiarBaixo < limiarAlto");
   if (k.personalidade.maxRotulos < 1) erros.push("conhecimento.personalidade: maxRotulos ≥ 1");
   if (k.personalidade.probTrocaPiorQualidade < 0 || k.personalidade.probTrocaPiorQualidade > 1) erros.push("conhecimento.personalidade: probTrocaPiorQualidade entre 0 e 1");
+  const lo = p.localidade;
+  if (!(lo.limiarVila > 0 && lo.limiarVila < lo.limiarCidade)) erros.push("localidade: 0 < limiarVila < limiarCidade");
+  if (!(lo.histerese >= 0 && lo.histerese < 0.5)) erros.push("localidade.histerese entre 0 e 0.5");
   const m = p.mundo;
   if (!(m.talento.muIndice0 < m.talento.muIndice100 && m.talento.sigma > 0)) erros.push("mundo.talento: muIndice0 < muIndice100 e sigma > 0");
   if (!(m.talento.epsIndice0 > 0 && m.talento.epsIndice0 <= m.talento.epsIndice100 && m.talento.epsIndice100 < 1)) erros.push("mundo.talento: 0 < epsIndice0 ≤ epsIndice100 < 1 (a cauda nunca é zero)");

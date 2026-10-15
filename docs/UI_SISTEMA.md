@@ -7,8 +7,8 @@ Concretiza `docs/TOM_E_UX.md` §3. Tudo o que está aqui existe em `src/ui` e te
 | Rota | O que é |
 |---|---|
 | `/` | **Hoje**: o que mudou · o que exige decisão · a seguir (ações a um clique; «Avançar» entra com o motor de jogo) |
-| `/ficha/?k=<tipo>&id=<id>` | Ficha de qualquer entidade (`clube`, `pessoa`, `cidade`, `competicao`). Os dados vivem no motor, por isso a ficha é uma rota única com *query string* (uma rota por id não é possível numa exportação estática) |
-| `/mundo/` | Criar o mundo do save e diagnóstico técnico |
+| `/ficha/?k=<tipo>&id=<id>` | Ficha de qualquer entidade (`clube`, `pessoa`, `localidade`, `cidade`, `competicao`). Os dados vivem no motor, por isso a ficha é uma rota única com *query string* (uma rota por id não é possível numa exportação estática) |
+| `/mundo/` | Criar o mundo do save, **reiniciá-lo** (apaga o save e gera outro com seed nova, com confirmação) e diagnóstico técnico |
 
 Menu à esquerda com **no máximo 2 níveis** (secção no menu, separadores na página). Migalhas de pão e «← Voltar» em todas as páginas que não são «Hoje».
 
@@ -27,6 +27,10 @@ Menu à esquerda com **no máximo 2 níveis** (secção no menu, separadores na 
 - A personalidade mostra-se só como rótulos de traços extremos (`traco.<traço>.<alta|baixa>`), nunca como números.
 - Um só motor (Web Worker) para a aplicação inteira (`MotorProvider`): navegar não reabre a base de dados.
 - Textos sempre por `t()` com chaves em pt-PT e inglês (atributos, funções, traços, separadores e entidades incluídos).
+
+## 3b. Localidades
+
+A ficha de clube liga à **localidade** (aldeia, vila ou cidade) e ao **concelho**. A ficha da localidade (`k=localidade`) mostra estatuto, população, clubes e as mudanças de estatuto (`docs/CIDADE.md` §6b). A pesquisa encontra as localidades que não são sede de concelho.
 
 ## 4. Fica para depois
 

@@ -9,7 +9,7 @@ import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { Vista } from "../vista/vista";
 import { indexar, pesquisar, type EntradaIndice, type Indexada } from "../pesquisa/pesquisar";
-import type { ClubeResumo, DiagnosticoBd, FichaClubeDados, FichaPessoaDados, RefEntidade, Mensagem, PedidosMotor, ProgressoMundo, ResumoMundoCriado, TipoPedido } from "./contratos";
+import type { ClubeResumo, DiagnosticoBd, FichaClubeDados, FichaLocalidadeDados, FichaPessoaDados, RefEntidade, EstatutoLocalidade, Mensagem, PedidosMotor, ProgressoMundo, ResumoMundoCriado, TipoPedido } from "./contratos";
 
 export const VERSAO_MOTOR = "0.1.0";
 export const VERSAO_ESQUEMA = ESQUEMA_BD;
@@ -57,10 +57,18 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
     }
     case "estadoMundo": {
       const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
-      return repositorio.totalPessoas() > 0 ? resumoExistente(repositorio, dados) : null;
+      if (repositorio.totalPessoas() === 0) return null;
+      completarLocalidades(repositorio, dados);
+      return resumoExistente(repositorio, dados);
     }
     case "criarMundo":
       return criarMundo(m.entrada.seed, servicos, aoProgredir);
+    case "reiniciarMundo": {
+      const { repositorio } = await servicos.abrirRepositorio();
+      repositorio.reiniciar();
+      indices.delete(repositorio);
+      return criarMundo(m.entrada.seed, servicos, aoProgredir);
+    }
     case "paises":
       return (await dadosDoJogo(servicos)).paises.map((p) => ({ id: p.id, nome: p.nome }));
     case "pesquisar": {
@@ -85,14 +93,37 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       const vista = vistaDoGamer(repositorio);
       const cidade = dados.cidades.find((x) => x.id === c.cidade);
       const rival = dados.clubes.find((x) => x.id === c.rival);
+      const loc = repositorio.localidade(c.localidadeId);
       const saida: FichaClubeDados = {
-        id: c.id, nome: c.nome, liga: c.liga, localidade: c.localidade,
+        id: c.id, nome: c.nome, liga: c.liga,
+        localidade: { k: "localidade", id: c.localidadeId, nome: c.localidade, estatuto: loc?.estatuto ?? dados.localidades.find((x) => x.id === c.localidadeId)?.estatuto ?? "vila" },
         cidade: { k: "cidade", id: c.cidade, nome: cidade?.nome ?? c.cidade },
         distrito: c.distrito, cores: c.cores, alcunha: c.alcunha, mascote: c.mascote, reputacao: c.reputacao,
         ...(rival ? { rival: { k: "clube", id: rival.id, nome: rival.nome } as RefEntidade } : {}),
         estadio: { nome: c.estadio.nome, capacidade: c.estadio.capacidade },
         plantel: vista.plantel(c.id),
         cargos: vista.cargos({ clube: c.id }),
+      };
+      return saida;
+    }
+    case "fichaLocalidade": {
+      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const base = dados.localidades.find((x) => x.id === m.entrada.id);
+      if (!base) return null;
+      // antes de haver mundo mostra-se o estado de arranque
+      const atual = repositorio.localidade(m.entrada.id) ?? { populacao: base.populacao, estatuto: base.estatuto, desde: criarData(PARAMETROS_PADRAO.calendario.anoInicial, 7, 1) };
+      const cidade = dados.cidades.find((x) => x.id === base.cidade);
+      const historico = repositorio
+        .eventosDe({ k: "localidade", id: base.id }, { apenasPublicos: true, tipo: "LOCALIDADE_ESTATUTO" })
+        .map((e) => ({ data: e.data, de: e.dados.de as EstatutoLocalidade, para: e.dados.para as EstatutoLocalidade, populacao: Number(e.dados.populacao) }));
+      const saida: FichaLocalidadeDados = {
+        id: base.id, nome: base.nome, estatuto: atual.estatuto, populacao: atual.populacao, desde: atual.desde, sede: base.sede,
+        cidade: { k: "cidade", id: base.cidade, nome: cidade?.nome ?? base.cidade }, distrito: base.distrito,
+        clubes: base.clubes.flatMap((id) => {
+          const c = dados.clubes.find((x) => x.id === id);
+          return c ? [{ k: "clube" as const, id: c.id, nome: c.nome, liga: c.liga }] : [];
+        }),
+        historico,
       };
       return saida;
     }
@@ -128,6 +159,7 @@ async function criarMundo(seed: string, servicos: Servicos, aoProgredir: (p: Pro
   const [{ repositorio }, { dados, paises }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
   if (repositorio.totalPessoas() > 0) {
     // reabrir um save que já tem mundo: não se gera outra vez
+    completarLocalidades(repositorio, dados);
     return resumoExistente(repositorio, dados);
   }
   const t0 = Date.now();
@@ -139,9 +171,24 @@ async function criarMundo(seed: string, servicos: Servicos, aoProgredir: (p: Pro
   repositorio.transacao(() => {
     repositorio.definirMeta("seed", seed);
     repositorio.definirMeta("mundo.jogadores", String(lote.jogadores.length));
+    guardarLocalidadesDeArranque(repositorio, dados);
     repositorio.guardarMundo(lote, (feito, total) => aoProgredir({ fase: "guardar", feito, total }));
   });
   return { seed, clubes: dados.clubes.length, pessoas: lote.pessoas.length, jogadores: lote.jogadores.length, ms: Date.now() - t0, avisos: v.avisos, jaExistia: false };
+}
+
+function guardarLocalidadesDeArranque(r: Repositorio, dados: DadosBase): void {
+  r.guardarLocalidades(
+    dados.localidades.map((l) => ({
+      id: l.id, nome: l.nome, cidade: l.cidade, populacao: l.populacao, estatuto: l.estatuto,
+      desde: criarData(PARAMETROS_PADRAO.calendario.anoInicial, 7, 1),
+    })),
+  );
+}
+
+/** Saves criados antes da migração 4 não têm localidades: preenche-as com o estado de arranque (idempotente). */
+function completarLocalidades(r: Repositorio, dados: DadosBase): void {
+  if (r.localidades().length === 0) guardarLocalidadesDeArranque(r, dados);
 }
 
 function resumoExistente(r: Repositorio, dados: DadosBase): ResumoMundoCriado {
@@ -169,6 +216,7 @@ function indiceDePesquisa(r: Repositorio, dados: DadosBase): Indexada[] {
   const entradas: EntradaIndice[] = [
     ...dados.clubes.map((c): EntradaIndice => ({ k: "clube", id: c.id, titulo: c.nome, subtitulo: c.liga, extra: `${c.localidade} ${c.alcunha}` })),
     ...dados.cidades.map((c): EntradaIndice => ({ k: "cidade", id: c.id, titulo: c.nome, subtitulo: c.distrito })),
+    ...dados.localidades.filter((l) => !l.sede).map((l): EntradaIndice => ({ k: "localidade", id: l.id, titulo: l.nome, subtitulo: `${l.estatuto} · ${dados.cidades.find((c) => c.id === l.cidade)?.nome ?? ""}` })),
     ...r.indicePessoas().map((p): EntradaIndice => ({
       k: "pessoa", id: p.id, titulo: p.nomeDesportivo,
       subtitulo: [p.posicao ?? p.funcao, p.clube ? nomeClube.get(p.clube) : undefined].filter(Boolean).join(" · "),

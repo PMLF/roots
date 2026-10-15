@@ -1,6 +1,6 @@
 /** Pesquisa global (RZ-009): por nome, sem acentos nem maiúsculas, com prefixos primeiro. Pura. */
 
-export type TipoResultado = "clube" | "cidade" | "pessoa";
+export type TipoResultado = "clube" | "cidade" | "localidade" | "pessoa";
 export type EntradaIndice = { k: TipoResultado; id: string; titulo: string; subtitulo: string; extra?: string };
 export type ResultadoPesquisa = EntradaIndice;
 
@@ -23,7 +23,7 @@ function pontuar(x: Indexada, termos: string[], inteira: string): number {
   return 0;
 }
 
-const ORDEM_TIPO: Record<TipoResultado, number> = { clube: 0, cidade: 1, pessoa: 2 };
+const ORDEM_TIPO: Record<TipoResultado, number> = { clube: 0, cidade: 1, localidade: 2, pessoa: 3 };
 
 export function pesquisar(consulta: string, indice: readonly Indexada[], limite = 12): ResultadoPesquisa[] {
   const inteira = normalizarBusca(consulta);

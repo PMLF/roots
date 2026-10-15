@@ -347,3 +347,9 @@ Sem perguntas em aberto neste documento.
 ### 11d. Pessoas (RZ-103)
 - Migração 3: `pessoa` (personalidade em JSON, verdade oculta), `jogador` (posições, atributos, potencial, corpo, clube), `contrato` e `cargo` (presidente, autarca, treinador, staff, empresário, agente, árbitro, jornalista…).
 - `Repositorio`: `guardarMundo` (uma transação; recusa um segundo mundo), `pessoa/jogador/contrato/cargo/jogadoresDoClube` (verdade, só para o motor) e `pessoaPublica/plantelPublico/cargosPublicos` (factos públicos, os únicos que a `Vista` lê).
+
+### 11e. Localidades e reiniciar (RZ-136, RZ-137)
+- Migração 4: `localidade` (`id`, `nome`, `cidade` = concelho, `populacao`, `estatuto` aldeia/vila/cidade, `desde`). É o **estado atual**; a história é o evento público `LOCALIDADE_ESTATUTO` (`{ de, para, populacao }`, entidades `localidade` e `cidade`), por isso a evolução fica reconstruível e nada se apaga.
+- `Repositorio`: `guardarLocalidades` (uma só vez), `localidade`, `localidades({ cidade })` e `atualizarLocalidade` (muda população; se o estatuto mudar acrescenta o evento e atualiza `desde`, na mesma transação).
+- `reiniciar()`: apaga tudo (incluindo a história) e volta ao esquema vazio. Serve ao botão «Reiniciar o mundo» da página Mundo e aos testes; não se usa a meio de um jogo (ranhuras e saves exportados: RZ-134). O pedido `reiniciarMundo` reinicia e gera logo um mundo com a seed nova.
+

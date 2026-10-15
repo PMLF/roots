@@ -24,6 +24,8 @@ import type {
   Observacao,
   ObservacaoNova,
   LoteMundoReg,
+  LocalidadeReg,
+  AtualizacaoLocalidade,
   Participacao,
   PessoaIndice,
   PessoaPublica,
@@ -57,6 +59,7 @@ export class RepositorioMemoria implements Repositorio {
   private jogadoresMap = new Map<string, JogadorReg>();
   private contratos: ContratoReg[] = [];
   private cargos = new Map<string, CargoReg>();
+  private locais = new Map<string, LocalidadeReg>();
   private calJogos = new Map<string, JogoAgendado>();
   private calFolgas: FolgaAgendada[] = [];
   private diario: (() => void)[][] = [];
@@ -65,6 +68,26 @@ export class RepositorioMemoria implements Repositorio {
 
   private desfazer(fn: () => void): void {
     this.diario[this.diario.length - 1]?.push(fn);
+  }
+
+  reiniciar(): void {
+    if (this.diario.length > 0) throw new Error("reiniciar() não pode correr dentro de uma transação");
+    this.eventos = [];
+    this.porEntidade = new Map();
+    this.filhos = new Map();
+    this.jogos = new Map();
+    this.ajustes = [];
+    this.classif = new Map();
+    this.stats = new Map();
+    this.obs = [];
+    this.metaMap = new Map();
+    this.pessoas = new Map();
+    this.jogadoresMap = new Map();
+    this.contratos = [];
+    this.cargos = new Map();
+    this.locais = new Map();
+    this.calJogos = new Map();
+    this.calFolgas = [];
   }
 
   transacao<T>(fn: () => T): T {
@@ -93,6 +116,46 @@ export class RepositorioMemoria implements Repositorio {
     this.desfazer(() => {
       if (antes === undefined) this.metaMap.delete(chave);
       else this.metaMap.set(chave, antes);
+    });
+  }
+
+  // ---------- localidades
+  guardarLocalidades(localidades: readonly LocalidadeReg[]): void {
+    this.transacao(() => {
+      if (this.locais.size > 0) throw new Error("O save já tem localidades");
+      for (const l of localidades) {
+        if (this.locais.has(l.id)) throw new Error(`Localidade repetida: ${l.id}`);
+        this.locais.set(l.id, { ...l });
+        this.desfazer(() => this.locais.delete(l.id));
+      }
+    });
+  }
+  localidade(id: string): LocalidadeReg | undefined {
+    const l = this.locais.get(id);
+    return l ? { ...l } : undefined;
+  }
+  localidades(filtro: { cidade?: string } = {}): LocalidadeReg[] {
+    return [...this.locais.values()].filter((l) => filtro.cidade === undefined || l.cidade === filtro.cidade).sort((a, b) => cmp(a.id, b.id)).map((l) => ({ ...l }));
+  }
+  atualizarLocalidade(id: string, a: AtualizacaoLocalidade): { evento?: number } {
+    return this.transacao(() => {
+      const antes = this.locais.get(id);
+      if (!antes) throw new Error(`Localidade inexistente: ${id}`);
+      if (!(a.populacao >= 0)) throw new Error("população inválida");
+      const copia = { ...antes };
+      this.desfazer(() => this.locais.set(id, copia));
+      if (a.estatuto === antes.estatuto) {
+        this.locais.set(id, { ...antes, populacao: a.populacao });
+        return {};
+      }
+      const evento = this.acrescentarEvento({
+        tipo: "LOCALIDADE_ESTATUTO", data: a.data, epoca: a.epoca, vis: "publico",
+        entidades: [{ k: "localidade", id }, { k: "cidade", id: antes.cidade }],
+        ...(a.causa !== undefined ? { causa: a.causa } : {}),
+        dados: { de: antes.estatuto, para: a.estatuto, populacao: a.populacao },
+      });
+      this.locais.set(id, { ...antes, populacao: a.populacao, estatuto: a.estatuto, desde: a.data });
+      return { evento };
     });
   }
 

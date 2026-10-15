@@ -1,6 +1,6 @@
 /** Ligações entre entidades (docs/TOM_E_UX.md §3.3): toda a entidade tem uma ficha em /ficha/?k=…&id=…. */
-export type TipoEntidadeFicha = "clube" | "cidade" | "pessoa" | "competicao";
-export const TIPOS_FICHA: readonly TipoEntidadeFicha[] = ["clube", "cidade", "pessoa", "competicao"];
+export type TipoEntidadeFicha = "clube" | "cidade" | "localidade" | "pessoa" | "competicao";
+export const TIPOS_FICHA: readonly TipoEntidadeFicha[] = ["clube", "cidade", "localidade", "pessoa", "competicao"];
 
 export const hrefFicha = (k: TipoEntidadeFicha, id: string): string => `/ficha/?k=${k}&id=${encodeURIComponent(id)}`;
 
@@ -18,5 +18,6 @@ export const SEPARADORES: Record<TipoEntidadeFicha, readonly string[]> = {
   clube: ["resumo", "plantel", "staff", "jogos", "historia"],
   pessoa: ["resumo", "conhecimento", "carreira", "historia"],
   cidade: ["resumo", "clubes", "autarca", "historia"],
+  localidade: ["resumo", "clubes", "historia"],
   competicao: ["resumo", "classificacao", "jogos", "historia"],
 };

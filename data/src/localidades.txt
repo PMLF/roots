@@ -1,0 +1,36 @@
+# Localidade|Concelho|População   (só as localidades que NÃO são a sede do concelho; a sede é automática: mesmo nome do concelho, sem o parêntese)
+# População aproximada (Censos 2021 arredondados, estimativas do jogo). O estatuto (aldeia/vila/cidade) deriva da população.
+Charneca da Caparica|Almada|20000
+Leça de Palmeira|Matosinhos|16000
+Madalena do Pico|Madalena|2500
+Sacavém|Loures|17000
+Barroselas|Viana do Castelo|3400
+Gaia|Vila Nova de Gaia|70000
+Zambujeira do Mar|Odemira|1000
+Lomba|Gondomar|3000
+Moita dos Ferreiros|Lourinhã|1100
+Matela|Vimioso|150
+Vila do Corvo|Corvo|400
+Caldas das Taipas|Guimarães|6500
+Izeda|Bragança|1000
+Alcains|Castelo Branco|3800
+Unhais da Serra|Covilhã|1200
+Monsanto|Idanha-a-Nova|600
+Carvoeiro|Lagoa (Algarve)|3200
+Castelo Rodrigo|Figueira de Castelo Rodrigo|450
+Tornada|Caldas da Rainha|1300
+Carcavelos|Cascais|20000
+Alfama|Lisboa|3500
+Ericeira|Mafra|6500
+Monte|Funchal|6000
+Caniçal|Machico|3000
+Estreito de Câmara de Lobos|Câmara de Lobos|7500
+Fátima|Ourém|11000
+Samora Correia|Benavente|7500
+Corroios|Seixal|40000
+Azeitão|Setúbal|11000
+Afife|Viana do Castelo|1100
+Vila Praia de Âncora|Caminha|3000
+Soajo|Arcos de Valdevez|800
+Lindoso|Ponte da Barca|500
+Terena|Alandroal|600

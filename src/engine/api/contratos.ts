@@ -32,7 +32,7 @@ export type ResumoMundoCriado = {
 };
 
 /** Referência a uma entidade para ligações (`Ligacao`): tipo, id e nome a mostrar. */
-export type RefEntidade = { k: "clube" | "cidade" | "pessoa" | "competicao"; id: string; nome: string };
+export type RefEntidade = { k: "clube" | "cidade" | "localidade" | "pessoa" | "competicao"; id: string; nome: string };
 
 export type FichaPessoaDados = { ficha: FichaPessoa; clube?: RefEntidade; naturalDe?: RefEntidade };
 
@@ -40,7 +40,7 @@ export type FichaClubeDados = {
   id: string;
   nome: string;
   liga: string;
-  localidade: string;
+  localidade: RefEntidade & { estatuto: EstatutoLocalidade };
   cidade: RefEntidade;
   distrito: string;
   cores: string;
@@ -51,6 +51,23 @@ export type FichaClubeDados = {
   estadio: { nome: string; capacidade: number };
   plantel: PessoaVista[];
   cargos: PessoaVista[];
+};
+
+export type EstatutoLocalidade = "aldeia" | "vila" | "cidade";
+
+export type FichaLocalidadeDados = {
+  id: string;
+  nome: string;
+  estatuto: EstatutoLocalidade;
+  populacao: number;
+  /** Desde quando tem o estatuto atual. */
+  desde: string;
+  sede: boolean;
+  cidade: RefEntidade;
+  distrito: string;
+  clubes: (RefEntidade & { liga: string })[];
+  /** Mudanças de estatuto, da mais recente para a mais antiga. */
+  historico: { data: string; de: EstatutoLocalidade; para: EstatutoLocalidade; populacao: number }[];
 };
 
 export type { ResultadoPesquisa };
@@ -73,6 +90,9 @@ export type PedidosMotor = {
   pesquisar: { entrada: { q: string; limite?: number }; saida: ResultadoPesquisa[] };
   fichaPessoa: { entrada: { id: string }; saida: FichaPessoaDados | null };
   fichaClube: { entrada: { id: string }; saida: FichaClubeDados | null };
+  fichaLocalidade: { entrada: { id: string }; saida: FichaLocalidadeDados | null };
+  /** Apaga o save atual e gera um mundo novo com esta seed (RZ-137). Emite progresso como `criarMundo`. */
+  reiniciarMundo: { entrada: { seed: string }; saida: ResumoMundoCriado };
   /** Plantel público de um clube, lido através da `Vista` (sem atributos, potencial nem personalidade). */
   plantel: { entrada: { clube: string }; saida: PessoaVista[] };
 };

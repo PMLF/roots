@@ -141,8 +141,18 @@ CREATE INDEX ix_cargo_clube ON cargo(clube);
 CREATE INDEX ix_cargo_cidade ON cargo(cidade);
 `;
 
+const V4 = `
+-- Localidades (RZ-136): aldeia, vila ou cidade dentro de um concelho. Estado atual; a história de mudanças de
+-- estatuto está nos eventos LOCALIDADE_ESTATUTO (entidade 'localidade'). Os dados de origem vêm de data/localidades.csv.
+CREATE TABLE localidade (
+  id TEXT PRIMARY KEY, nome TEXT NOT NULL, cidade TEXT NOT NULL, populacao INTEGER NOT NULL CHECK (populacao >= 0),
+  estatuto TEXT NOT NULL CHECK (estatuto IN ('aldeia', 'vila', 'cidade')), desde TEXT NOT NULL
+) WITHOUT ROWID;
+CREATE INDEX ix_localidade_cidade ON localidade(cidade);
+`;
+
 /** A posição no array + 1 é o número da versão do esquema. */
-export const MIGRACOES: readonly string[] = [V1, V2, V3];
+export const MIGRACOES: readonly string[] = [V1, V2, V3, V4];
 export const VERSAO_ESQUEMA = MIGRACOES.length;
 
 export function versaoDoFicheiro(d: DriverSql): number {

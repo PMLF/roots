@@ -9,7 +9,7 @@ function servicosDeTeste(): Servicos {
   const ler = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
   return {
     abrirRepositorio: async () => ({ repositorio, backend: "memoria", versaoSqlite: "teste" }),
-    carregarDados: async () => ({ clubes: ler("clubes"), cidades: ler("cidades"), rivalidades: ler("rivalidades"), distritos: ler("distritos"), paises: ler("paises") }),
+    carregarDados: async () => ({ clubes: ler("clubes"), cidades: ler("cidades"), localidades: ler("localidades"), rivalidades: ler("rivalidades"), distritos: ler("distritos"), paises: ler("paises") }),
   };
 }
 
@@ -68,5 +68,60 @@ describe("handler do motor", () => {
     expect(JSON.stringify(fp)).not.toMatch(/"potencial"|"personalidade"/);
     expect(await tratar({ id: 17, tipo: "fichaPessoa", entrada: { id: "nao-existe" } }, s3)).toBeNull();
     expect(await tratar({ id: 18, tipo: "fichaClube", entrada: { id: "nao-existe" } }, s3)).toBeNull();
+  });
+
+  it("localidades: o Matelense é de Matela (aldeia de Vimioso), com ficha e pesquisa próprias", async () => {
+    const sl = servicosDeTeste();
+    const clube = (await tratar({ id: 20, tipo: "fichaClube", entrada: { id: "cd-matelense" } }, sl))!;
+    expect(clube.localidade).toMatchObject({ k: "localidade", id: "matela@vimioso", nome: "Matela", estatuto: "aldeia" });
+    expect(clube.cidade.nome).toBe("Vimioso");
+    const f = (await tratar({ id: 21, tipo: "fichaLocalidade", entrada: { id: "matela@vimioso" } }, sl))!;
+    expect(f).toMatchObject({ nome: "Matela", estatuto: "aldeia", populacao: 150, sede: false, distrito: "Bragança", historico: [] });
+    expect(f.clubes.map((c) => c.nome)).toEqual(["CD Matelense"]);
+    const moita = (await tratar({ id: 22, tipo: "fichaLocalidade", entrada: { id: "moita-dos-ferreiros@lourinha" } }, sl))!;
+    expect(moita).toMatchObject({ estatuto: "aldeia", cidade: { nome: "Lourinhã" } });
+    expect(await tratar({ id: 23, tipo: "fichaLocalidade", entrada: { id: "nada" } }, sl)).toBeNull();
+    const r = await tratar({ id: 24, tipo: "pesquisar", entrada: { q: "matela" } }, sl);
+    expect(r.find((x) => x.k === "localidade")).toMatchObject({ id: "matela@vimioso", titulo: "Matela" });
+  });
+
+  it("depois do mundo, o estatuto vem do save e as mudanças aparecem na história da localidade", async () => {
+    const sl = servicosDeTeste();
+    await tratar({ id: 30, tipo: "criarMundo", entrada: { seed: "loc" } }, sl);
+    const { repositorio } = await sl.abrirRepositorio();
+    expect(repositorio.localidades().length).toBe(297);
+    repositorio.atualizarLocalidade("matela@vimioso", { populacao: 1700, estatuto: "vila", data: "2031-06-30", epoca: 5 });
+    const f = (await tratar({ id: 31, tipo: "fichaLocalidade", entrada: { id: "matela@vimioso" } }, sl))!;
+    expect(f).toMatchObject({ estatuto: "vila", populacao: 1700, desde: "2031-06-30", historico: [{ de: "aldeia", para: "vila", populacao: 1700 }] });
+    const c = (await tratar({ id: 32, tipo: "fichaClube", entrada: { id: "cd-matelense" } }, sl))!;
+    expect(c.localidade.estatuto).toBe("vila");
+  });
+
+  it("reiniciarMundo apaga o save e gera outro mundo, com seed nova e pesquisa atualizada", async () => {
+    const sl = servicosDeTeste();
+    const a = await tratar({ id: 40, tipo: "criarMundo", entrada: { seed: "primeira" } }, sl);
+    const antes = await tratar({ id: 41, tipo: "pesquisar", entrada: { q: "silva", limite: 50 } }, sl);
+    const b = await tratar({ id: 42, tipo: "reiniciarMundo", entrada: { seed: "segunda" } }, sl);
+    expect(b).toMatchObject({ seed: "segunda", jaExistia: false });
+    expect(await tratar({ id: 43, tipo: "estadoMundo", entrada: null }, sl)).toMatchObject({ seed: "segunda", jaExistia: true });
+    const depois = await tratar({ id: 44, tipo: "pesquisar", entrada: { q: "silva", limite: 50 } }, sl);
+    // mesmos clubes e mesma quantidade de pessoas, mas pessoas diferentes: o índice não ficou preso ao mundo antigo
+    expect(b.pessoas).toBe(a.pessoas);
+    expect(depois.filter((x) => x.k === "pessoa").map((x) => x.id)).not.toEqual(antes.filter((x) => x.k === "pessoa").map((x) => x.id));
+    const { repositorio } = await sl.abrirRepositorio();
+    expect(repositorio.localidades().length).toBe(297);
+    expect(repositorio.meta("seed")).toBe("segunda");
+  });
+
+  it("um save de antes das localidades (migração 4) recebe-as ao ser aberto", async () => {
+    const sl = servicosDeTeste();
+    const { repositorio } = await sl.abrirRepositorio();
+    // simula um save antigo: tem pessoas mas nenhuma localidade
+    repositorio.guardarMundo({ pessoas: [{ id: "p1", nome: "A B", nomeDesportivo: "A B", nascimento: "2000-01-01", nacionalidade: "pt", papeis: ["jogador"], personalidade: {}, arquetipo: "comum", lod: 2 }], jogadores: [], contratos: [], cargos: [] });
+    expect(repositorio.localidades()).toEqual([]);
+    expect(await tratar({ id: 50, tipo: "estadoMundo", entrada: null }, sl)).toMatchObject({ jaExistia: true });
+    expect(repositorio.localidades().length).toBe(297);
+    expect(await tratar({ id: 51, tipo: "estadoMundo", entrada: null }, sl)).toMatchObject({ jaExistia: true }); // idempotente
+    expect(repositorio.localidades().length).toBe(297);
   });
 });
