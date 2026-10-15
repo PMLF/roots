@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CompetitionPage, CompeticaoResumo } from "@/engine/api/contratos";
 import { Cartao } from "@/ui/components/Cartao";
 import { TabelaLiga } from "@/ui/components/competicao/TabelaLiga";
@@ -9,9 +9,14 @@ import type { Chave } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { useMotor } from "@/ui/MotorProvider";
 
-const ORDEM = ["primeiraLiga", "segundaLiga", "terceiraLiga", "cp", "distrital"] as const;
+const GRUPOS: { chave: Chave; escaloes: readonly string[]; colunas?: true }[] = [
+  { chave: "competicoes.profissionais", escaloes: ["primeiraLiga", "segundaLiga", "terceiraLiga"] },
+  { chave: "escalao.cp", escaloes: ["cp"], colunas: true },
+  { chave: "escalao.distrital", escaloes: ["distrital"], colunas: true },
+];
 const CHAVE = "raizes.competitions.selected";
 const PADRAO = ["Primeira Liga", "Segunda Liga", "Terceira Liga"];
+const MINIMO = 3;
 const eLista = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
 
 function Destaques({ p }: { p: CompetitionPage }) {
@@ -27,8 +32,8 @@ function Destaques({ p }: { p: CompetitionPage }) {
     <ul className="destaques-mini">
       {linha(t("competicoes.melhorMarcador"), jog(h.topScorers[0]))}
       {linha(t("competicoes.melhorJogador"), jog(h.bestRated[0], (v) => v.toFixed(2)))}
-      {linha(t("destaques.melhorAtaque"), clube(h.bestAttack))}
-      {linha(t("destaques.melhorDefesa"), clube(h.bestDefence))}
+      {linha(t("competicoes.melhorAtaque"), clube(h.bestAttack))}
+      {linha(t("competicoes.melhorDefesa"), clube(h.bestDefence))}
     </ul>
   );
 }
@@ -39,11 +44,22 @@ export default function PaginaCompeticoes() {
   const motor = useMotor();
   const [lista, setLista] = useState<CompeticaoResumo[] | null | undefined>(undefined);
   const [escolhidas, setEscolhidas] = useState<string[]>(PADRAO);
+  const [aberto, setAberto] = useState(false);
+  const seletor = useRef<HTMLDivElement>(null);
   const [paginas, setPaginas] = useState<Record<string, CompetitionPage>>({});
 
   useEffect(() => {
-    setEscolhidas(ler(CHAVE, eLista) ?? PADRAO);
+    const guardadas = ler(CHAVE, eLista);
+    setEscolhidas(guardadas && guardadas.length >= MINIMO ? guardadas : PADRAO);
   }, []);
+  useEffect(() => {
+    if (!aberto) return;
+    const fora = (e: MouseEvent) => { if (!seletor.current?.contains(e.target as Node)) setAberto(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setAberto(false); };
+    document.addEventListener("mousedown", fora);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", fora); document.removeEventListener("keydown", esc); };
+  }, [aberto]);
   useEffect(() => {
     if (!motor) return;
     let vivo = true;
@@ -68,7 +84,11 @@ export default function PaginaCompeticoes() {
     setEscolhidas(novas);
     guardar(CHAVE, novas);
   };
-  const alternar = (liga: string) => definir(escolhidas.includes(liga) ? escolhidas.filter((x) => x !== liga) : [...escolhidas, liga]);
+  const alternar = (liga: string) => {
+    if (escolhidas.includes(liga)) {
+      if (escolhidas.length > MINIMO) definir(escolhidas.filter((x) => x !== liga));
+    } else definir([...escolhidas, liga]);
+  };
   const visiveis = lista ? lista.filter((c) => escolhidas.includes(c.liga)) : [];
 
   return (
@@ -77,31 +97,44 @@ export default function PaginaCompeticoes() {
       {lista === null && <p className="vazio">{t("hoje.semMundo")}</p>}
       {lista && (
         <>
-          <details className="seletor-ligas">
-            <summary>{t("competicoes.escolher")} ({escolhidas.filter((l) => lista.some((c) => c.liga === l)).length}/{lista.length})</summary>
-            <div className="seletor-acoes">
-              <button type="button" onClick={() => definir(lista.map((c) => c.liga))}>{t("competicoes.todas")}</button>
-              <button type="button" onClick={() => definir([])}>{t("competicoes.nenhuma")}</button>
-            </div>
-            {ORDEM.map((e) => {
-              const ligas = lista.filter((c) => c.escalao === e);
-              return ligas.length === 0 ? null : (
-                <fieldset key={e}>
-                  <legend>{t(`escalao.${e}` as Chave)}</legend>
-                  {ligas.map((c) => (
-                    <label key={c.liga}><input type="checkbox" checked={escolhidas.includes(c.liga)} onChange={() => alternar(c.liga)} /> {c.liga}</label>
-                  ))}
-                </fieldset>
-              );
-            })}
-          </details>
+          <div className="seletor-ligas" ref={seletor}>
+            <button type="button" aria-expanded={aberto} aria-haspopup="true" onClick={() => setAberto((v) => !v)}>
+              {t("competicoes.escolher")} ({escolhidas.length}/{lista.length}) <span aria-hidden="true">▾</span>
+            </button>
+            {aberto && (
+              <div className="seletor-painel" role="group" aria-label={t("competicoes.escolher")}>
+                <div className="seletor-acoes">
+                  <button type="button" onClick={() => definir(lista.map((c) => c.liga))}>{t("competicoes.todas")}</button>
+                  <button type="button" onClick={() => definir(PADRAO)}>{t("competicoes.padrao")}</button>
+                  <span className="suave">{t("competicoes.minimo", { n: MINIMO })}</span>
+                </div>
+                {GRUPOS.map((g) => {
+                  const ligas = lista.filter((c) => (g.escaloes as readonly string[]).includes(c.escalao));
+                  return ligas.length === 0 ? null : (
+                    <fieldset key={g.chave} className={g.colunas ? "seletor-colunas" : undefined}>
+                      <legend>{t(g.chave)}</legend>
+                      {ligas.map((c) => {
+                        const marcada = escolhidas.includes(c.liga);
+                        return (
+                          <label key={c.liga}>
+                            <input type="checkbox" checked={marcada} disabled={marcada && escolhidas.length <= MINIMO} onChange={() => alternar(c.liga)} />
+                            <span>{c.liga}</span>
+                          </label>
+                        );
+                      })}
+                    </fieldset>
+                  );
+                })}
+              </div>
+            )}
+          </div>
           {visiveis.length === 0 && <p className="vazio">{t("competicoes.semSelecao")}</p>}
           <div className="ligas-grelha">
             {visiveis.map((c) => {
               const p = paginas[c.liga];
               return (
-                <Cartao key={c.liga} titulo={c.liga}>
-                  <p className="suave cartao-sub"><Ligacao k="competicao" id={c.liga}>{t("competicoes.verFicha")}</Ligacao> · {t("competicoes.clubes", { n: c.clubes })}</p>
+                <Cartao key={c.liga} titulo={<Ligacao k="competicao" id={c.liga}>{c.liga}</Ligacao>}>
+                  <p className="suave cartao-sub">{t("competicoes.clubes", { n: c.clubes })}</p>
                   {p ? (
                     <>
                       <Destaques p={p} />

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /** Bloco de informação de uma ficha: título e conteúdo. `larga` ocupa a linha toda; `dev` marca informação só de developer. */
-export function Cartao({ titulo, children, larga, dev }: { titulo: string; children: ReactNode; larga?: boolean; dev?: boolean }) {
+export function Cartao({ titulo, children, larga, dev }: { titulo: ReactNode; children: ReactNode; larga?: boolean; dev?: boolean }) {
   return (
     <section className={`cartao${larga ? " larga" : ""}${dev ? " dev" : ""}`}>
       <h2>{titulo}</h2>

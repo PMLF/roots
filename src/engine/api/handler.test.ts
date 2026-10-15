@@ -184,6 +184,7 @@ describe("competition page (RZ-145)", () => {
     expect(d.table.map((l) => l.zone)).toEqual(["champion", ...Array(16).fill(undefined), "relegation", "relegation", "relegation"]);
     expect(d.highlights.topScorers).toEqual([]);
     expect(d.highlights.bestAttack).toBeUndefined();
+    expect(d.highlights.attackRanking).toEqual([]);
     const seg = (await tratar({ id: 74, tipo: "competitionPage", entrada: { league: "Segunda Liga" } }, s))!;
     expect(seg.table.map((l) => l.zone).filter(Boolean)).toEqual(["champion", "promotion", "promotion", "relegation", "relegation", "relegation"]);
     const dist = (await tratar({ id: 75, tipo: "competitionPage", entrada: { league: lista.find((c) => c.escalao === "distrital")!.liga } }, s))!;
@@ -213,6 +214,9 @@ describe("competition page (RZ-145)", () => {
     expect(d.table[0]).toMatchObject({ points: 3, played: 1 });
     expect(d.highlights.topScorers[0]).toMatchObject({ value: 3 });
     expect(d.highlights.bestAttack).toMatchObject({ value: 3 });
+    expect(d.highlights.attackRanking).toHaveLength(20);
+    expect(d.highlights.defenceRanking).toHaveLength(20);
+    expect(d.highlights.defenceRanking[0]!.value).toBe(0);
     expect(d.highlights.mostYellow).toHaveLength(2);
     expect(d.highlights.bestRated).toEqual([]); // só 1 jogo com nota, mínimo é 3
   });

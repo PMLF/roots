@@ -533,5 +533,20 @@
   "competicoes.nenhuma": "None",
   "competicoes.semSelecao": "Choose the leagues you want to see.",
   "competicoes.melhorMarcador": "Top scorer",
-  "competicoes.melhorJogador": "Best player"
+  "competicoes.melhorJogador": "Best player",
+  "destaques.titulo": "Competition highlights",
+  "destaques.mais": "Show more",
+  "destaques.menos": "Show less",
+  "destaques.melhorMarcador": "Top scorer",
+  "destaques.melhorAssistente": "Top assister",
+  "destaques.melhorJogador": "Best player",
+  "destaques.maisAmarelos": "Most yellows",
+  "destaques.maisVermelhos": "Most reds",
+  "destaques.ataques": "Attacks (goals scored)",
+  "destaques.defesas": "Defences (goals against)",
+  "competicoes.minimo": "Keep at least {n} leagues selected.",
+  "competicoes.padrao": "Default",
+  "competicoes.profissionais": "Professional leagues",
+  "competicoes.melhorAtaque": "Best attack",
+  "competicoes.melhorDefesa": "Best defence"
 }

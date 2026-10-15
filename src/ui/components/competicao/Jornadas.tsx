@@ -42,7 +42,7 @@ export function Jornadas({ page }: { page: CompetitionPage }) {
         <button type="button" onClick={() => ir(esquerda - 1)} disabled={esquerda <= 1} aria-label={t("jornadas.anterior")}>‹ {t("jornadas.anterior")}</button>
         <button type="button" onClick={() => ir(esquerda + 1)} disabled={esquerda >= ultima} aria-label={t("jornadas.seguinte")}>{t("jornadas.seguinte")} ›</button>
       </div>
-      <div className="cartoes jornadas-par">
+      <div className="jornadas-par">
         {mostradas.map((r) => (
           <Cartao key={r.number} titulo={`${t("competicao.jornada", { n: r.number })} · ${r.date}`}>
             <p className="suave estado-jornada">{t(`jornadas.estado.${estado(r)}` as "jornadas.estado.played")}</p>

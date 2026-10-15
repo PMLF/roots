@@ -331,7 +331,7 @@ export const PARAMETROS_PADRAO: Parametros = {
     liga: ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "vitorias", "sorteio"],
     promocao: ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "reputacaoMenor", "sorteio"],
   },
-  competitionView: { topN: 5, minRatedGames: 3 },
+  competitionView: { topN: 10, minRatedGames: 3 },
   reputacao: {
     niveis: [
       { nivel: "mundial", min: 9000 },

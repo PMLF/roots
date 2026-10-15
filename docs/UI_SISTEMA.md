@@ -61,8 +61,8 @@ O que se guarda está em **inglês** (posições GK, RB, CB, LB, DM, CM, AM, RW,
 
 ## 3e. Competições e rotas
 - **Rotas (em inglês):** `/profile/?type=person|club|city|locality|competition&id=…&tab=…&sort=coluna:dir`, `/competitions/`, `/world/`, `/lab/`. Cada separador entra no histórico (`tab`); ordenação (`sort`) e jornada (`round`) substituem a entrada atual.
-- **Competições** (`/competitions/`): classificações das ligas escolhidas (seletor «Ligas», guardado no browser; por omissão as três ligas profissionais). Cada cartão: melhor marcador, melhor jogador (nota média), melhor ataque e melhor defesa, mais a tabela compacta.
-- **Página da liga** (`type=competition`): classificação com zonas (campeão dourado, subida verde, descida vermelha) logo à entrada, ao lado melhor ataque/defesa, marcadores e assistentes; por baixo melhores jogadores e cartões; depois as **jornadas**: a última jogada (ou a atual) e a seguinte lado a lado, com «Anterior/Seguinte». Separadores: Resumo, Clubes, História.
+- **Competições** (`/competitions/`): cartões compactos (no máximo três lado a lado, 364 px) com a classificação das ligas escolhidas e, no topo de cada um, melhor marcador, melhor jogador (nota média), melhor ataque e melhor defesa. O nome da liga é a ligação para a página. Seletor «Ligas» em dropdown (guardado no browser), com **mínimo de três**; por omissão as três ligas profissionais.
+- **Página da liga** (`type=competition`): cartão horizontal «Destaques da competição» no topo (primeiro de cada estatística); carregar nele abre o top 10 de cada lista e a classificação de todas as equipas em ataque e defesa. Por baixo, à esquerda a classificação com zonas (campeão dourado, subida verde, descida vermelha) e à direita as duas jornadas empilhadas (a mais antiga em cima) com «Anterior/Seguinte». Separadores: Resumo, Clubes, História.
 - Sem época a correr (antes do RZ-119) o calendário é uma **prévia** e a tabela segue a reputação; um aviso di-lo. Destaques ficam vazios até haver jogos. Competições a eliminar: RZ-151.
 
 ## 4. Fica para depois
