@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { CompetitionPage, FichaClubeDados, ResumoMundoCriado } from "@/engine/api/contratos";
 import { jogosDoClube } from "@/ui/jogosClube";
@@ -23,6 +24,7 @@ export default function Hoje() {
     return () => { vivo = false; };
   }, [motor]);
 
+  const router = useRouter();
   const [meu] = useMeuClube();
   const tempo = useTempo();
   const [clube, setClube] = useState<{ ficha: FichaClubeDados; liga: CompetitionPage } | undefined>(undefined);
@@ -70,7 +72,7 @@ export default function Hoje() {
             <ul className="ligacoes">
               {resultados.map((j) => (
                 <li key={j.id}>
-                  <b>{j.casaNome} {j.golosCasa}–{j.golosFora} {j.foraNome}</b>
+                  <b>{j.casaNome} {j.golosCasa}–{j.golosFora} {j.foraNome}</b>{j.nivel === 0 && <> <Link href={`/match/?id=${encodeURIComponent(j.id)}`}>{t("hoje.verJogo")}</Link></>}
                   <span className="suave"> · {[...j.golos.map((g) => `${g.nome} ${g.minuto}'`), ...j.cartoes.map((c) => `${c.cor === "vermelho" ? "🟥" : "🟨"} ${c.nome}`), ...j.lesoes.map((l) => `✚ ${l.nome}`)].join(" · ")}</span>
                   {j.homemDoJogo && <span className="suave"> · {t("hoje.homemDoJogo", { nome: j.homemDoJogo.nome, nota: j.homemDoJogo.nota.toFixed(1) })}</span>}
                 </li>
@@ -98,7 +100,7 @@ export default function Hoje() {
             <>
               <p><b>{t("hoje.jogoHoje", { jogo: `${tempo.pausa.emCasa ? "" : "@ "}${tempo.pausa.adversario}` })}</b></p>
               <p className="acoes">
-                <button type="button" className="primario" disabled={tempo.aAvancar} onClick={() => void tempo.confirmarEJogar()}>{t("hoje.confirmarJogar")}</button>
+                <button type="button" className="primario" disabled={tempo.aAvancar} onClick={() => { const id = tempo.pausa?.jogo; void tempo.confirmarEJogar().then(() => id && router.push(`/match/?id=${encodeURIComponent(id)}`)); }}>{t("hoje.confirmarJogar")}</button>
                 <Link href="/tactics/">{t("hoje.verTatica")}</Link>
               </p>
             </>

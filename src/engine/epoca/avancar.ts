@@ -15,6 +15,7 @@ import type { EquipaJogo } from "../jogo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
 import { fecharEpoca, gerarFasePromocao, type ResumoEpoca } from "./fecharEpoca";
+import { guardarJogoVivo, linhasDoJogo } from "./jogoAoVivo";
 import { atualizarOfertas, estaDesempregado } from "./mercadoTreinadores";
 import { dadosDaEpoca, epocaAtual } from "./piramideEpoca";
 import { gruposDaPromocao, jogosPorJogar, prepararEpoca } from "./preparar";
@@ -91,6 +92,7 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
       for (const l of r.registo.lesoes) repo.acrescentarEvento({ ...l, causa: evento });
       for (const h of r.historias) repo.acrescentarEvento({ ...h, causa: evento });
       const rel = r.relatorio;
+      if (r.nivel === 0) guardarJogoVivo(repo, { id: g.id, competicao: g.competicao, jornada: g.jornada, data: hoje, casa: { id: g.casa, nome: nomeClube.get(g.casa) ?? g.casa }, fora: { id: g.fora, nome: nomeClube.get(g.fora) ?? g.fora }, duracao: rel.duracao, golosCasa: rel.golosCasa, golosFora: rel.golosFora, linhas: linhasDoJogo(r.eventos, rel.duracao, nomePessoa) });
       const clubeDe = (lado: "casa" | "fora") => (lado === "casa" ? g.casa : g.fora);
       const homem = r.nivel === 1 ? { jogador: r.relatorio.homemDoJogo.id, nota: r.relatorio.homemDoJogo.nota } : (() => { const j = r.relatorio.jogadores.find((x) => x.id === r.relatorio.homemDoJogo); return j ? { jogador: j.id, nota: j.nota } : undefined; })();
       jogos.push({
