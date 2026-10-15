@@ -5,9 +5,10 @@ import { useEffect, useState, type ReactNode } from "react";
 import { LOCALES, type Chave } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { guardar, ler } from "@/ui/armazenamento";
+import { useModoDev } from "@/ui/dev";
 import { Pesquisa } from "@/ui/components/Pesquisa";
 
-type ItemMenu = { chave: Chave; href?: string; ativoQuando: (caminho: string) => boolean };
+type ItemMenu = { chave: Chave; href?: string; ativoQuando: (caminho: string) => boolean; /** Ferramenta de developer: só no modo dev (`ui/dev.ts`). */ soDev?: true };
 
 // Máximo 2 níveis (TOM_E_UX §3.5): secção no menu, separadores dentro da página. Sem href = ainda não existe.
 const MENU: ItemMenu[] = [
@@ -15,9 +16,9 @@ const MENU: ItemMenu[] = [
   { chave: "menu.clube", ativoQuando: () => false },
   { chave: "menu.plantel", ativoQuando: () => false },
   { chave: "menu.jogos", ativoQuando: () => false },
-  { chave: "menu.mundo", href: "/mundo/", ativoQuando: (c) => c.startsWith("/mundo") },
+  { chave: "menu.mundo", href: "/mundo/", ativoQuando: (c) => c.startsWith("/mundo"), soDev: true },
   { chave: "menu.cidade", ativoQuando: () => false },
-  { chave: "menu.laboratorio", href: "/laboratorio/", ativoQuando: (c) => c.startsWith("/laboratorio") },
+  { chave: "menu.laboratorio", href: "/laboratorio/", ativoQuando: (c) => c.startsWith("/laboratorio"), soDev: true },
 ];
 
 type Densidade = "normal" | "compacta";
@@ -28,6 +29,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { t, locale, setLocale } = useT();
   const caminho = usePathname() ?? "/";
   const router = useRouter();
+  const dev = useModoDev();
   const [densidade, setDensidade] = useState<Densidade>("normal");
 
   useEffect(() => {
@@ -62,7 +64,7 @@ export function Shell({ children }: { children: ReactNode }) {
       </header>
       <nav className="menu" aria-label="Menu">
         <ul>
-          {MENU.map((m) => {
+          {MENU.filter((m) => !m.soDev || dev).map((m) => {
             const ativo = m.ativoQuando(caminho);
             return (
               <li key={m.chave} aria-current={ativo ? "page" : undefined} className={ativo ? "ativo" : m.href ? undefined : "inativo"} title={m.href ? undefined : t("menu.brevemente")}>

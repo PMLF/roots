@@ -36,6 +36,10 @@ A ficha de clube liga à **localidade** (aldeia, vila ou cidade) e ao **concelho
 
 O que se guarda está em **inglês** (posições GK, RB, CB, LB, DM, CM, AM, RW, LW, ST; mais tarde tudo o resto, RZ-143). A interface mostra a **sigla** (`posicao.<código>`: em pt-PT GR, DD, DC, DE, MDC, MC, MO, ED, EE, PL) ou o **nome** (`posicao.nome.<código>`) no idioma escolhido, com `siglaPosicao`/`nomePosicao` (`src/ui/i18n/posicao.ts`). Nunca mostrar um código guardado sem passar por aqui.
 
+## 3c. Modo developer
+
+**Laboratório** e **Mundo** são ferramentas, não jogo: só aparecem no menu no modo developer (`src/ui/dev.ts`: `pnpm dev`, ou build com `NEXT_PUBLIC_RAIZES_DEV=1`, ou `localStorage.setItem("raizes.dev", "true")` no browser). O Laboratório não mostra nada fora desse modo. A rota `/mundo/` continua alcançável pela ligação de «Hoje» enquanto não há mundo, só porque ainda é por onde se cria; o RZ-138 (nova save) passa essa função para o jogo e a página fica só para developers.
+
 ## 4. Fica para depois
 
 Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já existem e abrem uma ficha «em breve»; separadores *Jogos*, *Carreira*, *História* (precisam de jogos e eventos); conjuntos de colunas com nome; atalhos por secção; «Caixa»/jornal e barra inferior com dados (RZ-120).
