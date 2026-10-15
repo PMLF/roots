@@ -21,6 +21,7 @@ import type {
   LinhaClassificacao,
   LinhaStatJogador,
   Marcador,
+  RegistoCartao,
   Observacao,
   ObservacaoNova,
   LoteMundoReg,
@@ -483,6 +484,26 @@ export class RepositorioMemoria implements Repositorio {
           .sort((a, b) => a.f.minuto - b.f.minuto || a.i - b.i)
           .map(({ f }) => ({ jogador: f.jogador, clube: f.clube, minuto: f.minuto, jogo: r.jogo.id })),
       );
+  }
+
+  cartoes(competicao: string, epoca: number, jogadores: readonly string[]): RegistoCartao[] {
+    const quem = new Set(jogadores);
+    return [...this.jogos.values()]
+      .filter((r) => r.jogo.competicao === competicao && r.jogo.epoca === epoca)
+      .sort((a, b) => a.jogo.jornada - b.jogo.jornada || cmp(a.jogo.data, b.jogo.data) || cmp(a.jogo.id, b.jogo.id))
+      .flatMap((r) =>
+        r.factos
+          .map((f, i) => ({ f, i }))
+          .filter(({ f }) => (f.tipo === "CA" || f.tipo === "CV") && quem.has(f.jogador))
+          .sort((a, b) => a.f.minuto - b.f.minuto || a.i - b.i)
+          .map(({ f }) => ({ jogador: f.jogador, jogo: r.jogo.id, jornada: r.jogo.jornada, minuto: f.minuto, tipo: f.tipo as "CA" | "CV", extra: f.extra ?? "" })),
+      );
+  }
+
+  jornadasJogadas(clube: string, competicao: string, epoca: number): number[] {
+    const js = new Set<number>();
+    for (const r of this.jogos.values()) if (r.jogo.competicao === competicao && r.jogo.epoca === epoca && (r.jogo.casa === clube || r.jogo.fora === clube)) js.add(r.jogo.jornada);
+    return [...js].sort((a, b) => a - b);
   }
 
   classificacao(competicao: string, epoca: number): LinhaClassificacao[] {

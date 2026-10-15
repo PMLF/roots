@@ -22,6 +22,7 @@ import type {
   LinhaClassificacao,
   LinhaStatJogador,
   Marcador,
+  RegistoCartao,
   Observacao,
   ObservacaoNova,
   LoteMundoReg,
@@ -528,6 +529,24 @@ export class RepositorioSqlite implements Repositorio {
         [competicao, epoca, jornada],
       )
       .map((r) => ({ jogador: txt(r.jogador), clube: txt(r.clube), minuto: num(r.minuto), jogo: txt(r.jogo) }));
+  }
+
+  cartoes(competicao: string, epoca: number, jogadores: readonly string[]): RegistoCartao[] {
+    if (jogadores.length === 0) return [];
+    return this.d
+      .todos(
+        `SELECT f.jogador, f.jogo, j.jornada, f.minuto, f.tipo, f.extra FROM jogo_facto f JOIN jogo j ON j.id = f.jogo
+         WHERE j.competicao = ? AND j.epoca = ? AND f.tipo IN ('CA', 'CV') AND f.jogador IN (${jogadores.map(() => "?").join(",")})
+         ORDER BY j.jornada, j.data, j.id, f.minuto, f.rowid`,
+        [competicao, epoca, ...jogadores],
+      )
+      .map((r) => ({ jogador: txt(r.jogador), jogo: txt(r.jogo), jornada: num(r.jornada), minuto: num(r.minuto), tipo: txt(r.tipo) as "CA" | "CV", extra: txt(r.extra) }));
+  }
+
+  jornadasJogadas(clube: string, competicao: string, epoca: number): number[] {
+    return this.d
+      .todos("SELECT DISTINCT jornada FROM jogo WHERE competicao = ? AND epoca = ? AND (casa = ? OR fora = ?) ORDER BY jornada", [competicao, epoca, clube, clube])
+      .map((r) => num(r.jornada));
   }
 
   classificacao(competicao: string, epoca: number): LinhaClassificacao[] {

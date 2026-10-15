@@ -20,6 +20,10 @@ describe("momentos em texto", () => {
     expect(momentoEmTexto("en", { tipo: "grande-defesa", minuto: 12, lado: "casa", jogador: "a", guardaRedes: "gr", xg: 0.4 }, nomes)).toBe("12' — Great save by Nuno Reis from Rui Alves.");
     expect(momentoEmTexto("pt-PT", { tipo: "ocasiao-falhada", minuto: 5, lado: "casa", jogador: "a", xg: 0.5 }, nomes)).toBe("5' — Rui Alves desperdiça uma grande ocasião para CD Foz.");
   });
+  it("escreve expulsões", () => {
+    expect(momentoEmTexto("pt-PT", { tipo: "expulsao", minuto: 61, lado: "fora", jogador: "a", segundoAmarelo: false }, nomes)).toBe("61' — Rui Alves é expulso e SC Mar fica com menos um.");
+    expect(momentoEmTexto("en", { tipo: "expulsao", minuto: 61, lado: "fora", jogador: "a", segundoAmarelo: true }, nomes)).toContain("second yellow");
+  });
   it("escreve o marcador", () => {
     expect(marcadorEmTexto("pt-PT", golo(), nomes)).toBe("CD Foz 1-0 SC Mar");
   });

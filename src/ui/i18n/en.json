@@ -240,5 +240,7 @@
   "momento.penaltiFalhado": "{jogador} misses the penalty.",
   "momento.grandeDefesa": "Great save by {guardaRedes} from {jogador}.",
   "momento.ocasiaoFalhada": "{jogador} wastes a big chance for {clube}.",
-  "momento.marcador": "{casa} {golosCasa}-{golosFora} {fora}"
+  "momento.marcador": "{casa} {golosCasa}-{golosFora} {fora}",
+  "momento.expulsao": "{jogador} is sent off and {clube} are down to ten.",
+  "momento.expulsaoSegundoAmarelo": "{jogador} is shown a second yellow and sent off; {clube} are down a man."
 }

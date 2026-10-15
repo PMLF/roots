@@ -96,6 +96,18 @@ export type Parametros = {
     aBaliza: { base: number; porXg: number; max: number };
     cantos: { pSeBloqueado: number; pSeDefendido: number; pRemate: number; fatorXg: number };
     faltas: { porEquipa: number; pLivreRemate: number };
+    /** Cartões (RZ-106). Probabilidades por falta, antes dos multiplicadores de fair play e agressividade do infrator. */
+    cartoes: {
+      pAmarelo: number;
+      /** Falta que dá penálti. */
+      pAmareloPenalti: number;
+      pVermelhoDireto: number;
+      pVermelhoPenalti: number;
+      /** Quem já tem amarelo joga com mais cuidado: fator no peso para cometer a falta e na probabilidade de novo cartão. */
+      jaAmarelo: { falta: number; cartao: number };
+      /** Pontos de ataque, controlo e defesa que a equipa perde por cada jogador expulso. */
+      penalizacaoExpulso: { ataque: number; controlo: number; defesa: number };
+    };
     pAssistido: number;
     /** Peso de cada posição a rematar, a assistir e a cabecear (cantos). */
     pesoRemate: Record<string, number>;
@@ -121,6 +133,8 @@ export type Parametros = {
       defesa: number;
       /** Por golo sofrido, para defesas e guarda-redes (GR, DD, DC, DE; MDC a metade). */
       golosSofridos: number;
+      amarelo: number;
+      vermelho: number;
       /** Baliza a zero: bónus para GR, DD, DC, DE (MDC a metade). */
       balizaZero: number;
       /** Bónus de vitória e penalização de derrota para todos os onze. */
@@ -129,7 +143,16 @@ export type Parametros = {
     /** Momentos-chave do jogo (RZ-105). */
     momentos: { xgGrande: number };
   };
-  /** Táticas (RZ-108; docs/MOTOR_JOGO.md §8). Efeitos em pontos da escala 1-20 de força, ou multiplicadores. */
+  /** Castigos disciplinares (RZ-106; docs/MOTOR_JOGO.md §8). Contam por competição e época. */
+  disciplina: {
+    /** Amarelos acumulados que dão um jogo de suspensão (de 5 em 5). */
+    amarelosPorSuspensao: number;
+    /** Vermelho direto: `jogos` de base; com probabilidade `pMaisUm` mais um jogo, repetido até ao máximo `max`. */
+    vermelhoDireto: { jogos: number; pMaisUm: number; max: number };
+    /** Vermelho por segundo amarelo: jogos de suspensão. */
+    segundoAmarelo: { jogos: number };
+  };
+  /** Táticas (RZ-108; docs/MOTOR_JOGO.md §7). Efeitos em pontos da escala 1-20 de força, ou multiplicadores. */
   tatica: {
     /** Pontos por unidade de «linha» a mais que o 4-3-3 (atacantes = PL + metade de extremos e MO; meio = MC, MDC + metade de extremos e MO). */
     formacao: { ataque: number; controlo: number; defesa: number };
@@ -139,7 +162,7 @@ export type Parametros = {
     linha: { controlo: number; ataque: number; defesa: number };
     ritmo: { oportunidades: number; fadiga: number };
     /** Multiplicador das faltas e pontos de defesa por nível de fair play (1 = cavalheiro … 5 = agressivo). */
-    fairPlay: { faltas: number[]; defesa: number[] };
+    fairPlay: { faltas: number[]; defesa: number[]; /** Multiplicador da probabilidade de cartão. */ cartoes: number[] };
     bonito: { base: number; escala: number; max: number };
     diretoAtaquePorLinha: number;
     /** Contra-ataque: por cada ponto de controlo que o adversário tem a mais (até `max`), ganha ataque e defesa. */
@@ -285,12 +308,18 @@ export const PARAMETROS_PADRAO: Parametros = {
     aBaliza: { base: 0.28, porXg: 1.4, max: 0.95 },
     cantos: { pSeBloqueado: 0.25, pSeDefendido: 0.2, pRemate: 0.35, fatorXg: 0.65 },
     faltas: { porEquipa: 12, pLivreRemate: 0.06 },
+    cartoes: { pAmarelo: 0.17, pAmareloPenalti: 0.5, pVermelhoDireto: 0.003, pVermelhoPenalti: 0.06, jaAmarelo: { falta: 0.4, cartao: 0.55 }, penalizacaoExpulso: { ataque: 1.6, controlo: 1.8, defesa: 1.4 } },
     pAssistido: 0.72,
     pesoRemate: { GR: 0, DD: 0.4, DC: 0.5, DE: 0.4, MDC: 0.5, MC: 1.4, MO: 3, ED: 3, EE: 3, PL: 5 },
     pesoAssistencia: { GR: 0.05, DD: 1.5, DC: 0.4, DE: 1.5, MDC: 1, MC: 3, MO: 3, ED: 2.5, EE: 2.5, PL: 1.2 },
     pesoCabeceamento: { GR: 0, DD: 0.4, DC: 3, DE: 0.4, MDC: 1, MC: 0.6, MO: 0.4, ED: 0.4, EE: 0.4, PL: 2.5 },
-    notas: { base: 6, min: 3, max: 10, ruido: 0.25, golo: 0.9, assistencia: 0.5, remateABaliza: 0.1, ocasiaoFalhada: -0.2, penaltiFalhado: -0.7, falta: -0.08, penaltiConcedido: -0.5, defesa: 0.2, golosSofridos: -0.25, balizaZero: 0.5, resultado: 0.3 },
+    notas: { base: 6, min: 3, max: 10, ruido: 0.25, golo: 0.9, assistencia: 0.5, remateABaliza: 0.1, ocasiaoFalhada: -0.2, penaltiFalhado: -0.7, falta: -0.08, penaltiConcedido: -0.5, defesa: 0.2, golosSofridos: -0.25, amarelo: -0.15, vermelho: -1.2, balizaZero: 0.5, resultado: 0.3 },
     momentos: { xgGrande: 0.3 },
+  },
+  disciplina: {
+    amarelosPorSuspensao: 5,
+    vermelhoDireto: { jogos: 1, pMaisUm: 0.35, max: 4 },
+    segundoAmarelo: { jogos: 1 },
   },
   tatica: {
     formacao: { ataque: 0.7, controlo: 0.5, defesa: 0.6 },
@@ -303,7 +332,7 @@ export const PARAMETROS_PADRAO: Parametros = {
     intensidade: { controlo: 0.2, defesa: 0.15, faltas: 0.1, fadiga: 1 },
     linha: { controlo: 0.2, ataque: 0.2, defesa: -0.5 },
     ritmo: { oportunidades: 0.06, fadiga: 0.6 },
-    fairPlay: { faltas: [0.7, 0.85, 1, 1.2, 1.45], defesa: [-0.6, -0.3, 0, 0.3, 0.6] },
+    fairPlay: { faltas: [0.7, 0.85, 1, 1.2, 1.45], defesa: [-0.6, -0.3, 0, 0.3, 0.6], cartoes: [0.5, 0.75, 1, 1.35, 1.8] },
     contraAtaque: { ataquePorPonto: 1.2, defesaPorPonto: 0.4, max: 4 },
     /** Jogo direto: por cada nível de linha defensiva que o adversário tem acima de 3 (bolas nas costas), ganha ataque. */
     diretoAtaquePorLinha: 0.5,
@@ -409,10 +438,14 @@ export function validarParametros(p: Parametros): string[] {
   if (!(k.personalidade.limiarBaixo < k.personalidade.limiarAlto)) erros.push("conhecimento.personalidade: limiarBaixo < limiarAlto");
   if (k.personalidade.maxRotulos < 1) erros.push("conhecimento.personalidade: maxRotulos ≥ 1");
   if (k.personalidade.probTrocaPiorQualidade < 0 || k.personalidade.probTrocaPiorQualidade > 1) erros.push("conhecimento.personalidade: probTrocaPiorQualidade entre 0 e 1");
+  const dis = p.disciplina;
+  if (!(Number.isInteger(dis.amarelosPorSuspensao) && dis.amarelosPorSuspensao >= 1 && dis.vermelhoDireto.jogos >= 1 && dis.vermelhoDireto.max >= dis.vermelhoDireto.jogos && dis.vermelhoDireto.pMaisUm >= 0 && dis.vermelhoDireto.pMaisUm < 1 && dis.segundoAmarelo.jogos >= 1)) erros.push("disciplina: amarelosPorSuspensao inteiro ≥ 1, vermelhoDireto.jogos ≥ 1 ≤ max, 0 ≤ pMaisUm < 1, segundoAmarelo.jogos ≥ 1");
   const t = p.tatica;
+  if (t.fairPlay.cartoes.length !== 5 || !t.fairPlay.cartoes.every((x) => x > 0)) erros.push("tatica.fairPlay.cartoes: 5 níveis, multiplicadores > 0");
   if (!(t.fairPlay.faltas.length === 5 && t.fairPlay.defesa.length === 5 && t.fairPlay.faltas.every((x) => x > 0))) erros.push("tatica.fairPlay: 5 níveis, multiplicadores de faltas > 0");
   if (!(t.fadiga.max >= 0 && t.fadiga.inicio >= 0 && t.treinador.bonusPreferencia >= 0 && t.treinador.favoritas >= 1)) erros.push("tatica: fadiga.max ≥ 0, fadiga.inicio ≥ 0, treinador.bonusPreferencia ≥ 0 e favoritas ≥ 1");
   const j = p.jogo;
+  for (const [n, x] of Object.entries({ pAmarelo: j.cartoes.pAmarelo, pAmareloPenalti: j.cartoes.pAmareloPenalti, pVermelhoDireto: j.cartoes.pVermelhoDireto, pVermelhoPenalti: j.cartoes.pVermelhoPenalti })) if (!(x >= 0 && x <= 1)) erros.push(`jogo.cartoes.${n} entre 0 e 1`);
   if (!(j.notas.min < j.notas.base && j.notas.base < j.notas.max && j.notas.ruido >= 0)) erros.push("jogo.notas: min < base < max e ruido ≥ 0");
   if (!(j.momentos.xgGrande > 0 && j.momentos.xgGrande < 1)) erros.push("jogo.momentos.xgGrande entre 0 e 1");
   if (!(j.duracao > 0 && j.acrescimos.min >= 0 && j.acrescimos.min <= j.acrescimos.max)) erros.push("jogo: duracao > 0 e 0 ≤ acrescimos.min ≤ max");

@@ -234,6 +234,30 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       expect(r.marcadores("PL", 1, 2)).toEqual([]);
     });
 
+    it("devolve cartões por jogador, competição e época, e as jornadas em que o clube jogou", () => {
+      const r = criar();
+      const g = (id: string, casa: string, fora: string, jornada: number, extra: { competicao?: string; epoca?: number } = {}) => {
+        const j = jogoSintetico(id, { casa, fora, golosCasa: 0, golosFora: 0, jornada, data: `2026-09-${10 + jornada}`, ...extra }, { cartoes: true });
+        r.registarJogo(j.jogo, j.factos, j.part);
+      };
+      g("j2", "A", "B", 2);
+      g("j1", "C", "A", 1);
+      g("j3", "A", "D", 3, { competicao: "TP" });
+      g("j4", "A", "B", 1, { epoca: 2 });
+      // A-4 viu amarelo em casa (j2); B-5 viu vermelho fora (j2); C-5 não é de A
+      expect(r.cartoes("PL", 1, ["A-4", "B-5"])).toEqual([
+        { jogador: "A-4", jogo: "j2", jornada: 2, minuto: 33, tipo: "CA", extra: "" },
+        { jogador: "B-5", jogo: "j2", jornada: 2, minuto: 70, tipo: "CV", extra: "" },
+      ]);
+      expect(r.cartoes("PL", 1, ["A-5"])).toEqual([{ jogador: "A-5", jogo: "j1", jornada: 1, minuto: 70, tipo: "CV", extra: "" }]);
+      expect(r.cartoes("PL", 1, [])).toEqual([]);
+      expect(r.cartoes("TP", 1, ["A-4"])).toHaveLength(1);
+      expect(r.jornadasJogadas("A", "PL", 1)).toEqual([1, 2]);
+      expect(r.jornadasJogadas("A", "TP", 1)).toEqual([3]);
+      expect(r.jornadasJogadas("B", "PL", 2)).toEqual([1]);
+      expect(r.jornadasJogadas("Z", "PL", 1)).toEqual([]);
+    });
+
     it("recusa jogos incoerentes ou repetidos sem deixar rasto", () => {
       const r = criar();
       const j = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 1, golosFora: 0 });

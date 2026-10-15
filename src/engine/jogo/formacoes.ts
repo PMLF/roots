@@ -1,5 +1,5 @@
 /**
- * Formações e efeitos da tática na força (RZ-108; docs/MOTOR_JOGO.md §8). Sem dependências do resto do motor, para
+ * Formações e efeitos da tática na força (RZ-108; docs/MOTOR_JOGO.md §7). Sem dependências do resto do motor, para
  * poderem ser usados por `equipa.ts` sem ciclos. As preferências do treinador estão em `tatica.ts`.
  */
 import { limitar } from "../aleatorio/rng";

@@ -1,7 +1,7 @@
 /**
- * Estatísticas pós-jogo (RZ-105; docs/MOTOR_JOGO.md §7): do resultado do motor ao relatório que a ficha do jogo mostra.
+ * Estatísticas pós-jogo (RZ-105; docs/MOTOR_JOGO.md §6): do resultado do motor ao relatório que a ficha do jogo mostra.
  * Puro e determinístico (as notas levam um ruído estável tirado da seed e do id do jogo). Sem texto: os momentos-chave
- * são estruturados e a interface escreve-os no idioma do gamer. Cartões e lesões entram com RZ-106 e RZ-107.
+ * são estruturados e a interface escreve-os no idioma do gamer. Lesões entram com RZ-107.
  */
 import { Rng, limitar } from "../aleatorio/rng";
 import type { Parametros } from "../config/parametros";
@@ -21,6 +21,9 @@ export type EstatJogador = {
   xg: number;
   penaltisFalhados: number;
   faltas: number;
+  amarelos: number;
+  /** 1 se foi expulso (vermelho direto ou segundo amarelo). */
+  vermelhos: number;
   /** Só guarda-redes: remates à baliza defendidos. */
   defesas: number;
   golosSofridos: number;
@@ -37,7 +40,10 @@ export type MomentoChave =
   | { tipo: "golo"; minuto: number; lado: Lado; jogador: string; assistente?: string; origem: Origem; contexto: ContextoGolo; golosCasa: number; golosFora: number }
   | { tipo: "penalti-falhado"; minuto: number; lado: Lado; jogador: string; guardaRedes?: string; defendido: boolean }
   | { tipo: "grande-defesa"; minuto: number; lado: Lado; jogador: string; guardaRedes: string; xg: number }
+  | { tipo: "expulsao"; minuto: number; lado: Lado; jogador: string; segundoAmarelo: boolean }
   | { tipo: "ocasiao-falhada"; minuto: number; lado: Lado; jogador: string; xg: number };
+
+export type CartaoJogo = { minuto: number; lado: Lado; jogador: string; cor: "amarelo" | "vermelho"; segundoAmarelo?: true };
 
 export type RelatorioJogo = {
   duracao: number;
@@ -50,6 +56,8 @@ export type RelatorioJogo = {
   fora: EstatLado;
   /** Golos por ordem, com o marcador depois de cada um. */
   golos: GoloJogo[];
+  /** Todos os cartões, por ordem. */
+  cartoes: CartaoJogo[];
   momentos: MomentoChave[];
   jogadores: EstatJogador[];
   /** Id do homem do jogo (melhor nota; desempata por golos + assistências, xG e id). */
@@ -84,7 +92,7 @@ export function relatorioDoJogo(
   const jogadores = new Map<string, EstatJogador>();
   for (const lado of ["casa", "fora"] as const) {
     for (const j of equipas[lado].onze) {
-      jogadores.set(j.id, { id: j.id, lado, clube: equipas[lado].clube, posicao: j.posicao, minutos: resumo.duracao, golos: 0, assistencias: 0, remates: 0, aBaliza: 0, xg: 0, penaltisFalhados: 0, faltas: 0, defesas: 0, golosSofridos: 0, nota: n.base });
+      jogadores.set(j.id, { id: j.id, lado, clube: equipas[lado].clube, posicao: j.posicao, minutos: resumo.duracao, golos: 0, assistencias: 0, remates: 0, aBaliza: 0, xg: 0, penaltisFalhados: 0, faltas: 0, amarelos: 0, vermelhos: 0, defesas: 0, golosSofridos: 0, nota: n.base });
     }
   }
   const obter = (id: string): EstatJogador => {
@@ -98,6 +106,7 @@ export function relatorioDoJogo(
   const jaPerdeu = { casa: false, fora: false };
   const meio = Math.round(pj.duracao / 2);
   const golos: GoloJogo[] = [];
+  const cartoes: CartaoJogo[] = [];
   const momentos: MomentoChave[] = [];
   /** Ajustes à nota por jogador, antes do clamp. */
   const ajuste = new Map<string, number>();
@@ -108,6 +117,20 @@ export function relatorioDoJogo(
       const inf = obter(e.jogador);
       inf.faltas++;
       somar(e.jogador, e.penalti ? n.penaltiConcedido : n.falta);
+      continue;
+    }
+    if (e.tipo === "cartao") {
+      const j = obter(e.jogador);
+      cartoes.push({ minuto: e.minuto, lado: e.lado, jogador: e.jogador, cor: e.cor, ...(e.segundoAmarelo ? { segundoAmarelo: true as const } : {}) });
+      if (e.cor === "amarelo") {
+        j.amarelos++;
+        somar(e.jogador, n.amarelo);
+      } else {
+        j.vermelhos++;
+        j.minutos = Math.min(j.minutos, e.minuto);
+        somar(e.jogador, n.vermelho);
+        momentos.push({ tipo: "expulsao", minuto: e.minuto, lado: e.lado, jogador: e.jogador, segundoAmarelo: !!e.segundoAmarelo });
+      }
       continue;
     }
     if (e.tipo !== "remate") continue;
@@ -185,6 +208,7 @@ export function relatorioDoJogo(
     casa: resumo.casa,
     fora: resumo.fora,
     golos,
+    cartoes,
     momentos,
     jogadores: lista,
     homemDoJogo: melhor.id,

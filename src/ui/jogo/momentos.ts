@@ -31,6 +31,9 @@ export function momentoEmTexto(locale: Locale, m: MomentoChave, nomes: NomesJogo
     case "grande-defesa":
       frase = traduzir(locale, "momento.grandeDefesa", { jogador, guardaRedes: nomes.jogador(m.guardaRedes) });
       break;
+    case "expulsao":
+      frase = traduzir(locale, m.segundoAmarelo ? "momento.expulsaoSegundoAmarelo" : "momento.expulsao", { jogador, clube });
+      break;
     case "ocasiao-falhada":
       frase = traduzir(locale, "momento.ocasiaoFalhada", { jogador, clube });
       break;

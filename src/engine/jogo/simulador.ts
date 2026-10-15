@@ -15,7 +15,7 @@ import { outroLado, type EntradaJogo, type EquipaJogo, type EstatLado, type Even
 const logit = (p: number): number => Math.log(p / (1 - p));
 const sigmoide = (x: number): number => 1 / (1 + Math.exp(-x));
 
-const novoLado = (): EstatLado => ({ golos: 0, oportunidades: 0, remates: 0, aBaliza: 0, bloqueados: 0, xg: 0, cantos: 0, faltas: 0, minutosPosse: 0 });
+const novoLado = (): EstatLado => ({ golos: 0, oportunidades: 0, remates: 0, aBaliza: 0, bloqueados: 0, xg: 0, cantos: 0, faltas: 0, minutosPosse: 0, amarelos: 0, vermelhos: 0 });
 
 function escolherPonderado<T>(rng: Rng, itens: readonly T[], peso: (x: T) => number): T {
   let total = 0;
@@ -43,6 +43,9 @@ export class SimuladorJogo {
   /** Força em cada minuto: a base menos o cansaço (RZ-108). */
   private efetivas: Record<Lado, ForcaEquipa>;
   private ultimo = 0;
+  /** Expulsos de cada lado: não voltam a jogar, nem com `alterarEquipa`. */
+  private readonly expulsos: Record<Lado, Set<string>> = { casa: new Set(), fora: new Set() };
+  private readonly amarelos: Record<Lado, Set<string>> = { casa: new Set(), fora: new Set() };
   private readonly stats: Record<Lado, EstatLado> = { casa: novoLado(), fora: novoLado() };
 
   constructor(entrada: EntradaJogo, params: Parametros) {
@@ -72,8 +75,8 @@ export class SimuladorJogo {
 
   /** Muda a equipa (substituições, tática…) a partir do minuto seguinte. */
   alterarEquipa(lado: Lado, equipa: EquipaJogo): void {
-    this.equipas[lado] = equipa;
-    this.forcas[lado] = this.calcularForca(equipa);
+    this.equipas[lado] = { ...equipa, onze: equipa.onze.filter((j) => !this.expulsos[lado].has(j.id)) };
+    this.forcas[lado] = this.calcularForca(this.equipas[lado]);
   }
 
   /** Simula até ao minuto indicado (inclusive) e devolve os eventos novos, por ordem. */
@@ -107,12 +110,14 @@ export class SimuladorJogo {
     return lado === "casa" ? casa : 1 - casa;
   }
 
-  private passo(m: number, out: EventoJogo[]): void {
-    const r = this.rng.derivar(`m${m}`);
+  /** Força de cada lado neste minuto: base, cansaço, jogadores expulsos e estilos que reagem ao adversário. */
+  private atualizarEfetivas(m: number): void {
+    const pen = this.p.cartoes.penalizacaoExpulso;
     for (const lado of ["casa", "fora"] as const) {
       const f = fadigaEm(m, this.duracao, this.tatica(lado), this.params.tatica);
       const b = this.forcas[lado];
-      this.efetivas[lado] = { ...b, ataque: b.ataque - f * 0.5, controlo: b.controlo - f, defesa: b.defesa - f };
+      const x = this.expulsos[lado].size;
+      this.efetivas[lado] = { ...b, ataque: b.ataque - f * 0.5 - pen.ataque * x, controlo: b.controlo - f - pen.controlo * x, defesa: b.defesa - f - pen.defesa * x };
     }
     // estilos que reagem ao adversário: o contra-ataque rende mais quanto mais bola o outro tem; o jogo direto explora linhas altas
     for (const lado of ["casa", "fora"] as const) {
@@ -127,6 +132,11 @@ export class SimuladorJogo {
       const e = this.efetivas[lado];
       this.efetivas[lado] = { ...e, ataque: e.ataque + c.ataquePorPonto * falta, defesa: e.defesa + c.defesaPorPonto * falta };
     }
+  }
+
+  private passo(m: number, out: EventoJogo[]): void {
+    const r = this.rng.derivar(`m${m}`);
+    this.atualizarEfetivas(m);
     const ritmo = 1 + (this.params.tatica.ritmo.oportunidades * (this.tatica("casa").ritmo + this.tatica("fora").ritmo - 6)) / 2;
     this.stats[r.prob(this.quota("casa")) ? "casa" : "fora"].minutosPosse++;
     for (const lado of ["casa", "fora"] as const) {
@@ -213,14 +223,40 @@ export class SimuladorJogo {
     this.remate(r, m, lado, out, cabeceador, marcador.id === cabeceador.id ? undefined : marcador, xg, "canto", profundidade + 1);
   }
 
+  /** Cartão por uma falta: vermelho direto, amarelo (e vermelho se já tinha um). O expulso sai do jogo. */
+  private cartao(r: Rng, m: number, lado: Lado, out: EventoJogo[], inf: JogadorEmCampo, penalti: boolean): void {
+    const c = this.p.cartoes;
+    const mult = (this.params.tatica.fairPlay.cartoes[this.tatica(lado).fairPlay - 1] as number) * ((inf.atributos.agressividade + 10) / 20);
+    const pVermelho = Math.min(1, (penalti ? c.pVermelhoPenalti : c.pVermelhoDireto) * mult);
+    const pAmarelo = Math.min(1, (penalti ? c.pAmareloPenalti : c.pAmarelo) * mult * (this.amarelos[lado].has(inf.id) ? c.jaAmarelo.cartao : 1));
+    if (r.prob(pVermelho)) {
+      this.expulsar(m, lado, out, inf, false);
+    } else if (r.prob(pAmarelo)) {
+      this.stats[lado].amarelos++;
+      out.push({ tipo: "cartao", minuto: m, lado, jogador: inf.id, cor: "amarelo" });
+      if (this.amarelos[lado].has(inf.id)) this.expulsar(m, lado, out, inf, true);
+      else this.amarelos[lado].add(inf.id);
+    }
+  }
+
+  private expulsar(m: number, lado: Lado, out: EventoJogo[], inf: JogadorEmCampo, segundoAmarelo: boolean): void {
+    this.stats[lado].vermelhos++;
+    out.push({ tipo: "cartao", minuto: m, lado, jogador: inf.id, cor: "vermelho", ...(segundoAmarelo ? { segundoAmarelo: true as const } : {}) });
+    this.expulsos[lado].add(inf.id);
+    this.equipas[lado] = { ...this.equipas[lado], onze: this.equipas[lado].onze.filter((j) => j.id !== inf.id) };
+    this.forcas[lado] = this.calcularForca(this.equipas[lado]);
+    this.atualizarEfetivas(m);
+  }
+
   /** Falta de `lado`: pode dar penálti ou livre perigoso a favor do adversário. */
   private falta(r: Rng, m: number, lado: Lado, out: EventoJogo[]): void {
     const eq = this.equipas[lado];
     const adv = outroLado(lado);
     this.stats[lado].faltas++;
-    const infrator = escolherPonderado(r, eq.onze, (j) => (j.posicao === "GR" ? 0.05 : 1) * Math.pow((j.atributos.agressividade + 10) / 20, 2) * Math.sqrt(21 - j.atributos.desarme));
+    const infrator = escolherPonderado(r, eq.onze, (j) => (j.posicao === "GR" ? 0.05 : 1) * (this.amarelos[lado].has(j.id) ? this.p.cartoes.jaAmarelo.falta : 1) * Math.pow((j.atributos.agressividade + 10) / 20, 2) * Math.sqrt(21 - j.atributos.desarme));
     const penalti = r.prob(this.p.penalti.pPorFalta);
     out.push({ tipo: "falta", minuto: m, lado, jogador: infrator.id, penalti });
+    this.cartao(r, m, lado, out, infrator, penalti);
     if (penalti) {
       const cobrador = this.equipas[adv].onze.filter((j) => j.posicao !== "GR").reduce((a, b) => (b.atributos.penaltis * b.forma > a.atributos.penaltis * a.forma ? b : a));
       this.remate(r, m, adv, out, cobrador, undefined, this.p.penalti.xg, "penalti", 1);

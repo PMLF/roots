@@ -1,5 +1,5 @@
 /**
- * Táticas do treinador (RZ-108; docs/MOTOR_JOGO.md §8): preferências derivadas da personalidade e escolha da formação
+ * Táticas do treinador (RZ-108; docs/MOTOR_JOGO.md §7): preferências derivadas da personalidade e escolha da formação
  * para o plantel. Puro e determinístico. Os efeitos na força estão em `formacoes.ts`.
  */
 import { Rng, limitar } from "../aleatorio/rng";

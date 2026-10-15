@@ -73,7 +73,7 @@ E que a força conta: com +2 pontos de qualidade a equipa da casa ganha ≈ 68 %
 - **Momentos-chave:** golos com contexto (*abertura, empate, vantagem, reviravolta, redução, alargou*; reviravolta = passar para a frente depois de ter estado a perder), penáltis falhados (defendidos ou ao lado), grandes defesas e grandes ocasiões falhadas (xG ≥ `momentos.xgGrande`). São estruturados; `src/ui/jogo/momentos.ts` escreve-os em pt-PT e inglês (chaves `momento.*`). O comentário minuto a minuto continua a ser o RZ-131.
 - **Cartões e lesões:** entram no relatório com RZ-106 e RZ-107, quando o motor os gerar.
 
-## 7b. Táticas (RZ-108)
+## 7. Táticas (RZ-108)
 
 Código: `formacoes.ts` (formações e efeitos, sem dependências), `tatica.ts` (treinador), parâmetros em `parametros.tatica`. `EquipaJogo.tatica` é opcional; sem ela usa-se `TATICA_PADRAO` (4-3-3, equilibrado, tudo a 3, fair play normal), que não muda nada.
 
@@ -89,7 +89,20 @@ Código: `formacoes.ts` (formações e efeitos, sem dependências), `tatica.ts` 
 
 **Treinador.** `perfilTreinador(seed, id, personalidade, qualidadeTática)` deriva as preferências, de forma estável: 3 **formações favoritas** (ambicioso e vaidoso → ofensivas), estilo (vaidoso → bonito; impaciente → direto; modesto → contra-ataque), intensidade (ambição), linha (ambição + vaidade), ritmo (impaciência), fair play (temperamento alto e integridade baixa → duro) e **flexibilidade** (qualidade tática alta e vaidade baixa). `escolherEquipa` escolhe a formação que maximiza o valor médio do onze mais um bónus pela preferência (1.º favorito 100 %, 2.º 66 %, 3.º 33 %) multiplicado por `1 − flexibilidade`: o teimoso insiste nas favoritas mesmo com o plantel errado, o flexível escolhe o melhor onze. As preferências ainda não são guardadas na base de dados (derivam da seed, do id e da personalidade); evoluem e ficam guardadas com RZ-208/209.
 
-## 8. Ligação ao resto
+## 8. Cartões e castigos (RZ-106)
+
+**No jogo** (`simulador.ts`, `parametros.jogo.cartoes`). Cada falta pode dar cartão: vermelho direto (raro; mais provável num penálti), senão amarelo; quem já tem amarelo e vê outro é expulso (evento `cartao` amarelo seguido de vermelho com `segundoAmarelo`). A probabilidade escala com o **fair play** da equipa (0,5 … 1,8) e com a agressividade do infrator. Quem já tem amarelo joga com mais cuidado (menos faltas, menos cartões). O expulso sai do onze, não volta com `alterarEquipa` e a equipa perde pontos de ataque, controlo e defesa por cada jogador a menos (`penalizacaoExpulso`); se for o guarda-redes, fica sem guarda-redes (ainda sem banco). Calibração (`cartoes.test.ts`): ≈ 4,1 amarelos e ≈ 0,18 vermelhos por jogo; com dez, a equipa marca menos e sofre mais.
+
+**Relatório e registo.** Os cartões entram no `RelatorioJogo` (`cartoes`, amarelos e vermelhos por jogador, minutos até à expulsão, nota, momento-chave «expulsão»). `registoDoJogo` guarda factos `CA` e `CV` (`extra` «2A» no vermelho por segundo amarelo) e os minutos jogados do expulso.
+
+**Castigos** (`src/engine/disciplina/castigos.ts`, `parametros.disciplina`). Derivam dos factos, nada se apaga:
+- amarelos acumulam por competição e época; de 5 em 5, um jogo de suspensão;
+- vermelho por segundo amarelo: 1 jogo; vermelho direto: 1 jogo e, com 35 % de probabilidade, mais um (até 4), sorteado de forma estável por seed, jogo e jogador;
+- cumpre-se nos jogos seguintes **do clube na mesma competição**; quem está suspenso não joga nem acumula cartões; um castigo pendente passa para a época seguinte (`pendenteInicial`).
+
+`estadoDisciplinar` (puro) e `suspensosDoClube` (lê `Repositorio.cartoes` e `jornadasJogadas`) dizem quem falha o próximo jogo; `semSuspensos` tira-os dos candidatos ao onze. Quem chama (loop de jogos, RZ-109/119) filtra o plantel antes de montar a equipa.
+
+## 9. Ligação ao resto
 
 - `registoDoJogo(...)` converte o resultado em `JogoNovo` + factos (G, A, P) + participações, prontos para `Repositorio.registarJogo` (RZ-122 liga isto ao calendário).
-- Fora desta tarefa, de propósito: cartões e castigos (RZ-106), lesões (RZ-107), nível de detalhe (RZ-109), jogo ao vivo com ritmo e pausa (RZ-130) e comentário (RZ-131). Os eventos já trazem os dados de que precisam.
+- Fora desta tarefa, de propósito: lesões (RZ-107), nível de detalhe (RZ-109), jogo ao vivo com ritmo e pausa (RZ-130) e comentário (RZ-131). Os eventos já trazem os dados de que precisam.
