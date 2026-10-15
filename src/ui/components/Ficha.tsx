@@ -1,0 +1,71 @@
+"use client";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
+import { useT } from "@/ui/i18n/LocaleProvider";
+import type { Chave } from "@/ui/i18n";
+import { SEPARADORES, type TipoEntidadeFicha } from "@/ui/ligacoes";
+
+export type Numero = { rotulo: string; valor: ReactNode };
+export type Separadores = Partial<Record<string, ReactNode>>;
+
+type Props = {
+  tipo: TipoEntidadeFicha;
+  titulo: string;
+  subtitulo?: ReactNode;
+  numeros: Numero[];
+  /** Conteúdo por separador; os que faltam aparecem como "em breve", na ordem fixa do tipo. */
+  separadores: Separadores;
+  /** Coluna lateral de ligações. */
+  lateral?: ReactNode;
+};
+
+/** Estrutura comum a todas as entidades (TOM_E_UX §3.2): cabeçalho, números-chave, separadores fixos, ligações. */
+export function Ficha({ tipo, titulo, subtitulo, numeros, separadores, lateral }: Props) {
+  const { t } = useT();
+  const ids = SEPARADORES[tipo];
+  const [ativo, setAtivo] = useState(ids[0] as string);
+  const rotulo = (id: string) => t(`separador.${id}` as Chave);
+
+  const teclas = (e: KeyboardEvent<HTMLDivElement>) => {
+    const i = ids.indexOf(ativo);
+    if (e.key === "ArrowRight") setAtivo(ids[(i + 1) % ids.length] as string);
+    else if (e.key === "ArrowLeft") setAtivo(ids[(i - 1 + ids.length) % ids.length] as string);
+  };
+
+  return (
+    <article className="ficha" data-tipo={tipo}>
+      <header className="ficha-cabecalho">
+        <p className="ficha-tipo">{t(`entidade.${tipo}` as Chave)}</p>
+        <h1>{titulo}</h1>
+        {subtitulo && <p className="suave">{subtitulo}</p>}
+        <dl className="ficha-numeros">
+          {numeros.map((n) => (
+            <div key={n.rotulo}>
+              <dt>{n.rotulo}</dt>
+              <dd>{n.valor}</dd>
+            </div>
+          ))}
+        </dl>
+      </header>
+      <div className="ficha-corpo">
+        <div className="ficha-principal" onKeyDown={teclas}>
+          <div role="tablist" aria-label={t("ficha.separadores")} className="separadores">
+            {ids.map((id) => (
+              <button key={id} role="tab" type="button" id={`sep-${id}`} aria-selected={ativo === id} aria-controls={`painel-${id}`} tabIndex={ativo === id ? 0 : -1} onClick={() => setAtivo(id)}>
+                {rotulo(id)}
+              </button>
+            ))}
+          </div>
+          <div role="tabpanel" id={`painel-${ativo}`} aria-labelledby={`sep-${ativo}`} className="painel">
+            {separadores[ativo] ?? <p className="vazio">{t("ficha.embreve")}</p>}
+          </div>
+        </div>
+        {lateral && (
+          <aside className="ficha-lateral" aria-label={t("ficha.ligacoes")}>
+            <h2>{t("ficha.ligacoes")}</h2>
+            {lateral}
+          </aside>
+        )}
+      </div>
+    </article>
+  );
+}

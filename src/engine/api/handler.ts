@@ -8,7 +8,8 @@ import { gerarMundo } from "../mundo/gerarMundo";
 import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { Vista } from "../vista/vista";
-import type { ClubeResumo, DiagnosticoBd, Mensagem, PedidosMotor, ProgressoMundo, ResumoMundoCriado, TipoPedido } from "./contratos";
+import { indexar, pesquisar, type EntradaIndice, type Indexada } from "../pesquisa/pesquisar";
+import type { ClubeResumo, DiagnosticoBd, FichaClubeDados, FichaPessoaDados, RefEntidade, Mensagem, PedidosMotor, ProgressoMundo, ResumoMundoCriado, TipoPedido } from "./contratos";
 
 export const VERSAO_MOTOR = "0.1.0";
 export const VERSAO_ESQUEMA = ESQUEMA_BD;
@@ -60,12 +61,45 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
     }
     case "criarMundo":
       return criarMundo(m.entrada.seed, servicos, aoProgredir);
+    case "paises":
+      return (await dadosDoJogo(servicos)).paises.map((p) => ({ id: p.id, nome: p.nome }));
+    case "pesquisar": {
+      const [{ repositorio }, jogo] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      return pesquisar(m.entrada.q, indiceDePesquisa(repositorio, jogo.dados), m.entrada.limite ?? 12);
+    }
+    case "fichaPessoa": {
+      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const ficha = vistaDoGamer(repositorio).ficha(m.entrada.id);
+      if (!ficha) return null;
+      const saida: FichaPessoaDados = { ficha };
+      const clube = ficha.publico.clube ? dados.clubes.find((c) => c.id === ficha.publico.clube) : undefined;
+      if (clube) saida.clube = { k: "clube", id: clube.id, nome: clube.nome };
+      const cidade = ficha.publico.naturalDe ? dados.cidades.find((c) => c.id === ficha.publico.naturalDe) : undefined;
+      if (cidade) saida.naturalDe = { k: "cidade", id: cidade.id, nome: cidade.nome };
+      return saida;
+    }
+    case "fichaClube": {
+      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      const c = dados.clubes.find((x) => x.id === m.entrada.id);
+      if (!c) return null;
+      const vista = vistaDoGamer(repositorio);
+      const cidade = dados.cidades.find((x) => x.id === c.cidade);
+      const rival = dados.clubes.find((x) => x.id === c.rival);
+      const saida: FichaClubeDados = {
+        id: c.id, nome: c.nome, liga: c.liga, localidade: c.localidade,
+        cidade: { k: "cidade", id: c.cidade, nome: cidade?.nome ?? c.cidade },
+        distrito: c.distrito, cores: c.cores, alcunha: c.alcunha, mascote: c.mascote, reputacao: c.reputacao,
+        ...(rival ? { rival: { k: "clube", id: rival.id, nome: rival.nome } as RefEntidade } : {}),
+        estadio: { nome: c.estadio.nome, capacidade: c.estadio.capacidade },
+        plantel: vista.plantel(c.id),
+        cargos: vista.cargos({ clube: c.id }),
+      };
+      return saida;
+    }
     case "plantel": {
       const { repositorio } = await servicos.abrirRepositorio();
       const clube = m.entrada.clube;
-      const hoje = criarData(PARAMETROS_PADRAO.calendario.anoInicial, 7, 1);
-      const vista = new Vista(repositorio, { observador: clube, participantes: new Set([`clube:${clube}`]), data: hoje, epoca: 1 }, PARAMETROS_PADRAO.conhecimento);
-      return vista.plantel(clube);
+      return vistaDoGamer(repositorio, clube).plantel(clube);
     }
   }
 }
@@ -112,4 +146,36 @@ async function criarMundo(seed: string, servicos: Servicos, aoProgredir: (p: Pro
 
 function resumoExistente(r: Repositorio, dados: DadosBase): ResumoMundoCriado {
   return { seed: r.meta("seed") ?? "?", clubes: dados.clubes.length, pessoas: r.totalPessoas(), jogadores: Number(r.meta("mundo.jogadores") ?? 0), ms: 0, avisos: [], jaExistia: true };
+}
+
+/**
+ * A Vista de quem joga. Enquanto não há escolha de clube (RZ-134/RZ-120), o observador é o clube
+ * guardado em `clube.gamer` ou ninguém: só factos públicos.
+ */
+function vistaDoGamer(r: Repositorio, observador?: string): Vista {
+  const clube = observador ?? r.meta("clube.gamer") ?? "";
+  const hoje = criarData(PARAMETROS_PADRAO.calendario.anoInicial, 7, 1);
+  return new Vista(r, { observador: clube, participantes: new Set(clube ? [`clube:${clube}`] : []), data: hoje, epoca: 1 }, PARAMETROS_PADRAO.conhecimento);
+}
+
+const indices = new WeakMap<Repositorio, { pessoas: number; indice: Indexada[] }>();
+
+/** Índice de pesquisa (clubes, cidades, pessoas); refaz-se só se o nº de pessoas mudar. */
+function indiceDePesquisa(r: Repositorio, dados: DadosBase): Indexada[] {
+  const total = r.totalPessoas();
+  const guardado = indices.get(r);
+  if (guardado && guardado.pessoas === total) return guardado.indice;
+  const nomeClube = new Map(dados.clubes.map((c) => [c.id, c.nome] as const));
+  const entradas: EntradaIndice[] = [
+    ...dados.clubes.map((c): EntradaIndice => ({ k: "clube", id: c.id, titulo: c.nome, subtitulo: c.liga, extra: `${c.localidade} ${c.alcunha}` })),
+    ...dados.cidades.map((c): EntradaIndice => ({ k: "cidade", id: c.id, titulo: c.nome, subtitulo: c.distrito })),
+    ...r.indicePessoas().map((p): EntradaIndice => ({
+      k: "pessoa", id: p.id, titulo: p.nomeDesportivo,
+      subtitulo: [p.posicao ?? p.funcao, p.clube ? nomeClube.get(p.clube) : undefined].filter(Boolean).join(" · "),
+      extra: p.nome,
+    })),
+  ];
+  const indice = indexar(entradas);
+  indices.set(r, { pessoas: total, indice });
+  return indice;
 }

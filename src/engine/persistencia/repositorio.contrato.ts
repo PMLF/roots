@@ -373,6 +373,15 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       expect(r.pessoaPublica("p3")?.jogador?.estado).toBe("livre");
       expect(r.pessoaPublica("p2")).toMatchObject({ funcao: "presidente", clube: "X" });
     });
+    it("índice de pesquisa só com factos públicos", () => {
+      const r = criar();
+      r.guardarMundo(lote());
+      expect(r.indicePessoas()).toEqual([
+        { id: "p1", nome: "João Pedro Silva", nomeDesportivo: "João Silva", clube: "X", posicao: "MC" },
+        { id: "p2", nome: "Ana Costa", nomeDesportivo: "Ana Costa", clube: "X", funcao: "presidente" },
+        { id: "p3", nome: "Luca Rossi", nomeDesportivo: "Luca Rossi", posicao: "PL" },
+      ]);
+    });
     it("plantel e cargos públicos", () => {
       const r = criar();
       r.guardarMundo(lote());

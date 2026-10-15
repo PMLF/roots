@@ -1,77 +1,47 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
+import type { ResumoMundoCriado } from "@/engine/api/contratos";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { MotorCliente } from "@/ui/engineClient";
-import { Mundo } from "@/ui/components/Mundo";
-import type { Parametros } from "@/engine/config/parametros";
-import type { DiagnosticoBd } from "@/engine/api/contratos";
-import { derivados } from "@/engine/config/parametros";
+import { useMotor } from "@/ui/MotorProvider";
 
-type Estado =
-  | { fase: "espera" }
-  | { fase: "ligado"; versao: string; esquema: number; ms: number; parametros: Parametros }
-  | { fase: "erro"; erro: string };
-
-export default function Inicio() {
-  const { t, locale } = useT();
-  const [estado, setEstado] = useState<Estado>({ fase: "espera" });
-  const [motor, setMotor] = useState<MotorCliente | null>(null);
-  const [bd, setBd] = useState<{ fase: "espera" } | { fase: "ok"; d: DiagnosticoBd } | { fase: "erro"; erro: string }>({ fase: "espera" });
+/** Página «Hoje» (TOM_E_UX §3.8): o que mudou, o que exige decisão, o que vem a seguir. */
+export default function Hoje() {
+  const { t } = useT();
+  const motor = useMotor();
+  const [mundo, setMundo] = useState<ResumoMundoCriado | null | undefined>(undefined);
 
   useEffect(() => {
-    const motor = new MotorCliente();
-    setMotor(motor);
-    const inicio = performance.now();
+    if (!motor) return;
     let vivo = true;
-    (async () => {
-      try {
-        const [v, parametros] = await Promise.all([motor.chamar("versao", null), motor.chamar("parametros", null)]);
-        await motor.chamar("ping", { eco: "olá" });
-        motor
-          .chamar("bd", null)
-          .then((d) => vivo && setBd({ fase: "ok", d }))
-          .catch((e) => vivo && setBd({ fase: "erro", erro: e instanceof Error ? e.message : String(e) }));
-        if (vivo) setEstado({ fase: "ligado", versao: v.motor, esquema: v.esquema, ms: Math.round(performance.now() - inicio), parametros });
-      } catch (e) {
-        if (vivo) setEstado({ fase: "erro", erro: e instanceof Error ? e.message : String(e) });
-      }
-    })();
-    return () => { vivo = false; motor.terminar(); };
-  }, []);
+    motor.chamar("estadoMundo", null).then((m) => vivo && setMundo(m)).catch(() => vivo && setMundo(null));
+    return () => { vivo = false; };
+  }, [motor]);
 
-  const euro = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
   return (
     <section>
-      <h1>{t("inicio.titulo")}</h1>
-      <h2>{t("inicio.motor")}</h2>
-      {estado.fase === "espera" && <p data-testid="motor-estado">{t("inicio.motorAEspera")}</p>}
-      {estado.fase === "erro" && <p data-testid="motor-estado" className="erro">{t("inicio.motorErro", { erro: estado.erro })}</p>}
-      {estado.fase === "ligado" && (
-        <>
-          <p data-testid="motor-estado">{t("inicio.motorLigado", { versao: estado.versao, esquema: estado.esquema, ms: estado.ms })}</p>
-          <h2>{t("inicio.bd")}</h2>
-          {bd.fase === "espera" && <p data-testid="bd-estado">{t("inicio.bdAEspera")}</p>}
-          {bd.fase === "erro" && <p data-testid="bd-estado" className="erro">{t("inicio.bdErro", { erro: bd.erro })}</p>}
-          {bd.fase === "ok" && (
-            <p data-testid="bd-estado" data-backend={bd.d.backend} data-aberturas={bd.d.aberturas}>
-              {bd.d.persistente
-                ? t("inicio.bdOpfs", { sqlite: bd.d.sqlite, esquema: bd.d.esquema, aberturas: bd.d.aberturas, eventos: bd.d.eventos })
-                : t("inicio.bdMemoria", { sqlite: bd.d.sqlite, esquema: bd.d.esquema, motivo: bd.d.motivoMemoria ?? "?" })}
-            </p>
-          )}
-          {motor && <Mundo motor={motor} />}
-          <h2>{t("inicio.regras")}</h2>
-          <table className="tabela">
-            <tbody>
-              <tr><th scope="row">{t("inicio.premioClube")}</th><td>{euro.format(estado.parametros.premios.clube)}</td></tr>
-              <tr><th scope="row">{t("inicio.premioCidade")}</th><td>{euro.format(estado.parametros.premios.cidade)}</td></tr>
-              <tr><th scope="row">{t("inicio.promovidos")}</th><td>{derivados(estado.parametros).promovidosAoCp}</td></tr>
-              <tr><th scope="row">{t("inicio.distritais")}</th><td>{estado.parametros.distritais.alvo} / {estado.parametros.distritais.min} / {estado.parametros.distritais.max}</td></tr>
-              <tr><th scope="row">&nbsp;</th><td>{t("inicio.autosave", { dias: estado.parametros.saves.autosaveDias })}</td></tr>
-            </tbody>
-          </table>
-        </>
+      <h1>{t("hoje.titulo")}</h1>
+      {mundo === null && (
+        <p data-testid="hoje-sem-mundo">
+          {t("hoje.semMundo")} <Link href="/mundo/">{t("hoje.criarMundo")}</Link>
+        </p>
       )}
+      {mundo && <p className="suave" data-testid="hoje-mundo">{t("hoje.mundo", { seed: mundo.seed, pessoas: mundo.pessoas })}</p>}
+      <div className="hoje-grelha">
+        <section className="painel" aria-labelledby="h-mudou">
+          <h2 id="h-mudou">{t("hoje.mudou")}</h2>
+          <p className="vazio">{t("hoje.mudouVazio")}</p>
+        </section>
+        <section className="painel" aria-labelledby="h-decisao">
+          <h2 id="h-decisao">{t("hoje.decisao")}</h2>
+          <p className="vazio">{t("hoje.decisaoVazio")}</p>
+        </section>
+        <section className="painel" aria-labelledby="h-seguir">
+          <h2 id="h-seguir">{t("hoje.seguir")}</h2>
+          <p className="vazio">{t("hoje.seguirVazio")}</p>
+          <p><button type="button" disabled title={t("menu.brevemente")}>{t("hoje.avancar")}</button></p>
+        </section>
+      </div>
     </section>
   );
 }
