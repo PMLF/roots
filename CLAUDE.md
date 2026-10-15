@@ -18,6 +18,9 @@ Jogo de browser de gestão de futebol português com **clubes ligados a cidades*
 - A UI só lê através de `Vista` (público + observações); nunca a "verdade" oculta (personalidade, atributos, finanças).
 - Personalidade = um sistema único (traços + memória) para todas as pessoas e entidades.
 
+## Comandos
+`npm run dev` · `npm run typecheck` · `npm run lint` (inclui fronteiras: motor sem React/DOM; UI sem `verdade`/`repositorio`/`worker`) · `npm test` · `npm run build` · `npm run ci`. Parâmetros de regras só em `src/engine/config/parametros.ts`.
+
 ## Regras de trabalho
 - **Git:** `main` = estável, `develop` = integração, `feature/rz-xxx` = trabalho atual (um de cada vez). Docs podem ir direto para `develop`; `main` só recebe merges de marcos. Commits terminam com as linhas de atribuição pedidas pelo ambiente.
 - Nomes de clubes realistas (sigla + localidade/gentílico); humor fica na alcunha/mascote. Tom das notícias: realista (`docs/TOM_E_UX.md`).
