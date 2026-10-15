@@ -7,12 +7,16 @@ export type MetaJogo = { id: string; competicao: string; epoca: number; jornada:
 
 /**
  * Converte o jogo simulado em `JogoNovo` + factos + participações, prontos para `Repositorio.registarJogo`.
- * Golos (G), assistências (A) e penáltis falhados (P) são factos; os onze jogam o jogo todo (substituições: RZ-215). Com o `relatorio` (RZ-105), as participações levam a nota.
+ * Golos (G), assistências (A), penáltis falhados (P) e cartões (CA, CV; `extra` «2A» num vermelho por segundo amarelo) são factos; os onze jogam o jogo todo (substituições: RZ-215). Com o `relatorio` (RZ-105), as participações levam a nota.
  */
 export function registoDoJogo(meta: MetaJogo, casa: EquipaJogo, fora: EquipaJogo, eventos: readonly EventoJogo[], resumo: ResumoJogo, relatorio?: RelatorioJogo): { jogo: JogoNovo; factos: JogoFacto[]; participacoes: Participacao[] } {
   const clube = { casa: casa.clube, fora: fora.clube };
   const factos: JogoFacto[] = [];
   for (const e of eventos) {
+    if (e.tipo === "cartao") {
+      factos.push({ minuto: e.minuto, tipo: e.cor === "amarelo" ? "CA" : "CV", jogador: e.jogador, clube: clube[e.lado], ...(e.segundoAmarelo ? { extra: "2A" } : {}) });
+      continue;
+    }
     if (e.tipo !== "remate") continue;
     if (e.resultado === "golo") {
       factos.push({ minuto: e.minuto, tipo: "G", jogador: e.jogador, clube: clube[e.lado], ...(e.origem !== "jogada" ? { extra: e.origem } : {}) });
@@ -34,7 +38,8 @@ export function registoDoJogo(meta: MetaJogo, casa: EquipaJogo, fora: EquipaJogo
   const participar = (eq: EquipaJogo): Participacao[] =>
     eq.onze.map((j) => {
       const n = nota(j.id);
-      return { jogador: j.id, clube: eq.clube, titular: true, minutos: resumo.duracao, ...(n !== undefined ? { nota: n } : {}) };
+      const expulso = eventos.find((e) => e.tipo === "cartao" && e.cor === "vermelho" && e.jogador === j.id);
+      return { jogador: j.id, clube: eq.clube, titular: true, minutos: expulso ? expulso.minuto : resumo.duracao, ...(n !== undefined ? { nota: n } : {}) };
     });
   const participacoes: Participacao[] = [...participar(casa), ...participar(fora)];
   return { jogo, factos, participacoes };

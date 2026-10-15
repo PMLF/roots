@@ -12,6 +12,7 @@ import type {
   Jogo,
   JogoAgendado,
   JogoFacto,
+  RegistoCartao,
   JogadorReg,
   JogoNovo,
   LinhaClassificacao,
@@ -78,6 +79,10 @@ export interface Repositorio {
   registarJogo(jogo: JogoNovo, factos: JogoFacto[], participacoes: Participacao[]): { evento: number };
   jogo(id: string): Jogo | undefined;
   marcadores(competicao: string, epoca: number, jornada: number): Marcador[];
+  /** Cartões (CA, CV) destes jogadores nesta competição e época, por jornada, data, jogo e minuto. */
+  cartoes(competicao: string, epoca: number, jogadores: readonly string[]): RegistoCartao[];
+  /** Jornadas (sem repetidas, por ordem) em que o clube jogou nesta competição e época. */
+  jornadasJogadas(clube: string, competicao: string, epoca: number): number[];
   classificacao(competicao: string, epoca: number): LinhaClassificacao[];
   statsJogador(jogador: string): LinhaStatJogador[];
   /** Acrescenta uma sanção retroativa: não reescreve nenhum jogo nem evento. */

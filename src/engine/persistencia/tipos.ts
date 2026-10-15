@@ -101,6 +101,9 @@ export type LinhaStatJogador = {
   vermelhos: number;
 };
 
+/** Um cartão registado (facto CA ou CV) com a jornada do jogo, para calcular castigos (RZ-106). `extra` «2A» = vermelho por segundo amarelo. */
+export type RegistoCartao = { jogador: string; jogo: string; jornada: number; minuto: number; tipo: "CA" | "CV"; extra: string };
+
 export type Marcador = { jogador: string; clube: string; minuto: number; jogo: string };
 
 export type Observacao = {

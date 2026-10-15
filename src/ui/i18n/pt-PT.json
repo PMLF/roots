@@ -240,5 +240,7 @@
   "momento.penaltiFalhado": "{jogador} falha o penálti.",
   "momento.grandeDefesa": "Grande defesa de {guardaRedes} a remate de {jogador}.",
   "momento.ocasiaoFalhada": "{jogador} desperdiça uma grande ocasião para {clube}.",
-  "momento.marcador": "{casa} {golosCasa}-{golosFora} {fora}"
+  "momento.marcador": "{casa} {golosCasa}-{golosFora} {fora}",
+  "momento.expulsao": "{jogador} é expulso e {clube} fica com menos um.",
+  "momento.expulsaoSegundoAmarelo": "{jogador} vê o segundo amarelo e é expulso; {clube} fica com menos um."
 }

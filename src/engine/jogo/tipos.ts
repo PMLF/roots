@@ -33,7 +33,9 @@ export type EventoJogo =
   | { tipo: "lance"; minuto: number; lado: Lado; jogador: string }
   | { tipo: "remate"; minuto: number; lado: Lado; jogador: string; assistente?: string; xg: number; resultado: ResultadoRemate; origem: Origem; guardaRedes?: string }
   | { tipo: "canto"; minuto: number; lado: Lado }
-  | { tipo: "falta"; minuto: number; lado: Lado; jogador: string; penalti: boolean };
+  | { tipo: "falta"; minuto: number; lado: Lado; jogador: string; penalti: boolean }
+  /** Cartão (RZ-106). O segundo amarelo vem como um amarelo seguido de um vermelho com `segundoAmarelo`. */
+  | { tipo: "cartao"; minuto: number; lado: Lado; jogador: string; cor: "amarelo" | "vermelho"; segundoAmarelo?: true };
 
 export type EstatLado = {
   golos: number;
@@ -45,6 +47,8 @@ export type EstatLado = {
   xg: number;
   cantos: number;
   faltas: number;
+  amarelos: number;
+  vermelhos: number;
   /** Minutos em que a equipa teve a bola (a posse é a razão entre os dois lados). */
   minutosPosse: number;
 };
