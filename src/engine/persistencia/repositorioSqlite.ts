@@ -299,6 +299,9 @@ export class RepositorioSqlite implements Repositorio {
   calendarioDoClube(clube: string, epoca: number): JogoAgendado[] {
     return this.d.todos("SELECT * FROM calendario_jogo WHERE epoca = ? AND (casa = ? OR fora = ?) ORDER BY data, id", [epoca, clube, clube]).map((r) => this.jogoAgendado(r));
   }
+  jogosDoDia(data: Data): JogoAgendado[] {
+    return this.d.todos("SELECT * FROM calendario_jogo WHERE data = ? ORDER BY id", [data]).map((r) => this.jogoAgendado(r));
+  }
   proximoJogo(clube: string, desde: Data): JogoAgendado | undefined {
     const r = this.d.todos("SELECT * FROM calendario_jogo WHERE (casa = ? OR fora = ?) AND data >= ? ORDER BY data, id LIMIT 1", [clube, clube, desde])[0];
     return r ? this.jogoAgendado(r) : undefined;

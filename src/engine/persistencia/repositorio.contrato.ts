@@ -377,6 +377,8 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       expect(c.jogos.map((x) => x.id)).toEqual(["a", "b", "c"]);
       expect(c.folgas).toEqual([{ competicao: "SL", epoca: 1, jornada: 2, clube: "X" }]);
       expect(r.calendarioDoClube("Y", 1).map((x) => x.id)).toEqual(["a", "c"]);
+      expect(r.jogosDoDia("2026-08-24").map((x) => x.id)).toEqual(r.calendario("SL", 1).jogos.filter((x) => x.data === "2026-08-24").map((x) => x.id));
+      expect(r.jogosDoDia("2030-01-01")).toEqual([]);
       expect(r.proximoJogo("Y", "2026-08-24")?.id).toBe("c");
       expect(r.proximoJogo("Y", "2026-09-30")).toBeUndefined();
       expect(r.calendario("SL", 2)).toEqual({ jogos: [], folgas: [] });

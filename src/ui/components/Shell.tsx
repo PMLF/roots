@@ -8,6 +8,7 @@ import { guardar, ler } from "@/ui/armazenamento";
 import { useModoDev, useVerTudo } from "@/ui/dev";
 import { Icone, type NomeIcone } from "@/ui/components/Icone";
 import { Pesquisa } from "@/ui/components/Pesquisa";
+import { useTempo } from "@/ui/useTempo";
 
 type ItemMenu = { chave: Chave; icone: NomeIcone; href?: string; ativoQuando: (caminho: string) => boolean; /** Ferramenta de developer: só no modo dev (`ui/dev.ts`). */ soDev?: true };
 
@@ -33,6 +34,7 @@ const eDensidade = (v: unknown): v is Densidade => v === "normal" || v === "comp
 /** Estrutura base (docs/TOM_E_UX.md): menu à esquerda, página ao centro, caixa à direita, barra em baixo. */
 export function Shell({ children }: { children: ReactNode }) {
   const { t, locale, setLocale } = useT();
+  const tempo = useTempo();
   const caminho = usePathname() ?? "/";
   const router = useRouter();
   const dev = useModoDev();
@@ -120,7 +122,7 @@ export function Shell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <footer className="barra">
-        <span>{t("barra.data")}: <b>{t("barra.semDados")}</b></span>
+        <span>{t("barra.data")}: <b>{tempo.estado ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${tempo.estado.hoje}T00:00:00Z`)) : t("barra.semDados")}</b></span>
         <span>{t("barra.orcamento")}: <b>{t("barra.semDados")}</b></span>
         <span>{t("barra.humor")}: <b>{t("barra.semDados")}</b></span>
       </footer>

@@ -141,7 +141,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 - [ ] **RZ-118** (P1, M) **Feed de notícias** automático v1 + caixa de entrada.
 
 ### Interface e ferramentas
-- [ ] **RZ-119** (P1, M) Botão **Avançar** (dia/semana) e loop de simulação; cada clique enche a caixa de entrada.
+- [x] **RZ-119** (P1, M) *(feito a 15-10-2026; `src/engine/epoca/avancar.ts`)* Botão **Avançar** (dia / semana / até ao próximo jogo do teu clube) e loop de simulação: gera e grava os calendários da época, joga os jogos de cada dia com o motor único (teu jogo em detalhe, os outros resumidos com golos, cartões, lesões e melhor em campo), lesionados e suspensos ficam fora do onze, pára no fim da época. A página «Hoje» mostra o que mudou e a barra inferior a data. Falta: notícias/caixa de entrada (RZ-118), jogo ao vivo (RZ-130), fim de época (RZ-111/125), paragem em propostas/reuniões (quando existirem).
 - [ ] **RZ-120** (P1, L) UI shell: menu à esquerda, página ao centro, jornal/caixa à direita, barra inferior (data, orçamento, humor da cidade). Secções do MVP: Início, Clube, Plantel, Jogos, Mundo.
 - [ ] **RZ-123** (P1, L) **Harness de calibração headless**: 50 épocas; relatório com golos/jogo, assistência vs capacidade, lesões, cartões, rotatividade do CP (≈30% a sair), tamanho das distritais, evolução do dinheiro por distrito.
 

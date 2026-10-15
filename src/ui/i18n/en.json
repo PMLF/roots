@@ -580,5 +580,12 @@
   "hoje.oTeuClube": "Your club",
   "hoje.posicao": "{pos}th in {liga}",
   "hoje.proximo": "Next: {jogo}",
-  "hoje.escolherClube": "Choose club"
+  "hoje.escolherClube": "Choose club",
+  "hoje.avancarJogo": "Advance to next match",
+  "hoje.avancarDia": "One day",
+  "hoje.avancarSemana": "One week",
+  "hoje.aAvancar": "Playing…",
+  "hoje.fimDeEpoca": "The season is over: every match has been played.",
+  "hoje.resumoAvanco": "Across the world: {jogos, plural, one {# match} other {# matches}}, {lesoes, plural, one {# injury} other {# injuries}}, {cartoes, plural, one {# card} other {# cards}}.",
+  "hoje.homemDoJogo": "best: {nome} ({nota})"
 }
