@@ -72,7 +72,7 @@ export function FichaClube({ d, verTudo }: { d: FichaClubeDados; verTudo: boolea
   const etiquetas = (
     <>
       <Chip tom="destaque">{dimensao}</Chip>
-      <Chip>{d.liga}</Chip>
+      <Chip><Ligacao k="competicao" id={d.liga}>{d.liga}</Ligacao></Chip>
       <Chip tom="suave">{d.distrito}</Chip>
     </>
   );

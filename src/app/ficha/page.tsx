@@ -1,8 +1,9 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import type { FichaClubeDados, FichaLocalidadeDados, FichaPessoaDados } from "@/engine/api/contratos";
+import type { FichaClubeDados, FichaCompeticaoDados, FichaLocalidadeDados, FichaPessoaDados } from "@/engine/api/contratos";
 import { FichaClube } from "@/ui/components/fichas/FichaClube";
+import { FichaCompeticao } from "@/ui/components/fichas/FichaCompeticao";
 import { FichaLocalidade } from "@/ui/components/fichas/FichaLocalidade";
 import { FichaPessoa } from "@/ui/components/fichas/FichaPessoa";
 import { Ficha } from "@/ui/components/Ficha";
@@ -18,7 +19,8 @@ type Estado =
   | { fase: "erro"; erro: string }
   | { fase: "clube"; d: FichaClubeDados }
   | { fase: "pessoa"; d: FichaPessoaDados }
-  | { fase: "localidade"; d: FichaLocalidadeDados };
+  | { fase: "localidade"; d: FichaLocalidadeDados }
+  | { fase: "competicao"; d: FichaCompeticaoDados };
 
 function Conteudo() {
   const { t } = useT();
@@ -44,7 +46,10 @@ function Conteudo() {
         } else if (k === "localidade") {
           const d = await motor.chamar("fichaLocalidade", { id });
           if (vivo) setEstado(d ? { fase: "localidade", d } : { fase: "nao-encontrada" });
-        } else if (vivo) setEstado({ fase: "em-breve" }); // cidade (RZ-133) e competição (RZ-110): ainda sem ficha
+        } else if (k === "competicao") {
+          const d = await motor.chamar("fichaCompeticao", { liga: id });
+          if (vivo) setEstado(d ? { fase: "competicao", d } : { fase: "nao-encontrada" });
+        } else if (vivo) setEstado({ fase: "em-breve" }); // cidade (RZ-133): ainda sem ficha
       } catch (e) {
         if (vivo) setEstado({ fase: "erro", erro: e instanceof Error ? e.message : String(e) });
       }
@@ -61,6 +66,7 @@ function Conteudo() {
     case "clube": return <FichaClube d={estado.d} verTudo={verTudo} />;
     case "pessoa": return <FichaPessoa d={estado.d} verTudo={verTudo} />;
     case "localidade": return <FichaLocalidade d={estado.d} />;
+    case "competicao": return <FichaCompeticao d={estado.d} />;
   }
 }
 
