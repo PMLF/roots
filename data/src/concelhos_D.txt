@@ -35,6 +35,7 @@ Albufeira|Faro|42000|TUR|DOR|Algarve Central
 Tavira|Faro|26000|TUR|PAT|Sotavento
 Silves|Faro|37000|AGR|PAT|Barlavento
 Lagoa (Algarve)|Faro|26400|AGR|TUR|Barlavento
+Vila do Bispo|Faro|5300|TUR|MAR|Barlavento
 Vila Real de Santo António|Faro|20000|FRO|TUR|Sotavento
 Castro Marim|Faro|6500|AGR|FRO|Sotavento
 Alcoutim|Faro|2500|FRO|INT|Sotavento

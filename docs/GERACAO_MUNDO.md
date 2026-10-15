@@ -10,7 +10,7 @@ Cada save gera o seu próprio mundo a partir de uma **seed**: mesmos clubes, cid
 | Jogadores sem clube / reserva livre | ~3 000 | para o mercado e para os distritais |
 | Jovens e academias | sob demanda (lod 2) | nascem quando alguém os vê ou o clube precisa |
 | Staff (treinadores, adjuntos, médicos, olheiros…) | ~1 800 (5-8 por clube) + ~500 livres | |
-| Presidentes de clube, autarcas (276), empresários locais, dirigentes de adeptos | ~1 500 | autarcas: traços a partir de `cidades.csv` |
+| Presidentes de clube, autarcas (275), empresários locais, dirigentes de adeptos | ~1 500 | autarcas: traços a partir de `cidades.csv` |
 | Agentes, árbitros, jornalistas | ~600 | árbitro mínimo para a corrupção (RZ-127) |
 | **Total** | **~15-25 mil pessoas** | |
 | Ligas estrangeiras (depois, RZ-403) | +2 500 por liga detalhada; o resto lod 3 | |

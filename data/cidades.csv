@@ -99,7 +99,7 @@ Albufeira,Faro,42000,TUR,DOR,Algarve Central,não,63000000,Luís Soares Almeida,
 Alcoutim,Faro,2500,FRO,INT,Sotavento,não,7500000,José Nunes Monteiro,4,8,2,7,9,20,AC Alcoutim
 Aljezur,Faro,6000,AGR,TUR,Barlavento,não,15200000,Cristina Pereira Mendes,2,8,8,8,4,37,AD Aljezur
 Castro Marim,Faro,6500,AGR,FRO,Sotavento,não,16100000,Susana Rocha Neves,10,10,2,6,6,46,CD Castromarinense
-Faro,Faro,67000,TUR,UNI,Algarve Central,não,91600000,Carla Ferreira Carvalho,4,10,8,10,1,36,Clube Sport Sagres
+Faro,Faro,67000,TUR,UNI,Algarve Central,não,91600000,Carla Ferreira Carvalho,4,10,8,10,1,16,Juventude de Faro
 Lagoa (Algarve),Faro,26400,AGR,TUR,Barlavento,não,44400000,Teresa Rocha Rocha,8,2,4,2,8,31,AC Lagoense
 Lagos,Faro,33000,TUR,MAR,Barlavento,não,52400000,Jorge Costa Sousa,10,3,1,1,6,42,AD Lagos
 Loulé,Faro,72000,TUR,AGR,Algarve Central,não,97200000,Paulo Costa Almeida,7,5,3,3,5,46,Louletano Atlético
@@ -107,9 +107,9 @@ Monchique,Faro,5500,TER,INT,Barlavento,não,14200000,Hugo Marques Oliveira,3,2,7
 Olhão,Faro,45000,MAR,TUR,Sotavento,não,66500000,Carlos Ferreira Moreira,8,9,3,4,3,43,GD Olhanense
 Portimão,Faro,59000,TUR,MAR,Barlavento,não,82500000,Lúcia Oliveira Pereira,2,7,4,3,9,36,FC Portimão
 Silves,Faro,37000,AGR,PAT,Barlavento,não,57100000,Paulo Pereira Sousa,7,2,5,8,10,26,UD Silvense
-São Brás de Alportel,Faro,11000,AGR,TER,Algarve Central,não,23700000,Cristina Rocha Ferreira,4,9,6,1,3,28,GD São Brás de Alportel
 Tavira,Faro,26000,TUR,PAT,Sotavento,não,43900000,Marta Sousa Vieira,10,1,7,5,10,33,GD Tavirense
 Vila Real de Santo António,Faro,20000,FRO,TUR,Sotavento,não,36300000,Inês Ferreira Pinto,4,10,2,9,1,43,UD Vila Real de Santo António
+Vila do Bispo,Faro,5300,TUR,MAR,Barlavento,não,13800000,Inês Carvalho Cardoso,5,7,4,2,8,34,Clube Sport Sagres
 Almeida,Guarda,6000,FRO,PAT,Beira Alta,não,15200000,Sandra Vieira Ribeiro,1,7,1,5,6,46,UD Almeidense
 Celorico da Beira,Guarda,7500,AGR,LOG,Serra da Estrela,não,17900000,Sandra Gonçalves Moreira,5,1,2,10,3,42,FC Celorico da Beira
 Figueira de Castelo Rodrigo,Guarda,5000,FRO,AGR,Beira Alta,não,13200000,Helena Alves Gonçalves,7,3,3,2,6,23,AC Rodriguense
@@ -181,7 +181,7 @@ Portalegre,Portalegre,22000,INT,PAT,Alto Alentejo,não,38900000,Hugo Teixeira Vi
 Sousel,Portalegre,4500,AGR,INT,Alto Alentejo,não,12200000,Paulo Vieira Alves,3,1,5,4,8,23,CD Sousel
 Amarante,Porto,52000,TUR,PAT,Tâmega e Sousa,não,74500000,Isabel Carvalho Santos,7,7,8,3,7,47,UD Amarante
 Baião,Porto,17500,INT,AGR,Tâmega e Sousa,não,33000000,Marta Alves Almeida,2,8,3,1,4,48,SC Baionense
-Felgueiras,Porto,56000,IND,AGR,Tâmega e Sousa,não,79100000,Teresa Lopes Rodrigues,9,1,9,8,10,43,UD Felgueiras
+Felgueiras,Porto,56000,IND,AGR,Tâmega e Sousa,não,79100000,Teresa Lopes Rodrigues,9,1,9,8,10,51,FC Varziela; UD Felgueiras
 Gondomar,Porto,164100,DOR,IND,Grande Porto,não,199600000,Carlos Ribeiro Martins,9,7,1,10,2,38,GD Lomba
 Lousada,Porto,47000,IND,AGR,Tâmega e Sousa,não,68800000,Carlos Ribeiro Sousa,8,7,1,8,8,26,Lousada Desportivo
 Maia,Porto,137400,SER,LOG,Grande Porto,não,170000000,Inês Monteiro Monteiro,5,6,4,6,2,46,Maia Atlético Clube
@@ -190,7 +190,6 @@ Matosinhos,Porto,172700,MAR,IND,Grande Porto,não,209100000,João Neves Almeida,
 Paredes,Porto,85600,IND,DOR,Tâmega e Sousa,não,112500000,Hugo Moreira Carvalho,6,4,9,9,4,59,GD Paredes
 Paços de Ferreira,Porto,55500,IND,DOR,Tâmega e Sousa,não,78500000,Nuno Almeida Rocha,2,3,6,4,1,49,SC Paços de Ferreira
 Penafiel,Porto,72300,IND,AGR,Tâmega e Sousa,não,97500000,Nuno Pereira Santos,6,5,3,3,7,45,Atlético Penafidelense
-Porto,Porto,231800,SER,TUR,Grande Porto,não,274300000,Lúcia Carvalho Pereira,10,4,7,4,8,49,FC Varziela
 Póvoa de Varzim,Porto,66500,TUR,MAR,Grande Porto,não,91000000,Inês Nunes Rodrigues,5,3,5,7,3,35,AC Póvoa de Varzim
 Santo Tirso,Porto,68000,IND,DOR,Vale do Ave,não,92700000,Maria Rocha Teixeira,8,1,5,2,5,54,UD Tirsense
 Trofa,Porto,37000,IND,LOG,Vale do Ave,não,57100000,Tiago Ribeiro Costa,4,6,10,2,10,43,Trofa Atlético Clube

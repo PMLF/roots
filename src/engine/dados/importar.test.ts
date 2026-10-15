@@ -40,7 +40,7 @@ describe("importarDados com os CSV reais", () => {
 
   it("tem os totais esperados", () => {
     expect(d.clubes).toHaveLength(298);
-    expect(d.cidades).toHaveLength(276);
+    expect(d.cidades).toHaveLength(275);
     expect(d.distritos).toHaveLength(20);
     expect(d.rivalidades).toHaveLength(208);
   });

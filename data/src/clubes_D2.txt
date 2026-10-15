@@ -8,7 +8,7 @@ CD Castromarinense|Castro Marim|Castro Marim|Castromarinenses|Flor de Sal|Branco
 AC Alcoutim|Alcoutim|Alcoutim|Alcoutenejos|Contrabandista|Verde e castanho|Campo do Castelo de Alcoutim|UD Mértola
 GD Monchiquense|Monchique|Monchique|Monchiquenses|Medronho|Vermelho e verde|Campo da Fóia|UD Silvense
 AD Aljezur|Aljezur|Aljezur|Aljezurenses|Batata-Doce|Laranja e roxo|Campo da Arrifana|GD Monchiquense
-GD São Brás de Alportel|São Brás de Alportel|São Brás de Alportel|Sambrasenses|Caracol|Verde e branco|Campo do Barrocal|Louletano Atlético
+Juventude de Faro|Faro|Faro|Capitalinos|Cegonha|Verde e branco|Campo da Cegonha|GD Olhanense
 ## DIST|Açores
 AC Horta|Horta|Horta|Faialenses|Veleiro|Azul e branco|Campo da Marina|SC Ilha do Pico
 CD Velense|Velas|Velas|Velenses|Queijo de São Jorge|Amarelo e vermelho|Campo da Fajã|SC Calhetense

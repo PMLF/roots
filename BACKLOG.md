@@ -220,7 +220,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 3. ~~Fair play~~ — 5 níveis.
 4. A base do FM exporta jogadores? (só para testes privados; RZ-008, P3)
 5. ~~Formato da Fase de Promoção~~ — uma volta, 4 jogos por grupo, confirmado.
-6. **Localidades dos clubes originais** (RZ-136): só o CD Matelense estava mal (agora Matela, Vimioso). Dúvidas: o *Clube Sport Sagres* fica em Faro (deixa o concelho de Faro sem clube se passar para Sagres/Vila do Bispo) e o *FC Varziela* fica no Porto (Varziela não é localidade que eu consiga situar). Confirmas ou mudas?
+6. ~~Localidades dos clubes originais~~ — resolvido a 15-10-2026: CD Matelense → Matela (Vimioso); Clube Sport Sagres → Sagres (Vila do Bispo); FC Varziela → Varziela (Felgueiras). Para manter Faro com clube, o antigo GD São Brás de Alportel passou a **Juventude de Faro** (nome provisório; o concelho de São Brás fica sem clube). O concelho do **Porto** fica sem clube (como já acontecia com Beja): queres um clube no Porto?
 
 *Resolvidas a 15-10-2026:* cidade (autarca decide, gamer influencia; variáveis; propriedade do estádio; lado negativo; política fictícia; empresas depois do MVP; estimativas aceites); formato da Fase de Promoção (uma volta); cidade com mapa só para o gamer (visualização); idiomas pt/en; saves com autosave de 7 dias; fair play em 5 níveis; jogos ao vivo minuto a minuto (outros jogos: golos, vermelhos, melhor em campo); calendário agosto-maio e janelas julho-agosto + janeiro; Avançar = 1 dia com paragem em eventos; escolha livre do clube; nomes de clubes realistas e tom realista; UI densa e organizada; geração de jogadores por país com cauda rara; nome Raízes; branches main/develop/feature; licenciamento por omissão (licença provisória + coima).
 
