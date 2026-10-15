@@ -85,6 +85,8 @@
   "tabela.filtrar": "Filtrar…",
   "tabela.linhas": "{n} de {total}",
   "tabela.colunas": "Colunas",
+  "tabela.todasColunas": "Todas",
+  "tabela.repor": "Repor",
   "tabela.exportar": "Exportar CSV",
   "tabela.vazia": "Sem linhas.",
   "coluna.nome": "Nome",

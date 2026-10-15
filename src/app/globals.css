@@ -108,7 +108,6 @@ legend { padding: 0 6px; color: var(--suave); }
 .tabela-caixa { max-width: 100%; overflow-x: auto; }
 .tabela-barra { display: flex; gap: 8px; align-items: center; margin: 0 0 10px; flex-wrap: wrap; }
 .tabela-barra input[type="search"] { min-width: 220px; }
-.tabela-colunas { display: flex; flex-wrap: wrap; gap: 4px 16px; border: 1px solid var(--linha); border-radius: var(--r-s); margin: 0 0 10px; padding: 8px 12px; background: var(--painel); }
 .tabela.densa { min-width: 0; width: 100%; }
 .tabela.densa tbody tr:hover { background: var(--destaque-fundo); }
 .tabela.densa tbody tr:focus-visible { outline-offset: -2px; background: var(--destaque-fundo); }
@@ -304,7 +303,8 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .legenda-zonas { margin-top: 6px; }
 
 /* ---- Destaques (cartão sem título) e separador Estatísticas ---- */
-.cartao-destaques { cursor: pointer; display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: start; }
+.seletor-tabela { margin: 0; }
+.cartao-destaques { cursor: pointer; transition: background-color .12s, border-color .12s; display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: start; }
 .cartao-destaques .destaque-mosaicos { min-width: 0; }
 .cartao-destaques-mais { border: 0; background: none; color: var(--destaque-texto); padding: 2px 6px; white-space: nowrap; font-weight: 600; }
 .cartao-destaques-mais:hover { background: none; text-decoration: underline; }
@@ -312,3 +312,5 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .estatisticas-tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; align-items: stretch; }
 .estatisticas .destaque-lista li { font-size: 14px; }
 .destaque-lista .detalhe { color: var(--suave); font-size: 12px; margin-left: 6px; }
+.cartao-destaques:hover { background: var(--painel-2); border-color: var(--suave); }
+.cartao-destaques:focus-within { border-color: var(--suave); }
