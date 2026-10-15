@@ -4,7 +4,7 @@
  * do homem do jogo; nível 1, RZ-109). Lesões e suspensões contam: quem está lesionado ou suspenso não entra no onze e as
  * histórias saem dos jogos como em qualquer outro. Puro em relação ao tempo real: a data vive no save (`data.hoje`).
  */
-import { somarDias } from "../calendario/datas";
+import { diaDaSemana, somarDias } from "../calendario/datas";
 import type { Parametros } from "../config/parametros";
 import type { DadosBase } from "../dados/tipos";
 import { jogarJogo, nivelDoJogo } from "../jogo/detalhe";
@@ -15,6 +15,7 @@ import type { EquipaJogo } from "../jogo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
 import { fecharEpoca, gerarFasePromocao, type ResumoEpoca } from "./fecharEpoca";
+import { atualizarOfertas, estaDesempregado } from "./mercadoTreinadores";
 import { dadosDaEpoca, epocaAtual } from "./piramideEpoca";
 import { gruposDaPromocao, jogosPorJogar, prepararEpoca } from "./preparar";
 
@@ -100,7 +101,10 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
         ...(homem ? { homemDoJogo: { ...homem, nome: nomePessoa(homem.jogador) } } : {}),
       });
     }
-    repo.definirMeta("data.hoje", somarDias(hoje, 1));
+    const amanha = somarDias(hoje, 1);
+    repo.definirMeta("data.hoje", amanha);
+    // Sem clube, chegam ofertas novas todas as segundas-feiras.
+    if (estaDesempregado(repo) && diaDaSemana(amanha) === 1) atualizarOfertas(repo, dados, params, amanha);
     return { data: hoje, jogos };
   });
 }

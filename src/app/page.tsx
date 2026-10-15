@@ -5,7 +5,7 @@ import type { CompetitionPage, FichaClubeDados, ResumoMundoCriado } from "@/engi
 import { jogosDoClube } from "@/ui/jogosClube";
 import { Ligacao } from "@/ui/components/Ligacao";
 import { useMeuClube } from "@/ui/meuClube";
-import { EscolherClubeInicial } from "@/ui/components/ComClube";
+import { BotaoDemitir, EscolherClubeInicial } from "@/ui/components/ComClube";
 import { useTempo } from "@/ui/useTempo";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { useMotor } from "@/ui/MotorProvider";
@@ -49,7 +49,8 @@ export default function Hoje() {
             <>
               <b>{t("hoje.oTeuClube")}:</b> <Ligacao k="clube" id={clube.ficha.id}>{clube.ficha.nome}</Ligacao>
               {posicao !== undefined && <span className="suave"> · {t("hoje.posicao", { pos: posicao, liga: clube.ficha.liga })}</span>}
-              {proximo && <span className="suave"> · {t("hoje.proximo", { jogo: `${proximo.home ? "" : "@ "}${proximo.opponentName}` })}</span>}
+              {proximo && <span className="suave"> · {t("hoje.proximo", { jogo: `${proximo.home ? "" : "@ "}${proximo.opponentName}` })}</span>}{" "}
+              <BotaoDemitir />
             </>
           ) : (
             <EscolherClubeInicial />

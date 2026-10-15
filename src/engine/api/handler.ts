@@ -8,6 +8,7 @@ import { gerarMundo } from "../mundo/gerarMundo";
 import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
+import { aceitarOferta, demitir, estaDesempregado, ofertasDoGamer } from "../epoca/mercadoTreinadores";
 import { avancar, estadoDoTempo } from "../epoca/avancar";
 import { parametrosDoSave, anoDaEpocaQueContem, anoInicialDoSave, nomeDaEpoca } from "../epoca/anoDoSave";
 import { dadosDaEpoca, dadosDaPiramide, epocaAtual, historicoDeDivisoes } from "../epoca/piramideEpoca";
@@ -189,8 +190,32 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       const id = repositorio.meta("clube.gamer");
       return id ? { id } : null;
     }
+    case "demitir": {
+      const { repositorio, dados, params } = await contexto(servicos);
+      return demitir(repositorio, dados, params);
+    }
+    case "ofertas": {
+      const { repositorio, dados, params } = await contexto(servicos);
+      const desempregado = estaDesempregado(repositorio);
+      const nome = (id: string) => dados.clubes.find((c) => c.id === id)?.nome;
+      const anterior = repositorio.meta("gamer.anterior");
+      return {
+        desempregado,
+        ...(anterior ? { anterior: nome(anterior) ?? anterior } : {}),
+        ofertas: desempregado ? ofertasDoGamer(repositorio).flatMap((o) => {
+          const c = dados.clubes.find((x) => x.id === o.clube);
+          return c ? [{ id: c.id, nome: c.nome, liga: c.liga, escalao: c.escalao, nivelReputacao: nivelDeReputacao(c.reputacao, params), desde: o.desde }] : [];
+        }) : [],
+      };
+    }
+    case "aceitarOferta": {
+      const { repositorio } = await contexto(servicos);
+      aceitarOferta(repositorio, m.entrada.id);
+      return { id: m.entrada.id };
+    }
     case "escolherClube": {
       const { repositorio, dados } = await contexto(servicos);
+      if (estaDesempregado(repositorio) && m.entrada.forcar !== true) throw new Error("Sem clube: escolhe uma das ofertas recebidas");
       if (!dados.clubes.some((c) => c.id === m.entrada.id)) throw new Error("Clube desconhecido");
       const atual = repositorio.meta("clube.gamer");
       if (atual && atual !== m.entrada.id && m.entrada.forcar !== true) throw new Error("O clube do save já foi escolhido: só muda se fores despedido ou te despedires");

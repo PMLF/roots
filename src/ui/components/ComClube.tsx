@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import type { ClubeResumo } from "@/engine/api/contratos";
+import type { ClubeResumo, OfertaDeClube } from "@/engine/api/contratos";
+import type { Chave } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { useMeuClube } from "@/ui/meuClube";
 import { useMotor } from "@/ui/MotorProvider";
@@ -67,17 +68,83 @@ export function useClubes(): ClubeResumo[] | null | undefined {
   return clubes;
 }
 
-/** Escolha do clube para começar o save (onboarding provisório até RZ-138). */
+/** Ofertas de clubes quando o gamer está sem clube (RZ-157). */
+function OfertasDeClubes({ ofertas, anterior }: { ofertas: OfertaDeClube[]; anterior?: string }) {
+  const { t } = useT();
+  const motor = useMotor();
+  const [erro, setErro] = useState<string | undefined>(undefined);
+  const aceitar = async (id: string) => {
+    try {
+      await motor?.chamar("aceitarOferta", { id });
+      window.dispatchEvent(new Event("raizes:meuClube"));
+      window.dispatchEvent(new Event("raizes:tempo"));
+    } catch (e) { setErro(e instanceof Error ? e.message : String(e)); }
+  };
+  return (
+    <div className="pagina-clube">
+      <p>{anterior ? t("meuClube.semClubeDe", { clube: anterior }) : t("meuClube.semClube")}</p>
+      {ofertas.length === 0 ? <p className="vazio">{t("meuClube.ofertasVazio")}</p> : (
+        <ul className="ofertas">
+          {ofertas.map((o) => (
+            <li key={o.id}>
+              <b>{o.nome}</b> <span className="suave">{o.liga} · {t(`reputacao.nivel.${o.nivelReputacao}` as Chave)}</span>{" "}
+              <button type="button" className="primario" onClick={() => void aceitar(o.id)}>{t("meuClube.aceitar")}</button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="suave">{t("meuClube.ofertasRenovam")}</p>
+      {erro && <p className="erro">{erro}</p>}
+    </div>
+  );
+}
+
+/** Escolha do clube para começar o save (onboarding provisório até RZ-138); sem clube depois de uma demissão, as ofertas. */
 export function EscolherClubeInicial() {
   const { t } = useT();
+  const motor = useMotor();
   const clubes = useClubes();
   const [, definir] = useMeuClube();
-  if (!clubes) return null;
+  const [situacao, setSituacao] = useState<Awaited<ReturnType<NonNullable<typeof motor>["chamar"]>> | undefined>(undefined);
+  useEffect(() => {
+    if (!motor) return;
+    let vivo = true;
+    const carregar = () => { motor.chamar("ofertas", null).then((o) => vivo && setSituacao(o)).catch(() => undefined); };
+    carregar();
+    window.addEventListener("raizes:tempo", carregar);
+    window.addEventListener("raizes:meuClube", carregar);
+    return () => { vivo = false; window.removeEventListener("raizes:tempo", carregar); window.removeEventListener("raizes:meuClube", carregar); };
+  }, [motor]);
+  const o = situacao as { desempregado: boolean; anterior?: string; ofertas: OfertaDeClube[] } | undefined;
+  if (!clubes || !o) return null;
+  if (o.desempregado) return <OfertasDeClubes ofertas={o.ofertas} {...(o.anterior ? { anterior: o.anterior } : {})} />;
   return (
     <div className="pagina-clube">
       <p>{t("meuClube.comecar")}</p>
       <SeletorClube clubes={clubes} aberto0 aoEscolher={(id) => void definir(id)} />
     </div>
+  );
+}
+
+/** Demitir-se do clube (pede confirmação). */
+export function BotaoDemitir() {
+  const { t } = useT();
+  const motor = useMotor();
+  const [confirmar, setConfirmar] = useState(false);
+  const demitir = async () => {
+    await motor?.chamar("demitir", null);
+    setConfirmar(false);
+    window.dispatchEvent(new Event("raizes:meuClube"));
+    window.dispatchEvent(new Event("raizes:tempo"));
+  };
+  return confirmar ? (
+    <span className="acoes">
+      <span className="suave">{t("meuClube.confirmarDemitir")}</span>
+      <button type="button" onClick={() => void demitir()}>{t("meuClube.demitirSim")}</button>
+      <button type="button" onClick={() => setConfirmar(false)}>{t("meuClube.cancelar")}</button>
+    </span>
+  ) : (
+    <button type="button" onClick={() => setConfirmar(true)}>{t("meuClube.demitir")}</button>
   );
 }
 
