@@ -165,7 +165,7 @@ type Jogo = {
 type ResultadoJogo = { golosCasa; golosFora; estatisticas: EstatJogo; eventos: EventoJogo[]; assistencia: number; receita: number; homemDoJogo: JogadorId };
 ```
 
-`EstatJogo` guarda para cada equipa: remates, à baliza, xG, posse, cantos, faltas, amarelos, vermelhos, e por jogador: minutos, golos, assistências, nota, cartões, lesões (RZ-105). Jogos de `lod > 0` guardam só `resultado` e totais; o detalhe por jogador/evento só existe para `lod 0`.
+`EstatJogo` guarda para cada equipa: remates, à baliza, xG, posse, cantos, faltas, amarelos, vermelhos, e por jogador: minutos, golos, assistências, nota, cartões, lesões (RZ-105). Todos os jogos do mundo português usam o mesmo motor; os de `lod 0` (clube do gamer) devolvem o relatório completo, nota de todos e eventos minuto a minuto; os de `lod 1` guardam os factos públicos (golos, cartões, lesões, substituições), participações, estatísticas das equipas e a nota do homem do jogo (RZ-109). Agregados «só números» (`lod 2-3`) ficam para as ligas estrangeiras (RZ-403).
 
 Desempates: pontos → confronto direto → diferença de golos → golos marcados → pontos por jogo (ver DESIGN_REGRAS §3 para o prémio).
 

@@ -49,6 +49,8 @@ export type MomentoChave =
 
 export type CartaoJogo = { minuto: number; lado: Lado; jogador: string; cor: "amarelo" | "vermelho"; segundoAmarelo?: true };
 
+export type LesaoJogo = { minuto: number; lado: Lado; jogador: string; lesao: Lesao; substituto?: string };
+
 export type RelatorioJogo = {
   duracao: number;
   golosCasa: number;
@@ -62,6 +64,8 @@ export type RelatorioJogo = {
   golos: GoloJogo[];
   /** Todos os cartões, por ordem. */
   cartoes: CartaoJogo[];
+  /** Lesões em jogo, por ordem, com o suplente que entrou (se entrou). */
+  lesoes: LesaoJogo[];
   momentos: MomentoChave[];
   jogadores: EstatJogador[];
   /** Id do homem do jogo (melhor nota; desempata por golos + assistências, xG e id). */
@@ -111,6 +115,7 @@ export function relatorioDoJogo(
   const meio = Math.round(pj.duracao / 2);
   const golos: GoloJogo[] = [];
   const cartoes: CartaoJogo[] = [];
+  const lesoes: LesaoJogo[] = [];
   const momentos: MomentoChave[] = [];
   /** Ajustes à nota por jogador, antes do clamp. */
   const ajuste = new Map<string, number>();
@@ -128,6 +133,7 @@ export function relatorioDoJogo(
       j.lesao = e.lesao;
       j.minutos = Math.min(j.minutos, e.minuto);
       momentos.push({ tipo: "lesao", minuto: e.minuto, lado: e.lado, jogador: e.jogador, lesao: e.lesao });
+      lesoes.push({ minuto: e.minuto, lado: e.lado, jogador: e.jogador, lesao: e.lesao });
       continue;
     }
     if (e.tipo === "substituicao") {
@@ -138,6 +144,8 @@ export function relatorioDoJogo(
       entra.posicao = sai.posicao;
       const m = momentos.find((x) => x.tipo === "lesao" && x.jogador === e.sai);
       if (m && m.tipo === "lesao") m.substituto = e.entra;
+      const l = lesoes.find((x) => x.jogador === e.sai);
+      if (l) l.substituto = e.entra;
       continue;
     }
     if (e.tipo === "cartao") {
@@ -230,6 +238,7 @@ export function relatorioDoJogo(
     fora: resumo.fora,
     golos,
     cartoes,
+    lesoes,
     momentos,
     jogadores: lista,
     homemDoJogo: melhor.id,

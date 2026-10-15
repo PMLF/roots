@@ -114,7 +114,25 @@ Código em `src/engine/lesoes/` (`lesao.ts`, `forma.ts`, `estado.ts`), parâmetr
 - **Forma** (`formaDoJogador`): 1 descansado; cada jogo e cada 90 minutos nos últimos 14 dias cansam, os dias de descanso recuperam; quem regressa de lesão volta a 0,8 e sobe 0,02 por dia. Vai para `JogadorEmCampo.forma`.
 - **Ainda por ligar** (loop de dias, RZ-109/119): sortear lesões de **treino** (`pTreinoPorDia`) e escrever os eventos; calcular a forma e o `recaida` de cada jogador antes de cada jogo.
 
-## 10. Ligação ao resto
+## 10. Níveis de detalhe e histórias (RZ-109)
+
+Código: `jogo/detalhe.ts` (`nivelDoJogo`, `jogarJogo`), `jogo/historias.ts`, parâmetros em `parametros.historias`.
+
+**Um só motor.** Medido com o mundo gerado (298 clubes, jogos entre clubes de todos os escalões, a escrever no repositório em memória): **≈ 0,6 ms por jogo**, 4 500 jogos (uma época de todo o mundo) em ≈ 3 s. Não compensa manter um segundo simulador «estatístico» que divergisse do primeiro, por isso os níveis mudam **o que se devolve e guarda**, não como se joga:
+
+| | nível 0 (jogos do clube do gamer) | nível 1 (todos os outros) |
+|---|---|---|
+| eventos minuto a minuto | devolvidos (jogo ao vivo, comentário) | não |
+| relatório | completo: estatísticas e nota de cada jogador, todos os momentos | público: golos, cartões, lesões, estatísticas das equipas, homem do jogo |
+| `participacao.nota` | todos | só o homem do jogo |
+| factos (G, A, P, CA, CV, L, S), participações, eventos `LESAO` | iguais | iguais |
+| histórias | iguais | iguais |
+
+Assim os resultados, marcadores, castigos e lesões são **exatamente** os mesmos em qualquer nível (há um teste), e as histórias surgem em todo o lado. `nivelDoJogo(casa, fora, clubeGamer)` dá 0 se o jogo envolve o clube do gamer e 1 nos restantes. Ligas estrangeiras e agregados («só números», lod 2-3) chegam com o RZ-403, com o seu próprio modelo.
+
+**Histórias** (`historiasDoJogo`, eventos públicos para acrescentar a seguir ao `registarJogo`): `HATTRICK` (3 golos), `CARTAO_VERMELHO`, `GOLEADA` (4 de diferença), `GOLO_NOTAVEL` (reviravolta de quem chegou a perder por 2; golo nos últimos 3 minutos que decide o jogo ou salva o empate). Frequências por jogo, entre equipas iguais: hat-trick ≈ 1,6 %, goleada ≈ 4 %, vermelho ≈ 19 %, golo notável ≈ 4 %. Lesões têm os seus eventos (§9).
+
+## 11. Ligação ao resto
 
 - `registoDoJogo(...)` converte o resultado em `JogoNovo` + factos (G, A, P) + participações, prontos para `Repositorio.registarJogo` (RZ-122 liga isto ao calendário).
-- Fora desta tarefa, de propósito: nível de detalhe (RZ-109), jogo ao vivo com ritmo e pausa (RZ-130) e comentário (RZ-131). Os eventos já trazem os dados de que precisam.
+- Fora desta tarefa, de propósito: jogo ao vivo com ritmo e pausa (RZ-130) e comentário (RZ-131). Os eventos já trazem os dados de que precisam.
