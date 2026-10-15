@@ -59,6 +59,28 @@ export type Parametros = {
     memoria: { meiaVidaPositivaMeses: number; negativaBaseMeses: number; negativaPorPaciencia: number; maxPorPessoa: number };
   };
   cidade: { eleicoesAutarquicasAnos: number };
+  /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
+  conhecimento: {
+    /** Épocas sem nova observação a partir das quais a ficha mostra "desatualizado". */
+    desatualizadoAposEpocas: number;
+    /** A incerteza (desvio) de uma observação cresce `1 + k × épocas` com o tempo. */
+    crescimentoIncertezaPorEpoca: number;
+    /** Desvio do erro de uma observação de qualidade 0 e de qualidade 1 (escala 1-20). */
+    sigmaPiorQualidade: number;
+    sigmaMelhorQualidade: number;
+    /** Multiplicador da margem (1.28 ≈ intervalo a 80 %). */
+    z: number;
+    /** Qualidade (0-1) por omissão de cada fonte de observação. */
+    qualidadePorFonte: Record<"proprioClube" | "olheiro" | "agente" | "jogoContra" | "imprensa", number>;
+    personalidade: {
+      maxRotulos: number;
+      /** Faixas do traço: ≤ baixo é "baixo", ≥ alto é "alto" (PERSONALIDADE §7). */
+      limiarBaixo: number;
+      limiarAlto: number;
+      /** Probabilidade de o rótulo vir com a faixa trocada, para qualidade 0 (desce até 0 com qualidade 1). */
+      probTrocaPiorQualidade: number;
+    };
+  };
 };
 
 export const PARAMETROS_PADRAO: Parametros = {
@@ -108,6 +130,15 @@ export const PARAMETROS_PADRAO: Parametros = {
     memoria: { meiaVidaPositivaMeses: 12, negativaBaseMeses: 6, negativaPorPaciencia: 0.6, maxPorPessoa: 40 },
   },
   cidade: { eleicoesAutarquicasAnos: 4 },
+  conhecimento: {
+    desatualizadoAposEpocas: 2,
+    crescimentoIncertezaPorEpoca: 0.25,
+    sigmaPiorQualidade: 4,
+    sigmaMelhorQualidade: 0.4,
+    z: 1.28,
+    qualidadePorFonte: { proprioClube: 0.9, olheiro: 0.6, agente: 0.4, jogoContra: 0.35, imprensa: 0.15 },
+    personalidade: { maxRotulos: 3, limiarBaixo: 5, limiarAlto: 15, probTrocaPiorQualidade: 0.35 },
+  },
 };
 
 /** Valores derivados das regras da pirâmide (DESIGN_REGRAS §1). */
@@ -161,6 +192,15 @@ export function validarParametros(p: Parametros): string[] {
   const pr = f.percentisRiqueza;
   if (!(pr[0] > pr[1] && pr[1] > pr[2] && pr[2] > pr[3] && pr[3] > 0 && pr[0] < 100)) erros.push("financas.percentisRiqueza deve ser estritamente decrescente entre 0 e 100");
   if (f.probErroEstimativaRival < 0 || f.probErroEstimativaRival > 1) erros.push("financas.probErroEstimativaRival entre 0 e 1");
+  const k = p.conhecimento;
+  if (k.desatualizadoAposEpocas < 1) erros.push("conhecimento: desatualizadoAposEpocas ≥ 1");
+  if (k.crescimentoIncertezaPorEpoca < 0) erros.push("conhecimento: crescimentoIncertezaPorEpoca ≥ 0");
+  if (!(k.sigmaMelhorQualidade > 0 && k.sigmaMelhorQualidade < k.sigmaPiorQualidade)) erros.push("conhecimento: 0 < sigmaMelhorQualidade < sigmaPiorQualidade");
+  if (!(k.z > 0)) erros.push("conhecimento: z > 0");
+  for (const [f, q] of Object.entries(k.qualidadePorFonte)) if (q < 0 || q > 1) erros.push(`conhecimento.qualidadePorFonte.${f} entre 0 e 1`);
+  if (!(k.personalidade.limiarBaixo < k.personalidade.limiarAlto)) erros.push("conhecimento.personalidade: limiarBaixo < limiarAlto");
+  if (k.personalidade.maxRotulos < 1) erros.push("conhecimento.personalidade: maxRotulos ≥ 1");
+  if (k.personalidade.probTrocaPiorQualidade < 0 || k.personalidade.probTrocaPiorQualidade > 1) erros.push("conhecimento.personalidade: probTrocaPiorQualidade entre 0 e 1");
   if (p.personalidade.tracoMin >= p.personalidade.tracoMax) erros.push("personalidade: tracoMin < tracoMax");
   return erros;
 }

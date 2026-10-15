@@ -78,6 +78,8 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       r.acrescentarEvento(ev("SUBIDA", { epoca: 3, entidades: [{ k: "clube", id: "c9" }] }));
       expect(r.eventosDe(c).map((e) => e.id)).toEqual([3, 2, 1]);
       expect(r.eventosDe(c, { apenasPublicos: true }).map((e) => e.id)).toEqual([3, 1]);
+      expect(r.eventosDe(c, { vis: ["privado", "secreto"] }).map((e) => e.id)).toEqual([2]);
+      expect(r.eventosDe(c, { vis: [] })).toEqual([]);
       expect(r.eventosDe(c, { tipo: "SUBIDA", limite: 1 }).map((e) => e.id)).toEqual([3]);
       expect(r.eventosDe(c, { desdeEpoca: 2, ateEpoca: 2 }).map((e) => e.id)).toEqual([2]);
       expect(r.eventosDe({ k: "clube", id: "ninguem" })).toEqual([]);

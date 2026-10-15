@@ -142,6 +142,7 @@ export class RepositorioMemoria implements Repositorio {
     for (let i = ids.length - 1; i >= 0 && (f.limite === undefined || out.length < f.limite); i--) {
       const e = this.eventos[(ids[i] as number) - 1] as Evento;
       if (f.apenasPublicos && e.vis !== "publico") continue;
+      if (f.vis && !f.vis.includes(e.vis)) continue;
       if (f.tipo !== undefined && e.tipo !== f.tipo) continue;
       if (f.desdeEpoca !== undefined && e.epoca < f.desdeEpoca) continue;
       if (f.ateEpoca !== undefined && e.epoca > f.ateEpoca) continue;
