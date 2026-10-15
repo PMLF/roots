@@ -40,16 +40,16 @@ cols = [("Nome","nome",None),("Cidade","cidade",None),("Concelho","concelho",Non
         ("Divisão","divisao",None),("Liga / Série","liga",None),("Reputação","rep",I),("Finanças Iniciais (€)","fin",I),
         ("Capacidade Estádio","cap",I),("Estádio","estadio",None),("Cores do Clube","cores",None),("Alcunha","alcunha",None),
         ("Mascote","mascote",None),("Rival","rival",None),("Setor","setor",None),("Setor 2","tag2",None),("Polo","polo",None),
-        ("Série CP","serie_cp",None),("Origem","origem",None),("ID","id",None)]
-sheet(wb, "Clubes", cols, clubes, [34,24,24,17,22,26,11,16,13,32,26,18,22,32,8,8,22,9,10,30],
+        ("Série CP","serie_cp",None),("Propriedade do estádio","estadio_prop",None),("Origem","origem",None),("ID","id",None)]
+sheet(wb, "Clubes", cols, clubes, [34,24,24,17,22,26,11,16,13,32,26,18,22,32,8,8,22,9,14,10,30],
       {"G":"#,##0","H":"#,##0","I":"#,##0"}, first=True)
 
 cid = rd("cidades.csv")
 cols = [("Concelho","concelho",None),("Distrito","distrito",None),("População (aprox.)","populacao",I),("Setor","setor",None),
         ("Setor 2","tag2",None),("Polo","polo",None),("Ilha","ilha",None),("Orçamento municipal (€)","orcamento_municipal",I),
         ("Presidente da Câmara (fictício)","autarca",None),("Ambição","ambicao",I),("Apoio ao desporto","apoio_desporto",I),
-        ("Vaidade","vaidade",I),("Paciência","paciencia",I),("Integridade","integridade",I),("Clubes","clubes",None)]
-sheet(wb, "Cidades", cols, cid, [26,17,13,8,8,22,6,16,30,9,11,9,10,11,60], {"C":"#,##0","H":"#,##0"})
+        ("Vaidade","vaidade",I),("Paciência","paciencia",I),("Integridade","integridade",I),("Cultura de futebol","cultura_futebol",I),("Clubes","clubes",None)]
+sheet(wb, "Cidades", cols, cid, [26,17,13,8,8,22,6,16,30,9,11,9,10,11,11,60], {"C":"#,##0","H":"#,##0"})
 
 # Distritos: contagens por fórmula, ligadas à folha Clubes
 dist = rd("distritos.csv")

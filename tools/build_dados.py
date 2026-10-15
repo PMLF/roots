@@ -157,12 +157,17 @@ for cn, d in sorted(conc.items(), key=lambda kv: (kv[1]["distrito"], kv[0])):
     r = rng("autarca:" + cn)
     pop = d["pop"]
     percap = 1100 + 2500 / (1 + pop / 8000)
+    # cultura de futebol (0-100): base + setor + melhor escalão local + ruído determinístico
+    melhor = min(DIVISOES.index(c["divisao"]) for c in todos if c["concelho"] == cn)
+    cultura = 35 + {"UNI": 5, "IND": 5, "MAR": 8, "INT": 8, "DOR": -10, "TUR": -3}.get(d["setor"], 0) \
+              + [20, 14, 8, 4, 0][melhor] + max(-8, min(12, 6 * math.log10(max(pop, 1) / 20000))) + r.gauss(0, 8)
+    cultura = max(5, min(95, int(round(cultura))))
     cidades.append(dict(concelho=cn, distrito=d["distrito"], populacao=pop, setor=d["setor"], tag2=d["tag2"],
                         polo=d["polo"], ilha="sim" if d["distrito"] in ("Açores", "Madeira") else "não",
                         orcamento_municipal=int(round(pop * percap / 100_000) * 100_000) or 100_000,
                         autarca=f"{r.choice(NOMES)} {r.choice(APELIDOS)} {r.choice(APELIDOS)}",
                         ambicao=r.randint(1, 10), apoio_desporto=r.randint(1, 10), vaidade=r.randint(1, 10),
-                        paciencia=r.randint(1, 10), integridade=r.randint(1, 10),
+                        paciencia=r.randint(1, 10), integridade=r.randint(1, 10), cultura_futebol=cultura,
                         clubes="; ".join(usados[cn])))
 nao_usados = [c for c in conc if c not in usados]
 if nao_usados: print("AVISO concelhos sem clube:", nao_usados)
@@ -178,11 +183,16 @@ for c in todos:
     c["id"] = slug(c["nome"]); c["setor"] = conc[c["concelho"]]["setor"]
     c["tag2"] = conc[c["concelho"]]["tag2"]; c["polo"] = conc[c["concelho"]]["polo"]
     c["serie_cp"] = SERIE_DE[c["distrito"]]
+    # propriedade do estádio: clube / municipal / partilhada (probabilidades por escalão; determinístico)
+    pc, pm = {"Primeira Liga": (0.50, 0.40), "Segunda Liga": (0.35, 0.50), "Terceira Liga": (0.35, 0.50),
+              "Campeonato de Portugal": (0.25, 0.60), "Distrital": (0.15, 0.75)}[c["divisao"]]
+    x = rng("prop:" + c["nome"]).random()
+    c["estadio_prop"] = "clube" if x < pc else "municipal" if x < pc + pm else "partilhada"
 ids = Counter(c["id"] for c in todos)
 for i, k in ids.items():
     if k > 1: print("AVISO id duplicado", i)
 
-COLS = ["id","nome","cidade","concelho","distrito","divisao","liga","rep","fin","cap","estadio","cores","alcunha","mascote","rival","setor","tag2","polo","serie_cp","origem"]
+COLS = ["id","nome","cidade","concelho","distrito","divisao","liga","rep","fin","cap","estadio","cores","alcunha","mascote","rival","setor","tag2","polo","serie_cp","estadio_prop","origem"]
 w(OUT / "clubes.csv", COLS, todos)
 w(OUT / "cidades.csv", list(cidades[0].keys()), cidades)
 

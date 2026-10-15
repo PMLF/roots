@@ -34,6 +34,7 @@ Um jogo de **histórias** mais do que de simulação. Ciclo central: **descobrir
 | D11 | Git: `main` (estável/publicado), `develop` (integração) e `feature/rz-xxx` (a atual); docs podem ir direto para `develop` | Projeto a solo; fluxo simples |
 | D12 | Jogos do teu clube **ao vivo, minuto a minuto**; outros jogos só golos, vermelhos e melhor em campo; o simulador é **retomável** (para mudar tática/substituições ao vivo mais tarde) | Pedido do Pedro, 15-10-2026 |
 | D13 | Tom realista como a imprensa real, com ironia pontual e imprensa cor-de-rosa; nomes de clubes realistas; UI densa e organizada, pouca ilustração | `docs/TOM_E_UX.md` |
+| D16 | Cidade = painel de variáveis e projetos; o gamer **influencia** (propõe, negoceia, cofinancia), o autarca decide; cidade do gamer mensal, as outras anual; sem partidos reais; clubes não desaparecem no MVP; estádio do clube, municipal ou partilhado; novo estádio com escolha do local | `docs/CIDADE.md` |
 | D15 | **Gamer** = quem joga; **jogador** = futebolista. Mundo gerado por save (seed), pessoas diferentes em cada save; i18n pt-PT/EN desde o início; saves em ficheiros `.raizes` com autosave de 7 em 7 dias | `docs/GERACAO_MUNDO.md` |
 | D14 | Arquitetura aberta à expansão: motor num **Web Worker**, repositório por interface, textos por chave (i18n), dados de conteúdo fora do código; **sem dados do FM** no jogo | Permite Steam (casca desktop), inglês, 2D e mapa mais tarde (§10b) |
 
@@ -102,7 +103,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 - [ ] **RZ-130** (P1, L) **Jogo ao vivo** do teu clube: feed minuto a minuto com notificação de cada evento (golos, cartões, penáltis, lesões, substituições), velocidade e pausa; nos outros jogos só golos (minuto e marcador), vermelhos e melhor em campo. → RZ-104, RZ-105
 - [ ] **RZ-131** (P1, M) **Comentário textual** do jogo (modelos de frases por tipo de lance, tom de transmissão). → RZ-130
 - [ ] **RZ-132** (P1, M) **Tabela de países** (`data/paises.csv`: população, tradição, infraestrutura), curvas de talento com cauda rara e listas de nomes por país (`MODELO_DADOS` §15). → RZ-103
-- [ ] **RZ-133** (P1, M) **Página da cidade (MVP)**: população, economia, orçamento municipal, autarca, infraestruturas (estádio, transportes), sinergias e clubes; só leitura e evolução simples. → RZ-301 (versão completa em F3)
+- [ ] **RZ-133** (P1, M) **Página da cidade (MVP)**: variáveis (`docs/CIDADE.md` §2) com evolução anual simples, autarca, clubes, sinergias, propriedade do estádio; só leitura. → RZ-301 (versão completa em F3)
 - [ ] **RZ-134** (P1, M) **Saves**: ranhuras, **Guardar** manual, **autosave de 7 em 7 dias de jogo** (3 rotativos + 1 por início de época), lista de saves com resumo (clube, data, época), exportar/importar ficheiro `.raizes` (SQLite comprimido), pasta real na versão desktop. → RZ-128
 - [ ] **RZ-135** (P1, M) **Idiomas**: infraestrutura i18n (ICU MessageFormat) com **pt-PT e inglês** desde o MVP na interface; modelos de notícias/comentário em pt-PT primeiro e inglês logo a seguir; cores como códigos traduzidos na interface. → RZ-101
 - [ ] **RZ-124** (P1, M) Testes unitários das regras de pirâmide, prémio e distritais (casos: r=0, r=1, r≥2, excedente, bolsa vazia, empate total no prémio).
@@ -147,17 +148,19 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 
 **Meta:** a cidade deixa de ser um número e passa a empurrar o clube para cima ou para baixo.
 
-- [ ] **RZ-301** (P1, L) **Modelo da cidade/concelho**: população, economia, turismo, transportes, estacionamento, orgulho, valor do solo à volta do estádio; orçamento municipal (`data/cidades.csv`).
+- [ ] **RZ-301** (P1, L) **Modelo da cidade/concelho**: 12 variáveis (`docs/CIDADE.md` §2) com atualização mensal na cidade do gamer e anual nas outras; `cultura_futebol`; finanças municipais; bacia de adeptos.
 - [ ] **RZ-302** (P1, L) **Sinergias** (DESIGN §5): setores e efeitos, marca `ILH`, polos regionais, rivais, concelho partilhado, "Rota do Futebol", voos entre ilhas.
 - [ ] **RZ-303** (P1, XL) **Infraestruturas do estádio**: setores (sentados, em pé, visitantes, VIP), relvado, iluminação, acessos, estacionamento, bares, loja; **centro de treinos, academia e centro médico**; obras por fases com custos e apoio municipal.
 - [ ] **RZ-304** (P1, M) Infraestrutura **fora** do estádio: transportes públicos, hotéis, estacionamento da cidade.
 - [ ] **RZ-305** (P1, M) **Requisitos mínimos por escalão** e licenciamento (por omissão, licença provisória de 1 época com coima).
+- [ ] **RZ-314** (P1, L) **Novo estádio e escolha do local**: etapas, opções de local (mesmo local, perto, periferia) com custos, prazos, relação com adeptos, transportes e assistência; estádio temporário durante a obra; terreno antigo; inauguração. → RZ-303, RZ-315 (`docs/CIDADE.md` §5)
+- [ ] **RZ-315** (P1, M) **Propriedade do estádio** (clube, municipal, partilhada): renda, autorizações da Câmara, mudança de propriedade. → RZ-303 (`docs/CIDADE.md` §4)
 - [ ] **RZ-306** (P1, L) **Pessoas**: presidente da Câmara, empresários, associação de adeptos, imprensa local; nível de confiança; reuniões com escolhas e consequências; **promessas** que têm de ser cumpridas.
 - [ ] **RZ-307** (P1, M) Decisão da Câmara sobre o **1 M€ do prémio do Estado**: depende de `apoio_desporto`, `ambição` e `vaidade` do autarca. → RZ-112
-- [ ] **RZ-308** (P1, L) **Política e contexto**: baralho de eventos com condições; **eleições autárquicas de 4 em 4 anos** (um autarca novo pode cortar ou aumentar o apoio); fundos europeus; crises; fecho de uma fábrica; nova autoestrada; regras das SAD; decisões nacionais/regionais.
+- [ ] **RZ-308** (P1, L) **Política e contexto**: baralho de eventos com condições; **eleições autárquicas de 4 em 4 anos** (um autarca novo pode cortar ou aumentar o apoio); fundos europeus; crises; fecho de uma fábrica; nova autoestrada; regras das SAD; decisões nacionais/regionais. **Sem partidos reais**: partidos fictícios ou listas independentes com eixo esquerda-centro-direita; eventos regionais afetam todo o polo.
 - [ ] **RZ-309** (P1, M) Efeito **cidade → resultados** (moral, apoio, patrocínios) e **clube → cidade** (orgulho, turismo, crescimento da população ao longo dos anos).
 - [ ] **RZ-310** (P1, M) **Assistência v2**: tempo/clima, transporte, preço, setor, lotação esgotada que gera notícia e pressão para ampliar.
-- [ ] **RZ-311** (P2, M) Patrocínios locais por setor e empresários com personalidade.
+- [ ] **RZ-311** (P1, M) **Patrocínios locais por setor e empresários com personalidade** (primeira prioridade de F3 a seguir ao núcleo da cidade).
 - [ ] **RZ-312** (P2, L) UI: secções Cidade (painel, obras, estádio) e Pessoas.
 - [ ] **RZ-313** (P2, M) **Imprensa cor-de-rosa**: artigos sobre a vida pessoal de jogadores, staff e dirigentes (fictícios), disparados por eventos e personalidade. → RZ-004, RZ-118
 
@@ -203,6 +206,9 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 
 - **App companheira da save do FM**: acompanha a evolução fictícia da Charneca, de Caldas e do Machico (população, turismo, estádios, infraestrutura) — teste barato antes de investir no jogo todo.
 - Modos desafio / cenários (clubes em dificuldades, cidades específicas).
+- Regiões (polos) como atores com orçamento e presidente próprios, Governos Regionais com personalidade.
+- O gamer candidatar-se à Câmara.
+- Importar os Censos 2021 do INE para população e economia.
 - *Mods* da comunidade (pacotes de clubes/ligas).
 
 ## 12. Perguntas em aberto
@@ -213,7 +219,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 4. A base do FM exporta jogadores? (só para testes privados; RZ-008, P3)
 5. ~~Formato da Fase de Promoção~~ — uma volta, 4 jogos por grupo, confirmado.
 
-*Resolvidas a 15-10-2026:* formato da Fase de Promoção (uma volta); cidade com mapa só para o gamer (visualização); idiomas pt/en; saves com autosave de 7 dias; fair play em 5 níveis; jogos ao vivo minuto a minuto (outros jogos: golos, vermelhos, melhor em campo); calendário agosto-maio e janelas julho-agosto + janeiro; Avançar = 1 dia com paragem em eventos; escolha livre do clube; nomes de clubes realistas e tom realista; UI densa e organizada; geração de jogadores por país com cauda rara; nome Raízes; branches main/develop/feature; licenciamento por omissão (licença provisória + coima).
+*Resolvidas a 15-10-2026:* cidade (autarca decide, gamer influencia; variáveis; propriedade do estádio; lado negativo; política fictícia; empresas depois do MVP; estimativas aceites); formato da Fase de Promoção (uma volta); cidade com mapa só para o gamer (visualização); idiomas pt/en; saves com autosave de 7 dias; fair play em 5 níveis; jogos ao vivo minuto a minuto (outros jogos: golos, vermelhos, melhor em campo); calendário agosto-maio e janelas julho-agosto + janeiro; Avançar = 1 dia com paragem em eventos; escolha livre do clube; nomes de clubes realistas e tom realista; UI densa e organizada; geração de jogadores por país com cauda rara; nome Raízes; branches main/develop/feature; licenciamento por omissão (licença provisória + coima).
 
 *Resolvidas a 14-10-2026:* sanções de corrupção ao gamer (reputação + coima; despedimento raro); finanças rivais em palavras relativas ao escalão; histórico guardado na íntegra; prémio de 2 M€ de uso livre; Serpa Atlético é de Serpa; alcunhas/mascotes em falta preenchidos; CP continua 4×10 com Fase de Promoção em vez de 20 subidas diretas.
 
@@ -256,3 +262,5 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 | Página da cidade no MVP; mapa só da cidade do gamer | RZ-133, 506 |
 | Português e inglês | D15, RZ-135 |
 | Guardar, autosave, exportar/importar saves | RZ-134 |
+| Escolha do local de um novo estádio (mesmo local, perto, periferia) e jogar noutro estádio durante a obra | RZ-314, `docs/CIDADE.md` §5 |
+| Propriedade do estádio e papel da Câmara | RZ-315, `docs/CIDADE.md` §4 |
