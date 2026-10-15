@@ -6,7 +6,7 @@ Decisões do Pedro a 15-10-2026. Complementa `DESIGN_REGRAS` §5 (setores e sine
 
 1. **A cidade é um painel de variáveis e de projetos** (D7), não um *city builder*. O mapa da cidade (RZ-506) é só de visualização, para a cidade do gamer.
 2. **O gamer influencia, não manda.** É presidente do clube, não da Câmara. Propõe, negoceia, cofinancia, promete. Quem decide é o autarca, segundo a personalidade dele.
-3. **Níveis de detalhe.** A cidade do gamer atualiza **todos os meses**; as outras 275 **uma vez por ano**, de forma mais simples.
+3. **Níveis de detalhe.** A cidade do gamer atualiza **todos os meses**; as outras 276 **uma vez por ano**, de forma mais simples.
 4. **Tem lado negativo.** Cidades encolhem, fábricas fecham, obras atrasam e geram queixas. Os clubes **não desaparecem** no MVP (crise → coima, vendas); falência e refundação ficam em RZ-908.
 
 ## 2. Variáveis da cidade

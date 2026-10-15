@@ -6,11 +6,11 @@ Cada save gera o seu próprio mundo a partir de uma **seed**: mesmos clubes, cid
 
 | Quem | Quantos (MVP) | Notas |
 |---|---|---|
-| Jogadores de clubes portugueses (298 clubes) | ~7 500 (25 por clube; 28 nos escalões superiores) | plantel completo com posições equilibradas |
+| Jogadores de clubes portugueses (300 clubes) | ~7 500 (25 por clube; 28 nos escalões superiores) | plantel completo com posições equilibradas |
 | Jogadores sem clube / reserva livre | ~3 000 | para o mercado e para os distritais |
 | Jovens e academias | sob demanda (lod 2) | nascem quando alguém os vê ou o clube precisa |
 | Staff (treinadores, adjuntos, médicos, olheiros…) | ~1 800 (5-8 por clube) + ~500 livres | |
-| Presidentes de clube, autarcas (275), empresários locais, dirigentes de adeptos | ~1 500 | autarcas: traços a partir de `cidades.csv` |
+| Presidentes de clube, autarcas (276), empresários locais, dirigentes de adeptos | ~1 500 | autarcas: traços a partir de `cidades.csv` |
 | Agentes, árbitros, jornalistas | ~600 | árbitro mínimo para a corrupção (RZ-127) |
 | **Total** | **~15-25 mil pessoas** | |
 | Ligas estrangeiras (depois, RZ-403) | +2 500 por liga detalhada; o resto lod 3 | |
@@ -94,5 +94,5 @@ Dentro de cada escalão, o clube sobe ou desce conforme a **reputação** e as *
 - **Determinismo:** cada clube, a cidade, os "outros" e os livres têm o seu fluxo (`Rng.derivar`). Acrescentar um clube de outro escalão não muda os plantéis dos restantes; dentro do mesmo escalão a reputação é normalizada pelo conjunto do escalão.
 - **Qualidade:** `qualidadeAlvo` por escalão + deslocação pela reputação (`qualidadePorReputacao`); a idade desconta os jovens e os veteranos; a qualidade atual é a média dos atributos-chave da posição, e o potencial nunca fica abaixo dela.
 - **Nacionalidade:** % de estrangeiros do escalão × (1 ± `estrangeirosVariacaoReputacao` consoante a reputação); país sorteado por `pesoParaPortugal × densidade(q | país)`, com a cauda rara.
-- **Medido (298 clubes):** ~13,8 mil pessoas (9,4 mil jogadores, 3 mil sem clube), ~2,5 s a gerar. Menos do que os ~15-25 mil da tabela do §1 porque ainda não há juniores nem academias (lod 2, sob demanda) nem ligas estrangeiras.
+- **Medido (300 clubes):** ~13,8 mil pessoas (9,4 mil jogadores, 3 mil sem clube), ~2,5 s a gerar. Menos do que os ~15-25 mil da tabela do §1 porque ainda não há juniores nem academias (lod 2, sob demanda) nem ligas estrangeiras.
 - **Visibilidade:** a verdade (atributos, potencial, personalidade) fica nas tabelas `jogador`/`pessoa`; `pessoaPublica`, `plantelPublico` e `cargosPublicos` devolvem só factos públicos e é por aí que a `Vista` lê. O clube só vê atributos/potencial/personalidade dos seus jogadores depois de `observarPlantelProprio`.

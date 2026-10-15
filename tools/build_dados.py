@@ -137,7 +137,7 @@ for s in SERIES:
     if cont[f"CP Série {s}"] != 10: err(f"CP Série {s} tem {cont[f'CP Série {s}']} clubes")
 for d in SERIE_DE:
     if cont[f"Distrital {d}"] != 10: err(f"Distrital {d} tem {cont[f'Distrital {d}']} clubes")
-exp = {"Primeira Liga": 20, "Segunda Liga": 18, "Terceira Liga": 20}
+exp = {"Primeira Liga": 20, "Segunda Liga": 20, "Terceira Liga": 20}
 for k, v in exp.items():
     if cont[k] != v: err(f"{k} tem {cont[k]} (esperado {v})")
 

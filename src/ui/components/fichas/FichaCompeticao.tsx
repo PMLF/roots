@@ -3,6 +3,7 @@ import type { CompetitionPage } from "@/engine/api/contratos";
 import { Cartao, Dados, Topo } from "@/ui/components/Cartao";
 import { Chip } from "@/ui/components/Atributos";
 import { PainelDestaques } from "@/ui/components/competicao/Destaques";
+import { Estatisticas } from "@/ui/components/competicao/Estatisticas";
 import { Jornadas } from "@/ui/components/competicao/Jornadas";
 import { TabelaLiga } from "@/ui/components/competicao/TabelaLiga";
 import { Ficha } from "@/ui/components/Ficha";
@@ -54,6 +55,7 @@ export function FichaCompeticao({ d }: { d: CompetitionPage }) {
       topo={topo}
       separadores={{
         resumo,
+        estatisticas: <Estatisticas page={d} />,
         clubes: (
           <Tabela id="competicao-clubes" nomeFicheiro={`clubs-${d.league}`} colunas={colunasClubes} linhas={d.clubs} chave={(c) => c.id} celula={{ club: (c) => <Ligacao k="clube" id={c.id}>{c.name}</Ligacao>, stadium: (c) => n.format(c.capacity) }} ordemInicial={{ coluna: "reputation", direcao: "desc" }} />
         ),

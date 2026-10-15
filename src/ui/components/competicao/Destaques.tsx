@@ -1,9 +1,10 @@
 "use client";
-import { useState, type MouseEvent } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import type { MouseEvent } from "react";
 import type { CompetitionPage } from "@/engine/api/contratos";
-import { Cartao } from "@/ui/components/Cartao";
 import { Ligacao } from "@/ui/components/Ligacao";
 import { useT } from "@/ui/i18n/LocaleProvider";
+import { SEPARADOR_URL } from "@/ui/ligacoes";
 
 type H = CompetitionPage["highlights"];
 type Jogador = H["topScorers"][number];
@@ -24,7 +25,7 @@ const jogador = (p: Jogador | undefined, fmt?: (v: number) => string) =>
   p ? <><Ligacao k="pessoa" id={p.player}>{p.name}</Ligacao> <b>{fmt ? fmt(p.value) : p.value}</b></> : <span className="suave">—</span>;
 const equipa = (c: Equipa | undefined) => (c ? <><Ligacao k="clube" id={c.club}>{c.name}</Ligacao> <b>{c.value}</b></> : <span className="suave">—</span>);
 
-function ListaJogadores({ titulo, itens, fmt }: { titulo: string; itens: Jogador[]; fmt?: (v: number) => string }) {
+export function ListaJogadores({ titulo, itens, fmt }: { titulo: string; itens: Jogador[]; fmt?: (v: number) => string }) {
   const { t } = useT();
   return (
     <section className="bloco-lista">
@@ -45,7 +46,7 @@ function ListaJogadores({ titulo, itens, fmt }: { titulo: string; itens: Jogador
   );
 }
 
-function ListaEquipas({ titulo, itens }: { titulo: string; itens: Equipa[] }) {
+export function ListaEquipas({ titulo, itens }: { titulo: string; itens: Equipa[] }) {
   const { t } = useT();
   return (
     <section className="bloco-lista">
@@ -64,43 +65,36 @@ function ListaEquipas({ titulo, itens }: { titulo: string; itens: Equipa[] }) {
 }
 
 /**
- * Cartão horizontal e baixo com o primeiro de cada estatística. Carregar nele (ou em «Ver mais») abre, no próprio cartão,
- * os dez primeiros de cada lista e a classificação de todas as equipas em ataque e defesa.
+ * Cartão horizontal e baixo, sem título, com o primeiro de cada estatística. Carregar nele (ou em «Ver mais») leva ao
+ * separador Estatísticas da mesma página, onde há espaço para as listas completas.
  */
 export function PainelDestaques({ h }: { h: H }) {
   const { t } = useT();
-  const [aberto, setAberto] = useState(false);
-  const alternar = (e: MouseEvent) => {
+  const router = useRouter();
+  const caminho = usePathname();
+  const params = useSearchParams();
+  const abrir = () => {
+    const novos = new URLSearchParams(params.toString());
+    novos.set("tab", SEPARADOR_URL["estatisticas"] ?? "stats");
+    novos.delete("sort");
+    router.push(`${caminho}?${novos.toString()}`, { scroll: false });
+  };
+  const aoCarregar = (e: MouseEvent) => {
     if ((e.target as HTMLElement).closest("a, button")) return; // as ligações dentro do cartão não o abrem
-    setAberto((v) => !v);
+    abrir();
   };
   return (
-    <Cartao titulo={t("destaques.titulo")} larga>
-      <div className="painel-destaques" onClick={alternar}>
-        <button type="button" className="painel-destaques-botao" aria-expanded={aberto} onClick={() => setAberto((v) => !v)}>
-          {aberto ? t("destaques.menos") : t("destaques.mais")} <span aria-hidden="true">{aberto ? "▴" : "▾"}</span>
-        </button>
-        <div className="destaque-mosaicos">
-          <Mosaico rotulo={t("destaques.melhorMarcador")}>{jogador(h.topScorers[0])}</Mosaico>
-          <Mosaico rotulo={t("destaques.melhorAssistente")}>{jogador(h.topAssists[0])}</Mosaico>
-          <Mosaico rotulo={t("destaques.melhorJogador")}>{jogador(h.bestRated[0], nota)}</Mosaico>
-          <Mosaico rotulo={t("destaques.maisAmarelos")}>{jogador(h.mostYellow[0])}</Mosaico>
-          <Mosaico rotulo={t("destaques.maisVermelhos")}>{jogador(h.mostRed[0])}</Mosaico>
-          <Mosaico rotulo={t("competicoes.melhorAtaque")}>{equipa(h.bestAttack)}</Mosaico>
-          <Mosaico rotulo={t("competicoes.melhorDefesa")}>{equipa(h.bestDefence)}</Mosaico>
-        </div>
-        {aberto && (
-          <div className="destaque-detalhe">
-            <ListaJogadores titulo={t("destaques.marcadores")} itens={h.topScorers} />
-            <ListaJogadores titulo={t("destaques.assistentes")} itens={h.topAssists} />
-            <ListaJogadores titulo={t("destaques.melhoresJogadores")} itens={h.bestRated} fmt={nota} />
-            <ListaJogadores titulo={t("destaques.amarelos")} itens={h.mostYellow} />
-            <ListaJogadores titulo={t("destaques.vermelhos")} itens={h.mostRed} />
-            <ListaEquipas titulo={t("destaques.ataques")} itens={h.attackRanking} />
-            <ListaEquipas titulo={t("destaques.defesas")} itens={h.defenceRanking} />
-          </div>
-        )}
+    <section className="cartao cartao-destaques larga" onClick={aoCarregar}>
+      <div className="destaque-mosaicos">
+        <Mosaico rotulo={t("destaques.melhorMarcador")}>{jogador(h.topScorers[0])}</Mosaico>
+        <Mosaico rotulo={t("destaques.melhorAssistente")}>{jogador(h.topAssists[0])}</Mosaico>
+        <Mosaico rotulo={t("destaques.melhorJogador")}>{jogador(h.bestRated[0], nota)}</Mosaico>
+        <Mosaico rotulo={t("destaques.maisAmarelos")}>{jogador(h.mostYellow[0])}</Mosaico>
+        <Mosaico rotulo={t("destaques.maisVermelhos")}>{jogador(h.mostRed[0])}</Mosaico>
+        <Mosaico rotulo={t("competicoes.melhorAtaque")}>{equipa(h.bestAttack)}</Mosaico>
+        <Mosaico rotulo={t("competicoes.melhorDefesa")}>{equipa(h.bestDefence)}</Mosaico>
       </div>
-    </Cartao>
+      <button type="button" className="cartao-destaques-mais" onClick={abrir}>{t("destaques.verMais")} ›</button>
+    </section>
   );
 }

@@ -548,5 +548,19 @@
   "competicoes.padrao": "Default",
   "competicoes.profissionais": "Professional leagues",
   "competicoes.melhorAtaque": "Best attack",
-  "competicoes.melhorDefesa": "Best defence"
+  "competicoes.melhorDefesa": "Best defence",
+  "separador.estatisticas": "Statistics",
+  "destaques.verMais": "See more",
+  "coluna.jogador": "Player",
+  "coluna.golos": "Goals",
+  "coluna.assistencias": "Assists",
+  "coluna.nota": "Rating",
+  "coluna.amarelos": "Yellows",
+  "coluna.vermelhos": "Reds",
+  "coluna.minutos": "Minutes",
+  "coluna.jogos": "Games",
+  "coluna.golosJogo": "Goals/game",
+  "coluna.sofridosJogo": "Against/game",
+  "estatisticas.equipas": "Teams",
+  "estatisticas.jogadores": "All players"
 }

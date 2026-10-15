@@ -7,7 +7,7 @@
 | Escalão | Liga | Clubes | Sobem | Descem |
 |---|---|---|---|---|
 | 1 | Primeira Liga | 20 | — | 3 |
-| 2 | Segunda Liga | 18 | 3 | 3 |
+| 2 | Segunda Liga | 20 | 3 | 3 |
 | 3 | Terceira Liga | 20 | 3 | 4 |
 | 4 | Campeonato de Portugal (CP) | 4 séries × 10 = 40 | 4 (1 por série) | **8** (= promovidos da Fase de Promoção) |
 | 5 | 20 ligas distritais | 10 inicial (8 a 14) | até 8, via **Fase de Promoção** | ver §4 |
@@ -133,8 +133,8 @@ Cada clube pertence a um **concelho** (= a Câmara e o orçamento municipal). Ca
 ## 6. Dados incluídos (`data/`)
 | Ficheiro | Conteúdo |
 |---|---|
-| `clubes.csv` | 298 clubes: 58 do ficheiro original + 240 novos (40 CP + 200 distritais) |
-| `cidades.csv` | 275 concelhos com população, orçamento municipal, setores, polo e presidente da Câmara com 5 traços de personalidade |
+| `clubes.csv` | 300 clubes: 60 do ficheiro original + 240 novos (40 CP + 200 distritais) |
+| `cidades.csv` | 276 concelhos com população, orçamento municipal, setores, polo e presidente da Câmara com 5 traços de personalidade |
 | `distritos.csv` | Contagem por escalão e série do CP de cada distrito |
 | `rivalidades.csv` | Pares de rivais com marcas de mútuo/mesmo concelho/mesmo polo |
 | `src/` | Fontes editáveis; `python3 tools/build_dados.py` regenera tudo e valida |
