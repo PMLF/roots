@@ -46,6 +46,19 @@ export function Tabela<L>({ id, colunas, linhas, chave, celula = {}, nomeFicheir
   const [visiveis, setVisiveis] = useState<string[] | undefined>(undefined);
   const [escolher, setEscolher] = useState(false);
   const corpo = useRef<HTMLTableSectionElement>(null);
+  const seletor = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!escolher) return;
+    const fora = (e: MouseEvent) => { if (!seletor.current?.contains(e.target as Node)) setEscolher(false); };
+    const esc = (e: globalThis.KeyboardEvent) => { if (e.key === "Escape") setEscolher(false); };
+    document.addEventListener("mousedown", fora);
+    document.addEventListener("keydown", esc);
+    return () => { document.removeEventListener("mousedown", fora); document.removeEventListener("keydown", esc); };
+  }, [escolher]);
+  const definirColunas = (novas: string[] | undefined) => {
+    setVisiveis(novas);
+    guardar(`raizes.colunas.${id}`, novas ?? null);
+  };
 
   useEffect(() => {
     setVisiveis(ler(`raizes.colunas.${id}`, eListaDeTexto));
@@ -89,19 +102,28 @@ export function Tabela<L>({ id, colunas, linhas, chave, celula = {}, nomeFicheir
       {!simples && <div className="tabela-barra">
         <input type="search" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder={t("tabela.filtrar")} aria-label={t("tabela.filtrar")} />
         <span className="suave">{t("tabela.linhas", { n: mostradas.length, total: linhas.length })}</span>
-        <button type="button" onClick={() => setEscolher((v) => !v)} aria-expanded={escolher}>{t("tabela.colunas")}</button>
+        <div className="seletor-ligas seletor-tabela" ref={seletor}>
+          <button type="button" aria-expanded={escolher} aria-haspopup="true" onClick={() => setEscolher((v) => !v)}>
+            {t("tabela.colunas")} ({colunasVisiveis.length}/{colunas.length}) <span aria-hidden="true">▾</span>
+          </button>
+          {escolher && (
+            <div className="seletor-painel" role="group" aria-label={t("tabela.colunas")}>
+              <div className="seletor-acoes">
+                <button type="button" onClick={() => definirColunas(colunas.map((c) => c.id))}>{t("tabela.todasColunas")}</button>
+                <button type="button" onClick={() => definirColunas(undefined)}>{t("tabela.repor")}</button>
+              </div>
+              <fieldset className="seletor-colunas">
+                {colunas.map((c) => (
+                  <label key={c.id}>
+                    <input type="checkbox" checked={colunasVisiveis.some((v) => v.id === c.id)} onChange={() => alternar(c.id)} /> {c.titulo}
+                  </label>
+                ))}
+              </fieldset>
+            </div>
+          )}
+        </div>
         <button type="button" onClick={exportar}>{t("tabela.exportar")}</button>
       </div>}
-      {!simples && escolher && (
-        <fieldset className="tabela-colunas">
-          <legend>{t("tabela.colunas")}</legend>
-          {colunas.map((c) => (
-            <label key={c.id}>
-              <input type="checkbox" checked={colunasVisiveis.some((v) => v.id === c.id)} onChange={() => alternar(c.id)} /> {c.titulo}
-            </label>
-          ))}
-        </fieldset>
-      )}
       <table className="tabela densa">
         <thead>
           <tr>
