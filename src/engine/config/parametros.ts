@@ -71,6 +71,43 @@ export type Parametros = {
     memoria: { meiaVidaPositivaMeses: number; negativaBaseMeses: number; negativaPorPaciencia: number; maxPorPessoa: number };
   };
   cidade: { eleicoesAutarquicasAnos: number };
+  /** Geração do mundo e das pessoas (GERACAO_MUNDO, MODELO_DADOS §15). */
+  mundo: {
+    talento: {
+      /** Qualidade média (1-20) de um país de índice 0 e de índice 100. */
+      muIndice0: number;
+      muIndice100: number;
+      sigma: number;
+      /** Probabilidade de cauda (talento improvável) para índice 0 e 100; nunca zero. */
+      epsIndice0: number;
+      epsIndice100: number;
+      /** Expoente da cauda de Pareto e escala (pontos de qualidade somados = escala × (pareto − 1)). */
+      paretoAlfa: number;
+      paretoEscala: number;
+    };
+    /** Qualidade-alvo atual (1-20) do plantel por escalão. */
+    qualidadeAlvo: Record<Escalao, { media: number; desvio: number }>;
+    /** Quanto a reputação do clube (0-10000) desloca a qualidade-alvo dentro do escalão, em pontos de qualidade para ±metade da amplitude. */
+    qualidadePorReputacao: number;
+    /** Variação relativa (±) do % de estrangeiros com a reputação do clube dentro do escalão (0,35 → de −35 % a +35 % da média do escalão). */
+    estrangeirosVariacaoReputacao: number;
+    /** Tamanho do plantel por escalão. */
+    plantel: Record<Escalao, number>;
+    /** Lugares por posição num plantel-base de 25 (escala-se para o tamanho do plantel). */
+    lugaresPorPosicao: Record<"GR" | "DD" | "DC" | "DE" | "MDC" | "MC" | "MO" | "ED" | "EE" | "PL", number>;
+    /** Jogadores sem clube e pessoas fora do plantel. */
+    livres: number;
+    staffPorClube: number;
+    /** Pessoas fora dos plantéis (GERACAO_MUNDO §1). */
+    outros: { empresarios: number; dirigentesAdeptos: number; agentes: number; arbitros: number; jornalistas: number; staffLivres: number };
+    /** Salário mensal (€) de um jogador médio do escalão e elasticidade por ponto de qualidade (exp). */
+    salario: { medio: Record<Escalao, number>; elasticidade: number; contratoAnosMin: number; contratoAnosMax: number };
+    idade: { min: number; max: number; media: number; desvio: number };
+    /** Idade a partir da qual o potencial deixa de crescer (potencial = atual aos X anos). */
+    idadePico: number;
+    /** Aptidão (1-20) nas posições alternativas relativamente à principal. */
+    aptidaoSecundaria: number;
+  };
   /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
   conhecimento: {
     /** Épocas sem nova observação a partir das quais a ficha mostra "desatualizado". */
@@ -154,6 +191,27 @@ export const PARAMETROS_PADRAO: Parametros = {
     memoria: { meiaVidaPositivaMeses: 12, negativaBaseMeses: 6, negativaPorPaciencia: 0.6, maxPorPessoa: 40 },
   },
   cidade: { eleicoesAutarquicasAnos: 4 },
+  mundo: {
+    talento: { muIndice0: 6.5, muIndice100: 10.5, sigma: 2.4, epsIndice0: 0.004, epsIndice100: 0.02, paretoAlfa: 2.4, paretoEscala: 3 },
+    qualidadeAlvo: {
+      primeiraLiga: { media: 13, desvio: 1.8 },
+      segundaLiga: { media: 11, desvio: 1.8 },
+      terceiraLiga: { media: 9.5, desvio: 1.8 },
+      cp: { media: 8, desvio: 1.8 },
+      distrital: { media: 6.5, desvio: 1.8 },
+    },
+    qualidadePorReputacao: 2,
+    estrangeirosVariacaoReputacao: 0.35,
+    plantel: { primeiraLiga: 28, segundaLiga: 26, terceiraLiga: 25, cp: 23, distrital: 20 },
+    lugaresPorPosicao: { GR: 3, DD: 2, DC: 4, DE: 2, MDC: 2, MC: 3, MO: 2, ED: 2, EE: 2, PL: 3 },
+    livres: 3000,
+    staffPorClube: 6,
+    outros: { empresarios: 500, dirigentesAdeptos: 400, agentes: 150, arbitros: 250, jornalistas: 200, staffLivres: 500 },
+    salario: { medio: { primeiraLiga: 9000, segundaLiga: 3500, terceiraLiga: 1400, cp: 700, distrital: 250 }, elasticidade: 0.22, contratoAnosMin: 1, contratoAnosMax: 4 },
+    idade: { min: 16, max: 38, media: 26, desvio: 4.5 },
+    idadePico: 27,
+    aptidaoSecundaria: 0.6,
+  },
   conhecimento: {
     desatualizadoAposEpocas: 2,
     crescimentoIncertezaPorEpoca: 0.25,
@@ -230,6 +288,15 @@ export function validarParametros(p: Parametros): string[] {
   if (!(k.personalidade.limiarBaixo < k.personalidade.limiarAlto)) erros.push("conhecimento.personalidade: limiarBaixo < limiarAlto");
   if (k.personalidade.maxRotulos < 1) erros.push("conhecimento.personalidade: maxRotulos ≥ 1");
   if (k.personalidade.probTrocaPiorQualidade < 0 || k.personalidade.probTrocaPiorQualidade > 1) erros.push("conhecimento.personalidade: probTrocaPiorQualidade entre 0 e 1");
+  const m = p.mundo;
+  if (!(m.talento.muIndice0 < m.talento.muIndice100 && m.talento.sigma > 0)) erros.push("mundo.talento: muIndice0 < muIndice100 e sigma > 0");
+  if (!(m.talento.epsIndice0 > 0 && m.talento.epsIndice0 <= m.talento.epsIndice100 && m.talento.epsIndice100 < 1)) erros.push("mundo.talento: 0 < epsIndice0 ≤ epsIndice100 < 1 (a cauda nunca é zero)");
+  if (!(m.talento.paretoAlfa > 0 && m.talento.paretoEscala > 0)) erros.push("mundo.talento: paretoAlfa e paretoEscala > 0");
+  for (const [esc, q] of Object.entries(m.qualidadeAlvo)) if (!(q.media >= 1 && q.media <= 20 && q.desvio > 0)) erros.push(`mundo.qualidadeAlvo.${esc} inválida`);
+  for (const [esc, n] of Object.entries(m.plantel)) if (n < 16) erros.push(`mundo.plantel.${esc} ≥ 16`);
+  if (Object.values(m.lugaresPorPosicao).some((n) => n < 1)) erros.push("mundo.lugaresPorPosicao: pelo menos 1 por posição");
+  if (Object.values(m.salario.medio).some((x) => !(x > 0)) || m.salario.contratoAnosMin < 1 || m.salario.contratoAnosMax < m.salario.contratoAnosMin) erros.push("mundo.salario inválido");
+  if (!(m.idade.min < m.idade.max && m.idade.min >= 15)) erros.push("mundo.idade: 15 ≤ min < max");
   if (p.personalidade.tracoMin >= p.personalidade.tracoMax) erros.push("personalidade: tracoMin < tracoMax");
   return erros;
 }

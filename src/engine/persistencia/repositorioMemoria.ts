@@ -6,6 +6,8 @@ import { VERSAO_ESQUEMA } from "./esquema";
 import type { FiltroEventos, Repositorio } from "./repositorio";
 import type {
   AjusteClassificacao,
+  CargoReg,
+  ContratoReg,
   Data,
   EntidadeRef,
   Evento,
@@ -14,13 +16,17 @@ import type {
   Jogo,
   JogoAgendado,
   JogoFacto,
+  JogadorReg,
   JogoNovo,
   LinhaClassificacao,
   LinhaStatJogador,
   Marcador,
   Observacao,
   ObservacaoNova,
+  LoteMundoReg,
   Participacao,
+  PessoaPublica,
+  PessoaReg,
   PontosPorResultado,
 } from "./tipos";
 import { cmp, validarEventoNovo, validarJogo } from "./validacao";
@@ -46,6 +52,10 @@ export class RepositorioMemoria implements Repositorio {
   private stats = new Map<string, StatRow>();
   private obs: Observacao[] = [];
   private metaMap = new Map<string, string>();
+  private pessoas = new Map<string, PessoaReg>();
+  private jogadoresMap = new Map<string, JogadorReg>();
+  private contratos: ContratoReg[] = [];
+  private cargos = new Map<string, CargoReg>();
   private calJogos = new Map<string, JogoAgendado>();
   private calFolgas: FolgaAgendada[] = [];
   private diario: (() => void)[][] = [];
@@ -83,6 +93,86 @@ export class RepositorioMemoria implements Repositorio {
       if (antes === undefined) this.metaMap.delete(chave);
       else this.metaMap.set(chave, antes);
     });
+  }
+
+  // ---------- pessoas
+  guardarMundo(lote: LoteMundoReg, aoProgredir?: (feito: number, total: number) => void): void {
+    this.transacao(() => {
+      if (this.pessoas.size > 0) throw new Error("O save já tem pessoas");
+      const ids = new Set<string>();
+      for (const p of lote.pessoas) {
+        if (ids.has(p.id)) throw new Error(`Pessoa repetida: ${p.id}`);
+        ids.add(p.id);
+      }
+      for (const j of lote.jogadores) if (!ids.has(j.pessoa)) throw new Error(`Jogador sem pessoa: ${j.pessoa}`);
+      for (const c of lote.contratos) if (!ids.has(c.pessoa)) throw new Error(`Contrato sem pessoa: ${c.pessoa}`);
+      for (const c of lote.cargos) if (!ids.has(c.pessoa)) throw new Error(`Cargo sem pessoa: ${c.pessoa}`);
+      const copia = clone(lote);
+      for (const p of copia.pessoas) this.pessoas.set(p.id, p);
+      for (const j of copia.jogadores) this.jogadoresMap.set(j.pessoa, j);
+      this.contratos.push(...copia.contratos);
+      for (const c of copia.cargos) this.cargos.set(c.pessoa, c);
+      this.desfazer(() => {
+        this.pessoas.clear();
+        this.jogadoresMap.clear();
+        this.contratos = [];
+        this.cargos.clear();
+      });
+      const total = lote.pessoas.length + lote.jogadores.length + lote.contratos.length + lote.cargos.length;
+      aoProgredir?.(total, total);
+    });
+  }
+  totalPessoas(): number {
+    return this.pessoas.size;
+  }
+  private publica(id: string): PessoaPublica {
+    const p = this.pessoas.get(id) as PessoaReg;
+    const j = this.jogadoresMap.get(id);
+    const c = this.cargos.get(id);
+    const clube = j?.clube ?? c?.clube;
+    return {
+      id: p.id, nome: p.nome, nomeDesportivo: p.nomeDesportivo, nascimento: p.nascimento, nacionalidade: p.nacionalidade,
+      ...(p.naturalDe !== undefined ? { naturalDe: p.naturalDe } : {}),
+      papeis: [...p.papeis],
+      ...(clube !== undefined ? { clube } : {}),
+      ...(c ? { funcao: c.funcao } : {}),
+      ...(j ? { jogador: { posicao: j.posicoes[0]!.pos, alturaCm: j.alturaCm, pesoKg: j.pesoKg, pe: j.pe, estado: j.estado } } : {}),
+    };
+  }
+  pessoaPublica(id: string): PessoaPublica | undefined {
+    return this.pessoas.has(id) ? this.publica(id) : undefined;
+  }
+  plantelPublico(clube: string): PessoaPublica[] {
+    return [...this.jogadoresMap.values()]
+      .filter((j) => j.clube === clube && j.estado === "ativo")
+      .map((j) => this.publica(j.pessoa))
+      .sort((a, b) => cmp(a.nomeDesportivo, b.nomeDesportivo) || cmp(a.id, b.id));
+  }
+  cargosPublicos(filtro: { clube?: string; cidade?: string }): PessoaPublica[] {
+    if (filtro.clube === undefined && filtro.cidade === undefined) return [];
+    return [...this.cargos.values()]
+      .filter((c) => (filtro.clube === undefined || c.clube === filtro.clube) && (filtro.cidade === undefined || c.cidade === filtro.cidade))
+      .sort((a, b) => cmp(a.funcao, b.funcao) || cmp(a.pessoa, b.pessoa))
+      .map((c) => this.publica(c.pessoa));
+  }
+  pessoa(id: string): PessoaReg | undefined {
+    const p = this.pessoas.get(id);
+    return p ? clone(p) : undefined;
+  }
+  jogador(pessoa: string): JogadorReg | undefined {
+    const j = this.jogadoresMap.get(pessoa);
+    return j ? clone(j) : undefined;
+  }
+  jogadoresDoClube(clube: string): JogadorReg[] {
+    return [...this.jogadoresMap.values()].filter((j) => j.clube === clube).sort((a, b) => cmp(a.pessoa, b.pessoa)).map((j) => clone(j));
+  }
+  contrato(pessoa: string): ContratoReg | undefined {
+    const c = [...this.contratos].reverse().find((x) => x.pessoa === pessoa);
+    return c ? { ...c } : undefined;
+  }
+  cargo(pessoa: string): CargoReg | undefined {
+    const c = this.cargos.get(pessoa);
+    return c ? clone(c) : undefined;
   }
 
   // ---------- calendário

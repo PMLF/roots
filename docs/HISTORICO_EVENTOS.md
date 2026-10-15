@@ -343,3 +343,7 @@ Sem perguntas em aberto neste documento.
 - Migração 2: `calendario_jogo` (jogos marcados, `id` igual ao do `jogo` quando for jogado) e `calendario_folga` (uma por jornada em ligas com nº ímpar de clubes). Não são história imutável: o calendário é planeado, o resultado é que fica na história.
 - `Repositorio`: `guardarCalendario`, `calendario`, `calendarioDoClube`, `proximoJogo`. Recusa um segundo calendário da mesma competição e época.
 - Geração: `gerarCalendarioLiga` (determinística por seed, fluxo próprio por competição) e `validarCalendario`; datas, pausas e dias de jogo vêm de `parametros.calendario`.
+
+### 11d. Pessoas (RZ-103)
+- Migração 3: `pessoa` (personalidade em JSON, verdade oculta), `jogador` (posições, atributos, potencial, corpo, clube), `contrato` e `cargo` (presidente, autarca, treinador, staff, empresário, agente, árbitro, jornalista…).
+- `Repositorio`: `guardarMundo` (uma transação; recusa um segundo mundo), `pessoa/jogador/contrato/cargo/jogadoresDoClube` (verdade, só para o motor) e `pessoaPublica/plantelPublico/cargosPublicos` (factos públicos, os únicos que a `Vista` lê).

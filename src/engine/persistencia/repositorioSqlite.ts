@@ -7,6 +7,8 @@ import { migrar, VERSAO_ESQUEMA } from "./esquema";
 import type { FiltroEventos, Repositorio } from "./repositorio";
 import type {
   AjusteClassificacao,
+  CargoReg,
+  ContratoReg,
   Data,
   EntidadeRef,
   Evento,
@@ -15,13 +17,17 @@ import type {
   Jogo,
   JogoAgendado,
   JogoFacto,
+  JogadorReg,
   JogoNovo,
   LinhaClassificacao,
   LinhaStatJogador,
   Marcador,
   Observacao,
   ObservacaoNova,
+  LoteMundoReg,
   Participacao,
+  PessoaPublica,
+  PessoaReg,
   PontosPorResultado,
   TipoEntidade,
   Visibilidade,
@@ -76,6 +82,117 @@ export class RepositorioSqlite implements Repositorio {
   }
   definirMeta(chave: string, valor: string): void {
     this.d.executar("INSERT INTO meta (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor", [chave, valor]);
+  }
+
+  // ---------- pessoas
+  guardarMundo(lote: LoteMundoReg, aoProgredir?: (feito: number, total: number) => void): void {
+    this.transacao(() => {
+      if (this.totalPessoas() > 0) throw new Error("O save já tem pessoas");
+      const total = lote.pessoas.length + lote.jogadores.length + lote.contratos.length + lote.cargos.length;
+      let feito = 0;
+      const tick = () => {
+        if (++feito % 500 === 0) aoProgredir?.(feito, total);
+      };
+      for (const p of lote.pessoas) {
+        this.d.executar("INSERT INTO pessoa (id, nome, nome_desportivo, nascimento, nacionalidade, natural_de, papeis, personalidade, arquetipo, lod) VALUES (?,?,?,?,?,?,?,?,?,?)", [
+          p.id, p.nome, p.nomeDesportivo, p.nascimento, p.nacionalidade, p.naturalDe ?? null, JSON.stringify(p.papeis), JSON.stringify(p.personalidade), p.arquetipo, p.lod,
+        ]);
+        tick();
+      }
+      for (const j of lote.jogadores) {
+        this.d.executar("INSERT INTO jogador (pessoa, posicoes, atributos, potencial, altura, peso, pe, clube, estado) VALUES (?,?,?,?,?,?,?,?,?)", [
+          j.pessoa, JSON.stringify(j.posicoes), JSON.stringify(j.atributos), j.potencial, j.alturaCm, j.pesoKg, j.pe, j.clube ?? null, j.estado,
+        ]);
+        tick();
+      }
+      for (const c of lote.contratos) {
+        this.d.executar("INSERT INTO contrato (pessoa, clube, salario_mensal, inicio, fim) VALUES (?,?,?,?,?)", [c.pessoa, c.clube, c.salarioMensal, c.inicio, c.fim]);
+        tick();
+      }
+      for (const c of lote.cargos) {
+        this.d.executar("INSERT INTO cargo (pessoa, funcao, clube, cidade, qualidade) VALUES (?,?,?,?,?)", [c.pessoa, c.funcao, c.clube ?? null, c.cidade ?? null, c.qualidade ? JSON.stringify(c.qualidade) : null]);
+        tick();
+      }
+      aoProgredir?.(total, total);
+    });
+  }
+  totalPessoas(): number {
+    return num(this.d.todos("SELECT COUNT(*) AS n FROM pessoa")[0]?.n);
+  }
+  private publica(r: LinhaSql): PessoaPublica {
+    const pos = r.posicoes === null || r.posicoes === undefined ? undefined : (JSON.parse(txt(r.posicoes)) as { pos: string }[])[0]?.pos;
+    const clube = r.jclube ?? r.cclube;
+    return {
+      id: txt(r.id),
+      nome: txt(r.nome),
+      nomeDesportivo: txt(r.nome_desportivo),
+      nascimento: txt(r.nascimento),
+      nacionalidade: txt(r.nacionalidade),
+      ...(r.natural_de !== null && r.natural_de !== undefined ? { naturalDe: txt(r.natural_de) } : {}),
+      papeis: JSON.parse(txt(r.papeis)) as string[],
+      ...(clube !== null && clube !== undefined ? { clube: txt(clube) } : {}),
+      ...(r.funcao !== null && r.funcao !== undefined ? { funcao: txt(r.funcao) } : {}),
+      ...(pos !== undefined
+        ? { jogador: { posicao: pos, alturaCm: num(r.altura), pesoKg: num(r.peso), pe: txt(r.pe) as "D" | "E" | "A", estado: txt(r.estado) as "ativo" | "livre" } }
+        : {}),
+    };
+  }
+  private static readonly SELECT_PUBLICO =
+    "SELECT p.id, p.nome, p.nome_desportivo, p.nascimento, p.nacionalidade, p.natural_de, p.papeis, j.posicoes, j.altura, j.peso, j.pe, j.estado, j.clube AS jclube, c.funcao, c.clube AS cclube " +
+    "FROM pessoa p LEFT JOIN jogador j ON j.pessoa = p.id LEFT JOIN cargo c ON c.pessoa = p.id";
+  pessoaPublica(id: string): PessoaPublica | undefined {
+    const r = this.d.todos(`${RepositorioSqlite.SELECT_PUBLICO} WHERE p.id = ?`, [id])[0];
+    return r ? this.publica(r) : undefined;
+  }
+  plantelPublico(clube: string): PessoaPublica[] {
+    return this.d
+      .todos(`${RepositorioSqlite.SELECT_PUBLICO} WHERE j.clube = ? AND j.estado = 'ativo' ORDER BY p.nome_desportivo, p.id`, [clube])
+      .map((r) => this.publica(r));
+  }
+  cargosPublicos(filtro: { clube?: string; cidade?: string }): PessoaPublica[] {
+    const onde: string[] = [];
+    const params: ValorSql[] = [];
+    if (filtro.clube !== undefined) { onde.push("c.clube = ?"); params.push(filtro.clube); }
+    if (filtro.cidade !== undefined) { onde.push("c.cidade = ?"); params.push(filtro.cidade); }
+    if (onde.length === 0) return [];
+    return this.d.todos(`${RepositorioSqlite.SELECT_PUBLICO} WHERE ${onde.join(" AND ")} ORDER BY c.funcao, p.id`, params).map((r) => this.publica(r));
+  }
+  pessoa(id: string): PessoaReg | undefined {
+    const r = this.d.todos("SELECT * FROM pessoa WHERE id = ?", [id])[0];
+    if (!r) return undefined;
+    return {
+      id: txt(r.id), nome: txt(r.nome), nomeDesportivo: txt(r.nome_desportivo), nascimento: txt(r.nascimento), nacionalidade: txt(r.nacionalidade),
+      ...(r.natural_de !== null ? { naturalDe: txt(r.natural_de) } : {}),
+      papeis: JSON.parse(txt(r.papeis)) as string[], personalidade: JSON.parse(txt(r.personalidade)) as Record<string, number>,
+      arquetipo: txt(r.arquetipo), lod: num(r.lod) as 1 | 2 | 3,
+    };
+  }
+  private jogadorDe(r: LinhaSql): JogadorReg {
+    return {
+      pessoa: txt(r.pessoa), posicoes: JSON.parse(txt(r.posicoes)) as { pos: string; aptidao: number }[], atributos: JSON.parse(txt(r.atributos)) as Record<string, number>,
+      potencial: num(r.potencial), alturaCm: num(r.altura), pesoKg: num(r.peso), pe: txt(r.pe) as "D" | "E" | "A",
+      ...(r.clube !== null ? { clube: txt(r.clube) } : {}), estado: txt(r.estado) as "ativo" | "livre",
+    };
+  }
+  jogador(pessoa: string): JogadorReg | undefined {
+    const r = this.d.todos("SELECT * FROM jogador WHERE pessoa = ?", [pessoa])[0];
+    return r ? this.jogadorDe(r) : undefined;
+  }
+  jogadoresDoClube(clube: string): JogadorReg[] {
+    return this.d.todos("SELECT * FROM jogador WHERE clube = ? ORDER BY pessoa", [clube]).map((r) => this.jogadorDe(r));
+  }
+  contrato(pessoa: string): ContratoReg | undefined {
+    const r = this.d.todos("SELECT * FROM contrato WHERE pessoa = ? ORDER BY id DESC LIMIT 1", [pessoa])[0];
+    return r ? { pessoa: txt(r.pessoa), clube: txt(r.clube), salarioMensal: num(r.salario_mensal), inicio: txt(r.inicio), fim: txt(r.fim) } : undefined;
+  }
+  cargo(pessoa: string): CargoReg | undefined {
+    const r = this.d.todos("SELECT * FROM cargo WHERE pessoa = ?", [pessoa])[0];
+    if (!r) return undefined;
+    return {
+      pessoa: txt(r.pessoa), funcao: txt(r.funcao),
+      ...(r.clube !== null ? { clube: txt(r.clube) } : {}), ...(r.cidade !== null ? { cidade: txt(r.cidade) } : {}),
+      ...(r.qualidade !== null ? { qualidade: JSON.parse(txt(r.qualidade)) as Record<string, number> } : {}),
+    };
   }
 
   // ---------- calendário

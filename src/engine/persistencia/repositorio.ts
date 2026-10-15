@@ -1,5 +1,7 @@
 import type {
   AjusteClassificacao,
+  CargoReg,
+  ContratoReg,
   Data,
   EntidadeRef,
   Evento,
@@ -8,6 +10,7 @@ import type {
   Jogo,
   JogoAgendado,
   JogoFacto,
+  JogadorReg,
   JogoNovo,
   LinhaClassificacao,
   LinhaStatJogador,
@@ -15,6 +18,9 @@ import type {
   Observacao,
   ObservacaoNova,
   Participacao,
+  PessoaPublica,
+  PessoaReg,
+  LoteMundoReg,
   Visibilidade,
 } from "./tipos";
 
@@ -79,6 +85,23 @@ export interface Repositorio {
   calendarioDoClube(clube: string, epoca: number): JogoAgendado[];
   /** Primeiro jogo marcado do clube em `desde` ou depois. */
   proximoJogo(clube: string, desde: Data): JogoAgendado | undefined;
+
+  // --- pessoas (RZ-103)
+  /** Guarda o mundo gerado numa só transação (`aoProgredir` é chamado por lotes). Recusa se já existirem pessoas. */
+  guardarMundo(lote: LoteMundoReg, aoProgredir?: (feito: number, total: number) => void): void;
+  totalPessoas(): number;
+  /** Factos públicos de uma pessoa: nome, idade, clube, posição, corpo. Nunca atributos, potencial nem personalidade. */
+  pessoaPublica(id: string): PessoaPublica | undefined;
+  /** Plantel público de um clube (jogadores ativos, por posição e nome). */
+  plantelPublico(clube: string): PessoaPublica[];
+  /** Cargos (presidente, treinador…) públicos de um clube ou cidade. */
+  cargosPublicos(filtro: { clube?: string; cidade?: string }): PessoaPublica[];
+  // verdade oculta (só o motor: simulação, geração, observações)
+  pessoa(id: string): PessoaReg | undefined;
+  jogador(pessoa: string): JogadorReg | undefined;
+  contrato(pessoa: string): ContratoReg | undefined;
+  cargo(pessoa: string): CargoReg | undefined;
+  jogadoresDoClube(clube: string): JogadorReg[];
 
   // --- conhecimento
   acrescentarObservacao(o: ObservacaoNova): number;

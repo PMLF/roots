@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { MotorCliente } from "@/ui/engineClient";
+import { Mundo } from "@/ui/components/Mundo";
 import type { Parametros } from "@/engine/config/parametros";
 import type { DiagnosticoBd } from "@/engine/api/contratos";
 import { derivados } from "@/engine/config/parametros";
@@ -14,10 +15,12 @@ type Estado =
 export default function Inicio() {
   const { t, locale } = useT();
   const [estado, setEstado] = useState<Estado>({ fase: "espera" });
+  const [motor, setMotor] = useState<MotorCliente | null>(null);
   const [bd, setBd] = useState<{ fase: "espera" } | { fase: "ok"; d: DiagnosticoBd } | { fase: "erro"; erro: string }>({ fase: "espera" });
 
   useEffect(() => {
     const motor = new MotorCliente();
+    setMotor(motor);
     const inicio = performance.now();
     let vivo = true;
     (async () => {
@@ -56,6 +59,7 @@ export default function Inicio() {
                 : t("inicio.bdMemoria", { sqlite: bd.d.sqlite, esquema: bd.d.esquema, motivo: bd.d.motivoMemoria ?? "?" })}
             </p>
           )}
+          {motor && <Mundo motor={motor} />}
           <h2>{t("inicio.regras")}</h2>
           <table className="tabela">
             <tbody>

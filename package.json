@@ -10,7 +10,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "ci": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
-    "sqlite:copiar": "node tools/copiar-sqlite-wasm.mjs"
+    "sqlite:copiar": "node tools/copiar-sqlite-wasm.mjs && node tools/copiar-dados.mjs"
   },
   "engines": {
     "node": ">=22"

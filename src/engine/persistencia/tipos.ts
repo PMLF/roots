@@ -133,3 +133,48 @@ export type PontosPorResultado = { vitoria: number; empate: number };
 export type JogoAgendado = { id: string; competicao: string; epoca: number; jornada: number; data: Data; casa: string; fora: string };
 /** Clube que folga numa jornada de uma liga com número ímpar de clubes. */
 export type FolgaAgendada = { competicao: string; epoca: number; jornada: number; clube: string };
+
+// ---------- pessoas (RZ-103). Tipos de armazenamento: o motor converte de/para os tipos ricos de `mundo`.
+export type PessoaReg = {
+  id: string;
+  nome: string;
+  nomeDesportivo: string;
+  nascimento: Data;
+  nacionalidade: string;
+  naturalDe?: string;
+  papeis: string[];
+  /** Verdade oculta. */
+  personalidade: Record<string, number>;
+  arquetipo: string;
+  lod: 1 | 2 | 3;
+};
+export type JogadorReg = {
+  pessoa: string;
+  posicoes: { pos: string; aptidao: number }[];
+  /** Verdade oculta. */
+  atributos: Record<string, number>;
+  /** Verdade oculta. */
+  potencial: number;
+  alturaCm: number;
+  pesoKg: number;
+  pe: "D" | "E" | "A";
+  clube?: string;
+  estado: "ativo" | "livre";
+};
+export type ContratoReg = { pessoa: string; clube: string; salarioMensal: number; inicio: Data; fim: Data };
+export type CargoReg = { pessoa: string; funcao: string; clube?: string; cidade?: string; qualidade?: Record<string, number> };
+export type LoteMundoReg = { pessoas: PessoaReg[]; jogadores: JogadorReg[]; contratos: ContratoReg[]; cargos: CargoReg[] };
+
+/** O que qualquer observador pode saber de uma pessoa sem a ter observado: factos públicos. */
+export type PessoaPublica = {
+  id: string;
+  nome: string;
+  nomeDesportivo: string;
+  nascimento: Data;
+  nacionalidade: string;
+  naturalDe?: string;
+  papeis: string[];
+  clube?: string;
+  funcao?: string;
+  jogador?: { posicao: string; alturaCm: number; pesoKg: number; pe: "D" | "E" | "A"; estado: "ativo" | "livre" };
+};

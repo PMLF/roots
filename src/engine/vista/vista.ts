@@ -7,11 +7,12 @@
 import type { Parametros } from "../config/parametros";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { FiltroEventos } from "../persistencia/repositorio";
-import type { Data, EntidadeRef, Evento, Jogo, LinhaClassificacao, LinhaStatJogador, Marcador, Observacao } from "../persistencia/tipos";
-import type { Alvo, Conhecimento, Estimativa, Frescura, Rotulo, ValoresObservados } from "./tipos";
+import type { Data, EntidadeRef, Evento, Jogo, LinhaClassificacao, LinhaStatJogador, Marcador, Observacao, PessoaPublica } from "../persistencia/tipos";
+import { paraDias } from "../calendario/datas";
+import type { Alvo, Conhecimento, Estimativa, FichaPessoa, Frescura, PessoaVista, Rotulo, ValoresObservados } from "./tipos";
 
 /** Só o que a Vista usa do repositório: leitura de factos públicos e de observações. */
-export type FontePublica = Pick<Repositorio, "eventosDe" | "jogo" | "marcadores" | "classificacao" | "statsJogador" | "observacoes">;
+export type FontePublica = Pick<Repositorio, "eventosDe" | "jogo" | "marcadores" | "classificacao" | "statsJogador" | "observacoes" | "pessoaPublica" | "plantelPublico" | "cargosPublicos">;
 
 export type ContextoVista = {
   /** Quem observa (o clube do gamer). As observações são suas. */
@@ -55,6 +56,32 @@ export class Vista {
   /** Golos, jogos, cartões… são factos de jogo e portanto públicos (não são atributos). */
   statsJogador(jogador: string): LinhaStatJogador[] {
     return this.fonte.statsJogador(jogador);
+  }
+
+  // ---------- pessoas
+  private comIdade(p: PessoaPublica): PessoaVista {
+    return { ...p, idade: Math.floor((paraDias(this.ctx.data) - paraDias(p.nascimento)) / 365.25) };
+  }
+  /** Factos públicos de uma pessoa (nome, idade, clube, posição, corpo). */
+  pessoa(id: string): PessoaVista | undefined {
+    const p = this.fonte.pessoaPublica(id);
+    return p ? this.comIdade(p) : undefined;
+  }
+  plantel(clube: string): PessoaVista[] {
+    return this.fonte.plantelPublico(clube).map((p) => this.comIdade(p));
+  }
+  cargos(filtro: { clube?: string; cidade?: string }): PessoaVista[] {
+    return this.fonte.cargosPublicos(filtro).map((p) => this.comIdade(p));
+  }
+  /** Ficha completa para a interface: factos públicos + o que se sabe (com margem) dos grupos observados. */
+  ficha(id: string): FichaPessoa | undefined {
+    const publico = this.pessoa(id);
+    if (!publico) return undefined;
+    const alvo: Alvo = { k: "pessoa", id };
+    const atributos = this.conhecimento(alvo, "atributos");
+    const potencial = this.conhecimento(alvo, "potencial");
+    const personalidade = this.conhecimento(alvo, "personalidade");
+    return { publico, ...(atributos ? { atributos } : {}), ...(potencial ? { potencial } : {}), ...(personalidade ? { personalidade } : {}) };
   }
 
   // ---------- conhecimento
