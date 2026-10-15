@@ -9,7 +9,8 @@
 import { Rng, limitar } from "../aleatorio/rng";
 import type { Parametros } from "../config/parametros";
 import { forcaEquipa, type ForcaEquipa } from "./equipa";
-import { outroLado, type EntradaJogo, type EquipaJogo, type EstatLado, type EventoJogo, type JogadorEmCampo, type Lado, type Origem, type ResumoJogo } from "./tipos";
+import { TATICA_PADRAO, fadigaEm, multiplicadorFaltas } from "./formacoes";
+import { outroLado, type EntradaJogo, type EquipaJogo, type EstatLado, type EventoJogo, type JogadorEmCampo, type Lado, type Origem, type ResumoJogo, type Tatica } from "./tipos";
 
 const logit = (p: number): number => Math.log(p / (1 - p));
 const sigmoide = (x: number): number => 1 / (1 + Math.exp(-x));
@@ -36,18 +37,30 @@ export class SimuladorJogo {
   readonly duracao: number;
   private readonly rng: Rng;
   private readonly p: Parametros["jogo"];
+  private readonly params: Parametros;
   private equipas: Record<Lado, EquipaJogo>;
   private forcas: Record<Lado, ForcaEquipa>;
+  /** Força em cada minuto: a base menos o cansaço (RZ-108). */
+  private efetivas: Record<Lado, ForcaEquipa>;
   private ultimo = 0;
   private readonly stats: Record<Lado, EstatLado> = { casa: novoLado(), fora: novoLado() };
 
   constructor(entrada: EntradaJogo, params: Parametros) {
     this.p = params.jogo;
+    this.params = params;
     this.rng = new Rng(entrada.seed, `jogo/${entrada.id}`);
     const a = this.p.acrescimos;
     this.duracao = this.p.duracao + this.rng.derivar("acrescimos").inteiro(a.min, a.max);
     this.equipas = { casa: entrada.casa, fora: entrada.fora };
-    this.forcas = { casa: forcaEquipa(entrada.casa.onze), fora: forcaEquipa(entrada.fora.onze) };
+    this.forcas = { casa: this.calcularForca(entrada.casa), fora: this.calcularForca(entrada.fora) };
+    this.efetivas = { casa: this.forcas.casa, fora: this.forcas.fora };
+  }
+
+  private calcularForca(eq: EquipaJogo): ForcaEquipa {
+    return forcaEquipa(eq.onze, eq.tatica ?? TATICA_PADRAO, this.params);
+  }
+  private tatica(lado: Lado): Tatica {
+    return this.equipas[lado].tatica ?? TATICA_PADRAO;
   }
 
   get minuto(): number {
@@ -60,7 +73,7 @@ export class SimuladorJogo {
   /** Muda a equipa (substituições, tática…) a partir do minuto seguinte. */
   alterarEquipa(lado: Lado, equipa: EquipaJogo): void {
     this.equipas[lado] = equipa;
-    this.forcas[lado] = forcaEquipa(equipa.onze);
+    this.forcas[lado] = this.calcularForca(equipa);
   }
 
   /** Simula até ao minuto indicado (inclusive) e devolve os eventos novos, por ordem. */
@@ -89,25 +102,44 @@ export class SimuladorJogo {
   // ---------- um minuto
   /** Fração das oportunidades que cabe a `lado`: logística da diferença de controlo (com a vantagem da casa). */
   private quota(lado: Lado): number {
-    const c = this.forcas.casa.controlo + this.p.vantagemCasa - this.forcas.fora.controlo;
+    const c = this.efetivas.casa.controlo + this.p.vantagemCasa - this.efetivas.fora.controlo;
     const casa = sigmoide(c / this.p.escalaControlo);
     return lado === "casa" ? casa : 1 - casa;
   }
 
   private passo(m: number, out: EventoJogo[]): void {
     const r = this.rng.derivar(`m${m}`);
+    for (const lado of ["casa", "fora"] as const) {
+      const f = fadigaEm(m, this.duracao, this.tatica(lado), this.params.tatica);
+      const b = this.forcas[lado];
+      this.efetivas[lado] = { ...b, ataque: b.ataque - f * 0.5, controlo: b.controlo - f, defesa: b.defesa - f };
+    }
+    // estilos que reagem ao adversário: o contra-ataque rende mais quanto mais bola o outro tem; o jogo direto explora linhas altas
+    for (const lado of ["casa", "fora"] as const) {
+      if (this.tatica(lado).estilo === "direto") {
+        const e = this.efetivas[lado];
+        this.efetivas[lado] = { ...e, ataque: e.ataque + this.params.tatica.diretoAtaquePorLinha * Math.max(0, this.tatica(outroLado(lado)).linha - 3) };
+        continue;
+      }
+      if (this.tatica(lado).estilo !== "contraAtaque") continue;
+      const c = this.params.tatica.contraAtaque;
+      const falta = limitar(this.efetivas[outroLado(lado)].controlo - this.efetivas[lado].controlo, 0, c.max);
+      const e = this.efetivas[lado];
+      this.efetivas[lado] = { ...e, ataque: e.ataque + c.ataquePorPonto * falta, defesa: e.defesa + c.defesaPorPonto * falta };
+    }
+    const ritmo = 1 + (this.params.tatica.ritmo.oportunidades * (this.tatica("casa").ritmo + this.tatica("fora").ritmo - 6)) / 2;
     this.stats[r.prob(this.quota("casa")) ? "casa" : "fora"].minutosPosse++;
     for (const lado of ["casa", "fora"] as const) {
-      const lambda = (2 * this.p.oportunidadesPorEquipa * this.quota(lado)) / this.duracao;
+      const lambda = (2 * this.p.oportunidadesPorEquipa * ritmo * this.quota(lado)) / this.duracao;
       if (r.prob(lambda)) this.oportunidade(r, m, lado, out);
     }
     for (const lado of ["casa", "fora"] as const) {
-      if (r.prob(this.p.faltas.porEquipa / this.duracao)) this.falta(r, m, lado, out);
+      if (r.prob((this.p.faltas.porEquipa * multiplicadorFaltas(this.tatica(lado), this.params.tatica)) / this.duracao)) this.falta(r, m, lado, out);
     }
   }
 
   private diferenca(lado: Lado): number {
-    return this.forcas[lado].ataque - this.forcas[outroLado(lado)].defesa;
+    return this.efetivas[lado].ataque - this.efetivas[outroLado(lado)].defesa;
   }
 
   private oportunidade(r: Rng, m: number, lado: Lado, out: EventoJogo[]): void {
@@ -152,7 +184,7 @@ export class SimuladorJogo {
     }
     // o xG é a probabilidade de golo antes de bloqueios: depois de um remate não bloqueado vale xg/(1-pBloqueado)
     const pNaoBloq = origem === "penalti" ? 1 : 1 - this.p.pBloqueado;
-    const pGolo = sigmoide(logit(limitar(xg / pNaoBloq, 0.001, 0.97)) + (this.p.peso.finalizacao * (habilidade * fin.forma - 10)) / 10 - (this.p.peso.guardaRedes * (this.forcas[adv].guardaRedes - 10)) / 10);
+    const pGolo = sigmoide(logit(limitar(xg / pNaoBloq, 0.001, 0.97)) + (this.p.peso.finalizacao * (habilidade * fin.forma - 10)) / 10 - (this.p.peso.guardaRedes * (this.efetivas[adv].guardaRedes - 10)) / 10);
     if (r.prob(pGolo)) {
       est.golos++;
       est.aBaliza++;
@@ -173,7 +205,7 @@ export class SimuladorJogo {
     const eq = this.equipas[lado];
     this.stats[lado].cantos++;
     out.push({ tipo: "canto", minuto: m, lado });
-    if (profundidade >= 1 || !r.prob(this.p.cantos.pRemate)) return;
+    if (profundidade >= 1 || !r.prob(this.p.cantos.pRemate * this.params.tatica.estilos[this.tatica(lado).estilo].cantoRemate)) return;
     const cabeceador = escolherPonderado(r, eq.onze, (j) => (this.p.pesoCabeceamento[j.posicao] ?? 0) * Math.pow((j.atributos.cabeceamento / 10) * (j.alturaCm / 178), 2));
     const marcador = eq.onze.filter((j) => j.posicao !== "GR").reduce((a, b) => (b.atributos.bolaParada + b.atributos.cruzamento > a.atributos.bolaParada + a.atributos.cruzamento ? b : a));
     const xg0 = this.p.xg.base + this.p.xg.amplitude * this.p.cantos.fatorXg * Math.pow(r.float(), this.p.xg.expoente);

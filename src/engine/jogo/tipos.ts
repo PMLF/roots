@@ -14,7 +14,17 @@ export type JogadorEmCampo = {
   forma: number;
 };
 
-export type EquipaJogo = { clube: string; onze: JogadorEmCampo[] };
+export type FormacaoId = "4-3-3" | "4-4-2" | "4-2-3-1" | "4-1-4-1" | "3-5-2" | "5-3-2" | "3-4-3" | "4-3-1-2";
+export type Estilo = "bonito" | "equilibrado" | "direto" | "contraAtaque";
+export type Nivel = 1 | 2 | 3 | 4 | 5;
+
+/**
+ * Tática de uma equipa (RZ-108). Intensidade, linha, ritmo: 1 baixo … 5 alto (3 = normal).
+ * Fair play: 1 cavalheiro · 2 limpo · 3 normal · 4 duro · 5 agressivo.
+ */
+export type Tatica = { formacao: FormacaoId; estilo: Estilo; intensidade: Nivel; linha: Nivel; ritmo: Nivel; fairPlay: Nivel };
+
+export type EquipaJogo = { clube: string; onze: JogadorEmCampo[]; /** Sem tática, usa-se `TATICA_PADRAO`. */ tatica?: Tatica };
 
 export type Origem = "jogada" | "canto" | "livre" | "penalti";
 export type ResultadoRemate = "golo" | "defendido" | "fora" | "bloqueado";
