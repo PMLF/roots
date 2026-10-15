@@ -4,6 +4,9 @@
  * PERSONALIDADE §4 e CIDADE. Tudo isto é para calibrar no harness (RZ-123).
  */
 
+export type Criterio = "pontos" | "confrontoDireto" | "diferenca" | "golosMarcados" | "vitorias" | "reputacaoMenor" | "sorteio";
+export const CRITERIOS: readonly Criterio[] = ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "vitorias", "reputacaoMenor", "sorteio"];
+
 export type Escalao = "primeiraLiga" | "segundaLiga" | "terceiraLiga" | "cp" | "distrital";
 
 export type Parametros = {
@@ -25,6 +28,12 @@ export type Parametros = {
   distritais: { alvo: number; min: number; max: number; minimoDuro: number };
   /** Pontos por resultado nas classificações de liga. */
   classificacao: { pontosVitoria: number; pontosEmpate: number };
+  /**
+   * Critérios de desempate por ordem (RZ-110; docs/DESIGN_REGRAS.md §1): `pontos`, `confrontoDireto` (pontos, diferença e golos
+   * entre os empatados), `diferenca`, `golosMarcados`, `vitorias`, `reputacaoMenor` (favorece o underdog) e `sorteio`
+   * (estável por seed, competição e época). Os dois últimos desempatam sempre.
+   */
+  desempate: { liga: Criterio[]; promocao: Criterio[] };
   calendario: {
     mesInicioEpoca: number;
     mesFimEpoca: number;
@@ -309,6 +318,10 @@ export const PARAMETROS_PADRAO: Parametros = {
   },
   distritais: { alvo: 10, min: 8, max: 14, minimoDuro: 6 },
   classificacao: { pontosVitoria: 3, pontosEmpate: 1 },
+  desempate: {
+    liga: ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "vitorias", "sorteio"],
+    promocao: ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "reputacaoMenor", "sorteio"],
+  },
   calendario: {
     mesInicioEpoca: 8,
     mesFimEpoca: 5,
@@ -518,6 +531,10 @@ export function validarParametros(p: Parametros): string[] {
   if (!(k.personalidade.limiarBaixo < k.personalidade.limiarAlto)) erros.push("conhecimento.personalidade: limiarBaixo < limiarAlto");
   if (k.personalidade.maxRotulos < 1) erros.push("conhecimento.personalidade: maxRotulos ≥ 1");
   if (k.personalidade.probTrocaPiorQualidade < 0 || k.personalidade.probTrocaPiorQualidade > 1) erros.push("conhecimento.personalidade: probTrocaPiorQualidade entre 0 e 1");
+  for (const [nome, cs] of Object.entries(p.desempate)) {
+    if (cs[0] !== "pontos" || new Set(cs).size !== cs.length || !cs.every((c) => CRITERIOS.includes(c)) || !["reputacaoMenor", "sorteio"].includes(cs.at(-1) as string))
+      erros.push(`desempate.${nome}: começa em «pontos», sem repetidos, critérios válidos e acaba em «reputacaoMenor» ou «sorteio»`);
+  }
   const hi = p.historias;
   if (!(hi.hattrick >= 2 && hi.goleada >= 2 && hi.descontos >= 1 && hi.reviravolta >= 1 && hi.lesaoGrave >= 1 && hi.lesaoGrave <= 5)) erros.push("historias: hattrick ≥ 2, goleada ≥ 2, descontos ≥ 1, reviravolta ≥ 1, lesaoGrave entre 1 e 5");
   const le = p.lesoes;

@@ -258,6 +258,23 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       expect(r.jornadasJogadas("Z", "PL", 1)).toEqual([]);
     });
 
+    it("lista os jogos de uma competição e época por jornada, data e id", () => {
+      const r = criar();
+      const g = (id: string, casa: string, fora: string, jornada: number, extra: { competicao?: string; epoca?: number; data?: string } = {}) => {
+        const j = jogoSintetico(id, { casa, fora, golosCasa: 1, golosFora: 0, jornada, ...extra });
+        r.registarJogo(j.jogo, j.factos, j.part);
+      };
+      g("j3", "A", "B", 2, { data: "2026-09-20" });
+      g("j2", "C", "D", 1, { data: "2026-09-13" });
+      g("j1", "A", "D", 1, { data: "2026-09-12" });
+      g("j4", "A", "B", 1, { competicao: "TP" });
+      g("j5", "A", "B", 1, { epoca: 2 });
+      expect(r.jogosDaCompeticao("PL", 1).map((j) => j.id)).toEqual(["j1", "j2", "j3"]);
+      expect(r.jogosDaCompeticao("PL", 1)[0]).toMatchObject({ casa: "A", fora: "D", golosCasa: 1, golosFora: 0, jornada: 1 });
+      expect(r.jogosDaCompeticao("TP", 1)).toHaveLength(1);
+      expect(r.jogosDaCompeticao("PL", 3)).toEqual([]);
+    });
+
     it("recusa jogos incoerentes ou repetidos sem deixar rasto", () => {
       const r = criar();
       const j = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 1, golosFora: 0 });

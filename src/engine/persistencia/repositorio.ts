@@ -83,6 +83,8 @@ export interface Repositorio {
   cartoes(competicao: string, epoca: number, jogadores: readonly string[]): RegistoCartao[];
   /** Jornadas (sem repetidas, por ordem) em que o clube jogou nesta competição e época. */
   jornadasJogadas(clube: string, competicao: string, epoca: number): number[];
+  /** Jogos jogados nesta competição e época, por jornada, data e id. */
+  jogosDaCompeticao(competicao: string, epoca: number): Jogo[];
   classificacao(competicao: string, epoca: number): LinhaClassificacao[];
   statsJogador(jogador: string): LinhaStatJogador[];
   /** Acrescenta uma sanção retroativa: não reescreve nenhum jogo nem evento. */

@@ -473,6 +473,13 @@ export class RepositorioMemoria implements Repositorio {
     return r ? { ...r.jogo } : undefined;
   }
 
+  jogosDaCompeticao(competicao: string, epoca: number): Jogo[] {
+    return [...this.jogos.values()]
+      .filter((r) => r.jogo.competicao === competicao && r.jogo.epoca === epoca)
+      .sort((a, b) => a.jogo.jornada - b.jogo.jornada || cmp(a.jogo.data, b.jogo.data) || cmp(a.jogo.id, b.jogo.id))
+      .map((r) => ({ ...r.jogo }));
+  }
+
   marcadores(competicao: string, epoca: number, jornada: number): Marcador[] {
     return [...this.jogos.values()]
       .filter((r) => r.jogo.competicao === competicao && r.jogo.epoca === epoca && r.jogo.jornada === jornada)
