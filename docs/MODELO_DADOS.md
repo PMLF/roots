@@ -201,3 +201,18 @@ A importação (RZ-007) valida: nomes únicos, rivais existentes, 10 clubes por 
 - **Idade/saves grandes:** milhões de linhas de histórico → guardar o log em IndexedDB por blocos de época; estado em memória.
 - **Jogadores gerados sob demanda** (lod 2): só se criam a ficha quando o olheiro os vê ou quando o clube precisa; a semente do clube/cidade/ano garante o mesmo jogador.
 - **Em aberto:** nível de detalhe do fair play (discreto 3-5 níveis vs. contínuo); lista final de atributos (conformar com o FM, RZ-008).
+
+## 15. Geração de jogadores por país (decidido a 15-10-2026)
+
+Geração "normal": países com mais **tradição e infraestruturas** de futebol produzem **mais** e **melhores** jogadores (Brasil, Portugal, França, Espanha, Alemanha, Reino Unido…), mas **qualquer país do mundo** pode produzir um bom jogador, com probabilidade menor (exemplos: Uzbequistão, Bulgária, Gabão).
+
+```ts
+type Pais = { id; nome; populacao; tradicao: 0..100; infraestrutura: 0..100; indice: number /* derivado */ };
+// peso de nascimento (quantos jogadores):   w = populacao^0.5 * (0.3 + indice/100)
+// qualidade base do jogador:                q ~ N(mu(indice), sigma)       mu sobe com o índice
+// cauda (talento improvável):               com probabilidade eps (por país, mínimo > 0) q += Pareto(alfa)
+```
+
+- A cauda garante que um país fraco **raramente** gera um craque, mas gera: `eps` baixo para países de índice baixo, nunca zero.
+- Tabela de países em `data/paises.csv` (RZ-132); alimenta a geração (RZ-103), o scouting (RZ-201) e as ligas estrangeiras (RZ-403).
+- Nomes por país com listas próprias (sem dados do FM).

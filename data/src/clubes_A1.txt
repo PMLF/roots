@@ -1,34 +1,34 @@
 # Nome|Localidade|Concelho|Alcunha|Mascote|Cores|Estádio|Rival
 ## CP-A
 Maia Atlético Clube|Maia|Maia|Castelhanos|Castelo da Maia|Azul e laranja|Estádio do Complexo da Maia|SC Valongo
-Póvoa Mar FC|Póvoa de Varzim|Póvoa de Varzim|Poveiros|Lancha Poveira|Vermelho e branco|Estádio da Lota Velha|AD Vilacondense
-Atlético Penafidelense|Penafiel|Penafiel|Vinhos Verdes|Cacho Verde|Verde e preto|Estádio do Monte Municipal|Móveis de Paredes FC
+AC Póvoa de Varzim|Póvoa de Varzim|Póvoa de Varzim|Poveiros|Lancha Poveira|Vermelho e branco|Estádio da Lota Velha|AD Vilacondense
+Atlético Penafidelense|Penafiel|Penafiel|Vinhos Verdes|Cacho Verde|Verde e preto|Estádio do Monte Municipal|GD Paredes
 Bracarense Atlético Clube|Braga|Braga|Arcebispos|Arcebispo|Grená e dourado|Estádio do Monte Picoto|Vimaranense Atlético Clube
 Vimaranense Atlético Clube|Guimarães|Guimarães|Conquistadores|Afonsino|Branco e preto|Estádio do Berço|Bracarense Atlético Clube
 Famalicense Operário FC|Vila Nova de Famalicão|Vila Nova de Famalicão|Têxteis|Tear|Verde e branco|Estádio dos Teares|Atlético de Barcelos
-Ponte de Lima Atlético Clube|Ponte de Lima|Ponte de Lima|Limianos|Vaca das Cordas|Verde e branco|Estádio da Ponte Romana|Arcos Atlético Clube
-CD Fortaleza de Valença|Valença|Valença|Fronteiros|Soldado da Fortaleza|Azul e branco|Estádio das Muralhas|Alvarinho FC
-UD Vila-Realense|Vila Real|Vila Real|Solarengos|Solarengo|Rosa e azul-marinho|Estádio do Corgo|Chaves Termal FC
-AD Mirandelense|Mirandela|Mirandela|Alheiras|Alheira|Amarelo e preto|Estádio do Tua|Macedo Cavaleiros FC
+Ponte de Lima Atlético Clube|Ponte de Lima|Ponte de Lima|Limianos|Vaca das Cordas|Verde e branco|Estádio da Ponte Romana|AC Arcos de Valdevez
+UD Valença|Valença|Valença|Fronteiros|Soldado da Fortaleza|Azul e branco|Estádio das Muralhas|UD Monção
+UD Vila-Realense|Vila Real|Vila Real|Solarengos|Solarengo|Rosa e azul-marinho|Estádio do Corgo|SC Flaviense
+AD Mirandelense|Mirandela|Mirandela|Alheiras|Alheira|Amarelo e preto|Estádio do Tua|GD Macedo de Cavaleiros
 ## DIST|Viana do Castelo
-Âncora Praia FC|Vila Praia de Âncora|Caminha|Ancoradouros|Gaivota|Azul e amarelo|Campo da Lota|Cerveira Arte FC
-Arcos Atlético Clube|Arcos de Valdevez|Arcos de Valdevez|Arcuenses|Boi Barrosão|Vermelho e preto|Estádio dos Arcos|Ponte de Lima Atlético Clube
-Alvarinho FC|Monção|Monção|Alvarinhos|Cacho de Alvarinho|Verde-claro e dourado|Estádio Deu-la-Deu|CD Fortaleza de Valença
-AD Melgacense|Melgaço|Melgaço|Fumeiros|Presunto Saltitante|Vermelho e branco|Campo do Fumeiro|Alvarinho FC
-Paredes de Coura Festival Clube|Paredes de Coura|Paredes de Coura|Festivaleiros|Tenda de Festival|Preto e amarelo|Campo do Taboão|Barquense Desportivo
-Barquense Desportivo|Ponte da Barca|Ponte da Barca|Barquenses|Barqueiro|Azul-marinho e branco|Campo da Ponte Velha|Lindoso Fronteira SC
-Cerveira Arte FC|Vila Nova de Cerveira|Vila Nova de Cerveira|Artistas|Escultor|Branco e roxo|Campo da Bienal|Âncora Praia FC
-GD Espigueiros do Soajo|Soajo|Arcos de Valdevez|Espigueiros|Espigueiro|Cinzento e verde|Campo da Eira|Arcos Atlético Clube
-Atlântico de Afife|Afife|Viana do Castelo|Surfistas|Onda|Azul-turquesa e branco|Campo do Areal|FC Barroselas
-Lindoso Fronteira SC|Lindoso|Ponte da Barca|Castelãos|Lobo do Gerês|Castanho e verde|Campo do Castelo|Barquense Desportivo
+CD Vila Praia de Âncora|Vila Praia de Âncora|Caminha|Ancoradouros|Gaivota|Azul e amarelo|Campo da Lota|FC Vila Nova de Cerveira
+AC Arcos de Valdevez|Arcos de Valdevez|Arcos de Valdevez|Arcuenses|Boi Barrosão|Vermelho e preto|Estádio dos Arcos|Ponte de Lima Atlético Clube
+UD Monção|Monção|Monção|Alvarinhos|Cacho de Alvarinho|Verde-claro e dourado|Estádio Deu-la-Deu|UD Valença
+AD Melgacense|Melgaço|Melgaço|Fumeiros|Pescador do Minho|Vermelho e branco|Campo do Fumeiro|UD Monção
+FC Paredes de Coura|Paredes de Coura|Paredes de Coura|Festivaleiros|Guitarrista|Preto e amarelo|Campo do Taboão|Barquense Desportivo
+Barquense Desportivo|Ponte da Barca|Ponte da Barca|Barquenses|Barqueiro|Azul-marinho e branco|Campo da Ponte Velha|GD Lindoso
+FC Vila Nova de Cerveira|Vila Nova de Cerveira|Vila Nova de Cerveira|Artistas|Escultor|Branco e roxo|Campo da Bienal|CD Vila Praia de Âncora
+AC Soajo|Soajo|Arcos de Valdevez|Espigueiros|Espigueiro|Cinzento e verde|Campo da Eira|AC Arcos de Valdevez
+SC Afife|Afife|Viana do Castelo|Surfistas|Onda|Azul-turquesa e branco|Campo do Areal|FC Barroselas
+GD Lindoso|Lindoso|Ponte da Barca|Castelãos|Lobo do Gerês|Castanho e verde|Campo do Castelo|Barquense Desportivo
 ## DIST|Braga
-Termas de Vizela FC|Vizela|Vizela|Termalistas|Banhista de Roupão|Branco e azul-claro|Estádio das Termas|Vimaranense Atlético Clube
-Esposende Atlântico CD|Esposende|Esposende|Esposendenses|Cavalo-marinho|Azul e branco|Estádio do Cávado|Atlético de Barcelos
-Póvoa de Lanhoso SC|Póvoa de Lanhoso|Póvoa de Lanhoso|Lanhosenses|Cavaleiro do Castelo|Preto e verde|Estádio do Castelo|Bracarense Atlético Clube
-Amarense Clube|Amares|Amares|Amarenses|Monge de Bouro|Roxo e branco|Campo do Mosteiro|Vila Verde Atlético
-Vila Verde Atlético|Vila Verde|Vila Verde|Verdes|Lenço dos Namorados|Verde e vermelho|Estádio Municipal de Vila Verde|Amarense Clube
-Vieirense Montanha FC|Vieira do Minho|Vieira do Minho|Montanheses|Lobo-ibérico|Azul e branco|Campo da Cabreira|Cabeceiras Basto SC
-Cabeceiras Basto SC|Cabeceiras de Basto|Cabeceiras de Basto|Bastenses|Monge de Refojos|Vermelho e preto|Campo do Mosteiro de Refojos|Celorico Basto Desportivo
-Celorico Basto Desportivo|Celorico de Basto|Celorico de Basto|Celoricenses|Vindimador|Verde e branco|Campo do Fojo|Cabeceiras Basto SC
-Terras de Bouro Gerês FC|Terras de Bouro|Terras de Bouro|Geresianos|Garrano|Verde-escuro e castanho|Campo do Parque do Gerês|Vieirense Montanha FC
-Caldas das Taipas Termal|Caldas das Taipas|Guimarães|Taipenses|Fonte Termal|Azul e dourado|Campo das Caldas|Vimaranense Atlético Clube
+GD Vizela|Vizela|Vizela|Termalistas|Banhista|Branco e azul-claro|Estádio das Termas|Vimaranense Atlético Clube
+AC Esposendense|Esposende|Esposende|Esposendenses|Cavalo-marinho|Azul e branco|Estádio do Cávado|Atlético de Barcelos
+SC Póvoa de Lanhoso|Póvoa de Lanhoso|Póvoa de Lanhoso|Lanhosenses|Cavaleiro do Castelo|Preto e verde|Estádio do Castelo|Bracarense Atlético Clube
+Amarense Clube|Amares|Amares|Amarenses|Monge de Bouro|Roxo e branco|Campo do Mosteiro|CD Vila Verde
+CD Vila Verde|Vila Verde|Vila Verde|Verdes|Lenço dos Namorados|Verde e vermelho|Estádio Municipal de Vila Verde|Amarense Clube
+GD Vieira do Minho|Vieira do Minho|Vieira do Minho|Montanheses|Lobo-ibérico|Azul e branco|Campo da Cabreira|UD Cabeceiras de Basto
+UD Cabeceiras de Basto|Cabeceiras de Basto|Cabeceiras de Basto|Bastenses|Monge de Refojos|Vermelho e preto|Campo do Mosteiro de Refojos|Celorico Basto Desportivo
+Celorico Basto Desportivo|Celorico de Basto|Celorico de Basto|Celoricenses|Vindimador|Verde e branco|Campo do Fojo|UD Cabeceiras de Basto
+AC Terras de Bouro|Terras de Bouro|Terras de Bouro|Geresianos|Garrano|Verde-escuro e castanho|Campo do Parque do Gerês|GD Vieira do Minho
+FC Caldas das Taipas|Caldas das Taipas|Guimarães|Taipenses|Fonte Termal|Azul e dourado|Campo das Caldas|Vimaranense Atlético Clube

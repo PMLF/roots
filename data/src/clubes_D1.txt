@@ -1,33 +1,33 @@
 ## CP-D
-Estremoz Mármore AC|Estremoz|Estremoz|Marmoreiros|Bloco de Mármore|Branco e cinzento|Estádio das Pedreiras|SU Évora Velha
-Montemor Novo Castelo FC|Montemor-o-Novo|Montemor-o-Novo|Montenovenses|Cegonha|Verde e vermelho|Estádio do Castelo Novo|SU Évora Velha
-Moura Alqueva CD|Moura|Moura|Mouros|Moura Salúquia|Verde e branco|Estádio das Termas de Moura|Serpa Atlético Clube
-Portimão Sardinha FC|Portimão|Portimão|Sardinheiros|Sardinha Assada|Azul e branco|Estádio da Arade|Lagos Descobrimentos FC
-Louletano Atlético|Loulé|Loulé|Foliões|Folião|Laranja e preto|Estádio dos Mouros|Olhão Ria Formosa CD
-Olhão Ria Formosa CD|Olhão|Olhão|Olhanenses|Caíque|Branco e azul-marinho|Estádio da Ria Formosa|Louletano Atlético
-Lagos Descobrimentos FC|Lagos|Lagos|Lacobrigenses|Infante|Vermelho e azul|Estádio da Meia Praia|Portimão Sardinha FC
-Ponta Delgada Atlântico FC|Ponta Delgada|Ponta Delgada|Ponta-delgadenses|Portas da Cidade|Branco e preto|Estádio das Portas do Mar|Ribeira Grande Chá Gorreana
-Ribeira Grande Chá Gorreana|Ribeira Grande|Ribeira Grande|Ribeira-grandenses|Folha de Chá|Verde e branco|Estádio da Gorreana|Ponta Delgada Atlântico FC
-Funchal Bolo do Caco FC|Funchal|Funchal|Funchalenses|Bolo do Caco|Vermelho e verde|Estádio do Lido|AD Câmara de Lobos
+UD Estremoz|Estremoz|Estremoz|Marmoreiros|Bloco de Mármore|Branco e cinzento|Estádio das Pedreiras|SU Évora Velha
+UD Montenovense|Montemor-o-Novo|Montemor-o-Novo|Montenovenses|Cegonha|Verde e vermelho|Estádio do Castelo Novo|SU Évora Velha
+AC Moura|Moura|Moura|Mouros|Moura Salúquia|Verde e branco|Estádio das Termas de Moura|Serpa Atlético Clube
+FC Portimão|Portimão|Portimão|Sardinheiros|Sardinha Assada|Azul e branco|Estádio da Arade|AD Lagos
+Louletano Atlético|Loulé|Loulé|Foliões|Folião|Laranja e preto|Estádio dos Mouros|GD Olhanense
+GD Olhanense|Olhão|Olhão|Olhanenses|Caíque|Branco e azul-marinho|Estádio da Ria Formosa|Louletano Atlético
+AD Lagos|Lagos|Lagos|Lacobrigenses|Infante|Vermelho e azul|Estádio da Meia Praia|FC Portimão
+AD Ponta Delgada|Ponta Delgada|Ponta Delgada|Ponta-delgadenses|Portas da Cidade|Branco e preto|Estádio das Portas do Mar|AC Ribeira Grande
+AC Ribeira Grande|Ribeira Grande|Ribeira Grande|Ribeira-grandenses|Folha de Chá|Verde e branco|Estádio da Gorreana|AD Ponta Delgada
+SC Funchal|Funchal|Funchal|Funchalenses|Bolo do Caco|Vermelho e verde|Estádio do Lido|AD Câmara de Lobos
 ## DIST|Évora
-Vendas Novas Artilheiros FC|Vendas Novas|Vendas Novas|Artilheiros|Canhão|Azul e verde|Campo do Quartel|Montemor Novo Castelo FC
-Arraiolos Tapete FC|Arraiolos|Arraiolos|Tapeteiros|Tapete Voador|Vermelho e azul|Campo do Tapete|SU Évora Velha
-Reguengos Vinho CD|Reguengos de Monsaraz|Reguengos de Monsaraz|Reguenguenses|Talha de Vinho|Bordô e branco|Estádio da Talha|CA Redondo FC
-Borba Adega FC|Borba|Borba|Borbenses|Adega|Vermelho e branco|Campo da Adega|Estremoz Mármore AC
-Vila Viçosa Ducal FC|Vila Viçosa|Vila Viçosa|Viçosenses|Duque de Bragança|Azul e dourado|Estádio do Paço Ducal|Borba Adega FC
-Mora Montado CD|Mora|Mora|Morenses|Porco Preto|Preto e branco|Campo do Gameiro|Arraiolos Tapete FC
-Portel Castelo CD|Portel|Portel|Portelenses|Torre do Castelo|Verde e preto|Campo do Castelo de Portel|Vidigueira Vinho FC
-Viana Alentejo Cante CD|Viana do Alentejo|Viana do Alentejo|Cantadores|Cantador|Preto e vermelho|Campo do Cante|CA Redondo FC
-Alandroal Raia CD|Terena|Alandroal|Alandroalenses|Cegonha-preta|Castanho e verde|Campo de Terena|Mourão Alqueva FC
-Mourão Alqueva FC|Mourão|Mourão|Mourenses|Pescador do Lago|Azul e branco|Campo do Lago|Alandroal Raia CD
+GD Vendas Novas|Vendas Novas|Vendas Novas|Artilheiros|Canhão|Azul e verde|Campo do Quartel|UD Montenovense
+FC Arraiolos|Arraiolos|Arraiolos|Tapeteiros|Bordadeira|Vermelho e azul|Campo do Tapete|SU Évora Velha
+FC Reguengos de Monsaraz|Reguengos de Monsaraz|Reguengos de Monsaraz|Reguenguenses|Talha de Vinho|Bordô e branco|Estádio da Talha|CA Redondo FC
+SC Borbense|Borba|Borba|Borbenses|Adega|Vermelho e branco|Campo da Adega|UD Estremoz
+CD Vila Viçosa|Vila Viçosa|Vila Viçosa|Viçosenses|Duque de Bragança|Azul e dourado|Estádio do Paço Ducal|SC Borbense
+CD Mora|Mora|Mora|Morenses|Porco Preto|Preto e branco|Campo do Gameiro|FC Arraiolos
+CD Portelense|Portel|Portel|Portelenses|Torre do Castelo|Verde e preto|Campo do Castelo de Portel|CD Vidigueirense
+SC Viana do Alentejo|Viana do Alentejo|Viana do Alentejo|Cantadores|Cantador|Preto e vermelho|Campo do Cante|CA Redondo FC
+GD Terena|Terena|Alandroal|Alandroalenses|Cegonha-preta|Castanho e verde|Campo de Terena|AC Mourense
+AC Mourense|Mourão|Mourão|Mourenses|Pescador do Lago|Azul e branco|Campo do Lago|GD Terena
 ## DIST|Beja
-Aljustrel Mineiros FC|Aljustrel|Aljustrel|Mineiros|Mineiro|Preto e laranja|Estádio da Mina de Aljustrel|Castro Verde Campo Branco
-Almodôvar Serra CD|Almodôvar|Almodôvar|Almodovenses|Cigarra|Verde e branco|Campo do Caldeirão|Ourique Batalha CD
-Castro Verde Campo Branco|Castro Verde|Castro Verde|Abetardas|Abetarda|Verde e branco|Campo da Abetarda|Aljustrel Mineiros FC
-Ferreira Ceifeira FC|Ferreira do Alentejo|Ferreira do Alentejo|Ceifeiros|Ceifeira|Dourado e verde|Campo do Celeiro|Serpa Atlético Clube
-Mértola Guadiana FC|Mértola|Mértola|Mertolenses|Mosaico Islâmico|Verde e branco|Campo do Guadiana|Alcoutim Guadiana CD
-Ourique Batalha CD|Ourique|Ourique|Ouriquenses|Cinco Escudos|Azul e branco|Campo da Batalha|Almodôvar Serra CD
-Vidigueira Vinho FC|Vidigueira|Vidigueira|Vidigueirenses|Conde da Vidigueira|Bordô e dourado|Campo do Conde|Cuba Azeite FC
-Cuba Azeite FC|Cuba|Cuba|Cubenses|Garrafa de Azeite|Verde e amarelo|Campo da Fonte|Vidigueira Vinho FC
-Barrancos Raia CD|Barrancos|Barrancos|Barranquenhos|Falante|Vermelho e verde|Campo da Raia de Barrancos|Moura Alqueva CD
-Alvito Castelo AC|Alvito|Alvito|Alvitenses|Barão|Azul e branco|Campo do Castelo de Alvito|Cuba Azeite FC
+AD Aljustrel|Aljustrel|Aljustrel|Mineiros|Mineiro|Preto e laranja|Estádio da Mina de Aljustrel|GD Castro Verde
+CD Almodôvar|Almodôvar|Almodôvar|Almodovenses|Cigarra|Verde e branco|Campo do Caldeirão|GD Ouriquense
+GD Castro Verde|Castro Verde|Castro Verde|Abetardas|Abetarda|Verde e branco|Campo da Abetarda|AD Aljustrel
+AD Ferreira do Alentejo|Ferreira do Alentejo|Ferreira do Alentejo|Ceifeiros|Ceifeira|Dourado e verde|Campo do Celeiro|Serpa Atlético Clube
+UD Mértola|Mértola|Mértola|Mertolenses|Mosaico Islâmico|Verde e branco|Campo do Guadiana|AC Alcoutim
+GD Ouriquense|Ourique|Ourique|Ouriquenses|Cinco Escudos|Azul e branco|Campo da Batalha|CD Almodôvar
+CD Vidigueirense|Vidigueira|Vidigueira|Vidigueirenses|Conde da Vidigueira|Bordô e dourado|Campo do Conde|GD Cubense
+GD Cubense|Cuba|Cuba|Cubenses|Garrafa de Azeite|Verde e amarelo|Campo da Fonte|CD Vidigueirense
+SC Barrancos|Barrancos|Barrancos|Barranquenhos|Falante|Vermelho e verde|Campo da Raia de Barrancos|AC Moura
+CD Alvito|Alvito|Alvito|Alvitenses|Barão|Azul e branco|Campo do Castelo de Alvito|GD Cubense

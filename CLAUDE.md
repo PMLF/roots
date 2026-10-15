@@ -4,7 +4,7 @@ Jogo de browser de gestão de futebol português com **clubes ligados a cidades*
 
 ## Ler primeiro
 1. `BACKLOG.md` — fonte de verdade: o que fazer, por fases e prioridade.
-2. `docs/DESIGN_REGRAS.md` (pirâmide, prémio, distritais, sinergias), `docs/MODELO_DADOS.md`, `docs/PERSONALIDADE.md`, `docs/HISTORICO_EVENTOS.md`.
+2. `docs/DESIGN_REGRAS.md` (pirâmide, prémio, distritais, sinergias), `docs/MODELO_DADOS.md`, `docs/PERSONALIDADE.md`, `docs/HISTORICO_EVENTOS.md`, `docs/TOM_E_UX.md`.
 3. `data/` — 298 clubes, 276 concelhos, rivalidades. Fontes editáveis em `data/src/`; `python3 tools/build_dados.py` regenera e valida; `python3 tools/build_xlsx.py` gera `Clubes_Raizes.xlsx`.
 
 ## Stack e convenções
@@ -16,6 +16,9 @@ Jogo de browser de gestão de futebol português com **clubes ligados a cidades*
 - Personalidade = um sistema único (traços + memória) para todas as pessoas e entidades.
 
 ## Regras de trabalho
+- **Git:** `main` = estável, `develop` = integração, `feature/rz-xxx` = trabalho atual (um de cada vez). Docs podem ir direto para `develop`; `main` só recebe merges de marcos. Commits terminam com as linhas de atribuição pedidas pelo ambiente.
+- Nomes de clubes realistas (sigla + localidade/gentílico); humor fica na alcunha/mascote. Tom das notícias: realista (`docs/TOM_E_UX.md`).
+- Nunca usar dados do FM nem nomes de pessoas reais no jogo.
 - Pega no primeiro item P1 por fazer da fase atual; atualiza o estado no backlog no fim.
 - Não implementes nada fora do backlog; ideias novas vão para o Parking lot.
 - Clubes e pessoas são fictícios; não usar nomes de clubes reais.

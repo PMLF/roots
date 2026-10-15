@@ -119,6 +119,13 @@ Cada clube pertence a um **concelho** (= a Câmara e o orçamento municipal). Ca
 - Cidade → clube: `bacia de adeptos` (população × identidade), patrocínios (setor), apoio municipal (presidente da Câmara), viveiro de jovens.
 - **Assistência (esqueleto):** `bacia × taxa_base × forma × importância × rivalidade × preço × transporte × clima × setor`, limitada pela capacidade do estádio. Importância: final ×2,5; decisão de subida/descida ×1,8; grande visitante ×(1 + 0,3 × rep_visitante/rep_casa); dérbi como acima.
 
+## 6b. Calendário e ritmo (decidido a 15-10-2026)
+
+- **Época:** agosto a maio, seguindo o calendário habitual da Liga Portuguesa (jornadas ao fim de semana, pausas de seleções e uma pequena pausa de Natal). As distritais e o CP seguem o mesmo ano; a **Fase de Promoção** joga-se no fim, em maio-junho.
+- **Janelas de transferências:** **julho-agosto** e **janeiro**.
+- **Botão Avançar:** passa **um dia** e **pára automaticamente nos eventos** (jogo do teu clube, proposta, reunião, lesão, notícia que exige resposta).
+- Datas exatas e feriados ficam em parâmetros (RZ-006); o calendário de jornadas é gerado por RZ-102.
+
 ## 6. Dados incluídos (`data/`)
 | Ficheiro | Conteúdo |
 |---|---|
