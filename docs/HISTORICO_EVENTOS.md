@@ -265,7 +265,7 @@ O fim de época corre numa **única transação** (DESIGN_REGRAS §2). Invariant
 ```ts
 Historico.contar(tipo, entidade, { desdeEpoca, ateEpoca })
 Historico.ultimo(tipo, entidade)               // p. ex. última SUBIDA do clube
-Historico.sequencia(tipo, entidade, n)         // 3 derrotas seguidas…
+Historico.ultimos(tipo, entidade, n)            // os n mais recentes (3 derrotas seguidas…); no código: Repositorio.ultimos
 Historico.cadeia(eventoId)                     // causa → efeitos
 Historico.marcoNovo(clube, 'subida')           // "primeira subida em 40 anos" (inclui pré-história)
 ```
@@ -312,6 +312,15 @@ SELECT * FROM confronto_direto WHERE (a = ? AND b = ?) OR (a = ? AND b = ?);
 - **Exportar:** `.sqlite` (save completo) + `historico.ndjson` (um evento por linha, para crónica/partilha) + CSV opcional de estatísticas.
 - **Importar:** só o `.sqlite`; o NDJSON serve para análise (não reconstitui o estado por si só).
 - **Migrar:** `PRAGMA user_version` + scripts numerados; eventos com `v` próprios convertidos ao ler.
+
+## 11b. Implementação (RZ-128, 15-10-2026)
+
+- `src/engine/persistencia/`: `Repositorio` (porta síncrona), `RepositorioSqlite` (sobre `DriverSql`), `RepositorioMemoria`, `esquema.ts` (migrações por `user_version`), `validacao.ts` (partilhada). Todos os adaptadores passam na **mesma bateria** (`repositorio.contrato.ts`) e produzem o mesmo NDJSON.
+- Drivers: `src/node/driverBetterSqlite.ts` (Node/testes/harness) e `src/engine/worker/driverWasm.ts` (browser: sqlite-wasm + OPFS `opfs-sahpool`, com recurso a memória se o OPFS falhar). O motor não importa nenhuma biblioteca SQLite (regra de lint).
+- O sqlite-wasm **não passa pelo bundler**: `tools/copiar-sqlite-wasm.mjs` copia-o para `public/sqlite/` (corre em `pnpm dev` e `pnpm build`) e o worker carrega-o por URL, porque o Turbopack não resolve os `new URL(variável, import.meta.url)` internos do pacote.
+- Esquema v1: `meta`, `evento`, `evento_entidade`, `jogo`, `jogo_facto`, `participacao`, `classificacao_ajuste`, `observacao` + derivadas `classificacao` e `stat_jogador_epoca`. Triggers impedem UPDATE/DELETE na história. Os restantes processos de vida longa (contrato, promessa, obra, caso, sanção, memória, relação…) e derivadas (`titulo`, `marco`, `confronto_direto`, `carreira_jogador`) entram, por migração, com as funcionalidades que os usam.
+- Convenções: `jogo_facto.clube` em golos é o clube **creditado** (num auto-golo, o adversário do jogador; `extra = 'auto'`); `extra` é um só símbolo. Um jogador "jogou" se `minutos > 0`. Classificação: pontos por parâmetro (`classificacao.pontosVitoria/pontosEmpate`), desempate por diferença e golos marcados (confronto direto fica para o RZ-102/106).
+- Verificado: 50 épocas simuladas (2 800 jogos) com reconstrução das derivadas igual ao incremental; save exportado reabre; persistência no OPFS entre recarregamentos e entre processos num Chromium real, em `next dev` e na exportação estática.
 
 ## 12. Decisões tomadas (14-10-2026)
 

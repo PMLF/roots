@@ -27,5 +27,10 @@
   "inicio.premioCidade": "Prémio do Estado à cidade",
   "inicio.promovidos": "Promovidos por ano ao Campeonato de Portugal",
   "inicio.distritais": "Tamanho das distritais (alvo / mínimo / máximo)",
-  "inicio.autosave": "Autosave {dias, plural, one {todos os dias} other {a cada # dias}}"
+  "inicio.autosave": "Autosave {dias, plural, one {todos os dias} other {a cada # dias}}",
+  "inicio.bd": "Base de dados",
+  "inicio.bdAEspera": "A abrir a base de dados…",
+  "inicio.bdErro": "Não foi possível abrir a base de dados: {erro}",
+  "inicio.bdOpfs": "SQLite {sqlite} (esquema {esquema}) guardado no navegador. Aberta {aberturas, plural, one {# vez} other {# vezes}}; {eventos, plural, one {# evento} other {# eventos}} no histórico.",
+  "inicio.bdMemoria": "SQLite {sqlite} (esquema {esquema}) só em memória: os dados perdem-se ao fechar a página. Motivo: {motivo}"
 }

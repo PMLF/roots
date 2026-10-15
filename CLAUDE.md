@@ -12,6 +12,7 @@ Jogo de browser de gestão de futebol português com **clubes ligados a cidades*
 
 ## Stack e convenções
 - Next.js + TypeScript + React; sem backend; persistência em **SQLite** (WASM/OPFS no browser, better-sqlite3 em Node) — ver `docs/HISTORICO_EVENTOS.md`.
+- Bibliotecas SQLite só nos drivers (`src/node`, `src/engine/worker`); o motor fala com a interface `Repositorio` (`src/engine/persistencia`).
 - **Motor de simulação em TypeScript puro** (`src/engine`), sem imports de React/DOM, testável headless. UI em `src/ui`.
 - Tudo o que tem números (assistência, golos, lesões, prémios) tem parâmetros em ficheiro de configuração e passa no harness de calibração antes de ser dado como feito.
 - Histórico = log de eventos append-only + factos de jogo; derivadas reconstruíveis; nada se apaga na passagem de época.

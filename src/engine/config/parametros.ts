@@ -23,6 +23,8 @@ export type Parametros = {
     distritos: number;
   };
   distritais: { alvo: number; min: number; max: number; minimoDuro: number };
+  /** Pontos por resultado nas classificações de liga. */
+  classificacao: { pontosVitoria: number; pontosEmpate: number };
   calendario: {
     mesInicioEpoca: number;
     mesFimEpoca: number;
@@ -71,6 +73,7 @@ export const PARAMETROS_PADRAO: Parametros = {
     distritos: 20,
   },
   distritais: { alvo: 10, min: 8, max: 14, minimoDuro: 6 },
+  classificacao: { pontosVitoria: 3, pontosEmpate: 1 },
   calendario: {
     mesInicioEpoca: 8,
     mesFimEpoca: 5,
@@ -142,6 +145,9 @@ export function validarParametros(p: Parametros): string[] {
   const dv = derivados(p);
   if (dv.descemDoCp < 0 || !Number.isInteger(dv.descemDoCp)) erros.push("descemDoCp deve ser um inteiro ≥ 0");
   if (!Number.isInteger(dv.descemPorSerieMedia)) erros.push("descemPorSerieMedia deve ser inteiro para manter as séries com o mesmo tamanho");
+
+  if (!(p.classificacao.pontosVitoria > p.classificacao.pontosEmpate && p.classificacao.pontosEmpate >= 0))
+    erros.push("classificacao: pontosVitoria > pontosEmpate ≥ 0");
 
   const c = p.calendario;
   for (const m of [c.mesInicioEpoca, c.mesFimEpoca]) if (m < 1 || m > 12) erros.push("calendario: meses entre 1 e 12");
