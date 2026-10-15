@@ -353,5 +353,10 @@
   "lab.historia.HATTRICK": "Hat-trick",
   "lab.historia.CARTAO_VERMELHO": "Cartão vermelho",
   "lab.historia.GOLEADA": "Goleada",
-  "lab.historia.GOLO_NOTAVEL": "Golo notável"
+  "lab.historia.GOLO_NOTAVEL": "Golo notável",
+  "menu.developer": "Developer",
+  "tema.rotulo": "Tema da interface",
+  "tema.auto": "Tema: automático",
+  "tema.claro": "Tema: claro",
+  "tema.escuro": "Tema: escuro"
 }

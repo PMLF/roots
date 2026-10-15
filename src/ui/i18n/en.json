@@ -353,5 +353,10 @@
   "lab.historia.HATTRICK": "Hat-trick",
   "lab.historia.CARTAO_VERMELHO": "Red card",
   "lab.historia.GOLEADA": "Thrashing",
-  "lab.historia.GOLO_NOTAVEL": "Great goal"
+  "lab.historia.GOLO_NOTAVEL": "Great goal",
+  "menu.developer": "Developer",
+  "tema.rotulo": "Interface theme",
+  "tema.auto": "Theme: auto",
+  "tema.claro": "Theme: light",
+  "tema.escuro": "Theme: dark"
 }
