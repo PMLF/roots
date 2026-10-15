@@ -7,7 +7,7 @@ Define **onde e como** se guardam o mundo, a história e o que cada pessoa sabe.
 1. **Qualquer página lê rápido** o que precisa: a ficha de um jogador com toda a carreira, os marcadores de uma jornada, o confronto direto entre dois clubes, a história de um clube. Sem percorrer ficheiros.
 2. **Nada se perde na passagem de época.** A época é só uma coluna; nada é "arquivado e esquecido". Promessas, investigações, castigos, contratos, obras e memórias atravessam épocas.
 3. **Regras que dependem do passado** ("primeira subida em 40 anos", "terceira derrota seguida em dérbis", "caso de 2028 que rebenta em 2031") consultam o histórico com perguntas simples.
-4. **Informação tem dono.** O que o jogo *sabe* (a verdade) não é o que o jogador *vê*. Golos, cartões, lesões e resultados de **todos** os clubes são públicos; personalidades, atributos e finanças só aparecem com observação.
+4. **Informação tem dono.** O que o jogo *sabe* (a verdade) não é o que o gamer *vê*. Golos, cartões, lesões e resultados de **todos** os clubes são públicos; personalidades, atributos e finanças só aparecem com observação.
 5. **Longo prazo:** dezenas de épocas, ~300 clubes, milhões de factos, sem o save inchar nem ficar lento.
 6. **Testável sem interface** (D2): o mesmo esquema corre no harness Node e no browser.
 
@@ -242,7 +242,7 @@ SANCAO | ABSOLVICAO — pode chegar épocas depois e aplicar-se a épocas passad
 
 **Sanções:** coima, perda de pontos (época em curso ou ajuste retroativo), descida administrativa, perda de licença, suspensão de pessoas por N épocas, queda de reputação, corte de apoio da Câmara.
 
-### 6.2 Como atinge o jogador (como presidente/diretor)
+### 6.2 Como atinge o gamer (como presidente/diretor)
 
 1. **Propostas que recebes:** um rival ou apostador quer que percas um jogo; um agente propõe comissão oculta; um autarca oferece favor na licença. Aceitar dá benefício imediato e cria um caso com prova a acumular.
 2. **Propostas que podes fazer:** corromper um árbitro ou jogadores adversários, pedir um favor ao autarca. A resposta depende da `integridade` do alvo: se for alta, **denuncia** e o escândalo cai em cima de ti.
@@ -315,7 +315,7 @@ SELECT * FROM confronto_direto WHERE (a = ? AND b = ?) OR (a = ? AND b = ?);
 
 ## 12. Decisões tomadas (14-10-2026)
 
-1. **Sanções ao jogador-presidente:** perda de reputação + coima; despedimento só em casos muito graves ou com posição já frágil (§6.2).
+1. **Sanções ao gamer (presidente):** perda de reputação + coima; despedimento só em casos muito graves ou com posição já frágil (§6.2).
 2. **Finanças dos rivais:** estado descritivo em palavras, relativo ao escalão (§5.1).
 3. **Histórico:** guarda-se tudo, sem compactação por omissão (§10).
 

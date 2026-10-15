@@ -11,7 +11,9 @@
 
 Um jogo de **histórias** mais do que de simulação. Ciclo central: **descobrir talento → desenvolvê-lo → ver o clube crescer → a cidade reage → a cidade devolve ao clube**. Gosto central do Pedro: descobrir jogadores novos (de clubes rivais, de países "estranhos"), vê-los evoluir; negociações e contratos; ver divisões inferiores e ligas estrangeiras; histórias de *underdogs* que sobem por boas decisões e filosofia própria; staff; cidade, Câmara, empresas e adeptos com peso real; política regional e nacional a afetar tudo. A **tática é secundária** (algumas opções simples).
 
-**Papel de quem joga:** presidente + diretor desportivo, com **poder de treinador que vai perdendo** à medida que o clube cresce. Nas distritais és o faz-tudo (treinador, olheiro, presidente); ao crescer delegas. Mantém um "poder extra" (intervir na formação/estilo em jogos decisivos), mas interferir demais gasta a confiança do treinador.
+**Glossário:** *gamer* = quem joga o jogo; *jogador* = futebolista.
+
+**Papel do gamer:** presidente + diretor desportivo, com **poder de treinador que vai perdendo** à medida que o clube cresce. Nas distritais és o faz-tudo (treinador, olheiro, presidente); ao crescer delegas. Mantém um "poder extra" (intervir na formação/estilo em jogos decisivos), mas interferir demais gasta a confiança do treinador.
 
 **Ligação ao Football Manager:** o mundo base é a base "Portugal Alternativo" (Pedro) — 58 clubes originais + 240 novos (CP e distritais), agora em `data/`.
 
@@ -24,7 +26,7 @@ Um jogo de **histórias** mais do que de simulação. Ciclo central: **descobrir
 | D3 | **Não usar Unity** | Interface/dados é o que pesa; o Claude não corre o editor do Unity nem faz a ligação visual; o motor testável em TS é a vantagem |
 | D4 | Persistência em **SQLite** (WASM + OPFS no browser; `better-sqlite3` no harness), um ficheiro por save, exportável; **histórico append-only** com derivadas reconstruíveis (`docs/HISTORICO_EVENTOS.md`) | Consultas rápidas para as páginas, nada se perde entre épocas, informação pública vs. oculta |
 | D5 | **Mundo largo mas raso** (níveis de detalhe) | Simular ao pormenor só o que interessa; resto estatístico |
-| D6 | Clubes fictícios; o utilizador pode importar a sua própria base | Evita problemas de licenciamento |
+| D6 | Clubes fictícios; o gamer pode importar a sua própria base | Evita problemas de licenciamento |
 | D7 | Cidade = **painel de variáveis e obras**, não *city builder* com ruas | Evita derrapar para outro jogo |
 | D8 | Personalidade (traços + memória) num **sistema único** para toda a gente | Barato e gera enredo |
 | D9 | Pirâmide de 5 escalões, 20 distritos, **Fase de Promoção** (8 sobem ao CP por ano), prémio do Estado (2 M€ livres), distritais variáveis | `docs/DESIGN_REGRAS.md` |
@@ -32,6 +34,7 @@ Um jogo de **histórias** mais do que de simulação. Ciclo central: **descobrir
 | D11 | Git: `main` (estável/publicado), `develop` (integração) e `feature/rz-xxx` (a atual); docs podem ir direto para `develop` | Projeto a solo; fluxo simples |
 | D12 | Jogos do teu clube **ao vivo, minuto a minuto**; outros jogos só golos, vermelhos e melhor em campo; o simulador é **retomável** (para mudar tática/substituições ao vivo mais tarde) | Pedido do Pedro, 15-10-2026 |
 | D13 | Tom realista como a imprensa real, com ironia pontual e imprensa cor-de-rosa; nomes de clubes realistas; UI densa e organizada, pouca ilustração | `docs/TOM_E_UX.md` |
+| D15 | **Gamer** = quem joga; **jogador** = futebolista. Mundo gerado por save (seed), pessoas diferentes em cada save; i18n pt-PT/EN desde o início; saves em ficheiros `.raizes` com autosave de 7 em 7 dias | `docs/GERACAO_MUNDO.md` |
 | D14 | Arquitetura aberta à expansão: motor num **Web Worker**, repositório por interface, textos por chave (i18n), dados de conteúdo fora do código; **sem dados do FM** no jogo | Permite Steam (casca desktop), inglês, 2D e mapa mais tarde (§10b) |
 
 ## 3. Plataforma e processo
@@ -78,13 +81,13 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 ### Motor e dados
 - [ ] **RZ-101** (P1, M) Esqueleto Next.js, estado do jogo, guardar/carregar local; **motor num Web Worker**, textos por chave (i18n pt-PT), exportação estática (sem servidor). → RZ-003, RZ-128
 - [ ] **RZ-102** (P1, M) Calendários (todos contra todos, ida e volta) por liga, com número variável de clubes e folgas por jornada.
-- [ ] **RZ-103** (P1, L) Gerador de jogadores: nomes, origem (inclui países "estranhos"), atributos, potencial com margem, personalidade, ligação à cidade. → RZ-004
+- [ ] **RZ-103** (P1, L) **Gerador de pessoas e do mundo** (`docs/GERACAO_MUNDO.md`): nomes por nacionalidade, posições, dados pessoais, atributos, potencial, personalidade, contratos; mix de estrangeiros por escalão e clube; criação de save em 10-30 s num Web Worker com progresso. → RZ-004, RZ-132
 - [ ] **RZ-104** (P1, XL) **Motor de jogo por oportunidades** (≈20-30 por equipa): cada remate tem xG; golos, assistências, defesas, cantos, faltas, posse; sem motor visual. **Simulador retomável por minutos** (estado + `simularAte(minuto)`), para permitir mudar tática e substituições ao vivo mais tarde.
 - [ ] **RZ-105** (P1, L) **Estatísticas pós-jogo**: golos e minutos, marcadores, assistentes, cartões, lesões, remates (totais e à baliza), xG, posse, cantos, faltas, notas, homem do jogo e momentos-chave em texto.
 - [ ] **RZ-106** (P1, M) **Cartões e castigos**: amarelos acumulados, vermelhos, jornadas de suspensão por competição.
 - [ ] **RZ-107** (P1, L) **Lesões**: tipo, gravidade, duração, recaídas; risco sobe com fadiga, calendário e relvado, desce com staff médico.
 - [ ] **RZ-108** (P1, L) **Tática simples**: 6-8 formações; estilo (jogo bonito ↔ direto/físico, pressão alta, contra-ataque); intensidade, linha, ritmo; **fair play em 5 níveis** (1 cavalheiro · 2 limpo · 3 normal · 4 duro · 5 agressivo; afeta faltas, cartões, lesões adversárias, relação com árbitros e imagem).
-- [ ] **RZ-109** (P1, L) **Níveis de detalhe**: jogos do jogador em detalhe; restantes jogos e ligas em modo estatístico, mas coerentes (as histórias continuam a surgir).
+- [ ] **RZ-109** (P1, L) **Níveis de detalhe**: jogos do clube do gamer em detalhe; restantes jogos e ligas em modo estatístico, mas coerentes (as histórias continuam a surgir).
 - [ ] **RZ-110** (P1, M) Classificações, desempates e controlo de jornadas.
 
 ### Pirâmide e regras (DESIGN_REGRAS §1-4)
@@ -93,12 +96,15 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 - [ ] **RZ-113** (P1, L) **Distritais variáveis**: `n' = n − p + r` (p = campeão promovido), mínimo 8, máximo 14, **Bolsa distrital**; mínimo duro de 6 no MVP. → RZ-111, 125
 - [ ] **RZ-125** (P1, M) **Fase de Promoção**: 20 campeões distritais em 4 grupos de 5 (zonas A-D), todos contra todos a uma volta, 2 sobem por grupo (8 ao todo). → RZ-102
 - [ ] **RZ-126** (P2, M) **Gerador de clubes novos** para a Bolsa vazia (nome por modelos, estatísticas, presidente, notícia). → RZ-113
-- [ ] **RZ-127** (P1, L) **Corrupção v1** (decidido a 14-10-2026): quatro tipos — licenciamento, obra amiga (desvio do prémio da Câmara), comissões escondidas e **resultados combinados**; casos de vida longa com prova acumulada, alertas, investigação, escândalo e sanções (inclui retroativas). Atinge o jogador como alvo, como autor e como espectador. Árbitro mínimo como `Pessoa`. → RZ-004, RZ-005, RZ-128 Despedimento do jogador só em casos muito graves ou com posição frágil.
+- [ ] **RZ-127** (P1, L) **Corrupção v1** (decidido a 14-10-2026): quatro tipos — licenciamento, obra amiga (desvio do prémio da Câmara), comissões escondidas e **resultados combinados**; casos de vida longa com prova acumulada, alertas, investigação, escândalo e sanções (inclui retroativas). Atinge o gamer como alvo, como autor e como espectador. Árbitro mínimo como `Pessoa`. → RZ-004, RZ-005, RZ-128 Despedimento do gamer só em casos muito graves ou com posição frágil.
 - [ ] **RZ-128** (P1, L) **Camada de persistência SQLite**: esquema de `docs/HISTORICO_EVENTOS.md`, interface `Repositorio` (adaptadores memória, Node, browser com worker + OPFS), migrações, exportação `.sqlite` + NDJSON, teste de consistência das derivadas. → RZ-005
 - [ ] **RZ-129** (P1, M) **Camada `Vista` (conhecimento)**: tabela de observações, estimativas com margem, desatualização, regra de lint que impede a UI de ler a "verdade"; ligação ao olheiro (RZ-201/202). → RZ-128
 - [ ] **RZ-130** (P1, L) **Jogo ao vivo** do teu clube: feed minuto a minuto com notificação de cada evento (golos, cartões, penáltis, lesões, substituições), velocidade e pausa; nos outros jogos só golos (minuto e marcador), vermelhos e melhor em campo. → RZ-104, RZ-105
 - [ ] **RZ-131** (P1, M) **Comentário textual** do jogo (modelos de frases por tipo de lance, tom de transmissão). → RZ-130
 - [ ] **RZ-132** (P1, M) **Tabela de países** (`data/paises.csv`: população, tradição, infraestrutura), curvas de talento com cauda rara e listas de nomes por país (`MODELO_DADOS` §15). → RZ-103
+- [ ] **RZ-133** (P1, M) **Página da cidade (MVP)**: população, economia, orçamento municipal, autarca, infraestruturas (estádio, transportes), sinergias e clubes; só leitura e evolução simples. → RZ-301 (versão completa em F3)
+- [ ] **RZ-134** (P1, M) **Saves**: ranhuras, **Guardar** manual, **autosave de 7 em 7 dias de jogo** (3 rotativos + 1 por início de época), lista de saves com resumo (clube, data, época), exportar/importar ficheiro `.raizes` (SQLite comprimido), pasta real na versão desktop. → RZ-128
+- [ ] **RZ-135** (P1, M) **Idiomas**: infraestrutura i18n (ICU MessageFormat) com **pt-PT e inglês** desde o MVP na interface; modelos de notícias/comentário em pt-PT primeiro e inglês logo a seguir; cores como códigos traduzidos na interface. → RZ-101
 - [ ] **RZ-124** (P1, M) Testes unitários das regras de pirâmide, prémio e distritais (casos: r=0, r=1, r≥2, excedente, bolsa vazia, empate total no prémio).
 
 ### Clube e cidade (versão mínima)
@@ -130,10 +136,10 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 - [ ] **RZ-207** (P1, L) **Contratos com cláusulas**: % de revenda, rescisão, bónus por golos, "regresso à terra"; jogadores ligados à cidade aceitam menos para ficar.
 - [ ] **RZ-208** (P1, L) **Staff**: treinadores, olheiros, médicos, responsável de comunidade; traços e filosofia; contratação; fazem carreira noutros clubes.
 - [ ] **RZ-209** (P1, M) **Filosofia do clube** (formação própria, talento de países improváveis, jogo direto…) com efeitos reais no desenvolvimento e na identidade.
-- [ ] **RZ-210** (P1, M) **Papel do jogador**: poder de treinador que decresce com o crescimento do clube; confiança do treinador; intervenção em jogos decisivos com custo.
+- [ ] **RZ-210** (P1, M) **Papel do gamer**: poder de treinador que decresce com o crescimento do clube; confiança do treinador; intervenção em jogos decisivos com custo.
 - [ ] **RZ-211** (P2, M) **Marcos narrativos de underdog** ("primeira subida em 40 anos", "primeiro dérbi ganho").
 - [ ] **RZ-212** (P2, L) Academia/formação: geração e desenvolvimento de jovens, ligada ao viveiro da cidade.
-- [ ] **RZ-213** (P2, L) Mercado IA ↔ IA (mundo vivo): transferências entre clubes sem o jogador.
+- [ ] **RZ-213** (P2, L) Mercado IA ↔ IA (mundo vivo): transferências entre clubes sem o gamer.
 - [ ] **RZ-214** (P2, M) UI: secções Radar, Mercado, Staff.
 - [ ] **RZ-215** (P2, L) **Intervenção ao vivo**: mudar tática e fazer substituições durante o jogo. → RZ-104, RZ-130
 
@@ -171,16 +177,16 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 - [ ] **RZ-501** (P1, M) **Versão para amigos**: build estático em Vercel (ou GitHub Pages), link privado, exportar/importar save, lembrete de backup (o armazenamento do browser pode ser apagado, sobretudo no Safari).
 - [ ] **RZ-502** (P2, L) **Casca desktop** (Electron ou Tauri) com SQLite nativo; mesmo motor e mesma interface.
 - [ ] **RZ-503** (P2, L) **Integração Steam** (Steamworks: conquistas, saves na nuvem), loja, imagens, taxa de lançamento. → RZ-502
-- [ ] **RZ-504** (P2, XL) **Inglês** e estrutura para outros idiomas (textos por chave desde o início). → RZ-911
+- [ ] **RZ-504** (P2, M) Afinar o **inglês** e acrescentar outros idiomas se houver procura (a base está em RZ-135). → RZ-911
 - [ ] **RZ-505** (P3, XL) **Jogo em 2D** (vista tipo FM): primeiro uma repetição dos lances do motor, depois, se valer a pena, posições simuladas só para o jogo visto. Renderização em Canvas/PixiJS.
-- [ ] **RZ-506** (P3, XL) **Mapa da cidade** (vista 2D de cima, zonas à volta do estádio) com obras visíveis; começar com uma só cidade. Não é um *city builder* 3D.
+- [ ] **RZ-506** (P3, L) **Mapa da cidade do gamer**: vista 2D de cima, **só de visualização**, apenas para a cidade que o gamer controla; acompanha a evolução (obras, população, infraestrutura). Não é um *city builder*.
 
 ## 10. Bem depois do MVP (P3)
 
 - [ ] **RZ-901** (P3, L) Taças: Taça de Portugal, taças distritais, Supertaça.
 - [ ] **RZ-902** (P3, L) Competições europeias.
 - [ ] **RZ-903** (P3, M) Dividir os Açores nas 3 associações (Angra, Horta, Ponta Delgada).
-- [ ] **RZ-904** (P3, L) Importar base de dados do utilizador (clubes reais ou fictícios) e editor de base dentro do jogo.
+- [ ] **RZ-904** (P3, L) Importar base de dados do gamer (clubes reais ou fictícios) e editor de base dentro do jogo.
 - [ ] **RZ-905** (P3, XL) Versão desktop (Tauri/Electron) ou portagem do motor para Godot.
 - [ ] **RZ-906** (P3, M) Gerador de emblemas e retratos (ou integração com a arte do Pedro).
 - [ ] **RZ-907** (P3, L) Árbitros com personalidade; relação com o fair play.
@@ -205,11 +211,11 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 2. **Licenciamento de estádios**: sanção por omissão (licença provisória + coima) serve?
 3. ~~Fair play~~ — 5 níveis.
 4. A base do FM exporta jogadores? (só para testes privados; RZ-008, P3)
-5. Formato da Fase de Promoção: uma volta com 4 jogos serve, ou preferes eliminatórias?
+5. ~~Formato da Fase de Promoção~~ — uma volta, 4 jogos por grupo, confirmado.
 
-*Resolvidas a 15-10-2026:* fair play em 5 níveis; jogos ao vivo minuto a minuto (outros jogos: golos, vermelhos, melhor em campo); calendário agosto-maio e janelas julho-agosto + janeiro; Avançar = 1 dia com paragem em eventos; escolha livre do clube; nomes de clubes realistas e tom realista; UI densa e organizada; geração de jogadores por país com cauda rara; nome Raízes; branches main/develop/feature; licenciamento por omissão (licença provisória + coima).
+*Resolvidas a 15-10-2026:* formato da Fase de Promoção (uma volta); cidade com mapa só para o gamer (visualização); idiomas pt/en; saves com autosave de 7 dias; fair play em 5 níveis; jogos ao vivo minuto a minuto (outros jogos: golos, vermelhos, melhor em campo); calendário agosto-maio e janelas julho-agosto + janeiro; Avançar = 1 dia com paragem em eventos; escolha livre do clube; nomes de clubes realistas e tom realista; UI densa e organizada; geração de jogadores por país com cauda rara; nome Raízes; branches main/develop/feature; licenciamento por omissão (licença provisória + coima).
 
-*Resolvidas a 14-10-2026:* sanções de corrupção ao jogador (reputação + coima; despedimento raro); finanças rivais em palavras relativas ao escalão; histórico guardado na íntegra; prémio de 2 M€ de uso livre; Serpa Atlético é de Serpa; alcunhas/mascotes em falta preenchidos; CP continua 4×10 com Fase de Promoção em vez de 20 subidas diretas.
+*Resolvidas a 14-10-2026:* sanções de corrupção ao gamer (reputação + coima; despedimento raro); finanças rivais em palavras relativas ao escalão; histórico guardado na íntegra; prémio de 2 M€ de uso livre; Serpa Atlético é de Serpa; alcunhas/mascotes em falta preenchidos; CP continua 4×10 com Fase de Promoção em vez de 20 subidas diretas.
 
 ## 13. Rastreabilidade — nada ficou de fora
 
@@ -231,7 +237,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 | Cartões, castigos, lesões | RZ-106, 107 |
 | Estatísticas pós-jogo (golos, marcadores, assistentes, cartões, xG, remates…) | RZ-104, 105 |
 | Personalidade em cada pessoa/entidade | RZ-004, 121, 206, 306 |
-| Papel do jogador (presidente/diretor com poder de treinador) | RZ-210 |
+| Papel do gamer (presidente/diretor com poder de treinador) | RZ-210 |
 | Custos e subscrição; não usar Unity | §2, §3 |
 | Clubes do CP (4×10) e distritais (10 por distrito) | `data/clubes.csv`, DESIGN §1 |
 | Sinergias clube ↔ cidade | DESIGN §5, RZ-302 |
@@ -246,3 +252,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 | UI densa e bem organizada | RZ-009, `docs/TOM_E_UX.md` §3 |
 | Jogadores de qualquer país com probabilidades diferentes | RZ-132, `MODELO_DADOS` §15 |
 | Steam, 2D, mapa da cidade, amigos a jogar | D14, §10b |
+| Gerar pessoas e nomes por nacionalidade; saves diferentes; tempo de criação | RZ-103, 132, `docs/GERACAO_MUNDO.md` |
+| Página da cidade no MVP; mapa só da cidade do gamer | RZ-133, 506 |
+| Português e inglês | D15, RZ-135 |
+| Guardar, autosave, exportar/importar saves | RZ-134 |

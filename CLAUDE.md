@@ -2,6 +2,9 @@
 
 Jogo de browser de gestão de futebol português com **clubes ligados a cidades** (histórias de *underdogs*, descoberta de talento, Câmara, adeptos, política). Dono: Pedro (front-end dev, Portugal). Comunicar em português de Portugal.
 
+## Glossário
+- **Gamer** = quem joga o jogo. **Jogador** = jogador de futebol. Nunca usar "jogador" para o gamer.
+
 ## Ler primeiro
 1. `BACKLOG.md` — fonte de verdade: o que fazer, por fases e prioridade.
 2. `docs/DESIGN_REGRAS.md` (pirâmide, prémio, distritais, sinergias), `docs/MODELO_DADOS.md`, `docs/PERSONALIDADE.md`, `docs/HISTORICO_EVENTOS.md`, `docs/TOM_E_UX.md`.

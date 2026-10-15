@@ -20,7 +20,7 @@ type GameState = {
   versao: number;            // versão do esquema, para migrações
   seed: number; rngEstado: number;
   data: Data; epoca: number;
-  clubeDoJogador: ClubeId; papel: PapelJogador;
+  clubeDoGamer: ClubeId; papel: PapelGamer;
   parametros: Parametros;    // RZ-006
   // coleções por id:
   clubes, jogadores, pessoas, staff, contratos, estadios, cidades, distritos,

@@ -6,9 +6,9 @@ Liga-se a `Pessoa.personalidade` e `Pessoa.memoria` (MODELO_DADOS §5) e escreve
 
 ## 1. Princípios
 
-1. **Poucos traços, efeitos claros.** 8 traços; cada um tem uma frase de efeito que o jogador percebe ("é vaidoso, gosta de ser elogiado em público").
+1. **Poucos traços, efeitos claros.** 8 traços; cada um tem uma frase de efeito que o gamer percebe ("é vaidoso, gosta de ser elogiado em público").
 2. **Traços fixos, memória variável.** Os traços mudam muito devagar (§6). O que muda depressa é a **memória**: promessas, favores, ofensas, e a **relação** com cada pessoa.
-3. **Parcialmente oculto.** O jogador vê os traços de quem conhece bem, de forma aproximada (rótulos, não números). Olheiros e relatórios revelam mais (RZ-202). Conhecer gente é gameplay.
+3. **Parcialmente oculto.** O gamer vê os traços de quem conhece bem, de forma aproximada (rótulos, não números). Olheiros e relatórios revelam mais (RZ-202). Conhecer gente é gameplay.
 4. **Determinístico.** Toda a aleatoriedade vem do gerador com seed (MODELO_DADOS §0).
 5. **Um motor de decisão** para tudo: uma função pontua opções e escolhe; os módulos (contratos, reuniões, mercado) só definem as opções e o contexto.
 
@@ -104,7 +104,7 @@ onde cada opção declara `efeito` por traço (vetor) e cada módulo define peso
 - Pede comissão `∝ ganancia`; muda de lado por uma melhor proposta se `lealdade` baixa; avisa o jogador de propostas escondidas se `integridade` alta.
 
 ### 5.5 Treinador
-- `paciencia` determina tolerância a derrotas antes de pedir reforços/demitir-se; `vaidade` reage a ser contornado pelo presidente-jogador (RZ-210); a **confiança do treinador** é a `Relacao.confianca` do treinador para o jogador.
+- `paciencia` determina tolerância a derrotas antes de pedir reforços/demitir-se; `vaidade` reage a ser contornado pelo gamer-presidente (RZ-210); a **confiança do treinador** é a `Relacao.confianca` do treinador para o jogador.
 
 ### 5.6 Empresário e adeptos
 - Empresário local: investe em patrocínios se `lealdade` à cidade e `respeito` pelo clube altos; retira-se se `integridade` baixa e o clube fica envolvido em escândalo.
@@ -114,7 +114,7 @@ onde cada opção declara `efeito` por traço (vetor) e cada módulo define peso
 
 - Os traços mudam só em **marcos**: título, descida, escândalo, mudança de país, nascimento de um filho (opcional), reforma. Cada marco move 1-2 traços em ±1.
 - Idade: `profissionalismo` e `paciencia` sobem lentamente até aos ~32; `temperamento` desce ligeiramente após os 30.
-- Nunca muda de forma abrupta por uma só decisão do jogador.
+- Nunca muda de forma abrupta por uma só decisão do gamer.
 
 ## 7. Visibilidade (UI)
 
