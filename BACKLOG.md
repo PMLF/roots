@@ -87,7 +87,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 - [ ] **RZ-105** (P1, L) **Estatísticas pós-jogo**: golos e minutos, marcadores, assistentes, cartões, lesões, remates (totais e à baliza), xG, posse, cantos, faltas, notas, homem do jogo e momentos-chave em texto.
 - [ ] **RZ-106** (P1, M) **Cartões e castigos**: amarelos acumulados, vermelhos, jornadas de suspensão por competição.
 - [ ] **RZ-107** (P1, L) **Lesões**: tipo, gravidade, duração, recaídas; risco sobe com fadiga, calendário e relvado, desce com staff médico.
-- [ ] **RZ-108** (P1, L) **Tática simples**: 6-8 formações; estilo (jogo bonito ↔ direto/físico, pressão alta, contra-ataque); intensidade, linha, ritmo; **fair play em 5 níveis** (1 cavalheiro · 2 limpo · 3 normal · 4 duro · 5 agressivo; afeta faltas, cartões, lesões adversárias, relação com árbitros e imagem).
+- [ ] **RZ-108** (P1, L) **Tática simples**: 6-8 formações; estilo (jogo bonito ↔ direto/físico, pressão alta, contra-ataque); intensidade, linha, ritmo; **fair play em 5 níveis** (1 cavalheiro · 2 limpo · 3 normal · 4 duro · 5 agressivo; afeta faltas, cartões, lesões adversárias, relação com árbitros e imagem). **Cada treinador tem as suas formações e estilo favoritos** (ligados à personalidade e à filosofia) e escolhe a formação que melhor serve o plantel que tem; o 4-3-3 do motor é só um valor provisório (pedido do Pedro, 15-10-2026).
 - [ ] **RZ-109** (P1, L) **Níveis de detalhe**: jogos do clube do gamer em detalhe; restantes jogos e ligas em modo estatístico, mas coerentes (as histórias continuam a surgir).
 - [ ] **RZ-110** (P1, M) Classificações, desempates e controlo de jornadas.
 
@@ -144,7 +144,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 - [ ] **RZ-212** (P2, L) Academia/formação: geração e desenvolvimento de jovens, ligada ao viveiro da cidade.
 - [ ] **RZ-213** (P2, L) Mercado IA ↔ IA (mundo vivo): transferências entre clubes sem o gamer.
 - [ ] **RZ-214** (P2, M) UI: secções Radar, Mercado, Staff.
-- [ ] **RZ-215** (P2, L) **Intervenção ao vivo**: mudar tática e fazer substituições durante o jogo. → RZ-104, RZ-130
+- [ ] **RZ-215** (P2, L) **Intervenção ao vivo**: pausar em qualquer minuto, mudar tática e fazer substituições (banco, limite de 5, minutos) durante o jogo. O motor já retoma de qualquer minuto e aceita mudar a equipa; falta o banco e a interface. → RZ-104, RZ-130
 
 ## 8. F3 — Cidade, pessoas e política
 
