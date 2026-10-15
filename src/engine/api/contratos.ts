@@ -40,6 +40,8 @@ export type PedidosMotor = {
   bd: { entrada: null; saida: DiagnosticoBd };
   /** Cria o mundo do save (RZ-103). Emite progresso; se o save já tem mundo, devolve o resumo sem gerar. */
   criarMundo: { entrada: { seed: string }; saida: ResumoMundoCriado };
+  /** O mundo do save, se já foi criado (não gera nada). */
+  estadoMundo: { entrada: null; saida: ResumoMundoCriado | null };
   clubes: { entrada: null; saida: ClubeResumo[] };
   /** Plantel público de um clube, lido através da `Vista` (sem atributos, potencial nem personalidade). */
   plantel: { entrada: { clube: string }; saida: PessoaVista[] };
