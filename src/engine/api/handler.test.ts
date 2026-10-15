@@ -125,3 +125,44 @@ describe("handler do motor", () => {
     expect(repositorio.localidades().length).toBe(297);
   });
 });
+
+describe("fichas ricas e «ver tudo»", () => {
+  it("o gamer vê estimativas ou nada; o developer vê a verdade; a reputação vem em palavra", async () => {
+    const s = servicosDeTeste();
+    await tratar({ id: 60, tipo: "criarMundo", entrada: { seed: "ricas" } }, s);
+    const clube = (await tratar({ id: 61, tipo: "fichaClube", entrada: { id: "sc-cascais" } }, s))!;
+    expect(clube.nivelReputacao).toBe("continental");
+    expect(clube.escalao).toBe("primeiraLiga");
+    expect(clube.historicoDivisoes).toEqual([{ epoca: 1, escalao: "primeiraLiga", liga: "Primeira Liga" }]);
+    expect(clube.verdade).toBeUndefined();
+    expect(clube.estadioDetalhe.transportes).toBeGreaterThanOrEqual(0);
+    const jogador = clube.plantel[0]!;
+    expect(clube.plantelExtra[jogador.id]?.contratoFim).toBeTruthy();
+    expect(clube.plantelExtra[jogador.id]?.nivel).toBeUndefined(); // ninguém o observou
+
+    const ficha = (await tratar({ id: 62, tipo: "fichaPessoa", entrada: { id: jogador.id } }, s))!;
+    expect(ficha.nivel).toBeUndefined();
+    expect(ficha.verdade).toBeUndefined();
+    expect(ficha.stats).toEqual([]);
+    expect(ficha.contrato?.fim).toBeTruthy();
+
+    const dev = (await tratar({ id: 63, tipo: "fichaPessoa", entrada: { id: jogador.id, verTudo: true } }, s))!;
+    expect(Object.keys(dev.verdade?.atributos ?? {}).length).toBeGreaterThan(30);
+    expect(dev.verdade?.potencial).toBeGreaterThan(0);
+    expect(dev.verdade?.salarioMensal).toBeGreaterThan(0);
+    expect(dev.nivel).toMatchObject({ exato: true });
+    expect(dev.nivel!.valor).toBeGreaterThan(1);
+    expect(dev.nivel!.valor).toBeLessThanOrEqual(20);
+
+    const clubeDev = (await tratar({ id: 64, tipo: "fichaClube", entrada: { id: "sc-cascais", verTudo: true } }, s))!;
+    expect(clubeDev.verdade?.reputacao).toBe(8300);
+    expect(clubeDev.verdade?.plantelNivel).toBeGreaterThan(5);
+    expect(Object.keys(clubeDev.verdade?.qualidadeStaff ?? {}).length).toBeGreaterThan(0);
+    expect(clubeDev.plantelExtra[jogador.id]?.nivel?.exato).toBe(true);
+
+    const presidente = clube.cargos.find((c) => c.funcao === "presidente")!;
+    const devPres = (await tratar({ id: 65, tipo: "fichaPessoa", entrada: { id: presidente.id, verTudo: true } }, s))!;
+    expect(devPres.verdade?.atributos).toBeUndefined();
+    expect(Object.keys(devPres.verdade?.personalidade ?? {}).length).toBeGreaterThan(3);
+  });
+});

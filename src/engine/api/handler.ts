@@ -8,9 +8,13 @@ import { gerarMundo } from "../mundo/gerarMundo";
 import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
+import { nivelDeReputacao } from "../clube/reputacao";
+import { nivelGeral } from "../mundo/nivel";
+import { CHAVE } from "../mundo/jogador";
+import type { Atributo, Posicao } from "../mundo/tipos";
 import { Vista } from "../vista/vista";
 import { indexar, pesquisar, type EntradaIndice, type Indexada } from "../pesquisa/pesquisar";
-import type { ClubeResumo, DiagnosticoBd, FichaClubeDados, FichaLocalidadeDados, FichaPessoaDados, RefEntidade, EstatutoLocalidade, Mensagem, PedidosMotor, ProgressoMundo, ResumoMundoCriado, TipoPedido } from "./contratos";
+import type { NivelEstimado, VerdadePessoa, ClubeResumo, DiagnosticoBd, FichaClubeDados, FichaLocalidadeDados, FichaPessoaDados, RefEntidade, EstatutoLocalidade, Mensagem, PedidosMotor, ProgressoMundo, ResumoMundoCriado, TipoPedido } from "./contratos";
 
 export const VERSAO_MOTOR = "0.1.0";
 export const VERSAO_ESQUEMA = ESQUEMA_BD;
@@ -80,7 +84,13 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
       const ficha = vistaDoGamer(repositorio).ficha(m.entrada.id);
       if (!ficha) return null;
-      const saida: FichaPessoaDados = { ficha };
+      const vista = vistaDoGamer(repositorio);
+      const saida: FichaPessoaDados = { ficha, stats: vista.statsJogador(m.entrada.id) };
+      const contrato = repositorio.contrato(m.entrada.id);
+      if (contrato) saida.contrato = { inicio: contrato.inicio, fim: contrato.fim };
+      const nivel = nivelDoJogador(repositorio, m.entrada.id, ficha.publico.jogador?.posicao, ficha.atributos?.campos, m.entrada.verTudo === true);
+      if (nivel) saida.nivel = nivel;
+      if (m.entrada.verTudo) saida.verdade = verdadeDaPessoa(repositorio, m.entrada.id);
       const clube = ficha.publico.clube ? dados.clubes.find((c) => c.id === ficha.publico.clube) : undefined;
       if (clube) saida.clube = { k: "clube", id: clube.id, nome: clube.nome };
       const cidade = ficha.publico.naturalDe ? dados.cidades.find((c) => c.id === ficha.publico.naturalDe) : undefined;
@@ -91,6 +101,7 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
       const c = dados.clubes.find((x) => x.id === m.entrada.id);
       if (!c) return null;
+      const verTudo = m.entrada.verTudo === true;
       const vista = vistaDoGamer(repositorio);
       const cidade = dados.cidades.find((x) => x.id === c.cidade);
       const rival = dados.clubes.find((x) => x.id === c.rival);
@@ -104,7 +115,27 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
         estadio: { nome: c.estadio.nome, capacidade: c.estadio.capacidade },
         plantel: vista.plantel(c.id),
         cargos: vista.cargos({ clube: c.id }),
+        escalao: c.escalao,
+        nivelReputacao: nivelDeReputacao(c.reputacao, PARAMETROS_PADRAO),
+        estadioDetalhe: { propriedade: c.estadio.propriedade, zona: c.estadio.localizacao.zona, distanciaCentroKm: c.estadio.localizacao.distanciaCentroKm, transportes: c.estadio.localizacao.transportes, acessoRodoviario: c.estadio.localizacao.acessoRodoviario, estacionamento: c.estadio.localizacao.estacionamento, terrenoExpansao: c.estadio.localizacao.terrenoExpansao },
+        historicoDivisoes: [{ epoca: 1, escalao: c.escalao, liga: c.liga }],
+        plantelExtra: {},
       };
+      for (const j of saida.plantel) {
+        const ct = repositorio.contrato(j.id);
+        const campos = verTudo ? undefined : vista.ficha(j.id)?.atributos?.campos;
+        const nivel = nivelDoJogador(repositorio, j.id, j.jogador?.posicao, campos, verTudo);
+        saida.plantelExtra[j.id] = { ...(ct ? { contratoFim: ct.fim } : {}), ...(nivel ? { nivel } : {}) };
+      }
+      if (verTudo) {
+        const niveis = saida.plantel.map((j) => saida.plantelExtra[j.id]?.nivel?.valor).filter((v): v is number => v !== undefined);
+        saida.verdade = {
+          reputacao: c.reputacao,
+          financas: c.financas,
+          qualidadeStaff: Object.fromEntries(saida.cargos.flatMap((p) => { const q = repositorio.cargo(p.id)?.qualidade; return q ? [[p.id, q]] : []; })),
+          plantelNivel: niveis.length ? Math.round((niveis.reduce((s, v) => s + v, 0) / niveis.length) * 10) / 10 : 0,
+        };
+      }
       return saida;
     }
     case "fichaLocalidade": {
@@ -144,6 +175,36 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       return vistaDoGamer(repositorio, clube).plantel(clube);
     }
   }
+}
+
+/** Nível geral do jogador: exato com «ver tudo»; senão estimado a partir dos atributos que se conhecem (e só se se conhecem todos os da posição). */
+function nivelDoJogador(r: Repositorio, id: string, posicao: string | undefined, campos: Record<string, { valor: number; margem: number }> | undefined, verTudo: boolean): NivelEstimado | undefined {
+  if (!posicao || !(posicao in CHAVE)) return undefined;
+  const pos = posicao as Posicao;
+  if (verTudo) {
+    const at = r.jogador(id)?.atributos;
+    const v = at ? nivelGeral((a) => at[a], pos) : undefined;
+    return v === undefined ? undefined : { valor: v, margem: 0, exato: true };
+  }
+  if (!campos) return undefined;
+  const v = nivelGeral((a: Atributo) => campos[a]?.valor, pos);
+  if (v === undefined) return undefined;
+  const margens = CHAVE[pos].map((a) => campos[a]?.margem ?? 0);
+  return { valor: v, margem: Math.round((margens.reduce((s, x) => s + x, 0) / margens.length) * 10) / 10, exato: false };
+}
+
+function verdadeDaPessoa(r: Repositorio, id: string): VerdadePessoa | undefined {
+  const p = r.pessoa(id);
+  if (!p) return undefined;
+  const j = r.jogador(id);
+  const ct = r.contrato(id);
+  const cg = r.cargo(id);
+  return {
+    personalidade: p.personalidade, arquetipo: p.arquetipo, lod: p.lod,
+    ...(j ? { atributos: j.atributos, potencial: j.potencial, posicoes: j.posicoes } : {}),
+    ...(ct ? { salarioMensal: ct.salarioMensal } : {}),
+    ...(cg?.qualidade ? { qualidade: cg.qualidade } : {}),
+  };
 }
 
 type DadosDoJogo = { dados: DadosBase; paises: Pais[] };

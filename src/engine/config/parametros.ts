@@ -5,6 +5,8 @@
  */
 
 export type Criterio = "pontos" | "confrontoDireto" | "diferenca" | "golosMarcados" | "vitorias" | "reputacaoMenor" | "sorteio";
+export type NivelReputacao = "mundial" | "continental" | "nacional" | "regional" | "local" | "obscuro";
+export const NIVEIS_REPUTACAO: readonly NivelReputacao[] = ["mundial", "continental", "nacional", "regional", "local", "obscuro"];
 export const CRITERIOS: readonly Criterio[] = ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "vitorias", "reputacaoMenor", "sorteio"];
 
 export type Escalao = "primeiraLiga" | "segundaLiga" | "terceiraLiga" | "cp" | "distrital";
@@ -34,6 +36,11 @@ export type Parametros = {
    * (estável por seed, competição e época). Os dois últimos desempatam sempre.
    */
   desempate: { liga: Criterio[]; promocao: Criterio[] };
+  /**
+   * Reputação dos clubes (0-10 000) em palavras, da mais alta para a mais baixa: um clube é do primeiro nível cujo `min`
+   * não ultrapassa a sua reputação. O último tem `min` 0. A interface mostra a palavra, nunca o número.
+   */
+  reputacao: { niveis: { nivel: NivelReputacao; min: number }[] };
   calendario: {
     mesInicioEpoca: number;
     mesFimEpoca: number;
@@ -322,6 +329,16 @@ export const PARAMETROS_PADRAO: Parametros = {
     liga: ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "vitorias", "sorteio"],
     promocao: ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "reputacaoMenor", "sorteio"],
   },
+  reputacao: {
+    niveis: [
+      { nivel: "mundial", min: 9000 },
+      { nivel: "continental", min: 6500 },
+      { nivel: "nacional", min: 3500 },
+      { nivel: "regional", min: 2000 },
+      { nivel: "local", min: 1000 },
+      { nivel: "obscuro", min: 0 },
+    ],
+  },
   calendario: {
     mesInicioEpoca: 8,
     mesFimEpoca: 5,
@@ -535,6 +552,9 @@ export function validarParametros(p: Parametros): string[] {
     if (cs[0] !== "pontos" || new Set(cs).size !== cs.length || !cs.every((c) => CRITERIOS.includes(c)) || !["reputacaoMenor", "sorteio"].includes(cs.at(-1) as string))
       erros.push(`desempate.${nome}: começa em «pontos», sem repetidos, critérios válidos e acaba em «reputacaoMenor» ou «sorteio»`);
   }
+  const nv = p.reputacao.niveis;
+  if (nv.map((n) => n.nivel).join() !== NIVEIS_REPUTACAO.join() || nv.at(-1)?.min !== 0 || nv.some((n, i) => i > 0 && n.min >= (nv[i - 1] as { min: number }).min))
+    erros.push("reputacao.niveis: mundial → obscuro, `min` estritamente decrescente e o último a 0");
   const hi = p.historias;
   if (!(hi.hattrick >= 2 && hi.goleada >= 2 && hi.descontos >= 1 && hi.reviravolta >= 1 && hi.lesaoGrave >= 1 && hi.lesaoGrave <= 5)) erros.push("historias: hattrick ≥ 2, goleada ≥ 2, descontos ≥ 1, reviravolta ≥ 1, lesaoGrave entre 1 e 5");
   const le = p.lesoes;

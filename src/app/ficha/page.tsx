@@ -8,6 +8,7 @@ import { FichaPessoa } from "@/ui/components/fichas/FichaPessoa";
 import { Ficha } from "@/ui/components/Ficha";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { lerFicha } from "@/ui/ligacoes";
+import { useVerTudo } from "@/ui/dev";
 import { useMotor } from "@/ui/MotorProvider";
 
 type Estado =
@@ -24,6 +25,7 @@ function Conteudo() {
   const motor = useMotor();
   const alvo = lerFicha(useSearchParams());
   const [estado, setEstado] = useState<Estado>({ fase: "a-carregar" });
+  const [verTudo] = useVerTudo();
   const k = alvo?.k;
   const id = alvo?.id;
 
@@ -34,10 +36,10 @@ function Conteudo() {
     (async () => {
       try {
         if (k === "clube") {
-          const d = await motor.chamar("fichaClube", { id });
+          const d = await motor.chamar("fichaClube", { id, verTudo });
           if (vivo) setEstado(d ? { fase: "clube", d } : { fase: "nao-encontrada" });
         } else if (k === "pessoa") {
-          const d = await motor.chamar("fichaPessoa", { id });
+          const d = await motor.chamar("fichaPessoa", { id, verTudo });
           if (vivo) setEstado(d ? { fase: "pessoa", d } : { fase: "nao-encontrada" });
         } else if (k === "localidade") {
           const d = await motor.chamar("fichaLocalidade", { id });
@@ -48,7 +50,7 @@ function Conteudo() {
       }
     })();
     return () => { vivo = false; };
-  }, [motor, k, id]);
+  }, [motor, k, id, verTudo]);
 
   if (!alvo) return <p className="erro">{t("ficha.invalida")}</p>;
   switch (estado.fase) {
@@ -56,8 +58,8 @@ function Conteudo() {
     case "nao-encontrada": return <p data-testid="ficha-estado" className="erro">{t("ficha.naoEncontrada")}</p>;
     case "erro": return <p className="erro">{estado.erro}</p>;
     case "em-breve": return <Ficha tipo={alvo.k} titulo={alvo.id} numeros={[]} separadores={{ resumo: <p className="vazio">{t("ficha.embreve")}</p> }} />;
-    case "clube": return <FichaClube d={estado.d} />;
-    case "pessoa": return <FichaPessoa d={estado.d} />;
+    case "clube": return <FichaClube d={estado.d} verTudo={verTudo} />;
+    case "pessoa": return <FichaPessoa d={estado.d} verTudo={verTudo} />;
     case "localidade": return <FichaLocalidade d={estado.d} />;
   }
 }

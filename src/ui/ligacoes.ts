@@ -16,7 +16,7 @@ export function lerFicha(params: { get(nome: string): string | null }): { k: Tip
  */
 export const SEPARADORES: Record<TipoEntidadeFicha, readonly string[]> = {
   clube: ["resumo", "plantel", "staff", "jogos", "historia"],
-  pessoa: ["resumo", "conhecimento", "carreira", "historia"],
+  pessoa: ["resumo", "carreira", "historia"],
   cidade: ["resumo", "clubes", "autarca", "historia"],
   localidade: ["resumo", "clubes", "historia"],
   competicao: ["resumo", "classificacao", "jogos", "historia"],

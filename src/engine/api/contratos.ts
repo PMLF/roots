@@ -2,6 +2,8 @@ import type { Parametros } from "../config/parametros";
 import type { ResultadoPesquisa } from "../pesquisa/pesquisar";
 import type { CompeticaoResumo, JogoLab, LigaLab } from "../laboratorio/laboratorio";
 import type { FormacaoId, Tatica } from "../jogo/tipos";
+import type { Escalao, NivelReputacao } from "../config/parametros";
+import type { LinhaStatJogador } from "../persistencia/tipos";
 import type { FichaPessoa, PessoaVista } from "../vista/tipos";
 
 /** Resultado do autodiagnóstico da base de dados (RZ-128): escreve um evento e lê-o de volta. */
@@ -36,7 +38,32 @@ export type ResumoMundoCriado = {
 /** Referência a uma entidade para ligações (`Ligacao`): tipo, id e nome a mostrar. */
 export type RefEntidade = { k: "clube" | "cidade" | "localidade" | "pessoa" | "competicao"; id: string; nome: string };
 
-export type FichaPessoaDados = { ficha: FichaPessoa; clube?: RefEntidade; naturalDe?: RefEntidade };
+/** Nível geral (1-20): estimado (com margem) a partir do que se sabe dos atributos; exato no modo developer. */
+export type NivelEstimado = { valor: number; margem: number; exato: boolean };
+
+/** A verdade oculta, só devolvida no modo developer («ver tudo»). */
+export type VerdadePessoa = {
+  atributos?: Record<string, number>;
+  potencial?: number;
+  posicoes?: { pos: string; aptidao: number }[];
+  personalidade: Record<string, number>;
+  arquetipo: string;
+  lod: number;
+  salarioMensal?: number;
+  qualidade?: Record<string, number>;
+};
+
+export type FichaPessoaDados = {
+  ficha: FichaPessoa;
+  clube?: RefEntidade;
+  naturalDe?: RefEntidade;
+  /** Factos de jogo por época e competição (públicos). */
+  stats: LinhaStatJogador[];
+  /** Contrato atual: as datas são públicas, o salário não. */
+  contrato?: { inicio: string; fim: string };
+  nivel?: NivelEstimado;
+  verdade?: VerdadePessoa;
+};
 
 export type FichaClubeDados = {
   id: string;
@@ -53,6 +80,15 @@ export type FichaClubeDados = {
   estadio: { nome: string; capacidade: number };
   plantel: PessoaVista[];
   cargos: PessoaVista[];
+  escalao: Escalao;
+  nivelReputacao: NivelReputacao;
+  estadioDetalhe: { propriedade: string; zona: string; distanciaCentroKm: number; transportes: number; acessoRodoviario: number; estacionamento: number; terrenoExpansao: number };
+  /** Divisão em que o clube esteve, por época (a história de subidas e descidas). */
+  historicoDivisoes: { epoca: number; escalao: Escalao; liga: string }[];
+  /** Por jogador do plantel: fim de contrato e nível geral. */
+  plantelExtra: Record<string, { contratoFim?: string; nivel?: NivelEstimado }>;
+  /** Por membro da equipa técnica: desde quando está no clube (contrato). */
+  verdade?: { reputacao: number; financas: number; qualidadeStaff: Record<string, Record<string, number>>; plantelNivel: number };
 };
 
 export type EstatutoLocalidade = "aldeia" | "vila" | "cidade";
@@ -90,8 +126,8 @@ export type PedidosMotor = {
   paises: { entrada: null; saida: { id: string; nome: string }[] };
   /** Pesquisa global por nome (clubes, cidades, pessoas). */
   pesquisar: { entrada: { q: string; limite?: number }; saida: ResultadoPesquisa[] };
-  fichaPessoa: { entrada: { id: string }; saida: FichaPessoaDados | null };
-  fichaClube: { entrada: { id: string }; saida: FichaClubeDados | null };
+  fichaPessoa: { entrada: { id: string; verTudo?: boolean }; saida: FichaPessoaDados | null };
+  fichaClube: { entrada: { id: string; verTudo?: boolean }; saida: FichaClubeDados | null };
   fichaLocalidade: { entrada: { id: string }; saida: FichaLocalidadeDados | null };
   /** Apaga o save atual e gera um mundo novo com esta seed (RZ-137). Emite progresso como `criarMundo`. */
   reiniciarMundo: { entrada: { seed: string }; saida: ResumoMundoCriado };

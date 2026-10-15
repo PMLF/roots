@@ -11,7 +11,9 @@ type Props = {
   tipo: TipoEntidadeFicha;
   titulo: string;
   subtitulo?: ReactNode;
-  numeros: Numero[];
+  numeros?: Numero[];
+  /** Cabeçalho próprio (nome + cartão de identidade); sem ele, usa-se título, subtítulo e números-chave. */
+  topo?: ReactNode;
   /** Conteúdo por separador; os que faltam aparecem como "em breve", na ordem fixa do tipo. */
   separadores: Separadores;
   /** Coluna lateral de ligações. */
@@ -19,7 +21,7 @@ type Props = {
 };
 
 /** Estrutura comum a todas as entidades (TOM_E_UX §3.2): cabeçalho, números-chave, separadores fixos, ligações. */
-export function Ficha({ tipo, titulo, subtitulo, numeros, separadores, lateral }: Props) {
+export function Ficha({ tipo, titulo, subtitulo, numeros = [], topo, separadores, lateral }: Props) {
   const { t } = useT();
   const ids = SEPARADORES[tipo];
   const [ativo, setAtivo] = useState(ids[0] as string);
@@ -33,19 +35,21 @@ export function Ficha({ tipo, titulo, subtitulo, numeros, separadores, lateral }
 
   return (
     <article className="ficha" data-tipo={tipo}>
-      <header className="ficha-cabecalho">
-        <p className="ficha-tipo">{t(`entidade.${tipo}` as Chave)}</p>
-        <h1>{titulo}</h1>
-        {subtitulo && <p className="suave">{subtitulo}</p>}
-        <dl className="ficha-numeros">
-          {numeros.map((n) => (
-            <div key={n.rotulo}>
-              <dt>{n.rotulo}</dt>
-              <dd>{n.valor}</dd>
-            </div>
-          ))}
-        </dl>
-      </header>
+      {topo ?? (
+        <header className="ficha-cabecalho">
+          <p className="ficha-tipo">{t(`entidade.${tipo}` as Chave)}</p>
+          <h1>{titulo}</h1>
+          {subtitulo && <p className="suave">{subtitulo}</p>}
+          <dl className="ficha-numeros">
+            {numeros.map((n) => (
+              <div key={n.rotulo}>
+                <dt>{n.rotulo}</dt>
+                <dd>{n.valor}</dd>
+              </div>
+            ))}
+          </dl>
+        </header>
+      )}
       <div className="ficha-corpo">
         <div className="ficha-principal" onKeyDown={teclas}>
           <div role="tablist" aria-label={t("ficha.separadores")} className="separadores">
@@ -55,7 +59,7 @@ export function Ficha({ tipo, titulo, subtitulo, numeros, separadores, lateral }
               </button>
             ))}
           </div>
-          <div role="tabpanel" id={`painel-${ativo}`} aria-labelledby={`sep-${ativo}`} className="painel">
+          <div role="tabpanel" id={`painel-${ativo}`} aria-labelledby={`sep-${ativo}`} className="separador-corpo">
             {separadores[ativo] ?? <p className="vazio">{t("ficha.embreve")}</p>}
           </div>
         </div>

@@ -50,6 +50,13 @@ O que se guarda está em **inglês** (posições GK, RB, CB, LB, DM, CM, AM, RW,
 
 **Laboratório** e **Mundo** são ferramentas, não jogo: só aparecem no menu no modo developer (`src/ui/dev.ts`: `pnpm dev`, ou build com `NEXT_PUBLIC_RAIZES_DEV=1`, ou `localStorage.setItem("raizes.dev", "true")` no browser). O Laboratório não mostra nada fora desse modo. A rota `/mundo/` continua alcançável pela ligação de «Hoje» enquanto não há mundo, só porque ainda é por onde se cria; o RZ-138 (nova save) passa essa função para o jogo e a página fica só para developers.
 
+## 3d. Fichas ricas e «Ver tudo»
+- **Pessoa:** nome + chips (posição, clube) e, ao lado, um cartão de identidade (nascimento, país, corpo, pé, clube, contrato, estado). Corpo em cartões: atributos 1–20 por grupo (bandas de cor), nível e condição, contrato e mercado, personalidade, estatísticas. Atributo desconhecido = «?» ou intervalo (`NivelEstimado`). Outros papéis: cartões Cargo, Qualidades e Personalidade.
+- **Clube:** chips (dimensão em palavras, escalão, distrito), cartão de identidade, cartões Dimensão, Finanças, Plantel em números, Estádio, Equipa técnica, Jogos e gráfico de subidas e descidas. Tabela do plantel com posição, idade, nível, país, pé, altura, peso, contrato, estado.
+- **Reputação em palavras:** `parametros.reputacao.niveis` (Mundial ≥9000, Continental ≥6500, Nacional ≥3500, Regional ≥2000, Local ≥1000, Obscuro). O número só aparece como detalhe.
+- **«Ver tudo» (só developer):** pedido `verTudo` ao motor devolve a verdade oculta em campos `verdade` separados; a UI nunca importa a verdade do motor. Cartões com borda tracejada vermelha.
+- Placeholders («?») marcam dados que ainda não existem; a preencher nos itens respetivos.
+
 ## 4. Fica para depois
 
 Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já existem e abrem uma ficha «em breve»; separadores *Jogos*, *Carreira*, *História* (precisam de jogos e eventos); conjuntos de colunas com nome; atalhos por secção; «Caixa»/jornal e barra inferior com dados (RZ-120).
