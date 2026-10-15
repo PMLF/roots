@@ -319,3 +319,4 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .seletor-lista button:hover:not(:disabled) { background: var(--painel-2); }
 .seletor-lista button.ativo { background: var(--destaque-fundo); }
 .pagina-clube > h1 { margin-bottom: 4px; }
+.acoes { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 0; }

@@ -288,6 +288,9 @@ export class RepositorioMemoria implements Repositorio {
       .sort((a, b) => cmp(a.data, b.data) || cmp(a.id, b.id))
       .map((j) => ({ ...j }));
   }
+  jogosDoDia(data: Data): JogoAgendado[] {
+    return [...this.calJogos.values()].filter((j) => j.data === data).sort((a, b) => cmp(a.id, b.id)).map((j) => ({ ...j }));
+  }
   proximoJogo(clube: string, desde: Data): JogoAgendado | undefined {
     const j = [...this.calJogos.values()]
       .filter((x) => (x.casa === clube || x.fora === clube) && x.data >= desde)

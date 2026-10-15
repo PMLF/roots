@@ -8,6 +8,7 @@ import { gerarMundo } from "../mundo/gerarMundo";
 import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
+import { avancar, estadoDoTempo } from "../epoca/avancar";
 import { competitionPage } from "../competicao/ficha";
 import { nivelDeReputacao } from "../clube/reputacao";
 import { nivelGeral } from "../mundo/nivel";
@@ -173,6 +174,14 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
     case "laboratorioLiga": {
       const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
       return ligaLab(repositorio, dados, PARAMETROS_PADRAO, m.entrada);
+    }
+    case "estadoTempo": {
+      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      return estadoDoTempo(repositorio, dados, PARAMETROS_PADRAO);
+    }
+    case "avancar": {
+      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      return avancar(repositorio, dados, PARAMETROS_PADRAO, m.entrada.modo, m.entrada.clube);
     }
     case "plantel": {
       const { repositorio } = await servicos.abrirRepositorio();

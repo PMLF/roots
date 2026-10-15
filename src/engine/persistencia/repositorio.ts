@@ -102,6 +102,8 @@ export interface Repositorio {
   calendario(competicao: string, epoca: number): { jogos: JogoAgendado[]; folgas: FolgaAgendada[] };
   /** Jogos de um clube na época (casa ou fora), por data. */
   calendarioDoClube(clube: string, epoca: number): JogoAgendado[];
+  /** Todos os jogos marcados para um dia (de todas as competições), por id. */
+  jogosDoDia(data: Data): JogoAgendado[];
   /** Primeiro jogo marcado do clube em `desde` ou depois. */
   proximoJogo(clube: string, desde: Data): JogoAgendado | undefined;
 

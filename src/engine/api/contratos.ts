@@ -3,6 +3,7 @@ import type { ResultadoPesquisa } from "../pesquisa/pesquisar";
 import type { CompetitionPage } from "../competicao/ficha";
 import type { CompeticaoResumo, JogoLab, LigaLab } from "../laboratorio/laboratorio";
 import type { FormacaoId, Tatica } from "../jogo/tipos";
+import type { EstadoTempo, Modo, ResultadoAvanco } from "../epoca/avancar";
 import type { Escalao, NivelReputacao } from "../config/parametros";
 import type { LinhaStatJogador } from "../persistencia/tipos";
 import type { FichaPessoa, PessoaVista } from "../vista/tipos";
@@ -139,6 +140,10 @@ export type PedidosMotor = {
   /** Laboratório: simula um jogo entre dois clubes sem gravar nada no save. */
   laboratorioJogo: { entrada: { casa: string; fora: string; seed: string; taticaCasa?: Partial<Tatica>; taticaFora?: Partial<Tatica> }; saida: JogoLab };
   /** Laboratório: simula uma liga inteira (uma época) sem gravar nada no save. */
+  /** A data do save, a época e quantos jogos faltam (prepara o calendário da época na primeira vez). */
+  estadoTempo: { entrada: null; saida: EstadoTempo };
+  /** Avança no tempo e joga os jogos desses dias (RZ-119). Com `clube`, o jogo desse clube guarda todo o detalhe e pára o avanço (`proximoJogo`). */
+  avancar: { entrada: { modo: Modo; clube?: string }; saida: ResultadoAvanco };
   laboratorioLiga: { entrada: { liga: string; seed: string; formacao?: FormacaoId }; saida: LigaLab };
   /** Plantel público de um clube, lido através da `Vista` (sem atributos, potencial nem personalidade). */
   plantel: { entrada: { clube: string }; saida: PessoaVista[] };
