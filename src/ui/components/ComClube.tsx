@@ -10,9 +10,9 @@ const MAX_RESULTADOS = 40;
 const norm = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 /** Dropdown com pesquisa para escolher o clube (mesma lógica do seletor de ligas). */
-function SeletorClube({ clubes, atual, aoEscolher }: { clubes: ClubeResumo[]; atual?: string; aoEscolher: (id: string) => void }) {
+export function SeletorClube({ clubes, atual, aoEscolher, aberto0 }: { clubes: ClubeResumo[]; atual?: string; aoEscolher: (id: string) => void; aberto0?: boolean }) {
   const { t } = useT();
-  const [aberto, setAberto] = useState(!atual);
+  const [aberto, setAberto] = useState(aberto0 ?? !atual);
   const [texto, setTexto] = useState("");
   const raiz = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -52,30 +52,50 @@ function SeletorClube({ clubes, atual, aoEscolher }: { clubes: ClubeResumo[]; at
   );
 }
 
-/**
- * Moldura das páginas do clube (Clube, Plantel, Jogos, Cidade): trata de «sem mundo», de escolher o clube e de o
- * trocar, e só depois mostra o conteúdo.
- */
-export function ComClube({ titulo, children }: { titulo: string; children: (clube: string) => ReactNode }) {
-  const { t } = useT();
+/** Os clubes do mundo (vazio até haver mundo; `null` se não há mundo). */
+export function useClubes(): ClubeResumo[] | null | undefined {
   const motor = useMotor();
-  const [meu, definir, pronto] = useMeuClube();
   const [clubes, setClubes] = useState<ClubeResumo[] | null | undefined>(undefined);
   useEffect(() => {
     if (!motor) return;
     let vivo = true;
-    motor.chamar("estadoMundo", null).then((m) => (m ? motor.chamar("clubes", null) : null)).then((c) => vivo && setClubes(c)).catch(() => vivo && setClubes(null));
-    return () => { vivo = false; };
+    const carregar = () => { motor.chamar("estadoMundo", null).then((m) => (m ? motor.chamar("clubes", null) : null)).then((c) => vivo && setClubes(c)).catch(() => vivo && setClubes(null)); };
+    carregar();
+    window.addEventListener("raizes:mundo", carregar);
+    return () => { vivo = false; window.removeEventListener("raizes:mundo", carregar); };
   }, [motor]);
+  return clubes;
+}
 
+/** Escolha do clube para começar o save (onboarding provisório até RZ-138). */
+export function EscolherClubeInicial() {
+  const { t } = useT();
+  const clubes = useClubes();
+  const [, definir] = useMeuClube();
+  if (!clubes) return null;
+  return (
+    <div className="pagina-clube">
+      <p>{t("meuClube.comecar")}</p>
+      <SeletorClube clubes={clubes} aberto0 aoEscolher={(id) => void definir(id)} />
+    </div>
+  );
+}
+
+/**
+ * Moldura das páginas do clube (Clube, Plantel, Jogos, Cidade): mostra sempre o clube do save. Sem mundo ou sem clube
+ * escolhido, leva a criar o mundo ou a escolher o clube.
+ */
+export function ComClube({ titulo, children }: { titulo: string; children: (clube: string) => ReactNode }) {
+  const { t } = useT();
+  const clubes = useClubes();
+  const [meu, , pronto] = useMeuClube();
   if (clubes === null) return <p className="vazio" data-testid="sem-mundo">{t("hoje.semMundo")} <Link href="/world/">{t("hoje.criarMundo")}</Link></p>;
   if (clubes === undefined || !pronto) return <p>{t("ficha.aCarregar")}</p>;
-  const valido = meu && clubes.some((c) => c.id === meu) ? meu : undefined;
+  if (!meu || !clubes.some((c) => c.id === meu)) return <EscolherClubeInicial />;
   return (
     <section className="pagina-clube">
       {titulo && <h1>{titulo}</h1>}
-      <SeletorClube clubes={clubes} {...(valido ? { atual: valido } : {})} aoEscolher={definir} />
-      {valido ? children(valido) : <p className="vazio">{t("meuClube.vazio")}</p>}
+      {children(meu)}
     </section>
   );
 }

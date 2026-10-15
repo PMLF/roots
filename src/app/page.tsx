@@ -5,6 +5,7 @@ import type { CompetitionPage, FichaClubeDados, ResumoMundoCriado } from "@/engi
 import { jogosDoClube } from "@/ui/jogosClube";
 import { Ligacao } from "@/ui/components/Ligacao";
 import { useMeuClube } from "@/ui/meuClube";
+import { EscolherClubeInicial } from "@/ui/components/ComClube";
 import { useTempo } from "@/ui/useTempo";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { useMotor } from "@/ui/MotorProvider";
@@ -51,7 +52,7 @@ export default function Hoje() {
               {proximo && <span className="suave"> · {t("hoje.proximo", { jogo: `${proximo.home ? "" : "@ "}${proximo.opponentName}` })}</span>}
             </>
           ) : (
-            <Link href="/club/">{t("hoje.escolherClube")}</Link>
+            <EscolherClubeInicial />
           )}
         </p>
       )}
