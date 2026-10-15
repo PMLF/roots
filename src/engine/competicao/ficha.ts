@@ -126,9 +126,14 @@ export function competitionPage(repo: Repositorio, dados: DadosBase, params: Par
   const currentRound = rounds.reduce((last, r) => (r.matches.some((m) => m.homeGoals !== undefined) ? r.number : last), 0);
 
   const ordered = tabelaDaCompeticao(repo, league, season, tier === "cp" || tier === "distrital" ? "promocao" : "liga", params, { seed, reputacao: reputation });
-  const rows = ordered.length > 0
+  const rows: Omit<TableRow, "zone">[] = ordered.length > 0
     ? ordered.map((l) => ({ position: l.posicao, club: l.clube, name: clubName.get(l.clube) ?? l.clube, played: l.jogos, won: l.vitorias, drawn: l.empates, lost: l.derrotas, goalsFor: l.golosMarcados, goalsAgainst: l.golosSofridos, goalDifference: l.diferenca, points: l.pontos, ...(l.desempatePor ? { tiebreak: l.desempatePor } : {}) }))
     : [...clubs].sort((a, b) => b.reputacao - a.reputacao || a.nome.localeCompare(b.nome, "pt")).map((c, i) => ({ position: i + 1, club: c.id, name: c.nome, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 }));
+  // Clubes sem jogos na tabela (calendário ainda não gravado) entram no fim, a zeros, por reputação.
+  const presentes = new Set(rows.map((r) => r.club));
+  for (const c of [...clubs].filter((x) => !presentes.has(x.id)).sort((x, y) => y.reputacao - x.reputacao || x.nome.localeCompare(y.nome, "pt"))) {
+    rows.push({ position: rows.length + 1, club: c.id, name: c.nome, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 });
+  }
   const table: TableRow[] = rows.map((r) => {
     const zone = zoneOf(r.position, rows.length, tier, params);
     return zone ? { ...r, zone } : r;
