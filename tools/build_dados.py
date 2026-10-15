@@ -188,11 +188,32 @@ for c in todos:
               "Campeonato de Portugal": (0.25, 0.60), "Distrital": (0.15, 0.75)}[c["divisao"]]
     x = rng("prop:" + c["nome"]).random()
     c["estadio_prop"] = "clube" if x < pc else "municipal" if x < pc + pm else "partilhada"
+    # localização e envolvente do estádio (estimativas determinísticas; ver docs/CIDADE.md §5.3)
+    d = conc[c["concelho"]]; q = rng("est:" + c["nome"])
+    u = max(0.0, min(1.0, math.log10(max(d["pop"], 1) / 3000) / 2.3))        # urbanidade 0-1
+    topo = c["divisao"] == "Primeira Liga"
+    pp = 0.15 + 0.35 * u + (0.10 if topo else 0)                              # prob. periferia
+    x2 = q.random()
+    loc = "periferia" if x2 < pp else "perto" if x2 < pp + 0.35 else "centro"
+    km = {"centro": q.uniform(0.2, 1.0), "perto": q.uniform(1.0, 2.5), "periferia": q.uniform(2.5, 3 + 5 * u)}[loc]
+    pen = {"centro": 0, "perto": 6, "periferia": 18}[loc]
+    sec = {d["setor"], d["tag2"]}
+    clamp = lambda v: int(max(5, min(95, round(v))))
+    c["est_local"] = loc
+    c["est_dist_km"] = round(km, 1)
+    c["est_transportes"] = clamp(20 + 55 * u + (10 if "LOG" in sec else 0) - (10 if "INT" in sec else 0)
+                                 - (5 if d["distrito"] in ("Açores", "Madeira") else 0) - pen + q.gauss(0, 8))
+    c["est_acesso_rodov"] = clamp(45 + (15 if loc == "periferia" else 0) - (8 if "INT" in sec else 0) + q.gauss(0, 12))
+    c["est_estacionamento"] = clamp(30 + 40 * (1 - u) + {"centro": -5, "perto": 5, "periferia": 20}[loc] + q.gauss(0, 10))
+    c["est_lugares_estac"] = int(round(c["cap"] * (0.04 + 0.20 * (1 - u) + (0.08 if loc == "periferia" else 0)) / 10) * 10)
+    c["est_envolvente"] = clamp(15 + 60 * u + (10 if "TUR" in sec else 0) - {"centro": 0, "perto": 6, "periferia": 18}[loc] + q.gauss(0, 8))
+    c["est_terreno"] = clamp({"centro": q.uniform(15, 40), "perto": q.uniform(30, 60), "periferia": q.uniform(55, 90)}[loc]
+                             + (8 if "INT" in sec else 0) - 8 * u)
 ids = Counter(c["id"] for c in todos)
 for i, k in ids.items():
     if k > 1: print("AVISO id duplicado", i)
 
-COLS = ["id","nome","cidade","concelho","distrito","divisao","liga","rep","fin","cap","estadio","cores","alcunha","mascote","rival","setor","tag2","polo","serie_cp","estadio_prop","origem"]
+COLS = ["id","nome","cidade","concelho","distrito","divisao","liga","rep","fin","cap","estadio","cores","alcunha","mascote","rival","setor","tag2","polo","serie_cp","estadio_prop","est_local","est_dist_km","est_transportes","est_acesso_rodov","est_estacionamento","est_lugares_estac","est_envolvente","est_terreno","origem"]
 w(OUT / "clubes.csv", COLS, todos)
 w(OUT / "cidades.csv", list(cidades[0].keys()), cidades)
 

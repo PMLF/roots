@@ -67,8 +67,18 @@ type Estadio = {
   id; nome; clube: ClubeId; cidade: CidadeId;
   setores: Setor[];            // capacidade total = soma
   relvado: { qualidade: 0..100; tipo: 'natural'|'sintetico' };
-  iluminacao: 0..100; acessos: 0..100; estacionamento: number;
-  bares: number; loja: 0..100; vip: number;
+  iluminacao: 0..100; bares: number; loja: 0..100; vip: number;
+  localizacao: {
+    zona: 'centro' | 'perto' | 'periferia' | 'fora';  // proximidade do centro da cidade
+    distanciaCentroKm: number;
+    transportes: 0..100;          // qualidade dos transportes públicos até ao estádio
+    acessoRodoviario: 0..100;     // estradas e acessos de carro
+    estacionamento: 0..100;       // qualidade/suficiência; mais `lugaresEstacionamento: number`
+    envolvente: 0..100;           // infraestrutura à volta: hotéis, bares, comércio, serviços
+    terrenoExpansao: 0..100;      // espaço para ampliar ou reconstruir
+    vizinhanca: 0..100;           // densidade residencial perto (queixas, ruído)
+  };
+  idade: number; estado: 0..100;
   licenca: { nivelMax: Escalao; validaAte: Data; provisoria: boolean };  // RZ-305
 };
 type Setor = {
@@ -77,7 +87,7 @@ type Setor = {
 };
 ```
 
-A capacidade do CSV (`cap`) é repartida em setores por regra (p. ex. 70 % sentados cobertos, 15 % em pé, 8 % visitantes, 2 % VIP, resto geral). Obras (RZ-116/303) são entidades próprias: `Obra { id, alvo, tipo, custo, financiamento: {clube, camara, estado}, inicio, fim, estado }`.
+Os campos de `localizacao` têm valores iniciais em `data/clubes.csv` (`est_*`, estimativas determinísticas) e evoluem com as obras e com a cidade (`docs/CIDADE.md` §5.3). A capacidade do CSV (`cap`) é repartida em setores por regra (p. ex. 70 % sentados cobertos, 15 % em pé, 8 % visitantes, 2 % VIP, resto geral). Obras (RZ-116/303) são entidades próprias: `Obra { id, alvo, tipo, custo, financiamento: {clube, camara, estado}, inicio, fim, estado }`.
 
 ## 5. Pessoa e personalidade
 

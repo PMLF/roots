@@ -83,6 +83,25 @@ A cidade só oferece algumas opções (depende da densidade, do valor do solo, d
 
 A **assistência** passa a incluir um fator de **distância** ao centro e à população: `assistencia ∝ bacia × f(distancia, transportes, estacionamento)`. Mudar para fora gera, no primeiro ano, queda; recupera se houver transportes.
 
+### 5.3 Estatísticas de localização e envolvente do estádio
+
+Todos os estádios têm estas estatísticas (`MODELO_DADOS` §4, valores iniciais em `data/clubes.csv`):
+
+| Campo | O que mede | Efeitos principais |
+|---|---|---|
+| `zona` + `distanciaCentroKm` | proximidade do centro (centro, perto, periferia, fora) | assistência (adeptos a pé), identidade, valor do solo, protestos se mudar |
+| `transportes` | qualidade dos transportes públicos até ao estádio | assistência (especialmente jogos grandes), visitantes, jovens |
+| `acessoRodoviario` | estradas e acessos de carro | assistência de fora do concelho, visitantes, trânsito |
+| `estacionamento` + lugares | quantidade e qualidade | assistência de carro, receitas de parque, queixas |
+| `envolvente` | infraestrutura à volta (hotéis, bares, comércio) | receitas de dia de jogo, turismo de jogo, notoriedade |
+| `terrenoExpansao` | espaço para ampliar | capacidade máxima da obra, custo, opções de local |
+| `vizinhanca` | densidade residencial perto | queixas, restrições de ruído e horários, custo das obras |
+
+- **Inicial:** gerado por cidade e clube: cidades maiores têm melhores transportes e envolvente, mas pior estacionamento e menos terreno; estádios na periferia têm mais acessos de carro, estacionamento e terreno; Interior e ilhas têm piores transportes.
+- **Evolução:** a cidade melhora ou degrada (RZ-304, obras e projetos); o clube investe (RZ-303); mudar de estádio (§5.1) reinicia estas estatísticas.
+- **Assistência:** `assistencia ∝ bacia × forma × importância × f(zona, transportes, acessoRodoviario, estacionamento, envolvente) × …`; jogos com muito público ou visitantes grandes dependem mais de transportes e acessos.
+- **Visibilidade:** estas estatísticas são **públicas** (qualquer pessoa vê o estádio), exceto detalhes de estado técnico, que exigem observação.
+
 ### 5.2 Jogar durante a obra
 
 Se o estádio antigo é demolido ou fica em obras, o clube joga num **estádio temporário**: outro estádio da cidade (partilhado com um clube local, se existir), de uma cidade vizinha (renda + viagem) ou um recinto menor. Efeitos: capacidade reduzida, `distancia_km`, renda, queda de assistência e de receitas, desgaste de relação com os adeptos. A escolha é do gamer, com as opções que existirem.

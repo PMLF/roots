@@ -150,7 +150,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 
 - [ ] **RZ-301** (P1, L) **Modelo da cidade/concelho**: 12 variáveis (`docs/CIDADE.md` §2) com atualização mensal na cidade do gamer e anual nas outras; `cultura_futebol`; finanças municipais; bacia de adeptos.
 - [ ] **RZ-302** (P1, L) **Sinergias** (DESIGN §5): setores e efeitos, marca `ILH`, polos regionais, rivais, concelho partilhado, "Rota do Futebol", voos entre ilhas.
-- [ ] **RZ-303** (P1, XL) **Infraestruturas do estádio**: setores (sentados, em pé, visitantes, VIP), relvado, iluminação, acessos, estacionamento, bares, loja; **centro de treinos, academia e centro médico**; obras por fases com custos e apoio municipal.
+- [ ] **RZ-303** (P1, XL) **Infraestruturas do estádio**: setores (sentados, em pé, visitantes, VIP), relvado, iluminação, acessos, estacionamento, bares, loja; **centro de treinos, academia e centro médico**; obras por fases com custos e apoio municipal. Inclui as **estatísticas de localização e envolvente** (`docs/CIDADE.md` §5.3).
 - [ ] **RZ-304** (P1, M) Infraestrutura **fora** do estádio: transportes públicos, hotéis, estacionamento da cidade.
 - [ ] **RZ-305** (P1, M) **Requisitos mínimos por escalão** e licenciamento (por omissão, licença provisória de 1 época com coima).
 - [ ] **RZ-314** (P1, L) **Novo estádio e escolha do local**: etapas, opções de local (mesmo local, perto, periferia) com custos, prazos, relação com adeptos, transportes e assistência; estádio temporário durante a obra; terreno antigo; inauguração. → RZ-303, RZ-315 (`docs/CIDADE.md` §5)

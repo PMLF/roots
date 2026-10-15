@@ -40,8 +40,8 @@ cols = [("Nome","nome",None),("Cidade","cidade",None),("Concelho","concelho",Non
         ("Divisão","divisao",None),("Liga / Série","liga",None),("Reputação","rep",I),("Finanças Iniciais (€)","fin",I),
         ("Capacidade Estádio","cap",I),("Estádio","estadio",None),("Cores do Clube","cores",None),("Alcunha","alcunha",None),
         ("Mascote","mascote",None),("Rival","rival",None),("Setor","setor",None),("Setor 2","tag2",None),("Polo","polo",None),
-        ("Série CP","serie_cp",None),("Propriedade do estádio","estadio_prop",None),("Origem","origem",None),("ID","id",None)]
-sheet(wb, "Clubes", cols, clubes, [34,24,24,17,22,26,11,16,13,32,26,18,22,32,8,8,22,9,14,10,30],
+        ("Série CP","serie_cp",None),("Propriedade do estádio","estadio_prop",None),("Localização do estádio","est_local",None),("Distância ao centro (km)","est_dist_km",float),("Transportes (0-100)","est_transportes",I),("Acesso rodoviário (0-100)","est_acesso_rodov",I),("Estacionamento (0-100)","est_estacionamento",I),("Lugares de estacionamento","est_lugares_estac",I),("Envolvente (0-100)","est_envolvente",I),("Terreno p/ expansão (0-100)","est_terreno",I),("Origem","origem",None),("ID","id",None)]
+sheet(wb, "Clubes", cols, clubes, [34,24,24,17,22,26,11,16,13,32,26,18,22,32,8,8,22,9,14,13,12,12,12,12,12,12,10,30],
       {"G":"#,##0","H":"#,##0","I":"#,##0"}, first=True)
 
 cid = rd("cidades.csv")
