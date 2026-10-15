@@ -521,6 +521,12 @@ export class RepositorioSqlite implements Repositorio {
     };
   }
 
+  jogosDaCompeticao(competicao: string, epoca: number): Jogo[] {
+    return this.d
+      .todos("SELECT id FROM jogo WHERE competicao = ? AND epoca = ? ORDER BY jornada, data, id", [competicao, epoca])
+      .map((r) => this.jogo(txt(r.id)) as Jogo);
+  }
+
   marcadores(competicao: string, epoca: number, jornada: number): Marcador[] {
     return this.d
       .todos(

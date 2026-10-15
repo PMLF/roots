@@ -29,7 +29,7 @@ A série D inclui as ilhas: voos e custos de viagem entram na simulação (siner
 Os **20 campeões distritais** não sobem diretamente. Disputam, depois de acabarem as distritais, a **Fase de Promoção**:
 - 4 grupos de 5 campeões (os mesmos das séries A-D), todos contra todos a uma volta (4 jogos cada, mando alternado).
 - Os **2 primeiros de cada grupo** sobem ao CP, para a série correspondente: **8 promovidos por ano**.
-- Critérios de classificação: pontos, confronto direto, diferença de golos, golos marcados; em empate total, ganha o de menor reputação.
+- Critérios de classificação: pontos, confronto direto, diferença de golos, golos marcados; em empate total, ganha o de menor reputação (promoção) ou sorteio estável (liga). Ordem configurável em `desempate` (`parametros.ts`); o confronto direto usa mini-tabela entre os empatados e reaplica-se aos que continuam empatados (`src/engine/competicao/classificacao.ts`).
 - Um campeão que não cumpra o licenciamento é substituído pelo 2.º classificado da sua distrital.
 - `PARÂMETRO PROMO_POR_GRUPO = 2`.
 

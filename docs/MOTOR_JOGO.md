@@ -136,3 +136,8 @@ Assim os resultados, marcadores, castigos e lesões são **exatamente** os mesmo
 
 - `registoDoJogo(...)` converte o resultado em `JogoNovo` + factos (G, A, P) + participações, prontos para `Repositorio.registarJogo` (RZ-122 liga isto ao calendário).
 - Fora desta tarefa, de propósito: jogo ao vivo com ritmo e pausa (RZ-130) e comentário (RZ-131). Os eventos já trazem os dados de que precisam.
+
+## 12. Classificações e jornadas (RZ-110)
+- `competicao/classificacao.ts`: `ordenarClassificacao(linhas, jogos, criterios, ctx)` aplica os critérios de `desempate.liga|promocao` por ordem. Confronto direto = mini-tabela só com os jogos entre os empatados, reaplicada aos subgrupos que continuam empatados; `sorteio` é determinístico (seed + competição + época + clube); `reputacaoMenor` favorece o clube de menor reputação. Cada linha indica `desempatePor` (o critério que o separou).
+- `competicao/jornadas.ts`: `estadoCompeticao` (jornada atual, jogos por jogar, atrasos, próxima data, terminada) e `jogosParaJogar` (o que o loop de dias deve jogar hoje, atrasados primeiro). Um jogo jogado tem o mesmo id do `JogoAgendado`.
+- `competicao/tabela.ts`: fachada sobre o `Repositorio` (`tabelaDaCompeticao`, `estadoDaCompeticao`); inclui clubes que ainda não jogaram.
