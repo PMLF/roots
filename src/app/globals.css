@@ -333,3 +333,10 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 
 .ofertas { list-style: none; padding: 0; display: grid; gap: 0.5rem; }
 .ofertas li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+
+.pagina-jogo .marcador { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: baseline; }
+.pagina-jogo .relogio { font-variant-numeric: tabular-nums; font-size: 1.25rem; margin: 0; }
+.feed { list-style: none; padding: 0; display: grid; gap: 0.25rem; }
+.feed li { padding: 0.25rem 0.5rem; border-left: 3px solid transparent; }
+.feed li.importante { border-left-color: currentColor; font-weight: 600; }
+.feed li.feed-remate, .feed li.feed-canto { opacity: 0.7; }

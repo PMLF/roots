@@ -102,6 +102,14 @@ describe("avançar no tempo", () => {
     const doClube = jogo.dias[0]!.jogos.find((j) => j.casa === clube.id || j.fora === clube.id)!;
     expect(doClube.nivel).toBe(0);
     expect(repo.jogo(doClube.id)).toBeDefined();
+    // jogo ao vivo: a linha do tempo do jogo do clube bate certo com o resultado
+    const vivo = (await tratar({ id: 44, tipo: "jogoAoVivo", entrada: {} }, s))!;
+    expect(vivo.id).toBe(doClube.id);
+    expect(vivo.linhas.at(-1)!.tipo).toBe("fim");
+    expect([vivo.linhas.at(-1)!.golosCasa, vivo.linhas.at(-1)!.golosFora]).toEqual([doClube.golosCasa, doClube.golosFora]);
+    expect(vivo.linhas.filter((l) => l.tipo === "golo").length).toBe(doClube.golosCasa + doClube.golosFora);
+    expect(vivo.linhas.every((l, i, a) => i === 0 || a[i - 1]!.minuto <= l.minuto)).toBe(true);
+    expect(vivo.linhas.some((l) => l.tipo === "remate" || l.tipo === "canto")).toBe(true);
     const todos = [...r.dias, ...jogo.dias].flatMap((d) => d.jogos);
     expect(todos.length).toBeGreaterThan(10);
     expect(todos.filter((j) => j.nivel === 1).length).toBe(todos.length - todos.filter((j) => j.nivel === 0).length);

@@ -8,6 +8,7 @@ import { gerarMundo } from "../mundo/gerarMundo";
 import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
+import { lerJogoVivo } from "../epoca/jogoAoVivo";
 import { aceitarOferta, demitir, estaDesempregado, ofertasDoGamer } from "../epoca/mercadoTreinadores";
 import { avancar, estadoDoTempo } from "../epoca/avancar";
 import { parametrosDoSave, anoDaEpocaQueContem, anoInicialDoSave, nomeDaEpoca } from "../epoca/anoDoSave";
@@ -189,6 +190,10 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       const { repositorio } = await servicos.abrirRepositorio();
       const id = repositorio.meta("clube.gamer");
       return id ? { id } : null;
+    }
+    case "jogoAoVivo": {
+      const { repositorio } = await contexto(servicos);
+      return lerJogoVivo(repositorio, m.entrada.id);
     }
     case "demitir": {
       const { repositorio, dados, params } = await contexto(servicos);

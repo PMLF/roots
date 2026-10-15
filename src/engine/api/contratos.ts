@@ -3,6 +3,7 @@ import type { ResultadoPesquisa } from "../pesquisa/pesquisar";
 import type { CompetitionPage } from "../competicao/ficha";
 import type { CompeticaoResumo, JogoLab, LigaLab } from "../laboratorio/laboratorio";
 import type { FormacaoId, Tatica } from "../jogo/tipos";
+import type { JogoVivo } from "../epoca/jogoAoVivo";
 import type { EstadoTempo, Modo, ResultadoAvanco } from "../epoca/avancar";
 import type { Plano } from "../epoca/planoDeJogo";
 import type { Posicao } from "../mundo/tipos";
@@ -165,6 +166,8 @@ export type PedidosMotor = {
    * (RZ-157). `forcar` é a troca dos developers (seletor da barra lateral, só no modo dev).
    */
   /** O gamer demite-se do clube (RZ-157). Fica sem clube e recebe ofertas. */
+  /** Linha do tempo do jogo do clube do gamer, para o ver minuto a minuto (RZ-130). Sem `id`, o último. */
+  jogoAoVivo: { entrada: { id?: string }; saida: JogoVivo | null };
   demitir: { entrada: null; saida: { clube: string } };
   /** Ofertas de clubes quando o gamer está sem clube. */
   ofertas: { entrada: null; saida: { desempregado: boolean; anterior?: string; ofertas: OfertaDeClube[] } };
