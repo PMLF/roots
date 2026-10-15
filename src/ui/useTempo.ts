@@ -15,12 +15,20 @@ export function useTempo() {
   const [estado, setEstado] = useState<EstadoTempo | null | undefined>(undefined);
   const [, forcar] = useState(0);
   const [erro, setErro] = useState<string | undefined>(undefined);
+  const [pausa, setPausa] = useState<{ jogo: string; adversario: string; emCasa: boolean } | undefined>(undefined);
 
   useEffect(() => {
     if (!motor) return;
     let vivo = true;
     const carregar = () => {
-      motor.chamar("estadoMundo", null).then((m) => (m ? motor.chamar("estadoTempo", null) : null)).then((e) => vivo && setEstado(e)).catch(() => vivo && setEstado(null));
+      motor.chamar("estadoMundo", null).then((m) => (m ? motor.chamar("estadoTempo", null) : null)).then(async (e) => {
+        if (!vivo) return;
+        setEstado(e);
+        // há jogo do teu clube hoje, por confirmar?
+        const p = e ? await motor.chamar("plano", null) : null;
+        const j = p?.proximoJogo;
+        if (vivo) setPausa(e && j && j.data === e.hoje && !j.confirmado ? { jogo: j.id, adversario: j.adversario, emCasa: j.emCasa } : undefined);
+      }).catch(() => vivo && setEstado(null));
     };
     const aoMudar = () => { forcar((n) => n + 1); carregar(); };
     carregar();
@@ -44,5 +52,11 @@ export function useTempo() {
     }
   }, [motor, clube]);
 
-  return { estado, ultimo, aAvancar, avancar, erro };
+  const confirmarEJogar = useCallback(async () => {
+    if (!pausa || !motor) return;
+    await motor.chamar("confirmarJogo", { jogo: pausa.jogo });
+    await avancar("dia");
+  }, [motor, pausa, avancar]);
+
+  return { estado, ultimo, aAvancar, avancar, erro, pausa, confirmarEJogar };
 }

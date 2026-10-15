@@ -86,10 +86,19 @@ export default function Hoje() {
           <h2 id="h-seguir">{t("hoje.seguir")}</h2>
           {proximo ? <p>{t("hoje.proximo", { jogo: `${proximo.home ? "" : "@ "}${proximo.opponentName}` })} <span className="suave">· {proximo.date}</span></p> : <p className="vazio">{t("hoje.seguirVazio")}</p>}
           {tempo.estado?.porJogar === 0 && <p className="suave">{t("hoje.fimDeEpoca")}</p>}
+          {tempo.pausa && (
+            <>
+              <p><b>{t("hoje.jogoHoje", { jogo: `${tempo.pausa.emCasa ? "" : "@ "}${tempo.pausa.adversario}` })}</b></p>
+              <p className="acoes">
+                <button type="button" className="primario" disabled={tempo.aAvancar} onClick={() => void tempo.confirmarEJogar()}>{t("hoje.confirmarJogar")}</button>
+                <Link href="/tactics/">{t("hoje.verTatica")}</Link>
+              </p>
+            </>
+          )}
           <p className="acoes">
-            <button type="button" className="primario" disabled={!mundo || tempo.aAvancar || tempo.estado?.porJogar === 0} onClick={() => void tempo.avancar(meu ? "proximoJogo" : "semana")}>{tempo.aAvancar ? t("hoje.aAvancar") : meu ? t("hoje.avancarJogo") : t("hoje.avancarSemana")}</button>
-            <button type="button" disabled={!mundo || tempo.aAvancar || tempo.estado?.porJogar === 0} onClick={() => void tempo.avancar("dia")}>{t("hoje.avancarDia")}</button>
-            <button type="button" disabled={!mundo || tempo.aAvancar || tempo.estado?.porJogar === 0} onClick={() => void tempo.avancar("semana")}>{t("hoje.avancarSemana")}</button>
+            <button type="button" className={tempo.pausa ? undefined : "primario"} disabled={!mundo || tempo.aAvancar || !!tempo.pausa || tempo.estado?.porJogar === 0} onClick={() => void tempo.avancar(meu ? "proximoJogo" : "semana")}>{tempo.aAvancar ? t("hoje.aAvancar") : meu ? t("hoje.avancarJogo") : t("hoje.avancarSemana")}</button>
+            <button type="button" disabled={!mundo || tempo.aAvancar || !!tempo.pausa || tempo.estado?.porJogar === 0} onClick={() => void tempo.avancar("dia")}>{t("hoje.avancarDia")}</button>
+            <button type="button" disabled={!mundo || tempo.aAvancar || !!tempo.pausa || tempo.estado?.porJogar === 0} onClick={() => void tempo.avancar("semana")}>{t("hoje.avancarSemana")}</button>
           </p>
           {tempo.erro && <p className="erro">{tempo.erro}</p>}
         </section>

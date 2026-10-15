@@ -325,3 +325,6 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .menu-clube-dev .seletor-painel { position: static; width: auto; max-height: 40vh; box-shadow: none; margin-top: 6px; padding: 8px; }
 .menu-clube-dev input[type="search"] { width: 100%; min-width: 0; }
 .menu-clube-dev .seletor-lista .suave { display: none; }
+.formulario { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+.formulario label { display: grid; gap: 4px; font-size: 13px; color: var(--suave); }
+.formulario select { width: 100%; }

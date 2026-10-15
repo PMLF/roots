@@ -20,6 +20,7 @@ const MENU: ItemMenu[] = [
   { chave: "menu.competicoes", icone: "competicoes", href: "/competitions/", ativoQuando: (c) => c.startsWith("/competitions") },
   { chave: "menu.clube", icone: "clube", href: "/club/", ativoQuando: (c) => c.startsWith("/club") },
   { chave: "menu.plantel", icone: "plantel", href: "/squad/", ativoQuando: (c) => c.startsWith("/squad") },
+  { chave: "menu.tatica", icone: "tatica", href: "/tactics/", ativoQuando: (c) => c.startsWith("/tactics") },
   { chave: "menu.jogos", icone: "jogos", href: "/fixtures/", ativoQuando: (c) => c.startsWith("/fixtures") },
   { chave: "menu.cidade", icone: "cidade", href: "/city/", ativoQuando: (c) => c.startsWith("/city") },
   { chave: "menu.mundo", icone: "mundo", href: "/world/", ativoQuando: (c) => c.startsWith("/world"), soDev: true },

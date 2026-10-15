@@ -4,6 +4,8 @@ import type { CompetitionPage } from "../competicao/ficha";
 import type { CompeticaoResumo, JogoLab, LigaLab } from "../laboratorio/laboratorio";
 import type { FormacaoId, Tatica } from "../jogo/tipos";
 import type { EstadoTempo, Modo, ResultadoAvanco } from "../epoca/avancar";
+import type { Plano } from "../epoca/planoDeJogo";
+import type { Posicao } from "../mundo/tipos";
 import type { Escalao, NivelReputacao } from "../config/parametros";
 import type { LinhaStatJogador } from "../persistencia/tipos";
 import type { FichaPessoa, PessoaVista } from "../vista/tipos";
@@ -112,6 +114,18 @@ export type FichaLocalidadeDados = {
 
 export type { ResultadoPesquisa, CompeticaoResumo, JogoLab, LigaLab, CompetitionPage };
 
+/** O plano de jogo do clube do gamer, pronto para a página Tática. */
+export type PlanoVista = {
+  tatica: Tatica;
+  /** `true` enquanto o gamer não escolheu o onze: o que se mostra é a proposta automática. */
+  automatico: boolean;
+  formacoes: FormacaoId[];
+  posicoesDaFormacao: Record<FormacaoId, Posicao[]>;
+  onze: { jogador: string; nome: string; posicao: Posicao }[];
+  plantel: { jogador: string; nome: string; posicoes: { pos: Posicao; aptidao: number }[]; indisponivel?: "lesao" | "suspenso"; jogosPorCumprir?: number }[];
+  proximoJogo?: { id: string; data: string; competicao: string; adversario: string; emCasa: boolean; confirmado: boolean };
+};
+
 export type ClubeResumo = { id: string; nome: string; liga: string };
 
 /** Contrato entre a interface e o motor (que corre num Web Worker). Só dados serializáveis. */
@@ -147,6 +161,12 @@ export type PedidosMotor = {
    * (RZ-157). `forcar` é a troca dos developers (seletor da barra lateral, só no modo dev).
    */
   escolherClube: { entrada: { id: string; forcar?: boolean }; saida: { id: string } };
+  /** O plano de jogo (tática e onze) do clube do gamer. */
+  plano: { entrada: null; saida: PlanoVista | null };
+  /** Guarda tática e onze (`onze: null` volta ao onze automático). Pode fazer-se a qualquer momento. */
+  guardarPlano: { entrada: { tatica: Tatica; onze: Plano["onze"] | null }; saida: PlanoVista };
+  /** Confirma onze e tática para o próximo jogo do clube: o avanço deixa de parar antes dele. */
+  confirmarJogo: { entrada: { jogo: string }; saida: { jogo: string } };
   /** A data do save, a época e quantos jogos faltam (prepara o calendário da época na primeira vez). */
   estadoTempo: { entrada: null; saida: EstadoTempo };
   /** Avança no tempo e joga os jogos desses dias (RZ-119). Com `clube`, o jogo desse clube guarda todo o detalhe e pára o avanço (`proximoJogo`). */
