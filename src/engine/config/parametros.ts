@@ -30,6 +30,18 @@ export type Parametros = {
     mesFimEpoca: number;
     janelas: { abre: { mes: number; dia: number }; fecha: { mes: number; dia: number } }[];
     diasPorAvanco: number;
+    /** A época 1 começa em agosto deste ano (2026 → 2026/27). */
+    anoInicial: number;
+    /** Dia a partir do qual se procura o primeiro sábado de jornada. */
+    primeiraJornada: { mes: number; dia: number };
+    /** Último dia em que pode haver jornadas das ligas (a Fase de Promoção joga-se depois). */
+    ultimaJornadaAte: { mes: number; dia: number };
+    /** Fins de semana sem jogos (inclusivo). `de` em agosto-dezembro é do ano em que a época começa; em janeiro-julho, do seguinte. */
+    pausas: { motivo: string; de: { mes: number; dia: number }; ate: { mes: number; dia: number } }[];
+    /** Dias da semana de jogo por escalão (0 = domingo … 6 = sábado); os jogos de uma jornada repartem-se por eles. */
+    diasDeJogo: Record<Escalao, number[]>;
+    /** As últimas N jornadas jogam-se todas no mesmo dia. */
+    jornadasFinaisSimultaneas: number;
   };
   saves: { autosaveDias: number; autosavesRotativos: number; guardarNoInicioDeEpoca: boolean };
   fairPlay: { niveis: number; padrao: number };
@@ -104,6 +116,18 @@ export const PARAMETROS_PADRAO: Parametros = {
       { abre: { mes: 1, dia: 1 }, fecha: { mes: 1, dia: 31 } },
     ],
     diasPorAvanco: 1,
+    anoInicial: 2026,
+    primeiraJornada: { mes: 8, dia: 15 },
+    ultimaJornadaAte: { mes: 5, dia: 18 },
+    pausas: [
+      { motivo: "seleções (setembro)", de: { mes: 9, dia: 4 }, ate: { mes: 9, dia: 10 } },
+      { motivo: "seleções (outubro)", de: { mes: 10, dia: 9 }, ate: { mes: 10, dia: 15 } },
+      { motivo: "seleções (novembro)", de: { mes: 11, dia: 13 }, ate: { mes: 11, dia: 19 } },
+      { motivo: "Natal", de: { mes: 12, dia: 22 }, ate: { mes: 1, dia: 2 } },
+      { motivo: "seleções (março)", de: { mes: 3, dia: 20 }, ate: { mes: 3, dia: 26 } },
+    ],
+    diasDeJogo: { primeiraLiga: [6, 0], segundaLiga: [6, 0], terceiraLiga: [6, 0], cp: [0], distrital: [0] },
+    jornadasFinaisSimultaneas: 1,
   },
   saves: { autosaveDias: 7, autosavesRotativos: 3, guardarNoInicioDeEpoca: true },
   fairPlay: { niveis: 5, padrao: 3 },
@@ -181,6 +205,11 @@ export function validarParametros(p: Parametros): string[] {
     erros.push("classificacao: pontosVitoria > pontosEmpate ≥ 0");
 
   const c = p.calendario;
+  const dataOk = (d: { mes: number; dia: number }) => d.mes >= 1 && d.mes <= 12 && d.dia >= 1 && d.dia <= 31;
+  for (const d of [c.primeiraJornada, c.ultimaJornadaAte, ...c.pausas.flatMap((x) => [x.de, x.ate])]) if (!dataOk(d)) erros.push("calendario: datas com mês 1-12 e dia 1-31");
+  for (const [esc, dias] of Object.entries(c.diasDeJogo))
+    if (dias.length === 0 || dias.some((x) => x < 0 || x > 6)) erros.push(`calendario.diasDeJogo.${esc}: dias entre 0 e 6, pelo menos um`);
+  if (c.jornadasFinaisSimultaneas < 0) erros.push("calendario: jornadasFinaisSimultaneas ≥ 0");
   for (const m of [c.mesInicioEpoca, c.mesFimEpoca]) if (m < 1 || m > 12) erros.push("calendario: meses entre 1 e 12");
   if (c.janelas.length === 0) erros.push("calendario: tem de existir pelo menos uma janela de transferências");
   if (p.saves.autosaveDias < 1 || p.saves.autosavesRotativos < 1) erros.push("saves: autosaveDias e autosavesRotativos ≥ 1");

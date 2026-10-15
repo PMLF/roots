@@ -6,10 +6,13 @@ import { VERSAO_ESQUEMA } from "./esquema";
 import type { FiltroEventos, Repositorio } from "./repositorio";
 import type {
   AjusteClassificacao,
+  Data,
   EntidadeRef,
   Evento,
   EventoNovo,
+  FolgaAgendada,
   Jogo,
+  JogoAgendado,
   JogoFacto,
   JogoNovo,
   LinhaClassificacao,
@@ -43,6 +46,8 @@ export class RepositorioMemoria implements Repositorio {
   private stats = new Map<string, StatRow>();
   private obs: Observacao[] = [];
   private metaMap = new Map<string, string>();
+  private calJogos = new Map<string, JogoAgendado>();
+  private calFolgas: FolgaAgendada[] = [];
   private diario: (() => void)[][] = [];
 
   constructor(private readonly pontos: PontosPorResultado = { vitoria: 3, empate: 1 }) {}
@@ -78,6 +83,47 @@ export class RepositorioMemoria implements Repositorio {
       if (antes === undefined) this.metaMap.delete(chave);
       else this.metaMap.set(chave, antes);
     });
+  }
+
+  // ---------- calendário
+  guardarCalendario(jogos: readonly JogoAgendado[], folgas: readonly FolgaAgendada[]): void {
+    this.transacao(() => {
+      const chaves = new Set([...jogos, ...folgas].map((x) => `${x.competicao}\u0000${x.epoca}`));
+      for (const k of chaves) {
+        const [c, e] = k.split("\u0000") as [string, string];
+        if ([...this.calJogos.values()].some((j) => j.competicao === c && j.epoca === Number(e))) throw new Error(`Já existe calendário de ${c} na época ${e}`);
+      }
+      for (const j of jogos) {
+        if (this.calJogos.has(j.id)) throw new Error(`Jogo agendado repetido: ${j.id}`);
+        this.calJogos.set(j.id, { ...j });
+        this.desfazer(() => this.calJogos.delete(j.id));
+      }
+      for (const f of folgas) {
+        if (this.calFolgas.some((x) => x.competicao === f.competicao && x.epoca === f.epoca && x.jornada === f.jornada)) throw new Error("Folga repetida");
+        this.calFolgas.push({ ...f });
+        this.desfazer(() => this.calFolgas.pop());
+      }
+    });
+  }
+  calendario(competicao: string, epoca: number): { jogos: JogoAgendado[]; folgas: FolgaAgendada[] } {
+    const jogos = [...this.calJogos.values()]
+      .filter((j) => j.competicao === competicao && j.epoca === epoca)
+      .sort((a, b) => a.jornada - b.jornada || cmp(a.id, b.id))
+      .map((j) => ({ ...j }));
+    const folgas = this.calFolgas.filter((f) => f.competicao === competicao && f.epoca === epoca).sort((a, b) => a.jornada - b.jornada).map((f) => ({ ...f }));
+    return { jogos, folgas };
+  }
+  calendarioDoClube(clube: string, epoca: number): JogoAgendado[] {
+    return [...this.calJogos.values()]
+      .filter((j) => j.epoca === epoca && (j.casa === clube || j.fora === clube))
+      .sort((a, b) => cmp(a.data, b.data) || cmp(a.id, b.id))
+      .map((j) => ({ ...j }));
+  }
+  proximoJogo(clube: string, desde: Data): JogoAgendado | undefined {
+    const j = [...this.calJogos.values()]
+      .filter((x) => (x.casa === clube || x.fora === clube) && x.data >= desde)
+      .sort((a, b) => cmp(a.data, b.data) || cmp(a.id, b.id))[0];
+    return j ? { ...j } : undefined;
   }
 
   // ---------- história

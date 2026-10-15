@@ -59,22 +59,35 @@ describe("esquema e migrações", () => {
   });
 
   it("migra um save antigo preservando os dados", () => {
+    const V1 = MIGRACOES.slice(0, 1);
+    const d1 = abrirBetterSqlite();
+    migrar(d1, V1);
+    d1.executar("INSERT INTO evento (tipo, v, data, epoca, vis, dados) VALUES ('ANTIGO', 1, '2026-08-15', 1, 0, '{}')");
+    const extra = "ALTER TABLE jogo ADD COLUMN meteo TEXT; CREATE TABLE extra (x INTEGER);";
+    expect(migrar(d1, [...MIGRACOES, extra])).toEqual({ de: 1, para: MIGRACOES.length + 1 });
+    expect(versaoDoFicheiro(d1)).toBe(MIGRACOES.length + 1);
+    expect(d1.todos("SELECT tipo FROM evento").map((l) => l.tipo)).toEqual(["ANTIGO"]);
+    expect(migrar(d1, [...MIGRACOES, extra])).toEqual({ de: MIGRACOES.length + 1, para: MIGRACOES.length + 1 }); // idempotente
+  });
+
+  it("v1 → v2: acrescenta as tabelas do calendário sem tocar na história", () => {
     const d = abrirBetterSqlite();
-    migrar(d); // versão 1
-    const r1 = new RepositorioSqlite(d);
-    r1.acrescentarEvento(ev("ANTIGO", { entidades: [{ k: "clube", id: "c1" }] }));
-    const v2 = "ALTER TABLE jogo ADD COLUMN meteo TEXT; CREATE TABLE extra (x INTEGER);";
-    expect(migrar(d, [...MIGRACOES, v2])).toEqual({ de: 1, para: 2 });
-    expect(versaoDoFicheiro(d)).toBe(2);
-    expect(d.todos("SELECT tipo FROM evento").map((l) => l.tipo)).toEqual(["ANTIGO"]);
-    expect(migrar(d, [...MIGRACOES, v2])).toEqual({ de: 2, para: 2 }); // idempotente
+    migrar(d, MIGRACOES.slice(0, 1));
+    d.executar("INSERT INTO evento (tipo, v, data, epoca, vis, dados) VALUES ('ANTIGO', 1, '2026-08-15', 1, 0, '{}')");
+    expect(d.todos("SELECT name FROM sqlite_master WHERE name = 'calendario_jogo'")).toEqual([]);
+    const r = new RepositorioSqlite(d);
+    expect(versaoDoFicheiro(d)).toBe(VERSAO_ESQUEMA);
+    expect(r.totalEventos()).toBe(1);
+    r.guardarCalendario([{ id: "a", competicao: "SL", epoca: 1, jornada: 1, data: "2026-08-22", casa: "X", fora: "Y" }], []);
+    expect(r.calendarioDoClube("X", 1)).toHaveLength(1);
   });
 
   it("uma migração que falha não deixa a base a meio", () => {
     const d = abrirBetterSqlite();
     migrar(d);
-    expect(() => migrar(d, [...MIGRACOES, "CREATE TABLE ok (x INTEGER); CREATE TABLE ok (y INTEGER);"])).toThrow(/versão 2 falhou/);
-    expect(versaoDoFicheiro(d)).toBe(1);
+    const n = MIGRACOES.length;
+    expect(() => migrar(d, [...MIGRACOES, "CREATE TABLE ok (x INTEGER); CREATE TABLE ok (y INTEGER);"])).toThrow(new RegExp(`versão ${n + 1} falhou`));
+    expect(versaoDoFicheiro(d)).toBe(n);
     expect(d.todos("SELECT name FROM sqlite_master WHERE name = 'ok'")).toEqual([]);
   });
 

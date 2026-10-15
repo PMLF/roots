@@ -4,7 +4,9 @@ import type {
   EntidadeRef,
   Evento,
   EventoNovo,
+  FolgaAgendada,
   Jogo,
+  JogoAgendado,
   JogoFacto,
   JogoNovo,
   LinhaClassificacao,
@@ -67,6 +69,16 @@ export interface Repositorio {
   ajustarClassificacao(a: AjusteClassificacao): void;
   /** Recalcula todas as derivadas a partir da história. Deve dar o mesmo que o incremental. */
   reconstruirDerivadas(): void;
+
+  // --- calendário (RZ-102)
+  /** Guarda o calendário de uma liga numa época. Recusa se já existir calendário dessa competição/época. */
+  guardarCalendario(jogos: readonly JogoAgendado[], folgas: readonly FolgaAgendada[]): void;
+  /** Por jornada e, dentro dela, por id. */
+  calendario(competicao: string, epoca: number): { jogos: JogoAgendado[]; folgas: FolgaAgendada[] };
+  /** Jogos de um clube na época (casa ou fora), por data. */
+  calendarioDoClube(clube: string, epoca: number): JogoAgendado[];
+  /** Primeiro jogo marcado do clube em `desde` ou depois. */
+  proximoJogo(clube: string, desde: Data): JogoAgendado | undefined;
 
   // --- conhecimento
   acrescentarObservacao(o: ObservacaoNova): number;

@@ -100,8 +100,23 @@ CREATE TRIGGER ajuste_sem_update BEFORE UPDATE ON classificacao_ajuste BEGIN SEL
 CREATE TRIGGER ajuste_sem_delete BEFORE DELETE ON classificacao_ajuste BEGIN SELECT RAISE(ABORT, 'ajuste é imutável'); END;
 `;
 
+const V2 = `
+-- Calendário (RZ-102): jogos marcados e folgas. Ao jogar-se, o jogo entra em \`jogo\` com o mesmo id.
+CREATE TABLE calendario_jogo (
+  id TEXT PRIMARY KEY, competicao TEXT NOT NULL, epoca INTEGER NOT NULL, jornada INTEGER NOT NULL, data TEXT NOT NULL,
+  casa TEXT NOT NULL, fora TEXT NOT NULL
+) WITHOUT ROWID;
+CREATE INDEX ix_cal_jornada ON calendario_jogo(competicao, epoca, jornada);
+CREATE INDEX ix_cal_casa ON calendario_jogo(casa, epoca, data);
+CREATE INDEX ix_cal_fora ON calendario_jogo(fora, epoca, data);
+CREATE TABLE calendario_folga (
+  competicao TEXT NOT NULL, epoca INTEGER NOT NULL, jornada INTEGER NOT NULL, clube TEXT NOT NULL,
+  PRIMARY KEY (competicao, epoca, jornada)
+) WITHOUT ROWID;
+`;
+
 /** A posição no array + 1 é o número da versão do esquema. */
-export const MIGRACOES: readonly string[] = [V1];
+export const MIGRACOES: readonly string[] = [V1, V2];
 export const VERSAO_ESQUEMA = MIGRACOES.length;
 
 export function versaoDoFicheiro(d: DriverSql): number {
