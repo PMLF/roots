@@ -33,8 +33,8 @@ Vila Franca do Campo,Açores,11000,MAR,PAT,Açores Oriental,sim,23700000,José N
 Vila do Porto,Açores,5400,LOG,TUR,Açores Oriental,sim,14000000,Sérgio Neves Marques,7,5,10,4,7,37,GD Vila do Porto
 Aljustrel,Beja,8500,IND,INT,Baixo Alentejo,não,19700000,Nuno Pereira Rocha,5,7,7,7,2,38,AD Aljustrel
 Almodôvar,Beja,6500,INT,AGR,Baixo Alentejo,não,16100000,Rui Alves Teixeira,7,8,3,5,5,45,CD Almodôvar
-Alvito,Beja,2300,AGR,PAT,Baixo Alentejo,não,7000000,Sofia Marques Santos,7,4,8,10,7,28,CD Alvito
 Barrancos,Beja,1500,FRO,INT,Baixo Alentejo,não,4800000,Maria Pereira Nunes,3,9,6,4,6,35,SC Barrancos
+Beja,Beja,34600,AGR,SER,Baixo Alentejo,não,54300000,Hugo Ribeiro Silva,10,9,2,3,5,32,Pacense Atlético Clube
 Castro Verde,Beja,6500,IND,AGR,Baixo Alentejo,não,16100000,Sandra Rocha Nunes,10,2,2,1,4,38,GD Castro Verde
 Cuba,Beja,4500,AGR,INT,Baixo Alentejo,não,12200000,José Carvalho Silva,1,3,7,4,8,47,GD Cubense
 Ferreira do Alentejo,Beja,7000,AGR,INT,Baixo Alentejo,não,17000000,Cristina Santos Marques,5,7,5,2,6,22,AD Ferreira do Alentejo
@@ -180,7 +180,6 @@ Ponte de Sor,Portalegre,15000,IND,AGR,Alto Alentejo,não,29500000,Sérgio Mendes
 Portalegre,Portalegre,22000,INT,PAT,Alto Alentejo,não,38900000,Hugo Teixeira Vieira,8,2,5,6,5,62,GD Portalegrense
 Sousel,Portalegre,4500,AGR,INT,Alto Alentejo,não,12200000,Paulo Vieira Alves,3,1,5,4,8,23,CD Sousel
 Amarante,Porto,52000,TUR,PAT,Tâmega e Sousa,não,74500000,Isabel Carvalho Santos,7,7,8,3,7,47,UD Amarante
-Baião,Porto,17500,INT,AGR,Tâmega e Sousa,não,33000000,Marta Alves Almeida,2,8,3,1,4,48,SC Baionense
 Felgueiras,Porto,56000,IND,AGR,Tâmega e Sousa,não,79100000,Teresa Lopes Rodrigues,9,1,9,8,10,51,FC Varziela; UD Felgueiras
 Gondomar,Porto,164100,DOR,IND,Grande Porto,não,199600000,Carlos Ribeiro Martins,9,7,1,10,2,38,GD Lomba
 Lousada,Porto,47000,IND,AGR,Tâmega e Sousa,não,68800000,Carlos Ribeiro Sousa,8,7,1,8,8,26,Lousada Desportivo
@@ -190,6 +189,7 @@ Matosinhos,Porto,172700,MAR,IND,Grande Porto,não,209100000,João Neves Almeida,
 Paredes,Porto,85600,IND,DOR,Tâmega e Sousa,não,112500000,Hugo Moreira Carvalho,6,4,9,9,4,59,GD Paredes
 Paços de Ferreira,Porto,55500,IND,DOR,Tâmega e Sousa,não,78500000,Nuno Almeida Rocha,2,3,6,4,1,49,SC Paços de Ferreira
 Penafiel,Porto,72300,IND,AGR,Tâmega e Sousa,não,97500000,Nuno Pereira Santos,6,5,3,3,7,45,Atlético Penafidelense
+Porto,Porto,231800,SER,TUR,Grande Porto,não,274300000,Lúcia Carvalho Pereira,10,4,7,4,8,41,Operário do Porto
 Póvoa de Varzim,Porto,66500,TUR,MAR,Grande Porto,não,91000000,Inês Nunes Rodrigues,5,3,5,7,3,35,AC Póvoa de Varzim
 Santo Tirso,Porto,68000,IND,DOR,Vale do Ave,não,92700000,Maria Rocha Teixeira,8,1,5,2,5,54,UD Tirsense
 Trofa,Porto,37000,IND,LOG,Vale do Ave,não,57100000,Tiago Ribeiro Costa,4,6,10,2,10,43,Trofa Atlético Clube

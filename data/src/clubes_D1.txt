@@ -30,4 +30,4 @@ GD Ouriquense|Ourique|Ourique|Ouriquenses|Cinco Escudos|Azul e branco|Campo da B
 CD Vidigueirense|Vidigueira|Vidigueira|Vidigueirenses|Conde da Vidigueira|Bordô e dourado|Campo do Conde|GD Cubense
 GD Cubense|Cuba|Cuba|Cubenses|Garrafa de Azeite|Verde e amarelo|Campo da Fonte|CD Vidigueirense
 SC Barrancos|Barrancos|Barrancos|Barranquenhos|Falante|Vermelho e verde|Campo da Raia de Barrancos|AC Moura
-CD Alvito|Alvito|Alvito|Alvitenses|Barão|Azul e branco|Campo do Castelo de Alvito|GD Cubense
+Pacense Atlético Clube|Beja|Beja|Romanos|Centurião|Branco e vermelho|Campo da Pax Julia|Serpa Atlético Clube

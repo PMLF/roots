@@ -33,8 +33,8 @@ vila-franca-do-campo@vila-franca-do-campo,Vila Franca do Campo,Vila Franca do Ca
 vila-do-porto@vila-do-porto,Vila do Porto,Vila do Porto,Açores,3800,vila,sim,GD Vila do Porto
 aljustrel@aljustrel,Aljustrel,Aljustrel,Beja,4700,vila,sim,AD Aljustrel
 almodovar@almodovar,Almodôvar,Almodôvar,Beja,4600,vila,sim,CD Almodôvar
-alvito@alvito,Alvito,Alvito,Beja,1600,vila,sim,CD Alvito
 barrancos@barrancos,Barrancos,Barrancos,Beja,1000,aldeia,sim,SC Barrancos
+beja@beja,Beja,Beja,Beja,17300,cidade,sim,Pacense Atlético Clube
 castro-verde@castro-verde,Castro Verde,Castro Verde,Beja,4600,vila,sim,GD Castro Verde
 cuba@cuba,Cuba,Cuba,Beja,3200,vila,sim,GD Cubense
 ferreira-do-alentejo@ferreira-do-alentejo,Ferreira do Alentejo,Ferreira do Alentejo,Beja,4900,vila,sim,AD Ferreira do Alentejo
@@ -194,7 +194,6 @@ ponte-de-sor@ponte-de-sor,Ponte de Sor,Ponte de Sor,Portalegre,8200,cidade,sim,F
 portalegre@portalegre,Portalegre,Portalegre,Portalegre,12100,cidade,sim,GD Portalegrense
 sousel@sousel,Sousel,Sousel,Portalegre,3200,vila,sim,CD Sousel
 amarante@amarante,Amarante,Amarante,Porto,26000,cidade,sim,UD Amarante
-baiao@baiao,Baião,Baião,Porto,9600,cidade,sim,SC Baionense
 felgueiras@felgueiras,Felgueiras,Felgueiras,Porto,28000,cidade,sim,UD Felgueiras
 varziela@felgueiras,Varziela,Felgueiras,Porto,900,aldeia,não,FC Varziela
 lomba@gondomar,Lomba,Gondomar,Porto,3000,vila,não,GD Lomba
@@ -206,6 +205,7 @@ matosinhos@matosinhos,Matosinhos,Matosinhos,Porto,129500,cidade,sim,FC Leixonens
 paredes@paredes,Paredes,Paredes,Porto,42800,cidade,sim,GD Paredes
 pacos-de-ferreira@pacos-de-ferreira,Paços de Ferreira,Paços de Ferreira,Porto,27800,cidade,sim,SC Paços de Ferreira
 penafiel@penafiel,Penafiel,Penafiel,Porto,36200,cidade,sim,Atlético Penafidelense
+porto@porto,Porto,Porto,Porto,173800,cidade,sim,Operário do Porto
 povoa-de-varzim@povoa-de-varzim,Póvoa de Varzim,Póvoa de Varzim,Porto,33200,cidade,sim,AC Póvoa de Varzim
 santo-tirso@santo-tirso,Santo Tirso,Santo Tirso,Porto,34000,cidade,sim,UD Tirsense
 trofa@trofa,Trofa,Trofa,Porto,18500,cidade,sim,Trofa Atlético Clube
