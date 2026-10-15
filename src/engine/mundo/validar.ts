@@ -46,7 +46,7 @@ export function validarMundo(lote: LoteMundo, dados: DadosBase, paises: readonly
     if (js.length !== p.mundo.plantel[cl.escalao]) erros.push(`${cl.id}: ${js.length} jogadores (esperado ${p.mundo.plantel[cl.escalao]})`);
     const conta = new Map<string, number>();
     for (const j of js) conta.set(j.posicoes[0]!.pos, (conta.get(j.posicoes[0]!.pos) ?? 0) + 1);
-    for (const pos of POSICOES) if ((conta.get(pos) ?? 0) < (pos === "GR" ? 2 : 1)) erros.push(`${cl.id}: posição ${pos} mal coberta`);
+    for (const pos of POSICOES) if ((conta.get(pos) ?? 0) < (pos === "GK" ? 2 : 1)) erros.push(`${cl.id}: posição ${pos} mal coberta`);
   }
 
   // qualidade e estrangeiros por escalão

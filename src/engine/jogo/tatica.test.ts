@@ -35,7 +35,7 @@ describe("formações", () => {
     for (const f of FORMACAO_IDS) {
       const pos = FORMACOES[f];
       expect(pos, f).toHaveLength(11);
-      expect(pos.filter((p) => p === "GR"), f).toHaveLength(1);
+      expect(pos.filter((p) => p === "GK"), f).toHaveLength(1);
       for (const p of pos) expect(POSICOES).toContain(p);
       const n = f.split("-").map(Number).reduce((s, x) => s + x, 0);
       expect(n, f).toBe(10);
@@ -181,12 +181,12 @@ describe("treinador", () => {
   const atr = (n: number): Atributos => Object.fromEntries(ATRIBUTOS.map((k) => [k, n])) as Atributos;
   const cand = (pessoa: string, pos: string, nivel = 14): CandidatoOnze => ({ pessoa, posicoes: [{ pos, aptidao: 20 }], atributos: atr(nivel), alturaCm: 180 });
   const semExtremos: CandidatoOnze[] = [
-    cand("gr1", "GR"), cand("gr2", "GR", 9),
-    ...["dd", "de", "dc1", "dc2", "dc3", "dc4"].map((id) => cand(id, id.startsWith("dc") ? "DC" : id.toUpperCase())),
-    ...["mdc1", "mdc2"].map((id) => cand(id, "MDC")),
-    ...["mc1", "mc2", "mc3", "mc4"].map((id) => cand(id, "MC")),
-    cand("mo1", "MO"),
-    ...["pl1", "pl2", "pl3"].map((id) => cand(id, "PL")),
+    cand("gr1", "GK"), cand("gr2", "GK", 9),
+    cand("rb", "RB"), cand("lb", "LB"), ...["cb1", "cb2", "cb3", "cb4"].map((id) => cand(id, "CB")),
+    ...["mdc1", "mdc2"].map((id) => cand(id, "DM")),
+    ...["mc1", "mc2", "mc3", "mc4"].map((id) => cand(id, "CM")),
+    cand("mo1", "AM"),
+    ...["pl1", "pl2", "pl3"].map((id) => cand(id, "ST")),
   ];
 
   it("um treinador flexível adapta a formação ao plantel; um teimoso insiste nas favoritas", () => {
@@ -199,14 +199,14 @@ describe("treinador", () => {
     for (const e of [teimoso, flexivel]) {
       expect(e.onze).toHaveLength(11);
       expect(new Set(e.onze.map((j) => j.id)).size).toBe(11);
-      expect(e.onze.map((j) => j.posicao)).toEqual([...FORMACOES[e.tatica!.formacao]].sort((a, b) => (a === "GR" ? -1 : b === "GR" ? 1 : 0)));
+      expect(e.onze.map((j) => j.posicao)).toEqual([...FORMACOES[e.tatica!.formacao]].sort((a, b) => (a === "GK" ? -1 : b === "GK" ? 1 : 0)));
     }
     // o resto da tática vem do perfil
     expect(teimoso.tatica).toMatchObject({ estilo: base.estilo, intensidade: base.intensidade, linha: base.linha, ritmo: base.ritmo, fairPlay: base.fairPlay });
   });
 
   it("com um plantel equilibrado, o teimoso fica na favorita e escolhe-se de forma determinística", () => {
-    const completo: CandidatoOnze[] = [...semExtremos, cand("ed1", "ED"), cand("ee1", "EE"), cand("ed2", "ED"), cand("ee2", "EE")];
+    const completo: CandidatoOnze[] = [...semExtremos, cand("ed1", "RW"), cand("ee1", "LW"), cand("ed2", "RW"), cand("ee2", "LW")];
     const perfil = { ...perfilTreinador("s", "t9", pers(), 12, P), formacoes: ["4-4-2", "4-3-3", "3-5-2"] as Tatica["formacao"][], flexibilidade: 0.1 };
     const e = escolherEquipa("A", completo, perfil, P);
     expect(e.tatica?.formacao).toBe("4-4-2");

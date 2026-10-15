@@ -17,6 +17,7 @@ const MENU: ItemMenu[] = [
   { chave: "menu.jogos", ativoQuando: () => false },
   { chave: "menu.mundo", href: "/mundo/", ativoQuando: (c) => c.startsWith("/mundo") },
   { chave: "menu.cidade", ativoQuando: () => false },
+  { chave: "menu.laboratorio", href: "/laboratorio/", ativoQuando: (c) => c.startsWith("/laboratorio") },
 ];
 
 type Densidade = "normal" | "compacta";
@@ -77,7 +78,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <button type="button" onClick={() => router.back()}>← {t("migalhas.voltar")}</button>
             <Link href="/">{t("menu.hoje")}</Link>
             <span aria-hidden="true">›</span>
-            <span aria-current="page">{t(caminho.startsWith("/ficha") ? "migalhas.ficha" : "menu.mundo")}</span>
+            <span aria-current="page">{t(caminho.startsWith("/ficha") ? "migalhas.ficha" : caminho.startsWith("/laboratorio") ? "menu.laboratorio" : "menu.mundo")}</span>
           </nav>
         )}
         {children}

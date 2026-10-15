@@ -45,7 +45,7 @@ export function distribuirPosicoes(n: number, base: Parametros["mundo"]["lugares
     usados--;
   }
   if ((cont.GR as number) < 2) {
-    const maior = POSICOES.filter((p) => p !== "GR").sort((a, b) => (cont[b] as number) - (cont[a] as number))[0] as Posicao;
+    const maior = POSICOES.filter((p) => p !== "GK").sort((a, b) => (cont[b] as number) - (cont[a] as number))[0] as Posicao;
     cont[maior]!--;
     cont.GR!++;
   }

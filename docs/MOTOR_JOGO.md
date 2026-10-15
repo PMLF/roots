@@ -18,10 +18,10 @@ Cada **minuto** é um passo independente cujo fluxo aleatório vem de `jogo/<id>
 
 | | atributos | posições (peso) |
 |---|---|---|
-| ataque | finalização, drible, desmarcação, velocidade, técnica | PL 1, ED/EE 0,8, MO 0,7, MC 0,3 |
-| controlo | passe, visão, controlo de bola, decisão, trabalho de equipa | MC 1, MDC/MO 0,8, extremos 0,3, laterais 0,2 |
-| defesa | desarme, marcação, posicionamento, antecipação | DC 1, MDC 0,8, laterais 0,7, MC 0,3 |
-| guarda-redes | reflexos, manuseamento, posicionamento, saídas | o GR |
+| ataque | finalização, drible, desmarcação, velocidade, técnica | ST 1, RW/LW 0,8, AM 0,7, CM 0,3 |
+| controlo | passe, visão, controlo de bola, decisão, trabalho de equipa | CM 1, DM/AM 0,8, extremos 0,3, laterais 0,2 |
+| defesa | desarme, marcação, posicionamento, antecipação | CB 1, DM 0,8, laterais 0,7, CM 0,3 |
+| guarda-redes | reflexos, manuseamento, posicionamento, saídas | o GK |
 
 A `forma` de cada jogador (0,7-1,1; por omissão 1) multiplica os seus atributos (fadiga e lesões: RZ-107).
 
@@ -39,7 +39,7 @@ A `forma` de cada jogador (0,7-1,1; por omissão 1) multiplica os seus atributos
 2. **xG** do remate = `base + amplitude · u^expoente` (u uniforme), deslocado em logit pela diferença ataque − defesa e limitado a `[min, max]`. O xG é a probabilidade de golo antes de bloqueios.
 3. **Finalizador** por posição (`pesoRemate`) e finalização²; **assistente** (72 %) por posição e passe + visão + criatividade, nunca o próprio.
 4. **Bloqueado** com `pBloqueado` (não há bloqueios em penáltis; pode dar canto).
-5. **Golo** com `logit(xG / (1 − pBloqueado)) + peso.finalizacao · (finalização − 10)/10 − peso.guardaRedes · (GR − 10)/10`. Assim, em média, golos = xG; um bom finalizador ou um mau guarda-redes desviam-no.
+5. **Golo** com `logit(xG / (1 − pBloqueado)) + peso.finalizacao · (finalização − 10)/10 − peso.guardaRedes · (GK − 10)/10`. Assim, em média, golos = xG; um bom finalizador ou um mau guarda-redes desviam-no.
 6. Não golo: **defendido** (à baliza) ou **fora**, segundo `aBaliza`. Defendido pode dar canto.
 7. **Canto:** pode dar remate de cabeça (`cantos.pRemate`; cabeceamento × altura × posição) com xG mais baixo e, no máximo, mais um canto.
 
@@ -67,7 +67,7 @@ E que a força conta: com +2 pontos de qualidade a equipa da casa ganha ≈ 68 %
 
 - **Por equipa:** o `ResumoJogo` (golos, remates, à baliza, bloqueados, xG, cantos, faltas, posse) e os golos ao intervalo.
 - **Golos:** lista por ordem com minuto, marcador, assistente, origem (jogada, canto, livre, penálti) e o marcador depois de cada um.
-- **Por jogador:** minutos, golos, assistências, remates, à baliza, xG, penáltis falhados, faltas, defesas (GR) e golos sofridos (GR), mais a **nota**.
+- **Por jogador:** minutos, golos, assistências, remates, à baliza, xG, penáltis falhados, faltas, defesas (GK) e golos sofridos (GK), mais a **nota**.
 - **Nota (1-10):** base 6 + ações (golo, assistência, remate à baliza, grande ocasião falhada, penálti falhado, falta, penálti concedido, defesas do GR) + defesa (golos sofridos, baliza a zero, com peso por posição) + resultado (vitória/derrota) + um ruído estável tirado da seed e do id do jogo. Valores em `parametros.jogo.notas`. A nota vai para `participacao.nota` quando se passa o relatório a `registoDoJogo`.
 - **Homem do jogo:** a melhor nota; desempata por golos + assistências, xG e id.
 - **Momentos-chave:** golos com contexto (*abertura, empate, vantagem, reviravolta, redução, alargou*; reviravolta = passar para a frente depois de ter estado a perder), penáltis falhados (defendidos ou ao lado), grandes defesas e grandes ocasiões falhadas (xG ≥ `momentos.xgGrande`). São estruturados; `src/ui/jogo/momentos.ts` escreve-os em pt-PT e inglês (chaves `momento.*`). O comentário minuto a minuto continua a ser o RZ-131.
@@ -141,3 +141,6 @@ Assim os resultados, marcadores, castigos e lesões são **exatamente** os mesmo
 - `competicao/classificacao.ts`: `ordenarClassificacao(linhas, jogos, criterios, ctx)` aplica os critérios de `desempate.liga|promocao` por ordem. Confronto direto = mini-tabela só com os jogos entre os empatados, reaplicada aos subgrupos que continuam empatados; `sorteio` é determinístico (seed + competição + época + clube); `reputacaoMenor` favorece o clube de menor reputação. Cada linha indica `desempatePor` (o critério que o separou).
 - `competicao/jornadas.ts`: `estadoCompeticao` (jornada atual, jogos por jogar, atrasos, próxima data, terminada) e `jogosParaJogar` (o que o loop de dias deve jogar hoje, atrasados primeiro). Um jogo jogado tem o mesmo id do `JogoAgendado`.
 - `competicao/tabela.ts`: fachada sobre o `Repositorio` (`tabelaDaCompeticao`, `estadoDaCompeticao`); inclui clubes que ainda não jogaram.
+
+## 13. Laboratório (RZ-139)
+`src/engine/laboratorio/`: `jogoLab` (um jogo entre dois clubes, com formação e estilo por equipa, nível 0) e `ligaLab` (uma liga inteira ao nível 1, calendário real, tabela com desempates, artilheiros, médias). Lê o mundo do save, **não grava nada** (a liga corre num repositório em memória). Interface em `/laboratorio`. Serve para dar feedback e calibrar à vista enquanto o ciclo de dias (RZ-119) não existe.

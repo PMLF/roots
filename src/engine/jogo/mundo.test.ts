@@ -28,7 +28,7 @@ describe("motor de jogo com o mundo gerado", () => {
     for (const c of d.dados.clubes) {
       const eq = equipaDoClube(c.id);
       expect(eq.onze).toHaveLength(11);
-      expect(eq.onze.filter((j) => j.posicao === "GR")).toHaveLength(1);
+      expect(eq.onze.filter((j) => j.posicao === "GK")).toHaveLength(1);
       const f = forcaEquipa(eq.onze);
       (media[c.escalao] ??= []).push((f.ataque + f.controlo + f.defesa) / 3);
     }

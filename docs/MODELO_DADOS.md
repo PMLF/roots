@@ -116,7 +116,7 @@ Extensão de `Pessoa` com `papeis` ∋ `jogador`.
 
 | Campo | Notas |
 |---|---|
-| `posicoes: {pos, aptidao 1-20}[]` | GR, DD, DC, DE, MDC, MC, MO, ED, EE, PL |
+| `posicoes: {pos, aptidao 1-20}[]` | GK, RB, CB, LB, DM, CM, AM, RW, LW, ST (guardadas em inglês; a interface traduz: GR, DD, DC, DE, MDC, MC, MO, ED, EE, PL em pt-PT) |
 | `atributos` | 1-20; técnicos (remate, passe, drible, desarme, cabeceamento, controlo, bola parada…), mentais (visão, decisão, compostura, trabalho de equipa, ambição…), físicos (velocidade, aceleração, resistência, força, agilidade, salto, equilíbrio); GR: reflexos, jogo aéreo, jogo de pés… |
 | `potencial: { real, estimativaPorClube }` | **real** é oculto; cada clube/olheiro vê uma estimativa com erro (RZ-202) |
 | `forma`, `moral`, `fadiga`, `nitidez` | 0-100, dinâmicos |

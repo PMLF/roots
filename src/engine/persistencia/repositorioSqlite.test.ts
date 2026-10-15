@@ -70,6 +70,15 @@ describe("esquema e migrações", () => {
     expect(migrar(d1, [...MIGRACOES, extra])).toEqual({ de: MIGRACOES.length + 1, para: MIGRACOES.length + 1 }); // idempotente
   });
 
+  it("v5: migra as posições antigas (portuguesas) para inglês", () => {
+    const d = abrirBetterSqlite();
+    migrar(d, MIGRACOES.slice(0, 4));
+    d.executar("INSERT INTO pessoa (id, nome, nome_desportivo, nascimento, nacionalidade, papeis, personalidade, arquetipo, lod) VALUES ('p1', 'A', 'A', '2000-01-01', 'PT', '[]', '{}', 'x', 1)");
+    d.executar(`INSERT INTO jogador (pessoa, posicoes, atributos, potencial, altura, peso, pe, estado) VALUES ('p1', '[{"pos":"EE","aptidao":20},{"pos":"MDC","aptidao":12},{"pos":"PL","aptidao":8}]', '{}', 10, 180, 70, 'D', 'ativo')`);
+    migrar(d);
+    expect(d.todos("SELECT posicoes FROM jogador")[0]?.posicoes).toBe('[{"pos":"LW","aptidao":20},{"pos":"DM","aptidao":12},{"pos":"ST","aptidao":8}]');
+  });
+
   it("v1 → v2: acrescenta as tabelas do calendário sem tocar na história", () => {
     const d = abrirBetterSqlite();
     migrar(d, MIGRACOES.slice(0, 1));

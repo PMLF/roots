@@ -6,16 +6,16 @@ import { ATRIBUTOS, ATRIBUTOS_GR, ATRIBUTOS_TECNICOS, POSICOES, type Atributo, t
 
 /** Atributos-chave por posição: a qualidade atual do jogador é a média destes. */
 export const CHAVE: Record<Posicao, readonly Atributo[]> = {
-  GR: ["reflexos", "jogoAereo", "jogoPes", "posicionamentoGR", "manuseamento", "saidas"],
-  DD: ["cruzamento", "desarme", "marcacao", "velocidade", "resistencia", "posicionamento"],
-  DE: ["cruzamento", "desarme", "marcacao", "velocidade", "resistencia", "posicionamento"],
-  DC: ["desarme", "marcacao", "cabeceamento", "posicionamento", "forca", "antecipacao", "coragem"],
-  MDC: ["desarme", "marcacao", "passe", "posicionamento", "antecipacao", "trabalhoEquipa", "resistencia"],
-  MC: ["passe", "visao", "controloBola", "decisao", "trabalhoEquipa", "resistencia"],
-  MO: ["passe", "visao", "drible", "criatividade", "tecnica", "primeiroToque", "remateLonge"],
-  ED: ["drible", "velocidade", "aceleracao", "cruzamento", "agilidade", "tecnica"],
-  EE: ["drible", "velocidade", "aceleracao", "cruzamento", "agilidade", "tecnica"],
-  PL: ["finalizacao", "cabeceamento", "desmarcacao", "primeiroToque", "compostura", "aceleracao"],
+  GK: ["reflexos", "jogoAereo", "jogoPes", "posicionamentoGR", "manuseamento", "saidas"],
+  RB: ["cruzamento", "desarme", "marcacao", "velocidade", "resistencia", "posicionamento"],
+  LB: ["cruzamento", "desarme", "marcacao", "velocidade", "resistencia", "posicionamento"],
+  CB: ["desarme", "marcacao", "cabeceamento", "posicionamento", "forca", "antecipacao", "coragem"],
+  DM: ["desarme", "marcacao", "passe", "posicionamento", "antecipacao", "trabalhoEquipa", "resistencia"],
+  CM: ["passe", "visao", "controloBola", "decisao", "trabalhoEquipa", "resistencia"],
+  AM: ["passe", "visao", "drible", "criatividade", "tecnica", "primeiroToque", "remateLonge"],
+  RW: ["drible", "velocidade", "aceleracao", "cruzamento", "agilidade", "tecnica"],
+  LW: ["drible", "velocidade", "aceleracao", "cruzamento", "agilidade", "tecnica"],
+  ST: ["finalizacao", "cabeceamento", "desmarcacao", "primeiroToque", "compostura", "aceleracao"],
 };
 
 const OFENSIVOS: readonly Atributo[] = ["finalizacao", "drible", "criatividade", "desmarcacao", "remateLonge"];
@@ -24,16 +24,16 @@ const FISICOS_IDADE: readonly Atributo[] = ["velocidade", "aceleracao", "agilida
 const MENTAIS_IDADE: readonly Atributo[] = ["decisao", "posicionamento", "antecipacao", "compostura", "lideranca", "concentracao"];
 
 const VIZINHAS: Record<Posicao, readonly Posicao[]> = {
-  GR: [],
-  DD: ["ED", "DC", "MC"],
-  DE: ["EE", "DC"],
-  DC: ["MDC", "DD", "DE"],
-  MDC: ["DC", "MC"],
-  MC: ["MDC", "MO"],
-  MO: ["MC", "ED", "EE", "PL"],
-  ED: ["DD", "MO", "EE", "PL"],
-  EE: ["DE", "MO", "ED", "PL"],
-  PL: ["MO", "ED", "EE"],
+  GK: [],
+  RB: ["RW", "CB", "CM"],
+  LB: ["LW", "CB"],
+  CB: ["DM", "RB", "LB"],
+  DM: ["CB", "CM"],
+  CM: ["DM", "AM"],
+  AM: ["CM", "RW", "LW", "ST"],
+  RW: ["RB", "AM", "LW", "ST"],
+  LW: ["LB", "AM", "RW", "ST"],
+  ST: ["AM", "RW", "LW"],
 };
 
 export function gerarAtributos(rng: Rng, pos: Posicao, qualidade: number, idade: number): Atributos {
@@ -41,16 +41,16 @@ export function gerarAtributos(rng: Rng, pos: Posicao, qualidade: number, idade:
   const a = {} as Atributos;
   for (const nome of ATRIBUTOS) {
     const gr = (ATRIBUTOS_GR as readonly string[]).includes(nome);
-    if (gr && pos !== "GR") {
+    if (gr && pos !== "GK") {
       a[nome] = rng.inteiro(1, 3);
       continue;
     }
     let desloc = -1.5;
     if (chave.has(nome)) desloc = 0;
-    else if (pos === "GR" && !gr && (ATRIBUTOS_TECNICOS as readonly string[]).includes(nome)) desloc = -6;
+    else if (pos === "GK" && !gr && (ATRIBUTOS_TECNICOS as readonly string[]).includes(nome)) desloc = -6;
     if (!chave.has(nome)) {
-      if (["DD", "DE", "DC", "MDC"].includes(pos) && OFENSIVOS.includes(nome)) desloc -= 3;
-      if (["ED", "EE", "PL", "MO"].includes(pos) && DEFENSIVOS.includes(nome)) desloc -= 3;
+      if (["RB", "LB", "CB", "DM"].includes(pos) && OFENSIVOS.includes(nome)) desloc -= 3;
+      if (["RW", "LW", "ST", "AM"].includes(pos) && DEFENSIVOS.includes(nome)) desloc -= 3;
     }
     if (FISICOS_IDADE.includes(nome)) desloc -= Math.max(0, idade - 30) * 0.45;
     if (MENTAIS_IDADE.includes(nome)) desloc += limitar((idade - 22) * 0.12, -0.5, 1.2);
@@ -85,7 +85,7 @@ export function qualidadeEPotencial(rng: Rng, alvo: number, idade: number, m: Pa
 }
 
 export function gerarCorpo(rng: Rng, pos: Posicao): { alturaCm: number; pesoKg: number; pe: "D" | "E" | "A" } {
-  const base = pos === "GR" ? 188 : pos === "DC" ? 184 : pos === "PL" ? 181 : ["ED", "EE", "MO"].includes(pos) ? 175 : 178;
+  const base = pos === "GK" ? 188 : pos === "CB" ? 184 : pos === "ST" ? 181 : ["RW", "LW", "AM"].includes(pos) ? 175 : 178;
   const alturaCm = Math.round(limitar(rng.gauss(base, 5), 160, 205));
   const pesoKg = Math.round(limitar((alturaCm - 100) * 0.92 + rng.gauss(0, 4), 55, 100));
   const r = rng.float();

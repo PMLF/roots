@@ -119,6 +119,10 @@ Cada clube pertence a um **concelho** (= a Câmara e o orçamento municipal). Ca
 - Cidade → clube: `bacia de adeptos` (população × identidade), patrocínios (setor), apoio municipal (presidente da Câmara), viveiro de jovens.
 - **Assistência (esqueleto):** `bacia × taxa_base × forma × importância × rivalidade × preço × transporte × clima × setor`, limitada pela capacidade do estádio. Importância: final ×2,5; decisão de subida/descida ×1,8; grande visitante ×(1 + 0,3 × rep_visitante/rep_casa); dérbi como acima.
 
+## 6a. Taças (pedido do Pedro, 15-10-2026; RZ-140 a RZ-142)
+
+- **Taça** (como a Taça de Portugal): todos os clubes, eliminatórias a jogo único com prolongamento e penáltis; os escalões altos entram mais tarde; o de escalão inferior joga em casa. **Supertaça**: campeão da Primeira Liga vs vencedor da Taça. **Taça Distrital**: uma por distrito, só com os clubes das distritais desse distrito. Taça da Liga, seleções e competições europeias ficam para depois (RZ-901, 902).
+
 ## 6b. Calendário e ritmo (decidido a 15-10-2026)
 
 - **Época:** agosto a maio, seguindo o calendário habitual da Liga Portuguesa (jornadas ao fim de semana, pausas de seleções e uma pequena pausa de Natal). As distritais e o CP seguem o mesmo ano; a **Fase de Promoção** joga-se no fim, em maio-junho.

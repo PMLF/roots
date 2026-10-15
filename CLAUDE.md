@@ -17,6 +17,7 @@ Jogo de browser de gestão de futebol português com **clubes ligados a cidades*
 - Tudo o que tem números (assistência, golos, lesões, prémios) tem parâmetros em ficheiro de configuração e passa no harness de calibração antes de ser dado como feito.
 - Histórico = log de eventos append-only + factos de jogo; derivadas reconstruíveis; nada se apaga na passagem de época.
 - A UI só lê através de `Vista` (público + observações); nunca a "verdade" oculta (personalidade, atributos, finanças).
+- **Código e BD em inglês**: tudo o que se guarda (códigos, enums, tipos de evento, colunas) em inglês; a interface traduz pelo idioma (ex.: posições GK/CB/LW…, `src/ui/i18n/posicao.ts`). O código antigo em português migra no RZ-143; código novo já nasce em inglês.
 - Personalidade = um sistema único (traços + memória) para todas as pessoas e entidades.
 
 ## Comandos

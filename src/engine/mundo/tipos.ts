@@ -3,7 +3,7 @@ import type { Escalao } from "../config/parametros";
 import type { PapelPessoa, Personalidade } from "../personalidade/gerar";
 import type { Data } from "../persistencia/tipos";
 
-export const POSICOES = ["GR", "DD", "DC", "DE", "MDC", "MC", "MO", "ED", "EE", "PL"] as const;
+export const POSICOES = ["GK", "RB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "ST"] as const;
 export type Posicao = (typeof POSICOES)[number];
 
 export const ATRIBUTOS_TECNICOS = ["finalizacao", "remateLonge", "passe", "cruzamento", "drible", "controloBola", "cabeceamento", "desarme", "marcacao", "bolaParada", "penaltis", "tecnica", "lancamentos", "primeiroToque"] as const;

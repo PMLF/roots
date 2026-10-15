@@ -191,7 +191,7 @@ export class SimuladorJogo {
   private remate(r: Rng, m: number, lado: Lado, out: EventoJogo[], fin: JogadorEmCampo, ass: JogadorEmCampo | undefined, xg: number, origem: Origem, profundidade: number): void {
     const est = this.stats[lado];
     const adv = outroLado(lado);
-    const gr = this.equipas[adv].onze.find((j) => j.posicao === "GR");
+    const gr = this.equipas[adv].onze.find((j) => j.posicao === "GK");
     const habilidade = origem === "penalti" ? fin.atributos.penaltis : origem === "canto" ? (fin.atributos.cabeceamento + fin.atributos.finalizacao) / 2 : fin.atributos.finalizacao;
     est.remates++;
     est.xg += xg;
@@ -228,7 +228,7 @@ export class SimuladorJogo {
     out.push({ tipo: "canto", minuto: m, lado });
     if (profundidade >= 1 || !r.prob(this.p.cantos.pRemate * this.params.tatica.estilos[this.tatica(lado).estilo].cantoRemate)) return;
     const cabeceador = escolherPonderado(r, eq.onze, (j) => (this.p.pesoCabeceamento[j.posicao] ?? 0) * Math.pow((j.atributos.cabeceamento / 10) * (j.alturaCm / 178), 2));
-    const marcador = eq.onze.filter((j) => j.posicao !== "GR").reduce((a, b) => (b.atributos.bolaParada + b.atributos.cruzamento > a.atributos.bolaParada + a.atributos.cruzamento ? b : a));
+    const marcador = eq.onze.filter((j) => j.posicao !== "GK").reduce((a, b) => (b.atributos.bolaParada + b.atributos.cruzamento > a.atributos.bolaParada + a.atributos.cruzamento ? b : a));
     const xg0 = this.p.xg.base + this.p.xg.amplitude * this.p.cantos.fatorXg * Math.pow(r.float(), this.p.xg.expoente);
     const xg = limitar(sigmoide(logit(limitar(xg0, 0.001, 0.999)) + (this.p.sensibilidade.xg * this.diferenca(lado)) / 10), this.p.xg.min, this.p.xg.max);
     this.remate(r, m, lado, out, cabeceador, marcador.id === cabeceador.id ? undefined : marcador, xg, "canto", profundidade + 1);
@@ -263,7 +263,7 @@ export class SimuladorJogo {
     const banco = eq.banco ?? [];
     const entra =
       banco.find((b) => b.posicao === jogador.posicao) ??
-      (jogador.posicao === "GR" ? undefined : banco.filter((b) => b.posicao !== "GR").reduce<JogadorEmCampo | undefined>((a, b) => (!a || b.atributos.finalizacao + b.atributos.desarme + b.atributos.passe > a.atributos.finalizacao + a.atributos.desarme + a.atributos.passe ? b : a), undefined));
+      (jogador.posicao === "GK" ? undefined : banco.filter((b) => b.posicao !== "GK").reduce<JogadorEmCampo | undefined>((a, b) => (!a || b.atributos.finalizacao + b.atributos.desarme + b.atributos.passe > a.atributos.finalizacao + a.atributos.desarme + a.atributos.passe ? b : a), undefined));
     const onze = eq.onze.filter((j) => j.id !== jogador.id);
     if (entra) {
       onze.push({ ...entra, posicao: jogador.posicao });
@@ -309,15 +309,15 @@ export class SimuladorJogo {
     const eq = this.equipas[lado];
     const adv = outroLado(lado);
     this.stats[lado].faltas++;
-    const infrator = escolherPonderado(r, eq.onze, (j) => (j.posicao === "GR" ? 0.05 : 1) * (this.amarelos[lado].has(j.id) ? this.p.cartoes.jaAmarelo.falta : 1) * Math.pow((j.atributos.agressividade + 10) / 20, 2) * Math.sqrt(21 - j.atributos.desarme));
+    const infrator = escolherPonderado(r, eq.onze, (j) => (j.posicao === "GK" ? 0.05 : 1) * (this.amarelos[lado].has(j.id) ? this.p.cartoes.jaAmarelo.falta : 1) * Math.pow((j.atributos.agressividade + 10) / 20, 2) * Math.sqrt(21 - j.atributos.desarme));
     const penalti = r.prob(this.p.penalti.pPorFalta);
     out.push({ tipo: "falta", minuto: m, lado, jogador: infrator.id, penalti });
     this.cartao(r, m, lado, out, infrator, penalti);
     if (penalti) {
-      const cobrador = this.equipas[adv].onze.filter((j) => j.posicao !== "GR").reduce((a, b) => (b.atributos.penaltis * b.forma > a.atributos.penaltis * a.forma ? b : a));
+      const cobrador = this.equipas[adv].onze.filter((j) => j.posicao !== "GK").reduce((a, b) => (b.atributos.penaltis * b.forma > a.atributos.penaltis * a.forma ? b : a));
       this.remate(r, m, adv, out, cobrador, undefined, this.p.penalti.xg, "penalti", 1);
     } else if (r.prob(this.p.faltas.pLivreRemate)) {
-      const cobrador = escolherPonderado(r, this.equipas[adv].onze, (j) => Math.pow(j.atributos.bolaParada / 10, 3) * (j.posicao === "GR" ? 0 : 1));
+      const cobrador = escolherPonderado(r, this.equipas[adv].onze, (j) => Math.pow(j.atributos.bolaParada / 10, 3) * (j.posicao === "GK" ? 0 : 1));
       const xg = limitar(sigmoide(logit(0.05) + (this.p.sensibilidade.xg * this.diferenca(adv)) / 10), this.p.xg.min, this.p.xg.max);
       this.remate(r, m, adv, out, cobrador, undefined, xg, "livre", 1);
     }

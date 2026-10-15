@@ -9,14 +9,14 @@ import type { Estilo, FormacaoId, Tatica } from "./tipos";
 
 /** Posições de cada formação (o guarda-redes primeiro). Laterais a «alas» nos sistemas com três centrais. */
 export const FORMACOES: Record<FormacaoId, readonly Posicao[]> = {
-  "4-3-3": ["GR", "DD", "DC", "DC", "DE", "MDC", "MC", "MO", "ED", "PL", "EE"],
-  "4-4-2": ["GR", "DD", "DC", "DC", "DE", "ED", "MC", "MC", "EE", "PL", "PL"],
-  "4-2-3-1": ["GR", "DD", "DC", "DC", "DE", "MDC", "MDC", "ED", "MO", "EE", "PL"],
-  "4-1-4-1": ["GR", "DD", "DC", "DC", "DE", "MDC", "ED", "MC", "MC", "EE", "PL"],
-  "3-5-2": ["GR", "DC", "DC", "DC", "DD", "MC", "MC", "MO", "DE", "PL", "PL"],
-  "5-3-2": ["GR", "DD", "DC", "DC", "DC", "DE", "MDC", "MDC", "MC", "PL", "PL"],
-  "3-4-3": ["GR", "DC", "DC", "DC", "DD", "MC", "MC", "DE", "ED", "PL", "EE"],
-  "4-3-1-2": ["GR", "DD", "DC", "DC", "DE", "MDC", "MC", "MC", "MO", "PL", "PL"],
+  "4-3-3": ["GK", "RB", "CB", "CB", "LB", "DM", "CM", "AM", "RW", "ST", "LW"],
+  "4-4-2": ["GK", "RB", "CB", "CB", "LB", "RW", "CM", "CM", "LW", "ST", "ST"],
+  "4-2-3-1": ["GK", "RB", "CB", "CB", "LB", "DM", "DM", "RW", "AM", "LW", "ST"],
+  "4-1-4-1": ["GK", "RB", "CB", "CB", "LB", "DM", "RW", "CM", "CM", "LW", "ST"],
+  "3-5-2": ["GK", "CB", "CB", "CB", "RB", "CM", "CM", "AM", "LB", "ST", "ST"],
+  "5-3-2": ["GK", "RB", "CB", "CB", "CB", "LB", "DM", "DM", "CM", "ST", "ST"],
+  "3-4-3": ["GK", "CB", "CB", "CB", "RB", "CM", "CM", "LB", "RW", "ST", "LW"],
+  "4-3-1-2": ["GK", "RB", "CB", "CB", "LB", "DM", "CM", "CM", "AM", "ST", "ST"],
 };
 export const FORMACAO_IDS = Object.keys(FORMACOES) as FormacaoId[];
 export const ESTILOS: readonly Estilo[] = ["bonito", "equilibrado", "direto", "contraAtaque"];
@@ -25,16 +25,16 @@ export const TATICA_PADRAO: Tatica = { formacao: "4-3-3", estilo: "equilibrado",
 
 /** Quanto cada posição pesa na defesa, no meio-campo e no ataque. */
 const PESO_LINHA: Record<Posicao, readonly [number, number, number]> = {
-  GR: [0, 0, 0],
-  DD: [1, 0, 0],
-  DC: [1, 0, 0],
-  DE: [1, 0, 0],
-  MDC: [0.3, 0.7, 0],
-  MC: [0, 1, 0],
-  MO: [0, 0.35, 0.65],
-  ED: [0, 0.4, 0.6],
-  EE: [0, 0.4, 0.6],
-  PL: [0, 0, 1],
+  GK: [0, 0, 0],
+  RB: [1, 0, 0],
+  CB: [1, 0, 0],
+  LB: [1, 0, 0],
+  DM: [0.3, 0.7, 0],
+  CM: [0, 1, 0],
+  AM: [0, 0.35, 0.65],
+  RW: [0, 0.4, 0.6],
+  LW: [0, 0.4, 0.6],
+  ST: [0, 0, 1],
 };
 
 /**
@@ -42,10 +42,10 @@ const PESO_LINHA: Record<Posicao, readonly [number, number, number]> = {
  * os laterais jogam como alas: metade defesa, metade meio-campo.
  */
 export function linhasDaFormacao(posicoes: readonly Posicao[]): { defesa: number; meio: number; ataque: number } {
-  const alas = posicoes.filter((p) => p === "DC").length === 3 && posicoes.some((p) => p === "MO" || p === "ED" || p === "EE");
+  const alas = posicoes.filter((p) => p === "CB").length === 3 && posicoes.some((p) => p === "AM" || p === "RW" || p === "LW");
   let defesa = 0, meio = 0, ataque = 0;
   for (const p of posicoes) {
-    const [d, m, a] = alas && (p === "DD" || p === "DE") ? ([0.5, 0.5, 0] as const) : PESO_LINHA[p];
+    const [d, m, a] = alas && (p === "RB" || p === "LB") ? ([0.5, 0.5, 0] as const) : PESO_LINHA[p];
     defesa += d;
     meio += m;
     ataque += a;

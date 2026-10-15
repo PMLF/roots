@@ -22,18 +22,18 @@ describe("equipa", () => {
 
   it("o onze automático põe cada um onde rende mais e usa 11 jogadores diferentes", () => {
     const plantel: CandidatoOnze[] = [
-      cand("gr1", "GR", 8), cand("gr2", "GR", 14),
-      ...["dd", "dc1", "dc2", "dc3", "de", "mdc", "mc1", "mc2", "mo", "ed", "ee", "pl1", "pl2"].map((id, i) => cand(id, id.startsWith("dc") ? "DC" : id.replace(/\d/g, "").toUpperCase(), 9 + (i % 4))),
+      cand("gr1", "GK", 8), cand("gr2", "GK", 14),
+      ...["rb", "cb1", "cb2", "cb3", "lb", "dm", "cm1", "cm2", "am", "rw", "lw", "st1", "st2"].map((id, i) => cand(id, id.replace(/\d/g, "").toUpperCase(), 9 + (i % 4))),
     ];
     const onze = onzeAutomatico(plantel);
     expect(onze).toHaveLength(11);
     expect(new Set(onze.map((j) => j.id)).size).toBe(11);
-    expect(onze.find((j) => j.posicao === "GR")?.id).toBe("gr2");
+    expect(onze.find((j) => j.posicao === "GK")?.id).toBe("gr2");
     expect(onzeAutomatico(plantel)).toEqual(onze);
   });
 
   it("sem guarda-redes à vista, ainda assim monta onze (pior)", () => {
-    const sem = Array.from({ length: 14 }, (_, i) => cand(`p${i}`, "MC", 10));
+    const sem = Array.from({ length: 14 }, (_, i) => cand(`p${i}`, "CM", 10));
     expect(onzeAutomatico(sem)).toHaveLength(11);
   });
 });

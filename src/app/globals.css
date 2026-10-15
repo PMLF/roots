@@ -91,3 +91,8 @@ input, select { font: inherit; color: inherit; background: var(--painel); border
 .pesquisa li.vazio { cursor: default; color: var(--suave); }
 .pesquisa-tipo { min-width: 64px; color: var(--suave); font-size: 12px; text-transform: uppercase; }
 @media (max-width: 900px) { .ficha-corpo { grid-template-columns: 1fr; } }
+
+/* Laboratório (RZ-139) */
+.lab-lados { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; }
+.lab-lados > * { flex: 1 1 320px; }
+.lab-marcador { margin-bottom: 4px; }
