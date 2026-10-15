@@ -15,10 +15,10 @@ type ItemMenu = { chave: Chave; icone: NomeIcone; href?: string; ativoQuando: (c
 const MENU: ItemMenu[] = [
   { chave: "menu.hoje", icone: "hoje", href: "/", ativoQuando: (c) => c === "/" },
   { chave: "menu.competicoes", icone: "competicoes", href: "/competitions/", ativoQuando: (c) => c.startsWith("/competitions") },
-  { chave: "menu.clube", icone: "clube", ativoQuando: () => false },
-  { chave: "menu.plantel", icone: "plantel", ativoQuando: () => false },
-  { chave: "menu.jogos", icone: "jogos", ativoQuando: () => false },
-  { chave: "menu.cidade", icone: "cidade", ativoQuando: () => false },
+  { chave: "menu.clube", icone: "clube", href: "/club/", ativoQuando: (c) => c.startsWith("/club") },
+  { chave: "menu.plantel", icone: "plantel", href: "/squad/", ativoQuando: (c) => c.startsWith("/squad") },
+  { chave: "menu.jogos", icone: "jogos", href: "/fixtures/", ativoQuando: (c) => c.startsWith("/fixtures") },
+  { chave: "menu.cidade", icone: "cidade", href: "/city/", ativoQuando: (c) => c.startsWith("/city") },
   { chave: "menu.mundo", icone: "mundo", href: "/world/", ativoQuando: (c) => c.startsWith("/world"), soDev: true },
   { chave: "menu.laboratorio", icone: "laboratorio", href: "/lab/", ativoQuando: (c) => c.startsWith("/lab"), soDev: true },
 ];
@@ -114,7 +114,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <button type="button" onClick={() => router.back()}>← {t("migalhas.voltar")}</button>
             <Link href="/">{t("menu.hoje")}</Link>
             <span aria-hidden="true">›</span>
-            <span aria-current="page">{t(caminho.startsWith("/profile") ? "migalhas.ficha" : caminho.startsWith("/lab") ? "menu.laboratorio" : caminho.startsWith("/competitions") ? "migalhas.competicoes" : "menu.mundo")}</span>
+            <span aria-current="page">{t(caminho.startsWith("/profile") ? "migalhas.ficha" : (MENU.find((m) => m.href && m.href !== "/" && m.ativoQuando(caminho))?.chave ?? "menu.mundo"))}</span>
           </nav>
         )}
         {children}

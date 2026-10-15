@@ -25,7 +25,7 @@ function Barra({ valor }: { valor: number }) {
   );
 }
 
-export function FichaClube({ d, verTudo }: { d: FichaClubeDados; verTudo: boolean }) {
+export function FichaClube({ d, verTudo, soPlantel = false }: { d: FichaClubeDados; verTudo: boolean; soPlantel?: boolean }) {
   const { t, locale } = useT();
   const pais = usePaises();
   const n = new Intl.NumberFormat(locale);
@@ -154,6 +154,14 @@ export function FichaClube({ d, verTudo }: { d: FichaClubeDados; verTudo: boolea
       </Cartao>
     </div>
   );
+
+  if (soPlantel) {
+    return d.plantel.length > 0 ? (
+      <Tabela id="plantel" nomeFicheiro={`plantel-${d.id}`} colunas={plantel} linhas={d.plantel} chave={(p) => p.id} celula={{ name: nome, level: nivelCelula }} ordemInicial={{ coluna: "pos", direcao: "asc" }} />
+    ) : (
+      <p className="vazio">{t("clube.semMundo")}</p>
+    );
+  }
 
   return (
     <Ficha

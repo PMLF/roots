@@ -564,5 +564,21 @@
   "coluna.golosJogo": "Goals/game",
   "coluna.sofridosJogo": "Against/game",
   "estatisticas.equipas": "Teams",
-  "estatisticas.jogadores": "All players"
+  "estatisticas.jogadores": "All players",
+  "meuClube.escolher": "Choose club",
+  "meuClube.pesquisar": "Search club or league…",
+  "meuClube.semResultados": "No club found.",
+  "meuClube.vazio": "Choose the club you want to manage to see this page.",
+  "jogos.jornada": "Round",
+  "jogos.data": "Date",
+  "jogos.local": "Venue",
+  "jogos.casa": "Home",
+  "jogos.fora": "Away",
+  "jogos.adversario": "Opponent",
+  "jogos.resultado": "Result",
+  "jogos.folga": "Bye",
+  "hoje.oTeuClube": "Your club",
+  "hoje.posicao": "{pos}th in {liga}",
+  "hoje.proximo": "Next: {jogo}",
+  "hoje.escolherClube": "Choose club"
 }

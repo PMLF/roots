@@ -564,5 +564,21 @@
   "coluna.golosJogo": "Golos/jogo",
   "coluna.sofridosJogo": "Sofridos/jogo",
   "estatisticas.equipas": "Equipas",
-  "estatisticas.jogadores": "Todos os jogadores"
+  "estatisticas.jogadores": "Todos os jogadores",
+  "meuClube.escolher": "Escolher clube",
+  "meuClube.pesquisar": "Pesquisar clube ou liga…",
+  "meuClube.semResultados": "Nenhum clube encontrado.",
+  "meuClube.vazio": "Escolhe o clube que queres gerir para ver esta página.",
+  "jogos.jornada": "Jornada",
+  "jogos.data": "Data",
+  "jogos.local": "Local",
+  "jogos.casa": "Casa",
+  "jogos.fora": "Fora",
+  "jogos.adversario": "Adversário",
+  "jogos.resultado": "Resultado",
+  "jogos.folga": "Folga",
+  "hoje.oTeuClube": "O teu clube",
+  "hoje.posicao": "{pos}.º em {liga}",
+  "hoje.proximo": "Próximo: {jogo}",
+  "hoje.escolherClube": "Escolher clube"
 }
