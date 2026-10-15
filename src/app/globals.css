@@ -314,3 +314,8 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .destaque-lista .detalhe { color: var(--suave); font-size: 12px; margin-left: 6px; }
 .cartao-destaques:hover { background: var(--painel-2); border-color: var(--suave); }
 .cartao-destaques:focus-within { border-color: var(--suave); }
+.seletor-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 45vh; overflow: auto; }
+.seletor-lista button { width: 100%; text-align: left; border: 0; background: none; border-radius: var(--r-s); padding: 5px 8px; display: flex; justify-content: space-between; gap: 12px; }
+.seletor-lista button:hover:not(:disabled) { background: var(--painel-2); }
+.seletor-lista button.ativo { background: var(--destaque-fundo); }
+.pagina-clube > h1 { margin-bottom: 4px; }
