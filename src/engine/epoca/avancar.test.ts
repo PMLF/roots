@@ -28,6 +28,35 @@ describe("clube do save", () => {
   }, 60000);
 });
 
+describe("demissão e ofertas", () => {
+  it("o gamer demite-se, recebe ofertas semanais e só volta a jogar aceitando uma", async () => {
+    const s = servicos();
+    await tratar({ id: 1, tipo: "criarMundo", entrada: { seed: "demissao" } }, s);
+    const clubes = await tratar({ id: 2, tipo: "clubes", entrada: null }, s);
+    const meu = clubes[40]!;
+    await tratar({ id: 3, tipo: "escolherClube", entrada: { id: meu.id } }, s);
+    expect((await tratar({ id: 4, tipo: "ofertas", entrada: null }, s)).desempregado).toBe(false);
+    await tratar({ id: 5, tipo: "demitir", entrada: null }, s);
+    expect(await tratar({ id: 6, tipo: "clubeDoGamer", entrada: null }, s)).toBeNull();
+    await expect(tratar({ id: 7, tipo: "demitir", entrada: null }, s)).rejects.toThrow();
+    const o1 = await tratar({ id: 8, tipo: "ofertas", entrada: null }, s);
+    expect(o1.desempregado).toBe(true);
+    expect(o1.ofertas.length).toBeGreaterThanOrEqual(3);
+    expect(o1.ofertas.every((o) => o.id !== meu.id)).toBe(true);
+    // não se escolhe um clube à vontade: só uma oferta
+    await expect(tratar({ id: 9, tipo: "escolherClube", entrada: { id: clubes[0]!.id } }, s)).rejects.toThrow();
+    await expect(tratar({ id: 10, tipo: "aceitarOferta", entrada: { id: "nao-existe" } }, s)).rejects.toThrow();
+    // o tempo avança sem pausa e as ofertas renovam-se à segunda-feira
+    const r = await tratar({ id: 11, tipo: "avancar", entrada: { modo: "semana" } }, s);
+    expect(r.pausa).toBeUndefined();
+    const o2 = await tratar({ id: 12, tipo: "ofertas", entrada: null }, s);
+    expect(o2.ofertas[0]!.desde > o1.ofertas[0]!.desde).toBe(true);
+    await tratar({ id: 13, tipo: "aceitarOferta", entrada: { id: o2.ofertas[0]!.id } }, s);
+    expect(await tratar({ id: 14, tipo: "clubeDoGamer", entrada: null }, s)).toEqual({ id: o2.ofertas[0]!.id });
+    expect((await tratar({ id: 15, tipo: "ofertas", entrada: null }, s)).desempregado).toBe(false);
+  }, 120000);
+});
+
 describe("época inicial", () => {
   it("vem da data real de criação do save: a 1 de julho muda a época", async () => {
     for (const [data, ano] of [[new Date(2026, 5, 30), 2025], [new Date(2026, 6, 1), 2026], [new Date(2027, 9, 14), 2027]] as const) {

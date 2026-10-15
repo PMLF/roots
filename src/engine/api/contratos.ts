@@ -57,6 +57,8 @@ export type VerdadePessoa = {
   qualidade?: Record<string, number>;
 };
 
+export type OfertaDeClube = { id: string; nome: string; liga: string; escalao: Escalao; nivelReputacao: NivelReputacao; desde: string };
+
 export type FichaPessoaDados = {
   ficha: FichaPessoa;
   clube?: RefEntidade;
@@ -162,6 +164,11 @@ export type PedidosMotor = {
    * Escolhe o clube do save. Só se pode escolher uma vez: depois, só mudando de clube por demissão ou despedimento
    * (RZ-157). `forcar` é a troca dos developers (seletor da barra lateral, só no modo dev).
    */
+  /** O gamer demite-se do clube (RZ-157). Fica sem clube e recebe ofertas. */
+  demitir: { entrada: null; saida: { clube: string } };
+  /** Ofertas de clubes quando o gamer está sem clube. */
+  ofertas: { entrada: null; saida: { desempregado: boolean; anterior?: string; ofertas: OfertaDeClube[] } };
+  aceitarOferta: { entrada: { id: string }; saida: { id: string } };
   escolherClube: { entrada: { id: string; forcar?: boolean }; saida: { id: string } };
   /** O plano de jogo (tática e onze) do clube do gamer. */
   plano: { entrada: null; saida: PlanoVista | null };

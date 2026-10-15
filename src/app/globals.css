@@ -330,3 +330,6 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .formulario select { width: 100%; }
 
 .seletor-epoca { display: inline-flex; align-items: center; gap: var(--espaco-1, 0.25rem); margin-right: 0.75rem; }
+
+.ofertas { list-style: none; padding: 0; display: grid; gap: 0.5rem; }
+.ofertas li { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }

@@ -65,6 +65,15 @@ export type Parametros = {
   };
   saves: { autosaveDias: number; autosavesRotativos: number; guardarNoInicioDeEpoca: boolean };
   fairPlay: { niveis: number; padrao: number };
+  /** Mercado de treinadores (RZ-157): ofertas que o gamer recebe sem clube, renovadas todas as segundas-feiras. */
+  treinador: {
+    /** Ofertas de clubes de reputação igual ou inferior à do clube que deixou. */
+    ofertas: number;
+    /** Ofertas extra de clubes um pouco acima (a surpresa boa). */
+    surpresas: number;
+    /** Até quantos pontos de reputação acima do clube anterior pode vir uma surpresa. */
+    margemSurpresa: number;
+  };
   /** Percentagem média de estrangeiros nos plantéis, por escalão (GERACAO_MUNDO §4). */
   estrangeiros: Record<Escalao, number>;
   assistencia: {
@@ -368,6 +377,7 @@ export const PARAMETROS_PADRAO: Parametros = {
   },
   saves: { autosaveDias: 7, autosavesRotativos: 3, guardarNoInicioDeEpoca: true },
   fairPlay: { niveis: 5, padrao: 3 },
+  treinador: { ofertas: 3, surpresas: 1, margemSurpresa: 600 },
   estrangeiros: { primeiraLiga: 0.55, segundaLiga: 0.3, terceiraLiga: 0.15, cp: 0.08, distrital: 0.03 },
   assistencia: {
     multFinal: 2.5,
@@ -537,6 +547,7 @@ export function validarParametros(p: Parametros): string[] {
   for (const m of [c.mesInicioEpoca, c.mesFimEpoca]) if (m < 1 || m > 12) erros.push("calendario: meses entre 1 e 12");
   if (c.janelas.length === 0) erros.push("calendario: tem de existir pelo menos uma janela de transferências");
   if (p.saves.autosaveDias < 1 || p.saves.autosavesRotativos < 1) erros.push("saves: autosaveDias e autosavesRotativos ≥ 1");
+  if (p.treinador.ofertas < 1 || p.treinador.surpresas < 0 || p.treinador.margemSurpresa < 0) erros.push("treinador: pelo menos 1 oferta, surpresas e margem >= 0");
   if (p.fairPlay.niveis < 2 || p.fairPlay.padrao < 1 || p.fairPlay.padrao > p.fairPlay.niveis) erros.push("fairPlay: padrao dentro dos níveis");
 
   for (const [esc, v] of Object.entries(p.estrangeiros)) if (v < 0 || v > 1) erros.push(`estrangeiros.${esc} entre 0 e 1`);
