@@ -54,6 +54,10 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       const { dados } = await dadosDoJogo(servicos);
       return dados.clubes.map((c): ClubeResumo => ({ id: c.id, nome: c.nome, liga: c.liga }));
     }
+    case "estadoMundo": {
+      const [{ repositorio }, { dados }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
+      return repositorio.totalPessoas() > 0 ? resumoExistente(repositorio, dados) : null;
+    }
     case "criarMundo":
       return criarMundo(m.entrada.seed, servicos, aoProgredir);
     case "plantel": {
@@ -90,7 +94,7 @@ async function criarMundo(seed: string, servicos: Servicos, aoProgredir: (p: Pro
   const [{ repositorio }, { dados, paises }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
   if (repositorio.totalPessoas() > 0) {
     // reabrir um save que já tem mundo: não se gera outra vez
-    return { seed: repositorio.meta("seed") ?? "?", clubes: dados.clubes.length, pessoas: repositorio.totalPessoas(), jogadores: Number(repositorio.meta("mundo.jogadores") ?? 0), ms: 0, avisos: [], jaExistia: true };
+    return resumoExistente(repositorio, dados);
   }
   const t0 = Date.now();
   const params = PARAMETROS_PADRAO;
@@ -104,4 +108,8 @@ async function criarMundo(seed: string, servicos: Servicos, aoProgredir: (p: Pro
     repositorio.guardarMundo(lote, (feito, total) => aoProgredir({ fase: "guardar", feito, total }));
   });
   return { seed, clubes: dados.clubes.length, pessoas: lote.pessoas.length, jogadores: lote.jogadores.length, ms: Date.now() - t0, avisos: v.avisos, jaExistia: false };
+}
+
+function resumoExistente(r: Repositorio, dados: DadosBase): ResumoMundoCriado {
+  return { seed: r.meta("seed") ?? "?", clubes: dados.clubes.length, pessoas: r.totalPessoas(), jogadores: Number(r.meta("mundo.jogadores") ?? 0), ms: 0, avisos: [], jaExistia: true };
 }

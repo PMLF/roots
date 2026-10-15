@@ -33,11 +33,13 @@ describe("handler do motor", () => {
 
   it("cria o mundo com progresso, depois reabre sem gerar outra vez, e o plantel vem pela Vista", async () => {
     const s2 = servicosDeTeste();
+    expect(await tratar({ id: 5, tipo: "estadoMundo", entrada: null }, s2)).toBeNull(); // ver o estado não gera nada
     const fases = new Set<string>();
     const r = await tratar({ id: 6, tipo: "criarMundo", entrada: { seed: "abc" } }, s2, (p) => fases.add(p.fase));
     expect(r).toMatchObject({ seed: "abc", clubes: 298, jaExistia: false });
     expect(r.pessoas).toBeGreaterThan(12000);
     expect([...fases]).toEqual(expect.arrayContaining(["clubes", "livres", "validar", "guardar"]));
+    expect(await tratar({ id: 10, tipo: "estadoMundo", entrada: null }, s2)).toMatchObject({ seed: "abc", jaExistia: true, pessoas: r.pessoas });
     const outra = await tratar({ id: 7, tipo: "criarMundo", entrada: { seed: "outra" } }, s2);
     expect(outra).toMatchObject({ seed: "abc", jaExistia: true, pessoas: r.pessoas, jogadores: r.jogadores });
     const clubes = await tratar({ id: 8, tipo: "clubes", entrada: null }, s2);

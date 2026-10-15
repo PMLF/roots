@@ -11,16 +11,41 @@ type Estado =
   | { fase: "pronto"; resumo: ResumoMundoCriado }
   | { fase: "erro"; erro: string };
 
+/** Semente nova para cada save: cada save é um mundo único. */
+const novaSemente = () => {
+  const b = new Uint32Array(2);
+  crypto.getRandomValues(b);
+  return Array.from(b, (x) => x.toString(36).padStart(7, "0")).join("").slice(0, 10);
+};
+
 /** Criação do mundo (RZ-103) com progresso, e plantel público de um clube lido pela Vista. */
 export function Mundo({ motor }: { motor: MotorCliente }) {
   const { t } = useT();
-  const [seed, setSeed] = useState("raizes");
+  const [seed, setSeed] = useState(novaSemente);
   const [estado, setEstado] = useState<Estado>({ fase: "inicial" });
   const [clubes, setClubes] = useState<ClubeResumo[]>([]);
   const [clube, setClube] = useState("");
   const [plantel, setPlantel] = useState<PessoaVista[]>([]);
 
-  // Se o save já tem mundo (OPFS), mostra-o logo: "criar" devolve o resumo sem gerar outra vez.
+  // Ao abrir, só olha: se o save já tem mundo mostra-o; o mundo só se gera quando se carrega em "Criar".
+  useEffect(() => {
+    let vivo = true;
+    (async () => {
+      try {
+        const existente = await motor.chamar("estadoMundo", null);
+        if (!existente || !vivo) return;
+        const lista = await motor.chamar("clubes", null);
+        if (!vivo) return;
+        setClubes(lista);
+        setClube(lista[0]?.id ?? "");
+        setEstado({ fase: "pronto", resumo: existente });
+      } catch (e) {
+        if (vivo) setEstado({ fase: "erro", erro: e instanceof Error ? e.message : String(e) });
+      }
+    })();
+    return () => { vivo = false; };
+  }, [motor]);
+
   const criar = async () => {
     setEstado({ fase: "a-criar" });
     try {
@@ -50,9 +75,10 @@ export function Mundo({ motor }: { motor: MotorCliente }) {
       <p>
         <label>
           {t("mundo.seed")}{" "}
-          <input value={seed} onChange={(e) => setSeed(e.target.value)} disabled={estado.fase === "a-criar"} data-testid="mundo-seed" />
+          <input value={seed} onChange={(e) => setSeed(e.target.value)} disabled={estado.fase !== "inicial" && estado.fase !== "erro"} data-testid="mundo-seed" />
         </label>{" "}
-        <button onClick={criar} disabled={estado.fase === "a-criar" || seed.trim() === ""} data-testid="mundo-criar">{t("mundo.criar")}</button>
+        <button onClick={() => setSeed(novaSemente())} disabled={estado.fase !== "inicial" && estado.fase !== "erro"} data-testid="mundo-nova-semente">{t("mundo.novaSemente")}</button>{" "}
+        <button onClick={criar} disabled={(estado.fase !== "inicial" && estado.fase !== "erro") || seed.trim() === ""} data-testid="mundo-criar">{t("mundo.criar")}</button>
       </p>
       {estado.fase === "a-criar" && (
         <p data-testid="mundo-progresso">

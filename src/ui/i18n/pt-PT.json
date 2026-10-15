@@ -52,5 +52,6 @@
   "mundo.colNome": "Nome",
   "mundo.colIdade": "Idade",
   "mundo.colPos": "Posição",
-  "mundo.colPais": "País"
+  "mundo.colPais": "País",
+  "mundo.novaSemente": "Semente nova"
 }
