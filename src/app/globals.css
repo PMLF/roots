@@ -172,3 +172,63 @@ legend { padding: 0 6px; color: var(--suave); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
 .sr-so { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---- Fichas ricas (RZ-146): topo com cartão de identidade, cartões, atributos, gráfico ---- */
+.ficha-topo { display: flex; gap: 20px 32px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; margin: 0 0 20px; }
+.ficha-topo-nome { flex: 1 1 280px; min-width: 0; }
+.ficha-topo-nome h1 { font-size: 30px; margin: 0 0 8px; }
+.etiquetas { display: flex; gap: 6px; flex-wrap: wrap; margin: 0; }
+.ficha-topo-cartao { flex: 0 1 460px; background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 6px 16px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--linha-forte); background: var(--painel); font-size: 13px; }
+.chip a { color: inherit; }
+.chip-destaque { background: var(--destaque-fundo); border-color: transparent; color: var(--destaque-texto); font-weight: 600; }
+.chip-suave { color: var(--suave); }
+.dados { margin: 0; display: grid; }
+.dados > div { display: flex; justify-content: space-between; gap: 16px; padding: 7px 0; border-bottom: 1px solid var(--linha); align-items: baseline; }
+.dados > div:last-child { border-bottom: 0; }
+.dados dt { color: var(--suave); }
+.dados dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; align-items: start; }
+.cartao { background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 14px 18px 16px; min-width: 0; }
+.cartao.larga { grid-column: 1 / -1; }
+.cartao h2 { font-size: 15px; margin: 0 0 8px; }
+.cartao .dados > div:first-child { padding-top: 0; }
+.cartao.dev { border-style: dashed; border-color: var(--aviso); background: var(--aviso-fundo); }
+.cartao .tabela { width: 100%; border: 0; border-radius: 0; background: none; min-width: 0; }
+.cartao .tabela tr.total td { font-weight: 600; border-top: 1px solid var(--linha-forte); }
+.dev-ativo { background: var(--aviso-fundo); border-color: var(--aviso); color: var(--aviso); }
+
+.atributos { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px 28px; }
+.atributos h3 { margin: 4px 0 6px; font-size: 13px; color: var(--suave); font-weight: 600; }
+.atributos ul { list-style: none; margin: 0; padding: 0; }
+.atributos li { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 3px 0; border-bottom: 1px solid var(--linha); }
+.atributos li:last-child { border-bottom: 0; }
+.attr { min-width: 34px; text-align: center; padding: 1px 6px; border-radius: 6px; font-variant-numeric: tabular-nums; font-weight: 600; background: var(--painel-2); color: var(--suave); }
+.attr[data-banda="1"] { background: color-mix(in srgb, var(--aviso) 16%, var(--painel)); color: var(--aviso); }
+.attr[data-banda="2"] { background: var(--painel-2); color: var(--suave); }
+.attr[data-banda="3"] { background: color-mix(in srgb, var(--destaque) 12%, var(--painel)); color: var(--destaque-texto); }
+.attr[data-banda="4"] { background: color-mix(in srgb, var(--destaque) 24%, var(--painel)); color: var(--destaque-texto); }
+.attr[data-banda="5"] { background: var(--destaque); color: #fff; }
+.attr-estimado, .attr-desatualizado { font-style: italic; font-weight: 500; }
+.attr-desatualizado { opacity: .75; }
+.attr-desconhecido { font-weight: 400; background: transparent; border: 1px dashed var(--linha-forte); color: var(--suave); }
+
+.barra-medida { display: inline-block; width: 90px; height: 8px; border-radius: 999px; background: var(--linha); overflow: hidden; vertical-align: middle; }
+.barra-medida > span { display: block; height: 100%; background: var(--destaque); border-radius: inherit; }
+
+.grafico { margin: 0; }
+.grafico svg { width: 100%; max-width: 640px; height: auto; display: block; }
+.grafico-grelha { stroke: var(--linha); stroke-width: 1; }
+.grafico-eixo { fill: var(--suave); font-size: 11px; }
+.grafico-linha { stroke-width: 2.5; stroke-linecap: round; }
+.grafico-igual { stroke: var(--suave); }
+.grafico-sobe { stroke: var(--destaque); }
+.grafico-desce { stroke: var(--aviso); }
+.grafico-ponto { fill: var(--painel); stroke: var(--texto); stroke-width: 2; }
+.grafico figcaption { margin-top: 4px; }
+
+.separador-corpo > p.vazio, .separador-corpo > .tabela-caixa, .separador-corpo > table { margin-top: 0; }
+.ficha-topo-cartao { flex-basis: 560px; }
+.ficha-topo-cartao .dados { grid-template-columns: 1fr 1fr; column-gap: 28px; }
+.ficha-topo-cartao .dados > div:nth-last-child(2):nth-child(odd) { border-bottom: 0; }
+@media (max-width: 700px) { .ficha-topo-cartao .dados { grid-template-columns: 1fr; } }

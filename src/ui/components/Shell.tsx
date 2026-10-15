@@ -5,7 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { LOCALES, type Chave } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { guardar, ler } from "@/ui/armazenamento";
-import { useModoDev } from "@/ui/dev";
+import { useModoDev, useVerTudo } from "@/ui/dev";
 import { Icone, type NomeIcone } from "@/ui/components/Icone";
 import { Pesquisa } from "@/ui/components/Pesquisa";
 
@@ -35,6 +35,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const caminho = usePathname() ?? "/";
   const router = useRouter();
   const dev = useModoDev();
+  const [verTudo, definirVerTudo] = useVerTudo();
   const [densidade, setDensidade] = useState<Densidade>("normal");
   const [tema, setTema] = useState<Tema>("auto");
 
@@ -84,6 +85,11 @@ export function Shell({ children }: { children: ReactNode }) {
       <header className="topo">
         <Pesquisa />
         <span className="espaco" />
+        {dev && (
+          <button type="button" onClick={() => definirVerTudo(!verTudo)} aria-pressed={verTudo} className={verTudo ? "dev-ativo" : undefined} title={t("dev.verTudo.dica")} data-testid="ver-tudo">
+            {t(verTudo ? "dev.verTudo.sim" : "dev.verTudo.nao")}
+          </button>
+        )}
         <button type="button" onClick={alternarTema} data-testid="tema" title={t("tema.rotulo")}>{t(`tema.${tema}` as Chave)}</button>
         <button type="button" onClick={alternarDensidade} aria-pressed={densidade === "compacta"} data-testid="densidade">
           {t(densidade === "compacta" ? "densidade.compacta" : "densidade.normal")}
