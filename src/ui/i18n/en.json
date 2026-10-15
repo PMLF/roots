@@ -242,5 +242,19 @@
   "momento.ocasiaoFalhada": "{jogador} wastes a big chance for {clube}.",
   "momento.marcador": "{casa} {golosCasa}-{golosFora} {fora}",
   "momento.expulsao": "{jogador} is sent off and {clube} are down to ten.",
-  "momento.expulsaoSegundoAmarelo": "{jogador} is shown a second yellow and sent off; {clube} are down a man."
+  "momento.expulsaoSegundoAmarelo": "{jogador} is shown a second yellow and sent off; {clube} are down a man.",
+  "momento.lesao": "{jogador} is injured ({tipo}, {gravidade}).",
+  "momento.lesaoSubstituto": "{substituto} comes on.",
+  "momento.lesaoSemSuplente": "{clube} have no substitute left and play with ten.",
+  "lesao.tipo.pancada": "knock",
+  "lesao.tipo.muscular": "muscle injury",
+  "lesao.tipo.entorse": "sprain",
+  "lesao.tipo.tendao": "tendon injury",
+  "lesao.tipo.ligamentos": "ligament injury",
+  "lesao.tipo.fratura": "fracture",
+  "lesao.gravidade.1": "minor",
+  "lesao.gravidade.2": "moderate",
+  "lesao.gravidade.3": "serious",
+  "lesao.gravidade.4": "very serious",
+  "lesao.gravidade.5": "severe"
 }

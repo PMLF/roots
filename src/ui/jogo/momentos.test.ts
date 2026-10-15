@@ -24,6 +24,11 @@ describe("momentos em texto", () => {
     expect(momentoEmTexto("pt-PT", { tipo: "expulsao", minuto: 61, lado: "fora", jogador: "a", segundoAmarelo: false }, nomes)).toBe("61' — Rui Alves é expulso e SC Mar fica com menos um.");
     expect(momentoEmTexto("en", { tipo: "expulsao", minuto: 61, lado: "fora", jogador: "a", segundoAmarelo: true }, nomes)).toContain("second yellow");
   });
+  it("escreve lesões, com e sem suplente", () => {
+    const lesao = { tipo: "muscular", gravidade: 2, dias: 15, recaida: false } as const;
+    expect(momentoEmTexto("pt-PT", { tipo: "lesao", minuto: 40, lado: "casa", jogador: "a", lesao, substituto: "b" }, nomes)).toBe("40' — Rui Alves lesiona-se (lesão muscular, moderada). Entra Tiago Melo.");
+    expect(momentoEmTexto("en", { tipo: "lesao", minuto: 40, lado: "casa", jogador: "a", lesao }, nomes)).toBe("40' — Rui Alves is injured (muscle injury, moderate). CD Foz have no substitute left and play with ten.");
+  });
   it("escreve o marcador", () => {
     expect(marcadorEmTexto("pt-PT", golo(), nomes)).toBe("CD Foz 1-0 SC Mar");
   });

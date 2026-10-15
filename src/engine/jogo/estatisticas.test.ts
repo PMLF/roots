@@ -96,7 +96,7 @@ describe("estatísticas pós-jogo", () => {
         if (m.tipo === "golo") contextos.add(m.contexto);
         else if (m.tipo === "penalti-falhado") penaltisFalhados++;
         else if (m.tipo === "grande-defesa") { defesas++; expect(m.xg).toBeGreaterThanOrEqual(P.jogo.momentos.xgGrande); }
-        else if (m.tipo === "expulsao") continue;
+        else if (m.tipo === "expulsao" || m.tipo === "lesao") continue;
         else { ocasioes++; expect(m.xg).toBeGreaterThanOrEqual(P.jogo.momentos.xgGrande); }
       }
       // o primeiro golo do jogo é sempre abertura
