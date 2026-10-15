@@ -4,7 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { Repositorio } from "./repositorio";
-import type { EventoNovo, JogoFacto, JogoNovo, LoteMundoReg, Participacao } from "./tipos";
+import type { EventoNovo, JogoFacto, JogoNovo, LocalidadeReg, LoteMundoReg, Participacao } from "./tipos";
 
 export const ev = (tipo: string, extra: Partial<EventoNovo> = {}): EventoNovo => ({
   tipo,
@@ -334,6 +334,82 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       const r = criar();
       expect(() => r.guardarCalendario([j("q", 1, "2026-08-22", "X", "Y"), j("q", 2, "2026-08-29", "Y", "X")], [])).toThrow();
       expect(r.calendario("SL", 1).jogos).toEqual([]);
+    });
+  });
+
+  describe(`Repositorio (${nome}): reiniciar`, () => {
+    it("deixa o save como novo e utilizável", () => {
+      const r = criar();
+      r.definirMeta("seed", "abc");
+      r.guardarLocalidades([{ id: "a@a", nome: "A", cidade: "a", populacao: 10, estatuto: "aldeia", desde: "2026-07-01" }]);
+      r.acrescentarEvento({ tipo: "T", data: "2026-07-01", epoca: 1, vis: "publico", entidades: [{ k: "clube", id: "X" }], dados: {} });
+      r.reiniciar();
+      expect(r.meta("seed")).toBeUndefined();
+      expect(r.totalEventos()).toBe(0);
+      expect(r.localidades()).toEqual([]);
+      expect(r.totalPessoas()).toBe(0);
+      expect(r.eventosDe({ k: "clube", id: "X" })).toEqual([]);
+      // volta a aceitar o que só aceita uma vez
+      r.guardarLocalidades([{ id: "a@a", nome: "A", cidade: "a", populacao: 10, estatuto: "aldeia", desde: "2026-07-01" }]);
+      const id = r.acrescentarEvento({ tipo: "T", data: "2026-07-01", epoca: 1, vis: "publico", entidades: [], dados: {} });
+      expect(id).toBeGreaterThan(0);
+    });
+    it("recusa-se dentro de uma transação", () => {
+      const r = criar();
+      expect(() => r.transacao(() => r.reiniciar())).toThrow();
+    });
+  });
+
+  describe(`Repositorio (${nome}): localidades`, () => {
+    const base = (): LocalidadeReg[] => [
+      { id: "matela@vimioso", nome: "Matela", cidade: "vimioso", populacao: 150, estatuto: "aldeia", desde: "2026-07-01" },
+      { id: "vimioso@vimioso", nome: "Vimioso", cidade: "vimioso", populacao: 2700, estatuto: "vila", desde: "2026-07-01" },
+      { id: "porto@porto", nome: "Porto", cidade: "porto", populacao: 200000, estatuto: "cidade", desde: "2026-07-01" },
+    ];
+    it("guarda, lê e filtra por concelho", () => {
+      const r = criar();
+      r.guardarLocalidades(base());
+      expect(r.localidade("matela@vimioso")).toEqual(base()[0]);
+      expect(r.localidade("nada")).toBeUndefined();
+      expect(r.localidades().map((l) => l.id)).toEqual(["matela@vimioso", "porto@porto", "vimioso@vimioso"]);
+      expect(r.localidades({ cidade: "vimioso" }).map((l) => l.nome)).toEqual(["Matela", "Vimioso"]);
+      expect(() => r.guardarLocalidades(base())).toThrow();
+    });
+    it("é atómico: um id repetido desfaz tudo", () => {
+      const r = criar();
+      const [a] = base();
+      expect(() => r.guardarLocalidades([a!, { ...a! }])).toThrow();
+      expect(r.localidades()).toEqual([]);
+    });
+    it("mudar de população sem mudar de estatuto não acrescenta história", () => {
+      const r = criar();
+      r.guardarLocalidades(base());
+      const antes = r.totalEventos();
+      expect(r.atualizarLocalidade("matela@vimioso", { populacao: 160, estatuto: "aldeia", data: "2027-06-30", epoca: 1 })).toEqual({});
+      expect(r.localidade("matela@vimioso")).toMatchObject({ populacao: 160, estatuto: "aldeia", desde: "2026-07-01" });
+      expect(r.totalEventos()).toBe(antes);
+    });
+    it("mudar de estatuto regista um evento público e atualiza 'desde'", () => {
+      const r = criar();
+      r.guardarLocalidades(base());
+      const { evento } = r.atualizarLocalidade("matela@vimioso", { populacao: 1700, estatuto: "vila", data: "2031-06-30", epoca: 5 });
+      expect(evento).toBeDefined();
+      expect(r.localidade("matela@vimioso")).toMatchObject({ populacao: 1700, estatuto: "vila", desde: "2031-06-30" });
+      const e = r.evento(evento!)!;
+      expect(e).toMatchObject({ tipo: "LOCALIDADE_ESTATUTO", vis: "publico", epoca: 5, dados: { de: "aldeia", para: "vila", populacao: 1700 } });
+      expect(r.eventosDe({ k: "localidade", id: "matela@vimioso" }).map((x) => x.id)).toEqual([evento]);
+      expect(r.eventosDe({ k: "cidade", id: "vimioso" }, { apenasPublicos: true }).map((x) => x.id)).toEqual([evento]);
+    });
+    it("recusa localidades inexistentes e desfaz o evento se a transação falhar", () => {
+      const r = criar();
+      r.guardarLocalidades(base());
+      expect(() => r.atualizarLocalidade("nada", { populacao: 1, estatuto: "aldeia", data: "2027-06-30", epoca: 1 })).toThrow();
+      expect(() => r.transacao(() => {
+        r.atualizarLocalidade("matela@vimioso", { populacao: 1700, estatuto: "vila", data: "2031-06-30", epoca: 5 });
+        throw new Error("falha");
+      })).toThrow("falha");
+      expect(r.localidade("matela@vimioso")?.estatuto).toBe("aldeia");
+      expect(r.totalEventos()).toBe(0);
     });
   });
 

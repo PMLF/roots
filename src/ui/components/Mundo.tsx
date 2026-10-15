@@ -46,13 +46,17 @@ export function Mundo({ motor }: { motor: MotorCliente }) {
     return () => { vivo = false; };
   }, [motor]);
 
-  const criar = async () => {
+  const [aConfirmar, setAConfirmar] = useState(false);
+  const criar = async (reiniciar = false) => {
+    setAConfirmar(false);
     setEstado({ fase: "a-criar" });
     try {
-      const resumo = await motor.chamar("criarMundo", { seed }, (progresso) => setEstado({ fase: "a-criar", progresso }));
+      const semente = reiniciar ? novaSemente() : seed;
+      if (reiniciar) { setSeed(semente); setPlantel([]); }
+      const resumo = await motor.chamar(reiniciar ? "reiniciarMundo" : "criarMundo", { seed: semente }, (progresso) => setEstado({ fase: "a-criar", progresso }));
       const lista = await motor.chamar("clubes", null);
       setClubes(lista);
-      setClube((c) => c || lista[0]?.id || "");
+      setClube((c) => (reiniciar ? lista[0]?.id : c) || lista[0]?.id || "");
       setEstado({ fase: "pronto", resumo });
     } catch (e) {
       setEstado({ fase: "erro", erro: e instanceof Error ? e.message : String(e) });
@@ -78,7 +82,7 @@ export function Mundo({ motor }: { motor: MotorCliente }) {
           <input value={seed} onChange={(e) => setSeed(e.target.value)} disabled={estado.fase !== "inicial" && estado.fase !== "erro"} data-testid="mundo-seed" />
         </label>{" "}
         <button onClick={() => setSeed(novaSemente())} disabled={estado.fase !== "inicial" && estado.fase !== "erro"} data-testid="mundo-nova-semente">{t("mundo.novaSemente")}</button>{" "}
-        <button onClick={criar} disabled={(estado.fase !== "inicial" && estado.fase !== "erro") || seed.trim() === ""} data-testid="mundo-criar">{t("mundo.criar")}</button>
+        <button onClick={() => criar()} disabled={(estado.fase !== "inicial" && estado.fase !== "erro") || seed.trim() === ""} data-testid="mundo-criar">{t("mundo.criar")}</button>
       </p>
       {estado.fase === "a-criar" && (
         <p data-testid="mundo-progresso">
@@ -94,6 +98,17 @@ export function Mundo({ motor }: { motor: MotorCliente }) {
               ? t("mundo.jaExistia", { seed: estado.resumo.seed, pessoas: estado.resumo.pessoas, jogadores: estado.resumo.jogadores })
               : t("mundo.criado", { seed: estado.resumo.seed, clubes: estado.resumo.clubes, pessoas: estado.resumo.pessoas, jogadores: estado.resumo.jogadores, segundos: (estado.resumo.ms / 1000).toFixed(1) })}
             {estado.resumo.avisos.length > 0 && <> {t("mundo.avisos", { n: estado.resumo.avisos.length })}</>}
+          </p>
+          <p>
+            {!aConfirmar ? (
+              <button onClick={() => setAConfirmar(true)} data-testid="mundo-reiniciar">{t("mundo.reiniciar")}</button>
+            ) : (
+              <>
+                <span className="erro">{t("mundo.reiniciarAviso")}</span>{" "}
+                <button onClick={() => criar(true)} data-testid="mundo-reiniciar-confirmar">{t("mundo.reiniciarConfirmar")}</button>{" "}
+                <button onClick={() => setAConfirmar(false)}>{t("mundo.reiniciarCancelar")}</button>
+              </>
+            )}
           </p>
           <h3>{t("mundo.plantel")}</h3>
           <p>

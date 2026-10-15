@@ -5,6 +5,7 @@
  * (nunca falha à primeira). Os totais esperados vêm dos parâmetros (RZ-006).
  */
 import { PARAMETROS_PADRAO, type Escalao, type Parametros } from "../config/parametros";
+import { ESTATUTOS, estatutoCoerente } from "../localidade/estatuto";
 import { lerTabela, type LinhaCsv } from "./csv";
 import type {
   CidadeBase,
@@ -12,6 +13,7 @@ import type {
   DadosBase,
   DistritoBase,
   FontesCsv,
+  LocalidadeBase,
   Propriedade,
   ResultadoImportacao,
   RivalidadeBase,
@@ -31,8 +33,9 @@ const PROPRIEDADES: readonly Propriedade[] = ["clube", "municipal", "partilhada"
 const SERIES: readonly SerieCP[] = ["A", "B", "C", "D"];
 
 const COLUNAS = {
-  clubes: ["id", "nome", "cidade", "concelho", "distrito", "divisao", "liga", "rep", "fin", "cap", "estadio", "cores", "alcunha", "mascote", "rival", "setor", "tag2", "polo", "serie_cp", "estadio_prop", "est_local", "est_dist_km", "est_transportes", "est_acesso_rodov", "est_estacionamento", "est_lugares_estac", "est_envolvente", "est_terreno", "origem"],
+  clubes: ["id", "nome", "cidade", "concelho", "distrito", "divisao", "liga", "rep", "fin", "cap", "estadio", "cores", "alcunha", "mascote", "rival", "setor", "tag2", "polo", "serie_cp", "estadio_prop", "est_local", "est_dist_km", "est_transportes", "est_acesso_rodov", "est_estacionamento", "est_lugares_estac", "est_envolvente", "est_terreno", "origem", "localidade_id"],
   cidades: ["concelho", "distrito", "populacao", "setor", "tag2", "polo", "ilha", "orcamento_municipal", "autarca", "ambicao", "apoio_desporto", "vaidade", "paciencia", "integridade", "cultura_futebol", "clubes"],
+  localidades: ["id", "nome", "concelho", "distrito", "populacao", "estatuto", "sede", "clubes"],
   rivalidades: ["clube_a", "clube_b", "mutua", "mesmo_concelho", "mesmo_distrito", "mesmo_polo", "mesma_divisao"],
   distritos: ["distrito", "serie_cp", "Primeira Liga", "Segunda Liga", "Terceira Liga", "Campeonato de Portugal", "Distrital", "total"],
 } as const;
@@ -150,6 +153,7 @@ export function importarDados(fontes: FontesCsv, params: Parametros = PARAMETROS
       id,
       nome,
       localidade: r.txt("cidade"),
+      localidadeId: r.txt("localidade_id"),
       cidade: slug(r.txt("concelho")),
       distrito: r.txt("distrito"),
       escalao: escalao ?? "distrital",
@@ -287,6 +291,55 @@ export function importarDados(fontes: FontesCsv, params: Parametros = PARAMETROS
     }
   }
 
+  // ---------- localidades (RZ-136) ----------
+  const localidades: LocalidadeBase[] = [];
+  const nomesClubesLocalidade: string[][] = [];
+  for (const l of tabela("localidades", fontes.localidades, ctx)) {
+    const r = leitor("localidades", l, ctx);
+    const estatuto = r.em("estatuto", ESTATUTOS);
+    const populacao = r.num("populacao", 1, 5_000_000, true);
+    const cidade = slug(r.txt("concelho"));
+    localidades.push({
+      id: r.txt("id"),
+      nome: r.txt("nome"),
+      cidade,
+      distrito: r.txt("distrito"),
+      populacao,
+      estatuto,
+      sede: r.em("sede", ["sim", "não"] as const) === "sim",
+      clubes: [],
+    });
+    nomesClubesLocalidade.push(r.txtOpc("clubes").split(";").map((x) => x.trim()).filter(Boolean));
+    const c = cidadePorId.get(cidade);
+    if (!c) erros.push(`${r.onde}: concelho "${r.txtOpc("concelho")}" não existe em cidades.csv`);
+    else {
+      if (c.distrito !== r.txtOpc("distrito")) erros.push(`${r.onde}: distrito "${r.txtOpc("distrito")}" != concelho ${c.nome}`);
+      if (populacao > c.populacao) erros.push(`${r.onde}: a localidade (${populacao}) é maior do que o concelho ${c.nome} (${c.populacao})`);
+    }
+    if (!estatutoCoerente(populacao, estatuto, params))
+      erros.push(`${r.onde}: ${populacao} habitantes não é coerente com o estatuto "${estatuto}" (limiares em parametros.localidade)`);
+  }
+  for (const [id, n] of contar(localidades, (x) => x.id)) if (n > 1) erros.push(`localidade duplicada: ${id}`);
+  const localidadePorId = new Map(localidades.map((x) => [x.id, x]));
+  localidades.forEach((loc, i) => {
+    for (const nome of nomesClubesLocalidade[i] ?? []) {
+      const id = idPorNome.get(nome);
+      const clube = id ? clubePorId.get(id) : undefined;
+      if (!clube) erros.push(`localidade ${loc.nome}: clube inexistente "${nome}"`);
+      else if (clube.localidadeId !== loc.id) erros.push(`localidade ${loc.nome}: o clube ${nome} é de outra localidade (${clube.localidadeId})`);
+      else loc.clubes.push(clube.id);
+    }
+  });
+  for (const c of clubes) {
+    const loc = localidadePorId.get(c.localidadeId);
+    if (!loc) erros.push(`${c.nome}: localidade "${c.localidadeId}" não existe em localidades.csv`);
+    else {
+      if (loc.cidade !== c.cidade) erros.push(`${c.nome}: a localidade ${loc.nome} é de outro concelho (${loc.cidade})`);
+      if (loc.nome !== c.localidade) erros.push(`${c.nome}: nome de localidade "${c.localidade}" != "${loc.nome}"`);
+      if (!loc.clubes.includes(c.id)) erros.push(`${c.nome}: não consta na lista de clubes da localidade ${loc.nome}`);
+    }
+  }
+
   // ---------- rivalidades ----------
   const rivalidades: RivalidadeBase[] = [];
   const arestas = new Set<string>();
@@ -328,6 +381,6 @@ export function importarDados(fontes: FontesCsv, params: Parametros = PARAMETROS
     if (!arestas.has([c.id, c.rival].sort().join("|"))) erros.push(`${c.nome}: o rival principal não consta em rivalidades.csv`);
 
   if (erros.length > 0) return { ok: false, erros };
-  const dados: DadosBase = { distritos, cidades, clubes, rivalidades };
+  const dados: DadosBase = { distritos, cidades, localidades, clubes, rivalidades };
   return { ok: true, dados, avisos: ctx.avisos };
 }

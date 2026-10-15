@@ -7,7 +7,7 @@
 export type Data = string;
 
 export type Visibilidade = "publico" | "privado" | "secreto";
-export type TipoEntidade = "clube" | "pessoa" | "cidade" | "competicao" | "jogo";
+export type TipoEntidade = "clube" | "pessoa" | "cidade" | "localidade" | "competicao" | "jogo";
 export type Origem = "jogo" | "gerado";
 
 export type EntidadeRef = { k: TipoEntidade; id: string; papel?: string };
@@ -163,6 +163,13 @@ export type JogadorReg = {
 };
 export type ContratoReg = { pessoa: string; clube: string; salarioMensal: number; inicio: Data; fim: Data };
 export type CargoReg = { pessoa: string; funcao: string; clube?: string; cidade?: string; qualidade?: Record<string, number> };
+// ---------- localidades (RZ-136)
+export type EstatutoLocalidade = "aldeia" | "vila" | "cidade";
+/** Estado atual de uma localidade. `desde` = data em que passou a ter o estatuto atual. */
+export type LocalidadeReg = { id: string; nome: string; cidade: string; populacao: number; estatuto: EstatutoLocalidade; desde: Data };
+/** Mudança de população/estatuto. Se o estatuto mudar, regista-se o evento público LOCALIDADE_ESTATUTO. */
+export type AtualizacaoLocalidade = { populacao: number; estatuto: EstatutoLocalidade; data: Data; epoca: number; causa?: number };
+
 export type LoteMundoReg = { pessoas: PessoaReg[]; jogadores: JogadorReg[]; contratos: ContratoReg[]; cargos: CargoReg[] };
 
 /** O que qualquer observador pode saber de uma pessoa sem a ter observado: factos públicos. */

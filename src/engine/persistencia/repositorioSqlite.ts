@@ -25,6 +25,8 @@ import type {
   Observacao,
   ObservacaoNova,
   LoteMundoReg,
+  LocalidadeReg,
+  AtualizacaoLocalidade,
   Participacao,
   PessoaIndice,
   PessoaPublica,
@@ -59,6 +61,24 @@ export class RepositorioSqlite implements Repositorio {
     this.d.fechar();
   }
 
+  reiniciar(): void {
+    if (this.prof > 0) throw new Error("reiniciar() não pode correr dentro de uma transação");
+    const tabelas = this.d.todos("SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'").map((r) => txt(r.name));
+    this.d.executarScript("PRAGMA foreign_keys = OFF");
+    this.d.executarScript("BEGIN");
+    try {
+      for (const t of tabelas) this.d.executarScript(`DROP TABLE IF EXISTS "${t}"`);
+      this.d.executarScript("PRAGMA user_version = 0");
+      this.d.executarScript("COMMIT");
+    } catch (e) {
+      this.d.executarScript("ROLLBACK");
+      throw e;
+    } finally {
+      this.d.executarScript("PRAGMA foreign_keys = ON");
+    }
+    migrar(this.d);
+  }
+
   transacao<T>(fn: () => T): T {
     const nivel = this.prof;
     const sp = `sp${nivel}`;
@@ -83,6 +103,45 @@ export class RepositorioSqlite implements Repositorio {
   }
   definirMeta(chave: string, valor: string): void {
     this.d.executar("INSERT INTO meta (chave, valor) VALUES (?, ?) ON CONFLICT(chave) DO UPDATE SET valor = excluded.valor", [chave, valor]);
+  }
+
+  // ---------- localidades
+  private localidadeReg(r: LinhaSql): LocalidadeReg {
+    return { id: txt(r.id), nome: txt(r.nome), cidade: txt(r.cidade), populacao: num(r.populacao), estatuto: txt(r.estatuto) as LocalidadeReg["estatuto"], desde: txt(r.desde) };
+  }
+  guardarLocalidades(localidades: readonly LocalidadeReg[]): void {
+    this.transacao(() => {
+      if (num(this.d.todos("SELECT COUNT(*) AS n FROM localidade")[0]?.n) > 0) throw new Error("O save já tem localidades");
+      for (const l of localidades)
+        this.d.executar("INSERT INTO localidade (id, nome, cidade, populacao, estatuto, desde) VALUES (?,?,?,?,?,?)", [l.id, l.nome, l.cidade, l.populacao, l.estatuto, l.desde]);
+    });
+  }
+  localidade(id: string): LocalidadeReg | undefined {
+    const r = this.d.todos("SELECT * FROM localidade WHERE id = ?", [id])[0];
+    return r ? this.localidadeReg(r) : undefined;
+  }
+  localidades(filtro: { cidade?: string } = {}): LocalidadeReg[] {
+    const rs = filtro.cidade === undefined ? this.d.todos("SELECT * FROM localidade ORDER BY id") : this.d.todos("SELECT * FROM localidade WHERE cidade = ? ORDER BY id", [filtro.cidade]);
+    return rs.map((r) => this.localidadeReg(r));
+  }
+  atualizarLocalidade(id: string, a: AtualizacaoLocalidade): { evento?: number } {
+    return this.transacao(() => {
+      const antes = this.localidade(id);
+      if (!antes) throw new Error(`Localidade inexistente: ${id}`);
+      if (!(a.populacao >= 0)) throw new Error("população inválida");
+      if (a.estatuto === antes.estatuto) {
+        this.d.executar("UPDATE localidade SET populacao = ? WHERE id = ?", [a.populacao, id]);
+        return {};
+      }
+      const evento = this.acrescentarEvento({
+        tipo: "LOCALIDADE_ESTATUTO", data: a.data, epoca: a.epoca, vis: "publico",
+        entidades: [{ k: "localidade", id }, { k: "cidade", id: antes.cidade }],
+        ...(a.causa !== undefined ? { causa: a.causa } : {}),
+        dados: { de: antes.estatuto, para: a.estatuto, populacao: a.populacao },
+      });
+      this.d.executar("UPDATE localidade SET populacao = ?, estatuto = ?, desde = ? WHERE id = ?", [a.populacao, a.estatuto, a.data, id]);
+      return { evento };
+    });
   }
 
   // ---------- pessoas

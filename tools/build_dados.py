@@ -141,6 +141,39 @@ exp = {"Primeira Liga": 20, "Segunda Liga": 18, "Terceira Liga": 20}
 for k, v in exp.items():
     if cont[k] != v: err(f"{k} tem {cont[k]} (esperado {v})")
 
+
+# ---------- localidades (aldeia / vila / cidade; RZ-136) ----------
+# Estatuto inicial pela população. Os limiares repetem os de parametros.ts (localidade.*); o importador (TS) confirma que batem certo.
+LIMIAR_VILA, LIMIAR_CIDADE = 1500, 8000
+def estatuto(pop): return "cidade" if pop >= LIMIAR_CIDADE else "vila" if pop >= LIMIAR_VILA else "aldeia"
+def sem_parentese(n): return re.sub(r"\s*\(.*\)$", "", n)
+extra_loc = {}
+for ln in lines(SRC / "localidades.txt"):
+    nome_l, conc_l, pop_l = ln.split("|")
+    if conc_l not in conc: err(f"localidades.txt: concelho inexistente {conc_l} ({nome_l})"); continue
+    if (nome_l, conc_l) in extra_loc: err(f"localidades.txt: duplicada {nome_l} / {conc_l}")
+    extra_loc[(nome_l, conc_l)] = int(pop_l)
+localidades = {}
+usadas_extra = set()
+for c in todos:
+    chave = (c["cidade"], c["concelho"])
+    c["localidade_id"] = slug(c["cidade"]) + "@" + slug(c["concelho"])
+    if chave in localidades: continue
+    if chave in extra_loc:
+        pop_l = extra_loc[chave]; usadas_extra.add(chave); sede = "não"
+    elif c["cidade"] == sem_parentese(c["concelho"]):
+        pc = conc[c["concelho"]]["pop"]
+        f = 0.7 if pc < 8000 else 0.55 if pc < 30000 else 0.5 if pc < 100000 else 0.75
+        pop_l = int(round(pc * f / 100) * 100); sede = "sim"
+    else:
+        err(f"localidade sem população: {c['cidade']} / {c['concelho']} ({c['nome']}) — acrescentar a data/src/localidades.txt"); continue
+    if pop_l > conc[c["concelho"]]["pop"]: err(f"localidade maior do que o concelho: {c['cidade']} / {c['concelho']}")
+    localidades[chave] = dict(id=c["localidade_id"], nome=c["cidade"], concelho=c["concelho"], distrito=c["distrito"],
+                              populacao=pop_l, estatuto=estatuto(pop_l), sede=sede, clubes=[])
+for k in extra_loc:
+    if k not in usadas_extra: err(f"localidades.txt: localidade sem clube: {k[0]} / {k[1]}")
+for c in todos: localidades[(c["cidade"], c["concelho"])]["clubes"].append(c["nome"])
+
 if erros:
     print("ERROS:"); [print(" -", e) for e in erros]; sys.exit(1)
 
@@ -213,9 +246,12 @@ ids = Counter(c["id"] for c in todos)
 for i, k in ids.items():
     if k > 1: print("AVISO id duplicado", i)
 
-COLS = ["id","nome","cidade","concelho","distrito","divisao","liga","rep","fin","cap","estadio","cores","alcunha","mascote","rival","setor","tag2","polo","serie_cp","estadio_prop","est_local","est_dist_km","est_transportes","est_acesso_rodov","est_estacionamento","est_lugares_estac","est_envolvente","est_terreno","origem"]
+COLS = ["id","nome","cidade","concelho","distrito","divisao","liga","rep","fin","cap","estadio","cores","alcunha","mascote","rival","setor","tag2","polo","serie_cp","estadio_prop","est_local","est_dist_km","est_transportes","est_acesso_rodov","est_estacionamento","est_lugares_estac","est_envolvente","est_terreno","origem","localidade_id"]
 w(OUT / "clubes.csv", COLS, todos)
 w(OUT / "cidades.csv", list(cidades[0].keys()), cidades)
+loc_rows = sorted(localidades.values(), key=lambda l: (l["distrito"], l["concelho"], l["nome"]))
+for l in loc_rows: l["clubes"] = "; ".join(l["clubes"])
+w(OUT / "localidades.csv", ["id","nome","concelho","distrito","populacao","estatuto","sede","clubes"], loc_rows)
 
 dist_rows = []
 for d, s in sorted(SERIE_DE.items(), key=lambda kv: (kv[1], kv[0])):
@@ -243,4 +279,5 @@ w(OUT / "rivalidades.csv", list(riv[0].keys()), riv)
 print(f"OK: {len(todos)} clubes ({len(exist)} existentes + {len(novos)} novos), {len(cidades)} concelhos, {len(riv)} rivalidades")
 print("Divisões:", {d: sum(1 for c in todos if c['divisao'] == d) for d in DIVISOES})
 print("Corrigi no original:", corrigidos)
+print("Localidades:", Counter(l["estatuto"] for l in loc_rows))
 print("Campos preenchidos:", len(preenchidos))

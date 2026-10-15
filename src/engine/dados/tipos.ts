@@ -4,9 +4,11 @@
  * setores e pessoas são gerados depois (RZ-103). Tudo aqui é imutável pelo motor.
  */
 import type { Escalao } from "../config/parametros";
+import type { Estatuto } from "../localidade/estatuto";
 
 export type ClubeId = string;
 export type CidadeId = string;
+export type LocalidadeId = string;
 export type DistritoId = string;
 export type SerieCP = "A" | "B" | "C" | "D";
 export type Zona = "centro" | "perto" | "periferia" | "fora";
@@ -34,8 +36,9 @@ export type EstadioBase = {
 export type ClubeBase = {
   id: ClubeId;
   nome: string;
-  /** Localidade do clube (coluna "cidade" do CSV). */
+  /** Nome da localidade do clube (coluna "cidade" do CSV). */
   localidade: string;
+  localidadeId: LocalidadeId;
   /** Concelho: a cidade do jogo. */
   cidade: CidadeId;
   distrito: DistritoId;
@@ -81,6 +84,19 @@ export type CidadeBase = {
   clubes: ClubeId[];
 };
 
+/** Aldeia, vila ou cidade onde o clube vive, dentro de um concelho (RZ-136). O estatuto e a população evoluem no save. */
+export type LocalidadeBase = {
+  id: LocalidadeId;
+  nome: string;
+  cidade: CidadeId;
+  distrito: DistritoId;
+  populacao: number;
+  estatuto: Estatuto;
+  /** É a sede do concelho. */
+  sede: boolean;
+  clubes: ClubeId[];
+};
+
 export type DistritoBase = {
   id: DistritoId;
   nome: string;
@@ -102,11 +118,12 @@ export type RivalidadeBase = {
 export type DadosBase = {
   distritos: DistritoBase[];
   cidades: CidadeBase[];
+  localidades: LocalidadeBase[];
   clubes: ClubeBase[];
   rivalidades: RivalidadeBase[];
 };
 
-export type FontesCsv = { clubes: string; cidades: string; rivalidades: string; distritos: string };
+export type FontesCsv = { clubes: string; cidades: string; localidades: string; rivalidades: string; distritos: string };
 
 export type ResultadoImportacao =
   | { ok: true; dados: DadosBase; avisos: string[] }

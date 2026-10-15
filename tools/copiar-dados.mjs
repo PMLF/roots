@@ -4,7 +4,7 @@ import { join } from "node:path";
 
 const destino = join(process.cwd(), "public", "dados");
 mkdirSync(destino, { recursive: true });
-for (const f of ["clubes", "cidades", "rivalidades", "distritos", "paises"]) {
+for (const f of ["clubes", "cidades", "localidades", "rivalidades", "distritos", "paises"]) {
   const origem = join(process.cwd(), "data", `${f}.csv`);
   if (!existsSync(origem)) throw new Error(`Falta ${origem}`);
   copyFileSync(origem, join(destino, `${f}.csv`));

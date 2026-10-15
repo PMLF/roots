@@ -45,7 +45,8 @@ export function FichaClube({ d }: { d: FichaClubeDados }) {
         resumo: (
           <table className="tabela">
             <tbody>
-              <tr><th scope="row">{t("clube.cidade")}</th><td><Ligacao k="cidade" id={d.cidade.id}>{d.cidade.nome}</Ligacao> ({d.distrito})</td></tr>
+              <tr><th scope="row">{t("clube.localidade")}</th><td><Ligacao k="localidade" id={d.localidade.id}>{d.localidade.nome}</Ligacao> <span className="suave">({t(`estatuto.${d.localidade.estatuto}` as Chave).toLowerCase()})</span></td></tr>
+              <tr><th scope="row">{t("clube.concelho")}</th><td><Ligacao k="cidade" id={d.cidade.id}>{d.cidade.nome}</Ligacao> ({d.distrito})</td></tr>
               <tr><th scope="row">{t("clube.cores")}</th><td>{d.cores}</td></tr>
               <tr><th scope="row">{t("clube.alcunha")}</th><td>{d.alcunha} · {d.mascote}</td></tr>
               {d.rival && <tr><th scope="row">{t("clube.rival")}</th><td><Ligacao k="clube" id={d.rival.id}>{d.rival.nome}</Ligacao></td></tr>}
@@ -65,6 +66,7 @@ export function FichaClube({ d }: { d: FichaClubeDados }) {
       }}
       lateral={
         <ul className="ligacoes">
+          <li><Ligacao k="localidade" id={d.localidade.id}>{d.localidade.nome}</Ligacao></li>
           <li><Ligacao k="cidade" id={d.cidade.id}>{d.cidade.nome}</Ligacao></li>
           {d.rival && <li><Ligacao k="clube" id={d.rival.id}>{d.rival.nome}</Ligacao></li>}
           {presidente && <li><Ligacao k="pessoa" id={presidente.id}>{presidente.nomeDesportivo}</Ligacao> <span className="suave">· {t("funcao.presidente")}</span></li>}

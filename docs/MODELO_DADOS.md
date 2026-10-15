@@ -40,12 +40,14 @@ Variáveis dinâmicas da cidade (RZ-301/309, F3; em F1 ficam a valores por omiss
 
 Fonte inicial: `data/cidades.csv` (colunas `concelho, distrito, populacao, setor, tag2, polo, ilha, orcamento_municipal, autarca, ambicao, apoio_desporto, vaidade, paciencia, integridade, clubes`).
 
+Cada **localidade** (`data/localidades.csv`: `id, nome, concelho, distrito, populacao, estatuto, sede, clubes`) pertence a um concelho. O `id` é `<localidade>@<concelho>` (`moita-dos-ferreiros@lourinha`). Estado atual no save: tabela `localidade` (`populacao`, `estatuto`, `desde`); mudanças de estatuto no evento `LOCALIDADE_ESTATUTO`.
+
 ## 3. Clube
 
 | Campo | Notas |
 |---|---|
 | `id`, `nome`, `alcunha`, `mascote`, `cores`, `fundacao?` | identidade |
-| `cidade: CidadeId` (concelho) e `localidade` | o concelho do CSV; a "cidade" do CSV é a localidade |
+| `cidade: CidadeId` (concelho) e `localidade: LocalidadeId` | o concelho do CSV e a localidade onde o clube vive (aldeia, vila ou cidade; coluna «cidade» do CSV + `localidade_id`). Ver `docs/CIDADE.md` §6b |
 | `escalao`: `PL \| SL \| TL \| CP \| DIST` + `competicaoId` | onde joga agora |
 | `reputacao` (0-10000) | cresce/decresce com resultados; escala do CSV |
 | `financas`: `saldo`, `divida`, `orcamentoAnual`, `massaSalarialMax`, `patrocinios[]` | RZ-114 |

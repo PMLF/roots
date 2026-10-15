@@ -15,7 +15,7 @@ AD Câmara de Lobos|Câmara de Lobos|SC Funchal
 CN Machico|Machico|GD Santa Cruz
 Clube Sport Sagres|Faro|GD Olhanense
 Serpa Atlético Clube|Serpa|AC Moura|Serpa
-CD Matelense|Bragança|AD Mirandelense
+CD Matelense|Vimioso|AD Mirandelense|Matela
 Atlético de Coimbra|Coimbra|Coimbra Sport Clube
 Aveirense Futebol Clube|Aveiro|UD Ílhavo
 SC Santa Marta|Santa Marta de Penaguião|UD Vila-Realense
