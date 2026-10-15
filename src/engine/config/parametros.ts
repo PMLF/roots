@@ -129,6 +129,26 @@ export type Parametros = {
     /** Momentos-chave do jogo (RZ-105). */
     momentos: { xgGrande: number };
   };
+  /** Táticas (RZ-108; docs/MOTOR_JOGO.md §8). Efeitos em pontos da escala 1-20 de força, ou multiplicadores. */
+  tatica: {
+    /** Pontos por unidade de «linha» a mais que o 4-3-3 (atacantes = PL + metade de extremos e MO; meio = MC, MDC + metade de extremos e MO). */
+    formacao: { ataque: number; controlo: number; defesa: number };
+    estilos: Record<"bonito" | "equilibrado" | "direto" | "contraAtaque", { controlo: number; ataque: number; defesa: number; faltas: number; cantoRemate: number }>;
+    /** Efeito de cada nível acima (+) ou abaixo (−) do 3 (normal). */
+    intensidade: { controlo: number; defesa: number; faltas: number; fadiga: number };
+    linha: { controlo: number; ataque: number; defesa: number };
+    ritmo: { oportunidades: number; fadiga: number };
+    /** Multiplicador das faltas e pontos de defesa por nível de fair play (1 = cavalheiro … 5 = agressivo). */
+    fairPlay: { faltas: number[]; defesa: number[] };
+    bonito: { base: number; escala: number; max: number };
+    diretoAtaquePorLinha: number;
+    /** Contra-ataque: por cada ponto de controlo que o adversário tem a mais (até `max`), ganha ataque e defesa. */
+    contraAtaque: { ataquePorPonto: number; defesaPorPonto: number; max: number };
+    /** Cansaço: pontos de força perdidos no fim do jogo por uma equipa com intensidade e ritmo máximos; começa a contar a partir do minuto `inicio`. */
+    fadiga: { max: number; inicio: number };
+    /** Treinador (RZ-108): quanto uma formação favorita vale, em pontos de qualidade média do onze, para um treinador totalmente teimoso. */
+    treinador: { bonusPreferencia: number; favoritas: number };
+  };
   /** Geração do mundo e das pessoas (GERACAO_MUNDO, MODELO_DADOS §15). */
   mundo: {
     talento: {
@@ -272,6 +292,26 @@ export const PARAMETROS_PADRAO: Parametros = {
     notas: { base: 6, min: 3, max: 10, ruido: 0.25, golo: 0.9, assistencia: 0.5, remateABaliza: 0.1, ocasiaoFalhada: -0.2, penaltiFalhado: -0.7, falta: -0.08, penaltiConcedido: -0.5, defesa: 0.2, golosSofridos: -0.25, balizaZero: 0.5, resultado: 0.3 },
     momentos: { xgGrande: 0.3 },
   },
+  tatica: {
+    formacao: { ataque: 0.7, controlo: 0.5, defesa: 0.6 },
+    estilos: {
+      bonito: { controlo: 0.8, ataque: 0.1, defesa: -0.4, faltas: 0.95, cantoRemate: 0.9 },
+      equilibrado: { controlo: 0, ataque: 0, defesa: 0, faltas: 1, cantoRemate: 1 },
+      direto: { controlo: -0.5, ataque: 0.45, defesa: 0.15, faltas: 1.12, cantoRemate: 1.25 },
+      contraAtaque: { controlo: -0.6, ataque: 0.1, defesa: 0.2, faltas: 1.05, cantoRemate: 1 },
+    },
+    intensidade: { controlo: 0.2, defesa: 0.15, faltas: 0.1, fadiga: 1 },
+    linha: { controlo: 0.2, ataque: 0.2, defesa: -0.5 },
+    ritmo: { oportunidades: 0.06, fadiga: 0.6 },
+    fairPlay: { faltas: [0.7, 0.85, 1, 1.2, 1.45], defesa: [-0.6, -0.3, 0, 0.3, 0.6] },
+    contraAtaque: { ataquePorPonto: 1.2, defesaPorPonto: 0.4, max: 4 },
+    /** Jogo direto: por cada nível de linha defensiva que o adversário tem acima de 3 (bolas nas costas), ganha ataque. */
+    diretoAtaquePorLinha: 0.5,
+    /** Jogo bonito só rende com técnica: o bónus de controlo e ataque escala com (controlo da equipa − `base`)/`escala`, entre 0 e `max`. */
+    bonito: { base: 7, escala: 3, max: 1.5 },
+    fadiga: { max: 3.2, inicio: 30 },
+    treinador: { bonusPreferencia: 2, favoritas: 3 },
+  },
   mundo: {
     talento: { muIndice0: 6.5, muIndice100: 10.5, sigma: 2.4, epsIndice0: 0.004, epsIndice100: 0.02, paretoAlfa: 2.4, paretoEscala: 3 },
     qualidadeAlvo: {
@@ -369,6 +409,9 @@ export function validarParametros(p: Parametros): string[] {
   if (!(k.personalidade.limiarBaixo < k.personalidade.limiarAlto)) erros.push("conhecimento.personalidade: limiarBaixo < limiarAlto");
   if (k.personalidade.maxRotulos < 1) erros.push("conhecimento.personalidade: maxRotulos ≥ 1");
   if (k.personalidade.probTrocaPiorQualidade < 0 || k.personalidade.probTrocaPiorQualidade > 1) erros.push("conhecimento.personalidade: probTrocaPiorQualidade entre 0 e 1");
+  const t = p.tatica;
+  if (!(t.fairPlay.faltas.length === 5 && t.fairPlay.defesa.length === 5 && t.fairPlay.faltas.every((x) => x > 0))) erros.push("tatica.fairPlay: 5 níveis, multiplicadores de faltas > 0");
+  if (!(t.fadiga.max >= 0 && t.fadiga.inicio >= 0 && t.treinador.bonusPreferencia >= 0 && t.treinador.favoritas >= 1)) erros.push("tatica: fadiga.max ≥ 0, fadiga.inicio ≥ 0, treinador.bonusPreferencia ≥ 0 e favoritas ≥ 1");
   const j = p.jogo;
   if (!(j.notas.min < j.notas.base && j.notas.base < j.notas.max && j.notas.ruido >= 0)) erros.push("jogo.notas: min < base < max e ruido ≥ 0");
   if (!(j.momentos.xgGrande > 0 && j.momentos.xgGrande < 1)) erros.push("jogo.momentos.xgGrande entre 0 e 1");

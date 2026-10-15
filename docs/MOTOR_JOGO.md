@@ -73,7 +73,23 @@ E que a força conta: com +2 pontos de qualidade a equipa da casa ganha ≈ 68 %
 - **Momentos-chave:** golos com contexto (*abertura, empate, vantagem, reviravolta, redução, alargou*; reviravolta = passar para a frente depois de ter estado a perder), penáltis falhados (defendidos ou ao lado), grandes defesas e grandes ocasiões falhadas (xG ≥ `momentos.xgGrande`). São estruturados; `src/ui/jogo/momentos.ts` escreve-os em pt-PT e inglês (chaves `momento.*`). O comentário minuto a minuto continua a ser o RZ-131.
 - **Cartões e lesões:** entram no relatório com RZ-106 e RZ-107, quando o motor os gerar.
 
-## 7. Ligação ao resto
+## 7b. Táticas (RZ-108)
+
+Código: `formacoes.ts` (formações e efeitos, sem dependências), `tatica.ts` (treinador), parâmetros em `parametros.tatica`. `EquipaJogo.tatica` é opcional; sem ela usa-se `TATICA_PADRAO` (4-3-3, equilibrado, tudo a 3, fair play normal), que não muda nada.
+
+**Uma tática** = formação + estilo + intensidade, linha e ritmo (1-5, 3 = normal) + fair play (1 cavalheiro · 2 limpo · 3 normal · 4 duro · 5 agressivo).
+
+- **8 formações:** 4-3-3, 4-4-2, 4-2-3-1, 4-1-4-1, 3-5-2, 5-3-2, 3-4-3, 4-3-1-2. O efeito vem das posições realmente em campo (quanto é defesa, meio e ataque, com extremos e MO partidos ao meio e laterais a alas nos sistemas de três centrais), em pontos de força relativos ao 4-3-3. Cada formação tem um perfil diferente (há um teste).
+- **Estilo:** *bonito* (mais bola, menos faltas; só rende com técnica, escala com o controlo da equipa), *equilibrado*, *direto* (menos bola, mais cantos com remate de cabeça, mais faltas; ganha ataque contra linhas altas) e *contra-ataque* (cede bola; ganha ataque e defesa quanto mais controlo o adversário tem). Assim o contra-ataque rende ao mais fraco e o bonito ao mais forte.
+- **Intensidade:** mais controlo e defesa e mais faltas, mas **cansa**: a força cai depois do minuto 30, mais com intensidade e ritmo altos (`fadiga`).
+- **Linha:** alta dá controlo e ataque mas expõe a defesa.
+- **Ritmo:** mais oportunidades para os dois lados (a média dos dois ritmos).
+- **Fair play:** multiplica as faltas (0,7 … 1,45) e dá ou tira pontos de defesa. Os custos — cartões, lesões do adversário, relação com árbitros e imagem — chegam com RZ-106, RZ-107 e o árbitro do RZ-127; até lá o fair play duro sai-lhe barato.
+- **Calibração** (`tatica.test.ts`): entre equipas iguais, nenhuma tática muda os pontos por jogo em mais de 0,3; o contra-ataque dá mais pontos ao mais fraco e o jogo bonito ao mais forte.
+
+**Treinador.** `perfilTreinador(seed, id, personalidade, qualidadeTática)` deriva as preferências, de forma estável: 3 **formações favoritas** (ambicioso e vaidoso → ofensivas), estilo (vaidoso → bonito; impaciente → direto; modesto → contra-ataque), intensidade (ambição), linha (ambição + vaidade), ritmo (impaciência), fair play (temperamento alto e integridade baixa → duro) e **flexibilidade** (qualidade tática alta e vaidade baixa). `escolherEquipa` escolhe a formação que maximiza o valor médio do onze mais um bónus pela preferência (1.º favorito 100 %, 2.º 66 %, 3.º 33 %) multiplicado por `1 − flexibilidade`: o teimoso insiste nas favoritas mesmo com o plantel errado, o flexível escolhe o melhor onze. As preferências ainda não são guardadas na base de dados (derivam da seed, do id e da personalidade); evoluem e ficam guardadas com RZ-208/209.
+
+## 8. Ligação ao resto
 
 - `registoDoJogo(...)` converte o resultado em `JogoNovo` + factos (G, A, P) + participações, prontos para `Repositorio.registarJogo` (RZ-122 liga isto ao calendário).
-- Fora desta tarefa, de propósito: cartões e castigos (RZ-106), lesões (RZ-107), tática e formações (RZ-108), nível de detalhe (RZ-109), jogo ao vivo com ritmo e pausa (RZ-130) e comentário (RZ-131). Os eventos já trazem os dados de que precisam.
+- Fora desta tarefa, de propósito: cartões e castigos (RZ-106), lesões (RZ-107), nível de detalhe (RZ-109), jogo ao vivo com ritmo e pausa (RZ-130) e comentário (RZ-131). Os eventos já trazem os dados de que precisam.
