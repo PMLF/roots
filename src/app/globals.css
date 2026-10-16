@@ -351,3 +351,12 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .tabela-viva tr.a-jogar { background: color-mix(in srgb, currentColor 5%, transparent); }
 .tabela-viva .sobe { color: var(--cor-sobe, #1a7f37); }
 .tabela-viva .desce { color: var(--cor-desce, #c0392b); }
+
+.distintivo { margin-left: auto; min-width: 1.25rem; padding: 0 0.35rem; border-radius: 999px; background: var(--cor-destaque, #1a7f37); color: #fff; font-size: 0.75rem; line-height: 1.25rem; text-align: center; font-variant-numeric: tabular-nums; }
+.noticias { display: grid; gap: 0.75rem; max-width: 46rem; }
+.noticia { padding: 0.5rem 0.75rem; border-left: 3px solid transparent; }
+.noticia h3 { margin: 0 0 0.25rem; }
+.noticia p { margin: 0 0 0.25rem; }
+.noticia.do-teu-clube { border-left-color: var(--cor-destaque, #1a7f37); }
+.noticia.nao-lida h3 { font-weight: 800; }
+.noticia .ponto { display: inline-block; width: 0.5rem; height: 0.5rem; margin-right: 0.4rem; border-radius: 50%; background: var(--cor-destaque, #1a7f37); }

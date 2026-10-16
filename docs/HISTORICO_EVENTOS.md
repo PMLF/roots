@@ -353,3 +353,7 @@ Sem perguntas em aberto neste documento.
 - `Repositorio`: `guardarLocalidades` (uma só vez), `localidade`, `localidades({ cidade })` e `atualizarLocalidade` (muda população; se o estatuto mudar acrescenta o evento e atualiza `desde`, na mesma transação).
 - `reiniciar()`: apaga tudo (incluindo a história) e volta ao esquema vazio. Serve ao botão «Reiniciar o mundo» da página Mundo e aos testes; não se usa a meio de um jogo (ranhuras e saves exportados: RZ-134). O pedido `reiniciarMundo` reinicia e gera logo um mundo com a seed nova.
 
+
+## Notícias e caixa de entrada (RZ-118)
+
+As notícias **não são guardadas**: derivam dos eventos públicos (`src/engine/noticias/noticias.ts`). Cada evento que dá notícia vira `{ tipo, variante, valores, ligacoes }`; a interface traduz com as chaves `noticia.<tipo>.<n>.titulo|corpo` (`resultado` usa `resultado.<vitoria|empate|derrota>`). A variante é `id do evento % nº de variantes`, por isso a mesma notícia lê-se sempre igual. A caixa de entrada é o subconjunto pessoal do clube do gamer (inclui o resultado de cada jogo e todas as lesões do plantel); o estado de leitura é o meta `caixa.lida` (último evento lido).

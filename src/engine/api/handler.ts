@@ -8,6 +8,7 @@ import { gerarMundo } from "../mundo/gerarMundo";
 import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
+import { caixa, marcarCaixaLida, noticias } from "../noticias/noticias";
 import { lerJogoVivo } from "../epoca/jogoAoVivo";
 import { aceitarOferta, demitir, estaDesempregado, ofertasDoGamer } from "../epoca/mercadoTreinadores";
 import { avancar, estadoDoTempo } from "../epoca/avancar";
@@ -194,6 +195,19 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
     case "jogoAoVivo": {
       const { repositorio } = await contexto(servicos);
       return lerJogoVivo(repositorio, m.entrada.id);
+    }
+    case "noticias": {
+      const { repositorio, dados } = await contexto(servicos);
+      return noticias(repositorio, dados, m.entrada);
+    }
+    case "caixa": {
+      const { repositorio, dados } = await contexto(servicos);
+      return caixa(repositorio, dados, m.entrada);
+    }
+    case "marcarCaixaLida": {
+      const { repositorio } = await contexto(servicos);
+      marcarCaixaLida(repositorio);
+      return null;
     }
     case "demitir": {
       const { repositorio, dados, params } = await contexto(servicos);

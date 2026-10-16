@@ -3,7 +3,7 @@
  * Serve para testes rápidos do motor e como referência executável do contrato (ambos passam na mesma bateria).
  */
 import { VERSAO_ESQUEMA } from "./esquema";
-import type { FiltroEventos, Repositorio } from "./repositorio";
+import type { FiltroEventos, FiltroRecentes, Repositorio } from "./repositorio";
 import type {
   AjusteClassificacao,
   CargoReg,
@@ -364,6 +364,21 @@ export class RepositorioMemoria implements Repositorio {
       if (f.tipo !== undefined && e.tipo !== f.tipo) continue;
       if (f.desdeEpoca !== undefined && e.epoca < f.desdeEpoca) continue;
       if (f.ateEpoca !== undefined && e.epoca > f.ateEpoca) continue;
+      if (f.depoisDe !== undefined && e.id <= f.depoisDe) break;
+      if (f.antesDe !== undefined && e.id >= f.antesDe) continue;
+      out.push(clone(e));
+    }
+    return out;
+  }
+
+  eventosRecentes(f: FiltroRecentes = {}): Evento[] {
+    const out: Evento[] = [];
+    for (let i = this.eventos.length - 1; i >= 0 && (f.limite === undefined || out.length < f.limite); i--) {
+      const e = this.eventos[i] as Evento;
+      if (f.depoisDe !== undefined && e.id <= f.depoisDe) break;
+      if (f.antesDe !== undefined && e.id >= f.antesDe) continue;
+      if (f.apenasPublicos && e.vis !== "publico") continue;
+      if (f.tipos && !f.tipos.includes(e.tipo)) continue;
       out.push(clone(e));
     }
     return out;
