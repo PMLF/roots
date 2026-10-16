@@ -1,5 +1,6 @@
 "use client";
 import type { JogoVivo, LinhaVivo } from "@/engine/epoca/jogoAoVivo";
+import { useEffect, useRef } from "react";
 import type { Estilo, Nivel, Tatica } from "@/engine/jogo/tipos";
 import { AmostraClube } from "@/ui/components/AmostraClube";
 import type { Chave } from "@/ui/i18n";
@@ -51,7 +52,7 @@ export function Eventos({ jogo, soImportante }: { jogo: JogoVivo; soImportante: 
 }
 
 /** A tabela da competição, com os resultados em curso somados. */
-export function TabelaViva({ jogo }: { jogo: JogoVivo }) {
+export function TabelaViva({ jogo, meu }: { jogo: JogoVivo; meu?: string }) {
   const { t } = useT();
   const minuto = jogo.minuto ?? jogo.duracao;
   const tabela = tabelaAoVivo(jogo, minuto);
@@ -63,7 +64,7 @@ export function TabelaViva({ jogo }: { jogo: JogoVivo }) {
         <thead><tr><th>{t("jogo.col.pos")}</th><th>{t("jogo.col.clube")}</th><th>{t("jogo.col.j")}</th><th>{t("jogo.col.dg")}</th><th>{t("jogo.col.p")}</th></tr></thead>
         <tbody>
           {tabela.map((l) => (
-            <tr key={l.clube} className={emJogo.has(l.clube) ? "destaque" : l.aJogar ? "a-jogar" : undefined}>
+            <tr key={l.clube} className={l.clube === meu ? "meu-clube" : emJogo.has(l.clube) ? "destaque" : l.aJogar ? "a-jogar" : undefined}>
               <td>{l.pos}{l.pos < l.antes ? <span className="sobe" aria-label="▲"> ▲</span> : l.pos > l.antes ? <span className="desce" aria-label="▼"> ▼</span> : null}</td>
               <td className="nome-clube"><AmostraClube cores={jogo.cores?.[l.clube]} />{l.nome}</td><td>{l.jogos}</td><td>{l.dg > 0 ? `+${l.dg}` : l.dg}</td><td><b>{l.pontos}</b></td>
             </tr>
@@ -76,7 +77,7 @@ export function TabelaViva({ jogo }: { jogo: JogoVivo }) {
 }
 
 /** Os outros jogos da mesma competição, no mesmo dia, com o marcador ao minuto. */
-export function OutrosJogos({ jogo }: { jogo: JogoVivo }) {
+export function OutrosJogos({ jogo, meu }: { jogo: JogoVivo; meu?: string }) {
   const { t } = useT();
   const minuto = jogo.minuto ?? jogo.duracao;
   if (jogo.outros.length === 0) return null;
@@ -88,9 +89,9 @@ export function OutrosJogos({ jogo }: { jogo: JogoVivo }) {
           const [a, b] = marcadorAo(o.golos, minuto);
           return (
             <li key={o.id}>
-              <span className="nome-clube"><AmostraClube cores={jogo.cores?.[o.casa.id]} />{o.casa.nome}</span>
+              <span className={`nome-clube${o.casa.id === meu ? " meu-clube" : ""}`}><AmostraClube cores={jogo.cores?.[o.casa.id]} />{o.casa.nome}</span>
               <b className="marcador-pequeno">{a}</b>
-              <span className="nome-clube"><AmostraClube cores={jogo.cores?.[o.fora.id]} />{o.fora.nome}</span>
+              <span className={`nome-clube${o.fora.id === meu ? " meu-clube" : ""}`}><AmostraClube cores={jogo.cores?.[o.fora.id]} />{o.fora.nome}</span>
               <b className="marcador-pequeno">{b}</b>
               {minuto >= o.duracao && <span className="suave fim-jogo">{t("jogo.fimJogo")}</span>}
             </li>
@@ -132,11 +133,17 @@ export function Estatisticas({ jogo }: { jogo: JogoVivo }) {
 const ESTILOS: Estilo[] = ["bonito", "equilibrado", "direto", "contraAtaque"];
 const CAMPOS_NIVEL = ["intensidade", "linha", "ritmo", "fairPlay"] as const;
 
-/** Mudanças de tática durante o jogo: contam a partir do minuto seguinte. A formação e o onze ficam como estavam. */
+/** Mudanças de tática durante o jogo, num popup: contam a partir do minuto seguinte. A formação e o onze ficam como estavam. */
 export function TaticaNoJogo({ tatica, aoMudar, aoFechar, ocupado }: { tatica: Tatica; aoMudar: (t: Tatica) => void; aoFechar: () => void; ocupado: boolean }) {
   const { t } = useT();
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (d && !d.open) d.showModal();
+    return () => { if (d?.open) d.close(); };
+  }, []);
   return (
-    <section className="painel tatica-jogo" aria-labelledby="h-tatica-jogo">
+    <dialog ref={ref} className="popup tatica-jogo" aria-labelledby="h-tatica-jogo" onClose={aoFechar} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
       <h2 id="h-tatica-jogo">{t("jogo.taticaTitulo")}</h2>
       <div className="formulario">
         <p className="suave">{t("lab.formacao")}: <b>{tatica.formacao}</b></p>
@@ -154,7 +161,7 @@ export function TaticaNoJogo({ tatica, aoMudar, aoFechar, ocupado }: { tatica: T
         ))}
       </div>
       <p className="suave">{t("jogo.taticaAviso")}</p>
-      <p className="acoes"><button type="button" onClick={aoFechar}>{t("jogo.taticaFechar")}</button></p>
-    </section>
+      <p className="acoes"><button type="button" className="primario" onClick={() => ref.current?.close()}>{t("jogo.taticaFechar")}</button></p>
+    </dialog>
   );
 }

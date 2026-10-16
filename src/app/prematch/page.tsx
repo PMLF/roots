@@ -18,8 +18,6 @@ function Conteudo() {
   const [meu] = useMeuClube();
   const tempo = useTempo();
   const [plano, setPlano] = useState<PlanoVista | null | undefined>(undefined);
-  const [erro, setErro] = useState<string | undefined>(undefined);
-  const [aIniciar, setAIniciar] = useState(false);
 
   useEffect(() => {
     if (!motor) return;
@@ -36,18 +34,6 @@ function Conteudo() {
   if (plano === undefined || !hoje) return <p>{t("ficha.aCarregar")}</p>;
   if (!jogo || jogo.data !== hoje) return <p className="vazio">{t("prematch.semJogo")} <Link href="/">{t("jogo.voltar")}</Link></p>;
 
-  const ir = async () => {
-    if (!motor || aIniciar) return;
-    setAIniciar(true);
-    try {
-      await motor.chamar("iniciarJogo", { jogo: jogo.id });
-      window.dispatchEvent(new Event("raizes:tempo"));
-      router.push(`/match/?id=${encodeURIComponent(jogo.id)}&arrancar=1`);
-    } catch (e) {
-      setErro(e instanceof Error ? e.message : String(e));
-      setAIniciar(false);
-    }
-  };
   const eu = meu ? <AmostraClube id={meu} /> : null;
   const adv = <AmostraClube id={jogo.adversarioId} />;
   return (
@@ -58,10 +44,6 @@ function Conteudo() {
             {jogo.emCasa ? <>{eu}{plano?.clubeNome ?? ""}</> : <>{adv}{jogo.adversario}</>} <span className="suave">{t("inicio.vs")}</span> {jogo.emCasa ? <>{adv}{jogo.adversario}</> : <>{eu}{plano?.clubeNome ?? ""}</>}
           </p>
           <p className="suave">{jogo.competicao} · {jogo.data}</p>
-        </div>
-        <div className="prematch-acao">
-          <button type="button" className="primario" onClick={() => void ir()} disabled={aIniciar} data-testid="prematch-ir">{t("prematch.ir")}</button>
-          {erro && <p className="erro" role="alert">{erro}</p>}
         </div>
       </header>
       <p className="suave">{t("prematch.aviso")}</p>

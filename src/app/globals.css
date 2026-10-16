@@ -441,7 +441,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .placar-equipa { display: inline-flex; align-items: center; min-width: 0; }
 .placar-equipa .amostra-clube { width: 22px; height: 14px; margin: 0 10px; border-radius: 3px; }
 .placar-golos { font-size: clamp(30px, 4.4vw, 48px); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-.pagina-jogo .relogio { display: block; text-align: center; }
+.pagina-jogo .relogio { display: block; max-width: none; text-align: center; }
 .controlos-jogo label { display: inline-flex; align-items: center; gap: 6px; }
 .controlos-jogo input[type=checkbox] { margin: 0; width: auto; }
 .controlos-jogo { align-items: center; justify-content: center; }
@@ -478,3 +478,20 @@ button.dev { border-style: dashed; }
 .ponto-alternar.por-ler { background: var(--cor-destaque, #1a7f37); }
 .ponto-alternar:hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-destaque, #1a7f37) 25%, transparent); }
 .ligacao-botao { margin-left: 10px; padding: 0; border: 0; background: none; color: inherit; text-decoration: underline; font: inherit; font-size: 13px; cursor: pointer; min-height: 0; }
+
+/* RZ-172 */
+.ponto-alternar { position: relative; width: 28px; height: 28px; margin: -9px 2px -9px -9px; border: 0; background: none; vertical-align: middle; }
+.ponto-alternar::before { content: ""; position: absolute; inset: 9px; border-radius: 50%; border: 1.5px solid var(--cor-destaque, #1a7f37); }
+.ponto-alternar.por-ler::before { background: var(--cor-destaque, #1a7f37); }
+.ponto-alternar:hover { box-shadow: none; }
+.ponto-alternar:hover::before { box-shadow: 0 0 0 4px color-mix(in srgb, var(--cor-destaque, #1a7f37) 25%, transparent); }
+.ligacao-botao { padding: 8px 10px; margin: -8px 0 -8px 4px; border-radius: 6px; }
+.ligacao-botao:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
+.avancar-sozinho { border-radius: 999px; }
+.popup { border: 1px solid var(--linha); border-radius: var(--r-m); background: var(--painel); color: inherit; padding: 18px 22px; width: min(92vw, 420px); }
+.popup::backdrop { background: rgb(0 0 0 / 0.45); }
+.popup h2 { margin: 0 0 10px; font-size: 16px; }
+.popup .formulario { display: grid; gap: 8px; }
+.tabela-viva tr.meu-clube { background: color-mix(in srgb, var(--cor-destaque, #1a7f37) 22%, transparent); color: var(--cor-destaque, #1a7f37); font-weight: 750; box-shadow: inset 3px 0 0 var(--cor-destaque, #1a7f37); }
+.nome-clube.meu-clube { color: var(--cor-destaque, #1a7f37); font-weight: 750; }
+.tabela tr.meu-clube { background: color-mix(in srgb, var(--cor-destaque, #1a7f37) 20%, transparent); font-weight: 700; box-shadow: inset 3px 0 0 var(--cor-destaque, #1a7f37); }

@@ -9,6 +9,7 @@ import { Eventos, Estatisticas, OutrosJogos, TabelaViva, TaticaNoJogo } from "@/
 import { guardar, ler } from "@/ui/armazenamento";
 import { useModoDev } from "@/ui/dev";
 import { useT } from "@/ui/i18n/LocaleProvider";
+import { useMeuClube } from "@/ui/meuClube";
 import { useMotor } from "@/ui/MotorProvider";
 
 /** Segundos de relógio por minuto de jogo em cada velocidade. */
@@ -19,6 +20,7 @@ function Conteudo() {
   const { t } = useT();
   const motor = useMotor();
   const dev = useModoDev();
+  const [meu] = useMeuClube();
   const params = useSearchParams();
   const id = params.get("id") ?? undefined;
   const arrancar = params.get("arrancar") === "1";
@@ -77,11 +79,13 @@ function Conteudo() {
   }, [emCurso]);
 
   const abrirTatica = () => {
-    if (taticaAberta) { setTaticaAberta(false); setACorrer(corriaAntes.current); return; }
     corriaAntes.current = aCorrer;
     setACorrer(false);
     setTaticaAberta(true);
   };
+  const fecharTatica = useCallback(() => {
+    setTaticaAberta((aberta) => { if (aberta) setACorrer(corriaAntes.current); return false; });
+  }, []);
   const mudarTatica = async (tatica: Tatica) => {
     if (!motor) return;
     setAMudar(true);
@@ -114,28 +118,28 @@ function Conteudo() {
               {VELOCIDADES.map((v, i) => <option key={v.rotulo} value={i}>{v.rotulo}</option>)}
             </select>
           </label>
-          <button type="button" aria-pressed={taticaAberta} onClick={abrirTatica}>{t("jogo.taticaBotao")}</button>
+          <button type="button" onClick={abrirTatica}>{t("jogo.taticaBotao")}</button>
           <label><input type="checkbox" checked={soImportante} onChange={(e) => setSoImportante(e.target.checked)} /> {t("jogo.soImportante")}</label>
           {dev && <button type="button" className="dev" onClick={() => { setACorrer(false); void passo(500); }}>{t("jogo.saltar")}</button>}
         </div>
       ) : (
-        <div className="acoes">
+        <div className="acoes controlos-jogo">
           <span className="suave">{t("jogo.revisao")}</span>
           <label><input type="checkbox" checked={soImportante} onChange={(e) => setSoImportante(e.target.checked)} /> {t("jogo.soImportante")}</label>
           <Link href="/">{t("jogo.voltar")}</Link>
         </div>
       )}
       {erro && <p className="erro" role="alert">{erro}</p>}
+      {taticaAberta && emCurso && jogo.tatica && <TaticaNoJogo tatica={jogo.tatica} aoMudar={(x) => void mudarTatica(x)} aoFechar={fecharTatica} ocupado={aMudar} />}
       <div className="jogo-grelha">
         <div className="jogo-coluna">
-          {taticaAberta && emCurso && jogo.tatica && <TaticaNoJogo tatica={jogo.tatica} aoMudar={(x) => void mudarTatica(x)} aoFechar={abrirTatica} ocupado={aMudar} />}
           <section className="painel" aria-label={t("jogo.eventos")}>
             <h2>{t("jogo.eventos")}</h2>
             <Eventos jogo={jogo} soImportante={soImportante} />
           </section>
         </div>
-        <div className="jogo-coluna"><TabelaViva jogo={jogo} /></div>
-        <div className="jogo-coluna"><OutrosJogos jogo={jogo} /><Estatisticas jogo={jogo} /></div>
+        <div className="jogo-coluna"><Estatisticas jogo={jogo} /></div>
+        <div className="jogo-coluna"><OutrosJogos jogo={jogo} meu={meu ?? undefined} /><TabelaViva jogo={jogo} meu={meu ?? undefined} /></div>
       </div>
     </section>
   );
