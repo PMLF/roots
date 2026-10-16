@@ -8,6 +8,7 @@ import { zoneSizes } from "../competicao/ficha";
 import { diaDaSemana, somarDias } from "../calendario/datas";
 import type { Parametros } from "../config/parametros";
 import type { ClubeBase, DadosBase } from "../dados/tipos";
+import { arbitroDoJogo, canaisDoJogo } from "../jogo/contextoDoJogo";
 import { jogarJogo, nivelDoJogo } from "../jogo/detalhe";
 import { onzeAutomatico, type CandidatoOnze } from "../jogo/equipa";
 import { TATICA_PADRAO } from "../jogo/formacoes";
@@ -124,7 +125,8 @@ export function contextoDoJogo(repo: Repositorio, dados: DadosBase, params: Para
   const b = bilheteDoJogo(dados, params, casa, fora, competicao);
   if (!b) return { confrontos };
   const e = b.clube.estadio;
-  return { confrontos, info: { estadio: { nome: e.nome, localidade: b.clube.localidade, capacidade: e.capacidade }, assistencia: b.assistencia } };
+  const seed = repo.meta("seed") ?? "?";
+  return { confrontos, info: { estadio: { nome: e.nome, localidade: b.clube.localidade, capacidade: e.capacidade }, assistencia: b.assistencia, arbitro: arbitroDoJogo(seed, excepto), canais: canaisDoJogo(b.clube.escalao, competicao, seed, excepto) } };
 }
 
 /** Joga os jogos de `hoje` e passa ao dia seguinte. Tudo numa transação. */
@@ -153,7 +155,7 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
       const r = jogarJogo({ seed, id: g.id, casa, fora }, nivel, { id: g.id, competicao: g.competicao, epoca, jornada: g.jornada, data: hoje }, params);
       const rival = clubeGamer && nivel === 0 ? motivoDeRival(repo, dados, params, g.competicao, epoca, clubeGamer, g.casa === clubeGamer ? g.fora : g.casa) : undefined;
       const bilhete = bilheteDoJogo(dados, params, g.casa, g.fora, g.competicao);
-      const { evento } = repo.registarJogo(bilhete ? { ...r.registo.jogo, assistencia: bilhete.assistencia, receita: bilhete.receita } : r.registo.jogo, r.registo.factos, r.registo.participacoes);
+      const { evento } = repo.registarJogo({ ...r.registo.jogo, arbitro: arbitroDoJogo(seed, g.id), ...(bilhete ? { assistencia: bilhete.assistencia, receita: bilhete.receita } : {}) }, r.registo.factos, r.registo.participacoes);
       if (bilhete) lancar(repo, bilhete.clube, "bilheteira", bilhete.receita);
       if (rival) repo.acrescentarEvento(eventoRival(g.id, g.casa, g.fora, hoje, epoca, g.jornada, evento, rival));
       for (const l of r.registo.lesoes) repo.acrescentarEvento({ ...l, causa: evento });

@@ -1,6 +1,7 @@
 "use client";
 import type { JogadorVivo, JogoVivo, LinhaVivo } from "@/engine/epoca/jogoAoVivo";
 import { useEffect, useRef } from "react";
+import { corPredominante } from "@/ui/cores";
 import type { Estilo, Nivel, Tatica } from "@/engine/jogo/tipos";
 import type { ReactNode } from "react";
 import { AmostraClube } from "@/ui/components/AmostraClube";
@@ -251,18 +252,19 @@ export function GraficoXg({ jogo }: { jogo: JogoVivo }) {
   const ultimo = xg.casa.length - 1;
   const marcas = [0, 15, 30, 45, 60, 75, 90].filter((n) => n <= fim);
   const nomes = { casa: jogo.casa.nome, fora: jogo.fora.nome };
+  const cor = { casa: corPredominante(jogo.cores?.[jogo.casa.id]) ?? "var(--destaque)", fora: corPredominante(jogo.cores?.[jogo.fora.id]) ?? "var(--texto)" };
   return (
     <section className="painel" aria-labelledby="h-xg">
       <h2 id="h-xg">{t("jogo.xg.titulo")}</h2>
       <svg className="grafico-xg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("jogo.xg.aria", { casa: nomes.casa, a: xg.casa[ultimo]!.toFixed(2), fora: nomes.fora, b: xg.fora[ultimo]!.toFixed(2) })}>
         {[0, topo / 2, topo].map((v) => <g key={v}><line className="xg-grelha" x1={m.e} x2={W - m.d} y1={y(v)} y2={y(v)} /><text className="xg-eixo" x={m.e - 4} y={y(v) + 3} textAnchor="end">{v.toFixed(1)}</text></g>)}
         {marcas.map((n) => <text key={n} className="xg-eixo" x={x(n)} y={H - 6} textAnchor="middle">{n}'</text>)}
-        <path className="xg-linha xg-fora" d={degraus(xg.fora)} />
-        <path className="xg-linha xg-casa" d={degraus(xg.casa)} />
+        <path className="xg-linha xg-fora" stroke={cor.fora} d={degraus(xg.fora)} />
+        <path className="xg-linha xg-casa" stroke={cor.casa} d={degraus(xg.casa)} />
       </svg>
       <p className="xg-legenda">
-        <span><i className="xg-chave xg-casa" /> {nomes.casa} <b>{xg.casa[ultimo]!.toFixed(2)}</b></span>
-        <span><i className="xg-chave xg-fora" /> {nomes.fora} <b>{xg.fora[ultimo]!.toFixed(2)}</b></span>
+        <span><i className="xg-chave xg-casa" style={{ borderTopColor: cor.casa }} /> {nomes.casa} <b>{xg.casa[ultimo]!.toFixed(2)}</b></span>
+        <span><i className="xg-chave xg-fora" style={{ borderTopColor: cor.fora }} /> {nomes.fora} <b>{xg.fora[ultimo]!.toFixed(2)}</b></span>
       </p>
     </section>
   );
@@ -301,27 +303,23 @@ export function Confrontos({ jogo }: { jogo: JogoVivo }) {
   );
 }
 
-/** Estádio, adeptos e o resto do que rodeia o jogo. */
-export function InfoDoJogo({ jogo }: { jogo: JogoVivo }) {
+/** Por baixo do resultado: estádio, adeptos com barra de ocupação, árbitro e quem transmite. */
+export function InfoCabecalho({ jogo }: { jogo: JogoVivo }) {
   const { t } = useT();
   const i = jogo.info;
-  const pct = i ? Math.round((i.assistencia / i.estadio.capacidade) * 100) : 0;
+  if (!i) return null;
+  const pct = Math.round((i.assistencia / i.estadio.capacidade) * 100);
+  const meio = (m: "tv" | "streaming" | "radio") => t(`jogo.meio.${m}` as Chave);
   return (
-    <section className="painel" aria-labelledby="h-info">
-      <h2 id="h-info">{t("jogo.info.titulo")}</h2>
-      <dl className="info-jogo">
-        <dt>{t("jogo.info.competicao")}</dt><dd><Ligacao k="competicao" id={jogo.competicao}>{jogo.competicao}</Ligacao> · {t("jogo.jornada", { n: jogo.jornada })}</dd>
-        <dt>{t("jogo.info.data")}</dt><dd>{jogo.data}</dd>
-        {i && <>
-          <dt>{t("jogo.info.estadio")}</dt><dd>{i.estadio.nome} · {i.estadio.localidade}</dd>
-          <dt>{t("jogo.info.assistencia")}</dt>
-          <dd>
-            {i.assistencia.toLocaleString("pt-PT")} / {i.estadio.capacidade.toLocaleString("pt-PT")} ({pct}%)
-            <span className="barra-ocupacao" role="img" aria-label={`${pct}%`}><i style={{ width: `${pct}%` }} /></span>
-          </dd>
-        </>}
-        {i?.arbitro && <><dt>{t("jogo.info.arbitro")}</dt><dd>{i.arbitro}</dd></>}
-      </dl>
-    </section>
+    <div className="info-cabecalho">
+      <span className="info-estadio">{i.estadio.nome} · {i.estadio.localidade}</span>
+      <span className="info-adeptos" title={t("jogo.info.assistencia")}>
+        <b>{i.assistencia.toLocaleString("pt-PT")}</b> / {i.estadio.capacidade.toLocaleString("pt-PT")}
+        <span className="barra-ocupacao" role="img" aria-label={`${t("jogo.info.assistencia")}: ${pct}%`}><i style={{ width: `${pct}%` }} /></span>
+        {pct}%
+      </span>
+      {i.arbitro && <span>{t("jogo.info.arbitro")}: {i.arbitro}</span>}
+      {i.canais && i.canais.length > 0 && <span>{t("jogo.info.canais")}: {i.canais.map((c) => `${c.nome} (${meio(c.meio)})`).join(", ")}</span>}
+    </div>
   );
 }

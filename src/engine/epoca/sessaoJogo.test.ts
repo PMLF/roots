@@ -121,5 +121,7 @@ describe("jogo do gamer minuto a minuto (RZ-170)", () => {
     expect(fim.xg!.casa.at(-1)).toBeCloseTo(fim.resumo!.casa.xg, 1);
     expect(fim.xg!.fora.at(-1)).toBeCloseTo(fim.resumo!.fora.xg, 1);
     expect(fim.info).toEqual(ini.info);
+    expect(ini.info!.arbitro).toMatch(/\S+ \S+/);
+    expect(ini.info!.canais!.length).toBeGreaterThan(0);
   }, 120000);
 });

@@ -982,16 +982,15 @@
   "jogo.separadores": "Match sections",
   "jogo.tab.jogo": "Match",
   "jogo.tab.estatisticas": "Statistics",
-  "jogo.tab.info": "Info",
   "jogo.xg.titulo": "xG over time",
   "jogo.xg.aria": "Cumulative xG: {casa} {a}, {fora} {b}",
   "jogo.confrontos.titulo": "Recent meetings",
   "jogo.confrontos.sem": "They haven't met yet.",
   "jogo.confrontos.empates": "draws",
-  "jogo.info.titulo": "Match info",
-  "jogo.info.competicao": "Competition",
-  "jogo.info.data": "Date",
-  "jogo.info.estadio": "Stadium",
   "jogo.info.assistencia": "Attendance",
-  "jogo.info.arbitro": "Referee"
+  "jogo.info.arbitro": "Referee",
+  "jogo.info.canais": "Broadcast",
+  "jogo.meio.tv": "TV",
+  "jogo.meio.streaming": "streaming",
+  "jogo.meio.radio": "radio"
 }
