@@ -154,10 +154,34 @@ export type Params = {
     /** Fase final do CP (meias-finais e final entre os campeões das séries; domingos): dias depois da última jornada das séries e entre rondas. Tem de acabar em maio. */
     cpFinalPhase: { seriesAfterDays: number; roundsBetweenDays: number };
   };
+  /**
+   * Taças (RZ-140/141/142). Datas a meio da semana, sempre em dias sem jogos das ligas; a final da Taça é o último jogo
+   * interno da época; a Supertaça joga-se antes de começarem as ligas.
+   */
+  cups: {
+    cup: {
+      /** Vaga em que entra cada escalão (0 = logo na primeira ronda; as vagas seguintes entram mais tarde). */
+      wave: Record<Tier, number>;
+      /** Primeira ronda não antes deste dia (do ano em que a época começa). */
+      firstRound: { month: number; day: number };
+      /** A final joga-se no primeiro domingo que está pelo menos estes dias depois do último jogo interno das restantes competições. */
+      finalDaysAfterLeagues: number;
+      /** Dias da semana preferidos para as rondas, por ordem (0 = domingo … 6 = sábado): quarta, depois terça e quinta. */
+      weekdays: number[];
+    };
+    /** A Supertaça joga-se este número de dias antes da primeira jornada das ligas. */
+    supercupDaysBeforeFirstRound: number;
+    districtCup: {
+      /** Primeira ronda não antes deste dia. */
+      firstRound: { month: number; day: number };
+      /** A final joga-se este número de dias depois do fim das distritais (antes da Fase de Promoção). */
+      finalDaysAfterDistrictsEnd: number;
+    };
+  };
   saves: { daysAutosave: number; rotatingAutosaves: number; saveAtSeasonStart: boolean };
   fairPlay: { levels: number; fallback: number };
   /** Jogos a eliminar: se acabam empatados, decide-se nos penáltis (série inicial de `iniciais` cobranças por equipa, depois morte súbita). */
-  knockoutRounds: { penalties: { initial: number; goalProb: number } };
+  knockoutRounds: { penalties: { initial: number; goalProb: number; /** Probabilidade a mais por ponto de «penalties» do marcador acima de 10. */ takerSkill: number; /** Probabilidade a menos por ponto médio (reflexos, mãos) do guarda-redes acima de 10. */ keeperSkill: number } };
   /** Mercado de treinadores (RZ-157): ofertas que o gamer recebe sem clube, renovadas todas as segundas-feiras. */
   coach: {
     /** Ofertas de clubes de reputação igual ou inferior à do clube que deixou. */
@@ -222,6 +246,8 @@ export type Params = {
     /** Minutos regulares e acréscimos (total, sorteado por jogo). */
     duration: number;
     stoppage: { min: number; max: number };
+    /** Prolongamento dos jogos a eliminar empatados (RZ-140): minutos jogados e acréscimos no fim. */
+    extraTime: { minutes: number; stoppage: { min: number; max: number } };
     /** Oportunidades por equipa num jogo equilibrado (o total do jogo é o dobro). */
     chancesPerTeam: number;
     /** Vantagem de jogar em casa, em pontos de "controlo" (1-20). */
@@ -497,9 +523,14 @@ export const DEFAULT_PARAMETERS: Params = {
     simultaneousFinalRounds: 1,
     cpFinalPhase: { seriesAfterDays: 7, roundsBetweenDays: 7 },
   },
+  cups: {
+    cup: { wave: { district: 0, cp: 0, thirdLeague: 1, secondLeague: 1, firstLeague: 2 }, firstRound: { month: 9, day: 1 }, finalDaysAfterLeagues: 5, weekdays: [3, 2, 4] },
+    supercupDaysBeforeFirstRound: 6,
+    districtCup: { firstRound: { month: 10, day: 1 }, finalDaysAfterDistrictsEnd: 4 },
+  },
   saves: { daysAutosave: 7, rotatingAutosaves: 3, saveAtSeasonStart: true },
   fairPlay: { levels: 5, fallback: 3 },
-  knockoutRounds: { penalties: { initial: 5, goalProb: 0.76 } },
+  knockoutRounds: { penalties: { initial: 5, goalProb: 0.76, takerSkill: 0.012, keeperSkill: 0.008 } },
   coach: { offers: 3, surprises: 1, surpriseMargin: 600 },
   foreigners: { firstLeague: 0.55, secondLeague: 0.3, thirdLeague: 0.15, cp: 0.08, district: 0.03 },
   attendance: {
@@ -598,6 +629,7 @@ export const DEFAULT_PARAMETERS: Params = {
     substitutions: { max: 5, pauses: 3 },
     duration: 90,
     stoppage: { min: 3, max: 8 },
+    extraTime: { minutes: 30, stoppage: { min: 1, max: 4 } },
     chancesPerTeam: 24,
     homeAdvantage: 0.9,
     controlScale: 4,
@@ -748,7 +780,13 @@ export function validateParameters(p: Params): string[] {
   for (const [tier, days] of Object.entries(c.matchDays))
     if (days.length === 0 || days.some((x) => x < 0 || x > 6)) errors.push(`calendario.diasDeJogo.${tier}: dias entre 0 e 6, pelo menos um`);
   if (c.cpFinalPhase.seriesAfterDays < 1 || c.cpFinalPhase.roundsBetweenDays < 1) errors.push("calendario: faseFinalCp com intervalos ≥ 1 dia");
-  if (!(p.knockoutRounds.penalties.initial >= 1 && p.knockoutRounds.penalties.goalProb > 0 && p.knockoutRounds.penalties.goalProb < 1)) errors.push("eliminatorias.penaltis: iniciais ≥ 1 e probGolo entre 0 e 1");
+  if (!(p.knockoutRounds.penalties.initial >= 1 && p.knockoutRounds.penalties.goalProb > 0 && p.knockoutRounds.penalties.goalProb < 1)) errors.push("knockoutRounds.penalties: initial ≥ 1 e goalProb entre 0 e 1");
+  if (!(p.knockoutRounds.penalties.takerSkill >= 0 && p.knockoutRounds.penalties.keeperSkill >= 0)) errors.push("knockoutRounds.penalties: takerSkill e keeperSkill ≥ 0");
+  if (!(p.match.extraTime.minutes > 0 && p.match.extraTime.stoppage.min >= 0 && p.match.extraTime.stoppage.min <= p.match.extraTime.stoppage.max)) errors.push("match.extraTime: minutes > 0 e 0 ≤ stoppage.min ≤ max");
+  const cup = p.cups.cup;
+  for (const [tier, w] of Object.entries(cup.wave)) if (!Number.isInteger(w) || w < 0 || w > 2) errors.push(`cups.cup.wave.${tier}: vaga entre 0 e 2`);
+  if (!(cup.finalDaysAfterLeagues >= 1) || cup.weekdays.length === 0 || cup.weekdays.some((x) => x < 0 || x > 6)) errors.push("cups.cup: finalDaysAfterLeagues ≥ 1 e weekdays entre 0 e 6");
+  if (!(p.cups.supercupDaysBeforeFirstRound >= 1) || !(p.cups.districtCup.finalDaysAfterDistrictsEnd >= 1)) errors.push("cups: intervalos ≥ 1 dia");
   if (c.simultaneousFinalRounds < 0) errors.push("calendario: jornadasFinaisSimultaneas ≥ 0");
   for (const m of [c.seasonStartMonth, c.seasonEndMonth]) if (m < 1 || m > 12) errors.push("calendario: meses entre 1 e 12");
   if (c.windows.length === 0) errors.push("calendario: tem de existir pelo menos uma janela de transferências");

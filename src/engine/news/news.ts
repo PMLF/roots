@@ -11,7 +11,7 @@ import type { IsoDate } from "../persistence/types";
 
 export type NewsItemType =
   | "hattrick" | "red" | "two_yellows" | "rout" | "comeback_goal" | "stoppage_goal" | "serious_injury"
-  | "champion" | "state_prize" | "promotion" | "relegation" | "second_district" | "district_return" | "locality" | "city_event"
+  | "champion" | "cup_upset" | "state_prize" | "promotion" | "relegation" | "second_district" | "district_return" | "locality" | "city_event"
   | "outcome" | "injury" | "resignation" | "sacked" | "signed";
 
 export type NewsItemLink = { k: "club" | "person" | "locality" | "competition" | "city"; id: string; name: string };
@@ -35,11 +35,11 @@ export type Message = NewsItem & { isRead: boolean };
 /** Quantas variantes de texto existem por tipo (a interface tem as frases `noticia.<tipo>.<n>.titulo|corpo`). */
 export const VARIANTS: Record<NewsItemType, number> = {
   hattrick: 2, red: 2, two_yellows: 2, rout: 2, comeback_goal: 2, stoppage_goal: 2, serious_injury: 2,
-  champion: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1,
+  champion: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1,
 };
 
 /** Tipos de evento que dão notícia para toda a gente. */
-const NEWS_ITEM_EVENTS = ["HATTRICK", "RED_CARD", "ROUT", "NOTABLE_GOAL", "INJURY", "CHAMPION", "STATE_PRIZE", "SECOND_DISTRICT_RELEGATION", "DISTRICT_RETURN", "PROMOTION", "RELEGATION", "LOCALITY_STATUS", "CITY_EVENT"] as const;
+const NEWS_ITEM_EVENTS = ["HATTRICK", "RED_CARD", "ROUT", "NOTABLE_GOAL", "INJURY", "CHAMPION", "CUP_UPSET", "STATE_PRIZE", "SECOND_DISTRICT_RELEGATION", "DISTRICT_RETURN", "PROMOTION", "RELEGATION", "LOCALITY_STATUS", "CITY_EVENT"] as const;
 /** A caixa de entrada junta o que é pessoal: o resultado do teu jogo, qualquer lesão do teu plantel, a tua carreira. */
 const INBOX_EVENTS = [...NEWS_ITEM_EVENTS, "MATCH_PLAYED", "GAMER_RESIGNATION", "GAMER_HIRED"] as const;
 /** Lesões a partir desta gravidade são notícia no mundo; no teu plantel, todas. */
@@ -114,11 +114,16 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
     }
     case "CHAMPION":
       return club ? base("champion", { club: c.clubName(club.id), league: String(d.league ?? "") }, [lc(club.id)]) : undefined;
+    case "CUP_UPSET": {
+      const v = roleKind(e, "club", "winner");
+      const x = roleKind(e, "club", "beaten");
+      return v && x ? base("cup_upset", { winner: c.clubName(v.id), beaten: c.clubName(x.id), competition: String(d.competition ?? ""), round: String(d.round ?? ""), penalties: d.penalties === true ? 1 : 0, winnerGoals: within(d.winnerGoals), beatenGoals: within(d.beatenGoals) }, [lc(v.id), lc(x.id)]) : undefined;
+    }
     case "STATE_PRIZE": {
       if (!club) return undefined;
       const council = e.entities.find((x) => x.k === "city");
       const city = council ? c.data.cities.find((x) => x.id === council.id)?.name ?? council.id : "";
-      return base("state_prize", { club: c.clubName(club.id), district: String(d.district ?? ""), value: within(d.valorClube), consecutive: within(d.consecutive), city }, [lc(club.id), ...(council ? [{ k: "city" as const, id: council.id, name: city }] : [])]);
+      return base("state_prize", { club: c.clubName(club.id), district: String(d.district ?? ""), value: within(d.clubValue), consecutive: within(d.consecutive), city }, [lc(club.id), ...(council ? [{ k: "city" as const, id: council.id, name: city }] : [])]);
     }
     case "SECOND_DISTRICT_RELEGATION": case "DISTRICT_RETURN":
       return club ? base(e.type === "DISTRICT_RETURN" ? "district_return" : "second_district", { club: c.clubName(club.id), district: String(d.district ?? "") }, [lc(club.id)]) : undefined;
@@ -149,7 +154,7 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
       const ownSquad = home.id === c.club ? gc : gf;
       const their = home.id === c.club ? gf : gc;
       const competition = roleKind(e, "competition");
-      return base("outcome", { home: c.clubName(home.id), away: c.clubName(away.id), homeGoals: gc, awayGoals: gf, outcome: ownSquad > their ? "win" : ownSquad === their ? "draw" : "derrota", competition: competition?.id ?? "" }, [lc(home.id), lc(away.id)]);
+      return base("outcome", { home: c.clubName(home.id), away: c.clubName(away.id), homeGoals: gc, awayGoals: gf, outcome: ownSquad > their ? "win" : ownSquad === their ? "draw" : "defeat", competition: competition?.id ?? "" }, [lc(home.id), lc(away.id)]);
     }
     case "GAMER_RESIGNATION":
       return inboxOnly && club ? base(d.reason === "secondDistrict" ? "sacked" : "resignation", { club: c.clubName(club.id) }, [lc(club.id)]) : undefined;

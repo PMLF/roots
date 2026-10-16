@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { openSqliteBetter } from "../../node/driverBetterSqlite";
-import { migrar, MIGRACOES, SCHEMA_VERSION, fileVersion } from "./schema";
+import { migrate, MIGRATIONS, SCHEMA_VERSION, fileVersion } from "./schema";
 import { repositoryContract, ev, syntheticMatch } from "./repository.contract";
 import type { Repository } from "./repository";
 import { MemoryRepository } from "./repositoryMemory";
@@ -59,29 +59,20 @@ describe("esquema e migrações", () => {
   });
 
   it("migra um save antigo preservando os data", () => {
-    const V1 = MIGRACOES.slice(0, 1);
+    const V1 = MIGRATIONS.slice(0, 1);
     const d1 = openSqliteBetter();
-    migrar(d1, V1);
+    migrate(d1, V1);
     d1.run("INSERT INTO event (type, v, date, season, visibility, data) VALUES ('OLD', 1, '2026-08-15', 1, 0, '{}')");
     const extra = "ALTER TABLE match ADD COLUMN meteo TEXT; CREATE TABLE extra (x INTEGER);";
-    expect(migrar(d1, [...MIGRACOES, extra])).toEqual({ de: 1, para: MIGRACOES.length + 1 });
-    expect(fileVersion(d1)).toBe(MIGRACOES.length + 1);
+    expect(migrate(d1, [...MIGRATIONS, extra])).toEqual({ from: 1, to: MIGRATIONS.length + 1 });
+    expect(fileVersion(d1)).toBe(MIGRATIONS.length + 1);
     expect(d1.all("SELECT type FROM event").map((l) => l.type)).toEqual(["OLD"]);
-    expect(migrar(d1, [...MIGRACOES, extra])).toEqual({ de: MIGRACOES.length + 1, para: MIGRACOES.length + 1 }); // idempotente
-  });
-
-  it("v5: migra as posições antigas (portuguesas) para inglês", () => {
-    const d = openSqliteBetter();
-    migrar(d, MIGRACOES.slice(0, 4));
-    d.run("INSERT INTO person (id, name, sporting_name, birth, nationality, roles, personality, archetype, lod) VALUES ('p1', 'A', 'A', '2000-01-01', 'PT', '[]', '{}', 'x', 1)");
-    d.run(`INSERT INTO player (person, positions, attributes, potential, height, weight, foot, state) VALUES ('p1', '[{"pos":"EE","aptitude":20},{"pos":"MDC","aptitude":12},{"pos":"PL","aptitude":8}]', '{}', 10, 180, 70, 'D', 'active')`);
-    migrar(d);
-    expect(d.all("SELECT positions FROM player")[0]?.positions).toBe('[{"pos":"LW","aptitude":20},{"pos":"DM","aptitude":12},{"pos":"ST","aptitude":8}]');
+    expect(migrate(d1, [...MIGRATIONS, extra])).toEqual({ from: MIGRATIONS.length + 1, to: MIGRATIONS.length + 1 }); // idempotente
   });
 
   it("v1 → v2: acrescenta as tabelas do calendário sem tocar na história", () => {
     const d = openSqliteBetter();
-    migrar(d, MIGRACOES.slice(0, 1));
+    migrate(d, MIGRATIONS.slice(0, 1));
     d.run("INSERT INTO event (type, v, date, season, visibility, data) VALUES ('OLD', 1, '2026-08-15', 1, 0, '{}')");
     expect(d.all("SELECT name FROM sqlite_master WHERE name = 'scheduled_match'")).toEqual([]);
     const r = new SqliteRepository(d);
@@ -93,9 +84,9 @@ describe("esquema e migrações", () => {
 
   it("uma migração que falha não deixa a base a meio", () => {
     const d = openSqliteBetter();
-    migrar(d);
-    const n = MIGRACOES.length;
-    expect(() => migrar(d, [...MIGRACOES, "CREATE TABLE ok (x INTEGER); CREATE TABLE ok (y INTEGER);"])).toThrow(new RegExp(`versão ${n + 1} falhou`));
+    migrate(d);
+    const n = MIGRATIONS.length;
+    expect(() => migrate(d, [...MIGRATIONS, "CREATE TABLE ok (x INTEGER); CREATE TABLE ok (y INTEGER);"])).toThrow(new RegExp(`versão ${n + 1} falhou`));
     expect(fileVersion(d)).toBe(n);
     expect(d.all("SELECT name FROM sqlite_master WHERE name = 'ok'")).toEqual([]);
   });

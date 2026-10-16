@@ -21,7 +21,7 @@ Jogo de browser de gestão de futebol português com **clubes ligados a cidades*
 - Personalidade = um sistema único (traços + memória) para todas as pessoas e entidades.
 
 ## Comandos
-`pnpm dev` · `pnpm typecheck` · `pnpm lint` (inclui fronteiras: motor sem React/DOM; UI sem `truth`/`repository`/`worker`) · `pnpm test` · `pnpm build` · `pnpm run ci`. Parâmetros de regras só em `src/engine/config/parametros.ts`.
+`pnpm dev` · `pnpm typecheck` · `pnpm lint` (inclui fronteiras: motor sem React/DOM; UI sem `truth`/`repository`/`worker`) · `pnpm test` · `pnpm build` · `pnpm run ci`. Parâmetros de regras só em `src/engine/config/parameters.ts`.
 
 ## Regras de trabalho
 - **Git:** `main` = estável, `develop` = integração, `feature/rz-xxx` = trabalho atual (um de cada vez). Docs podem ir direto para `develop`; `main` só recebe merges de marcos. Commits terminam com as linhas de atribuição pedidas pelo ambiente.

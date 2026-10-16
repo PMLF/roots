@@ -1,9 +1,9 @@
 /**
- * Repositório sobre SQLite (RZ-128). Recebe um `DriverSql` já aberto; chama `migrar` ao criar.
+ * Repositório sobre SQLite (RZ-128). Recebe um `DriverSql` já aberto; chama `migrate` ao criar.
  * Quem fala SQL é só este ficheiro e o esquema.
  */
 import type { DriverSql, SqlLine, SqlValue } from "./driver";
-import { migrar, SCHEMA_VERSION } from "./schema";
+import { migrate, SCHEMA_VERSION } from "./schema";
 import type { EventsFilter, RecentFilter, Repository } from "./repository";
 import type {
   StandingsAdjustment,
@@ -52,7 +52,7 @@ export class SqliteRepository implements Repository {
     private readonly d: DriverSql,
     private readonly points: PointsPerResult = { win: 3, draw: 1 },
   ) {
-    migrar(d);
+    migrate(d);
   }
 
   /** Bytes do ficheiro `.sqlite` completo (RZ-134 comprime e dá o nome .raizes). */
@@ -78,7 +78,7 @@ export class SqliteRepository implements Repository {
     } finally {
       this.d.runScript("PRAGMA foreign_keys = ON");
     }
-    migrar(this.d);
+    migrate(this.d);
   }
 
   transaction<T>(fn: () => T): T {
@@ -273,21 +273,26 @@ export class SqliteRepository implements Repository {
 
   // ---------- calendário
   saveCalendar(matches: readonly ScheduledMatch[], byes: readonly ScheduledBye[]): void {
-    const keys = new Set([...matches, ...byes].map((x) => `${x.competition}\u0000${x.season}`));
+    const keys = new Set([...matches, ...byes].map((x) => `${x.competition}\u0000${x.season}\u0000${x.round}`));
     this.transaction(() => {
       for (const k of keys) {
-        const [c, e] = k.split("\u0000") as [string, string];
-        if (within(this.d.all("SELECT COUNT(*) AS n FROM scheduled_match WHERE competition = ? AND season = ?", [c, Number(e)])[0]?.n) > 0)
-          throw new Error(`Já existe calendário de ${c} na época ${e}`);
+        const [c, e, r] = k.split("\u0000") as [string, string, string];
+        if (within(this.d.all("SELECT COUNT(*) AS n FROM scheduled_match WHERE competition = ? AND season = ? AND round = ?", [c, Number(e), Number(r)])[0]?.n) > 0)
+          throw new Error(`Já existe calendário de ${c} na época ${e}, jornada ${r}`);
       }
       for (const j of matches)
-        this.d.run("INSERT INTO scheduled_match (id, competition, season, round, date, home, away) VALUES (?,?,?,?,?,?,?)", [j.id, j.competition, j.season, j.round, j.date, j.home, j.away]);
+        this.d.run("INSERT INTO scheduled_match (id, competition, season, round, date, home, away, knockout, neutral, venue, first_leg) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+          [j.id, j.competition, j.season, j.round, j.date, j.home, j.away, j.knockout ? 1 : 0, j.neutral ? 1 : 0, j.venue ?? null, j.firstLeg ?? null]);
       for (const f of byes)
         this.d.run("INSERT INTO scheduled_bye (competition, season, round, club) VALUES (?,?,?,?)", [f.competition, f.season, f.round, f.club]);
     });
   }
   private scheduledMatch(r: SqlLine): ScheduledMatch {
-    return { id: txt(r.id), competition: txt(r.competition), season: within(r.season), round: within(r.round), date: txt(r.date), home: txt(r.home), away: txt(r.away) };
+    return {
+      id: txt(r.id), competition: txt(r.competition), season: within(r.season), round: within(r.round), date: txt(r.date), home: txt(r.home), away: txt(r.away),
+      ...(within(r.knockout) ? { knockout: true } : {}), ...(within(r.neutral) ? { neutral: true } : {}),
+      ...(r.venue !== null ? { venue: txt(r.venue) } : {}), ...(r.first_leg !== null ? { firstLeg: txt(r.first_leg) } : {}),
+    };
   }
   calendar(competition: string, season: number): { matches: ScheduledMatch[]; byes: ScheduledBye[] } {
     const matches = this.d.all("SELECT * FROM scheduled_match WHERE competition = ? AND season = ? ORDER BY round, id", [competition, season]).map((r) => this.scheduledMatch(r));
@@ -471,9 +476,10 @@ export class SqliteRepository implements Repository {
       });
       this.d.run(
         `INSERT INTO match (id, competition, season, round, date, home, away, home_goals, away_goals, home_xg, away_xg, home_possession,
-           attendance, revenue, importance, referee, event) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+           attendance, revenue, importance, referee, event, extra_time, home_penalties, away_penalties) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
         [j.id, j.competition, j.season, j.round, j.date, j.home, j.away, j.homeGoals, j.awayGoals, j.homeXg ?? 0, j.awayXg ?? 0,
-         j.homePossession ?? 0.5, j.attendance ?? 0, j.revenue ?? 0, j.importance ?? 0, j.referee ?? "", event],
+         j.homePossession ?? 0.5, j.attendance ?? 0, j.revenue ?? 0, j.importance ?? 0, j.referee ?? "", event,
+         j.extraTime ? 1 : 0, j.homePenalties ?? null, j.awayPenalties ?? null],
       );
       for (const f of facts)
         this.d.run("INSERT INTO match_fact (match, minute, type, player, club, extra) VALUES (?,?,?,?,?,?)", [j.id, f.minute, f.type, f.player, f.club, f.extra ?? ""]);
@@ -537,7 +543,8 @@ export class SqliteRepository implements Repository {
       id: txt(r.id), competition: txt(r.competition), season: within(r.season), round: within(r.round), date: txt(r.date),
       home: txt(r.home), away: txt(r.away), homeGoals: within(r.home_goals), awayGoals: within(r.away_goals),
       homeXg: within(r.home_xg), awayXg: within(r.away_xg), homePossession: within(r.home_possession), attendance: within(r.attendance),
-      revenue: within(r.revenue), importance: within(r.importance), referee: txt(r.referee), event: within(r.event),
+      revenue: within(r.revenue), importance: within(r.importance), referee: txt(r.referee), event: within(r.event), extraTime: within(r.extra_time) === 1,
+      ...(r.home_penalties !== null ? { homePenalties: within(r.home_penalties) } : {}), ...(r.away_penalties !== null ? { awayPenalties: within(r.away_penalties) } : {}),
     };
   }
 

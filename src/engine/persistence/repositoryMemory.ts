@@ -257,10 +257,10 @@ export class MemoryRepository implements Repository {
   // ---------- calendário
   saveCalendar(matches: readonly ScheduledMatch[], byes: readonly ScheduledBye[]): void {
     this.transaction(() => {
-      const keys = new Set([...matches, ...byes].map((x) => `${x.competition}\u0000${x.season}`));
+      const keys = new Set([...matches, ...byes].map((x) => `${x.competition}\u0000${x.season}\u0000${x.round}`));
       for (const k of keys) {
-        const [c, e] = k.split("\u0000") as [string, string];
-        if ([...this.matchesCal.values()].some((j) => j.competition === c && j.season === Number(e))) throw new Error(`Já existe calendário de ${c} na época ${e}`);
+        const [c, e, r] = k.split("\u0000") as [string, string, string];
+        if ([...this.matchesCal.values()].some((j) => j.competition === c && j.season === Number(e) && j.round === Number(r))) throw new Error(`Já existe calendário de ${c} na época ${e}, jornada ${r}`);
       }
       for (const j of matches) {
         if (this.matchesCal.has(j.id)) throw new Error(`Jogo agendado repetido: ${j.id}`);
@@ -436,7 +436,8 @@ export class MemoryRepository implements Repository {
       const match: Match = {
         id: j.id, competition: j.competition, season: j.season, round: j.round, date: j.date, home: j.home, away: j.away,
         homeGoals: j.homeGoals, awayGoals: j.awayGoals, homeXg: j.homeXg ?? 0, awayXg: j.awayXg ?? 0, homePossession: j.homePossession ?? 0.5,
-        attendance: j.attendance ?? 0, revenue: j.revenue ?? 0, importance: j.importance ?? 0, referee: j.referee ?? "", event,
+        attendance: j.attendance ?? 0, revenue: j.revenue ?? 0, importance: j.importance ?? 0, referee: j.referee ?? "", event, extraTime: j.extraTime ?? false,
+        ...(j.homePenalties !== undefined ? { homePenalties: j.homePenalties } : {}), ...(j.awayPenalties !== undefined ? { awayPenalties: j.awayPenalties } : {}),
       };
       this.matches.set(j.id, { match, facts: clone(facts), part: clone(appearances) });
       this.undo(() => this.matches.delete(j.id));

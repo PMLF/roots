@@ -11,7 +11,7 @@ import type { Params } from "../config/parameters";
 import { aptitudeIn, teamStrength, type TeamStrength } from "./team";
 import { riskPer90, drawLotsInjury } from "../injuries/injury";
 import { DEFAULT_TACTIC, fatigueIn, foulsMultiplier } from "./formations";
-import { otherSide, type MatchInput, type MatchTeam, type SideStat, type MatchEvent, type OnPitchPlayer, type Side, type Origin, type MatchSummary, type Tactic } from "./types";
+import { otherSide, type MatchInput, type MatchTeam, type SideStat, type MatchEvent, type OnPitchPlayer, type Side, type Origin, type MatchSummary, type Tactic, type Shootout } from "./types";
 
 const logit = (p: number): number => Math.log(p / (1 - p));
 const sigmoide = (x: number): number => 1 / (1 + Math.exp(-x));
@@ -35,7 +35,14 @@ function chooseWeighted<T>(rng: Rng, items: readonly T[], weight: (x: T) => numb
 }
 
 export class MatchSimulator {
-  readonly duration: number;
+  /** Duração regular (90 + acréscimos). Os minutos de prolongamento só contam se o jogo a eliminar acabar empatado. */
+  readonly regularDuration: number;
+  private readonly extraDuration: number;
+  private extraTime = false;
+  private readonly knockout: boolean;
+  private readonly neutral: boolean;
+  private readonly carry: { home: number; away: number };
+  private shootoutCache: Shootout | undefined;
   private readonly rng: Rng;
   private readonly p: Params["match"];
   private readonly params: Params;
@@ -61,7 +68,12 @@ export class MatchSimulator {
     this.turf = input.turf ?? 0.5;
     this.rng = new Rng(input.seed, `jogo/${input.id}`);
     const a = this.p.stoppage;
-    this.duration = this.p.duration + this.rng.derive("stoppage").integer(a.min, a.max);
+    this.regularDuration = this.p.duration + this.rng.derive("stoppage").integer(a.min, a.max);
+    const x = this.p.extraTime;
+    this.extraDuration = x.minutes + this.rng.derive("extraStoppage").integer(x.stoppage.min, x.stoppage.max);
+    this.knockout = input.knockout ?? false;
+    this.neutral = input.neutral ?? false;
+    this.carry = input.carry ?? { home: 0, away: 0 };
     this.teams = { home: input.home, away: input.away };
     this.strengths = { home: this.computeStrength(input.home), away: this.computeStrength(input.away) };
     this.effective = { home: this.strengths.home, away: this.strengths.away };
@@ -74,11 +86,19 @@ export class MatchSimulator {
     return this.teams[side].tactic ?? DEFAULT_TACTIC;
   }
 
+  /** Duração total até agora: regular, mais o prolongamento quando o jogo a eliminar chegou empatado ao fim dos 90'. */
+  get duration(): number {
+    return this.regularDuration + (this.extraTime ? this.extraDuration : 0);
+  }
   get minute(): number {
     return this.last;
   }
   get finished(): boolean {
     return this.last >= this.duration;
+  }
+  /** Empatado, contando os golos da primeira mão (se houver). */
+  private level(): boolean {
+    return this.stats.home.goals + this.carry.home === this.stats.away.goals + this.carry.away;
   }
 
   /** Muda a equipa (substituições, tática…) a partir do minuto seguinte. */
@@ -124,13 +144,56 @@ export class MatchSimulator {
 
   /** Simula até ao minuto indicado (inclusive) e devolve os eventos novos, por ordem. */
   simulateUntil(minute: number): MatchEvent[] {
-    const target = Math.min(Math.floor(minute), this.duration);
+    const target = Math.floor(minute);
     const events: MatchEvent[] = [];
-    while (this.last < target) {
+    while (this.last < target && this.last < this.duration) {
       this.last++;
       this.step(this.last, events);
+      // fim dos 90' num jogo a eliminar empatado: segue-se o prolongamento
+      if (this.knockout && !this.extraTime && this.last >= this.regularDuration && this.level()) this.extraTime = true;
     }
     return events;
+  }
+
+  /**
+   * Série de penáltis, se o jogo a eliminar acabou empatado depois do prolongamento. Determinística por jogo: marcadores por
+   * ordem de qualidade (guarda-redes no fim), cobranças alternadas, depois morte súbita com a mesma ordem.
+   */
+  shootout(): Shootout | undefined {
+    if (!this.knockout || !this.finished || !this.level()) return undefined;
+    if (this.shootoutCache) return this.shootoutCache;
+    const c = this.params.knockoutRounds.penalties;
+    const r = this.rng.derive("shootout");
+    const order = (side: Side) => [...this.teams[side].lineup].sort((a, b) => (a.position === "GK" ? 1 : 0) - (b.position === "GK" ? 1 : 0) || b.attributes.penalties * b.form - a.attributes.penalties * a.form || (a.id < b.id ? -1 : 1));
+    const keeper = (side: Side) => {
+      const g = this.teams[side].lineup.find((j) => j.position === "GK");
+      return g ? (g.attributes.reflexes + g.attributes.handling) / 2 : 10;
+    };
+    const takers = { home: order("home"), away: order("away") };
+    const out: Shootout = { home: 0, away: 0, kicks: [] };
+    const kick = (side: Side, n: number) => {
+      const t = takers[side];
+      const taker = t[n % t.length] as OnPitchPlayer;
+      const p = clamp(c.goalProb + c.takerSkill * (taker.attributes.penalties - 10) - c.keeperSkill * (keeper(otherSide(side)) - 10), 0.4, 0.95);
+      const scored = r.prob(p);
+      if (scored) out[side]++;
+      out.kicks.push({ side, player: taker.id, scored });
+    };
+    for (let i = 0; i < c.initial; i++) {
+      kick("home", i);
+      kick("away", i);
+      const remain = c.initial - 1 - i;
+      // decidido antes do fim: quem fica atrás já não alcança
+      if (out.home > out.away + remain || out.away > out.home + remain) break;
+    }
+    // morte súbita
+    for (let i = c.initial; out.home === out.away && i < c.initial + 60; i++) {
+      kick("home", i);
+      kick("away", i);
+    }
+    if (out.home === out.away) { out.home++; out.kicks.push({ side: "home", player: (takers.home[0] as OnPitchPlayer).id, scored: true }); }
+    this.shootoutCache = out;
+    return out;
   }
 
   summary(): MatchSummary {
@@ -138,17 +201,20 @@ export class MatchSimulator {
     return {
       minute: this.last,
       duration: this.duration,
+      regularDuration: this.regularDuration,
+      extraTime: this.extraTime,
       finished: this.finished,
       home: { ...this.stats.home },
       away: { ...this.stats.away },
       homePossession: total > 0 ? this.stats.home.possessionMinutes / total : 0.5,
+      ...(this.shootout() ? { shootout: this.shootout() as Shootout } : {}),
     };
   }
 
   // ---------- um minuto
   /** Fração das oportunidades que cabe a `lado`: logística da diferença de controlo (com a vantagem da casa). */
   private quota(side: Side): number {
-    const c = this.effective.home.control + this.p.homeAdvantage - this.effective.away.control;
+    const c = this.effective.home.control + (this.neutral ? 0 : this.p.homeAdvantage) - this.effective.away.control;
     const home = sigmoide(c / this.p.controlScale);
     return side === "home" ? home : 1 - home;
   }
@@ -157,7 +223,7 @@ export class MatchSimulator {
   private updateEffective(m: number): void {
     const pen = this.p.cards.sentOffPenalty;
     for (const side of ["home", "away"] as const) {
-      const f = fatigueIn(m, this.duration, this.tactic(side), this.params.tactic);
+      const f = fatigueIn(m, this.regularDuration, this.tactic(side), this.params.tactic);
       const b = this.strengths[side];
       const x = this.sentOff[side].size + this.withoutSubstitute[side];
       this.effective[side] = { ...b, attack: b.attack - f * 0.5 - pen.attack * x, control: b.control - f - pen.control * x, defence: b.defence - f - pen.defence * x };
@@ -183,11 +249,11 @@ export class MatchSimulator {
     const tempo = 1 + (this.params.tactic.tempo.chances * (this.tactic("home").tempo + this.tactic("away").tempo - 6)) / 2;
     this.stats[r.prob(this.quota("home")) ? "home" : "away"].possessionMinutes++;
     for (const side of ["home", "away"] as const) {
-      const lambda = (2 * this.p.chancesPerTeam * tempo * this.quota(side)) / this.duration;
+      const lambda = (2 * this.p.chancesPerTeam * tempo * this.quota(side)) / this.regularDuration;
       if (r.prob(lambda)) this.chance(r, m, side, out);
     }
     for (const side of ["home", "away"] as const) {
-      if (r.prob((this.p.fouls.byTeam * foulsMultiplier(this.tactic(side), this.params.tactic)) / this.duration)) this.foul(r, m, side, out);
+      if (r.prob((this.p.fouls.byTeam * foulsMultiplier(this.tactic(side), this.params.tactic)) / this.regularDuration)) this.foul(r, m, side, out);
     }
     for (const side of ["home", "away"] as const) this.injuryPossible(r, m, side, out);
   }
@@ -271,11 +337,11 @@ export class MatchSimulator {
   private injuryPossible(r: Rng, m: number, side: Side, out: MatchEvent[]): void {
     const eq = this.teams[side];
     const t = this.tactic(side);
-    const fatigue = fatigueIn(m, this.duration, t, this.params.tactic);
+    const fatigue = fatigueIn(m, this.regularDuration, t, this.params.tactic);
     // o cansaço multiplica o risco de todos por igual: calcula-se uma vez por equipa e muda-se só quando a equipa muda
     const base = (this.baseRisks[side] ??= eq.lineup.map(
       (j) =>
-        riskPer90({ form: j.form, physicalAptitude: j.attributes.physicalAptitude, turf: this.turf, medical: eq.medical ?? 10, opponentPlayFair: this.tactic(otherSide(side)).fairPlay, intensity: t.intensity, relapse: !!j.relapse }, this.params) / this.duration,
+        riskPer90({ form: j.form, physicalAptitude: j.attributes.physicalAptitude, turf: this.turf, medical: eq.medical ?? 10, opponentPlayFair: this.tactic(otherSide(side)).fairPlay, intensity: t.intensity, relapse: !!j.relapse }, this.params) / this.regularDuration,
     ));
     const factor = 1 + this.params.injuries.risk.fatigue * fatigue;
     const risks = base.map((x) => x * factor);
@@ -360,6 +426,6 @@ export class MatchSimulator {
 /** Joga o jogo todo de uma vez. */
 export function simulateMatch(input: MatchInput, params: Params): { events: MatchEvent[]; summary: MatchSummary } {
   const s = new MatchSimulator(input, params);
-  const events = s.simulateUntil(s.duration);
+  const events = s.simulateUntil(Number.POSITIVE_INFINITY);
   return { events, summary: s.summary() };
 }

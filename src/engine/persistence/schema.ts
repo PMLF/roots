@@ -153,14 +153,19 @@ CREATE INDEX ix_locality_city ON locality(city);
 
 
 const V5 = `
--- Posições em inglês no código e na base de data (pedido do Pedro, 15-10-2026): GR→GK, DD→RB, DC→CB, DE→LB,
--- MDC→DM, MC→CM, MO→AM, ED→RW, EE→LW, PL→ST. A interface traduz pelo idioma. Os saves antigos migram aqui.
-UPDATE player SET positions = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(positions, '"pos":"GR"', '"pos":"GK"'), '"pos":"DD"', '"pos":"RB"'), '"pos":"DC"', '"pos":"CB"'), '"pos":"DE"', '"pos":"LB"'), '"pos":"MDC"', '"pos":"DM"'), '"pos":"MC"', '"pos":"CM"'), '"pos":"MO"', '"pos":"AM"'), '"pos":"ED"', '"pos":"RW"'), '"pos":"EE"', '"pos":"LW"'), '"pos":"PL"', '"pos":"ST"');
+-- Competições a eliminar (RZ-140): jogos com vencedor obrigatório, campo neutro, segunda mão, prolongamento e penáltis.
+ALTER TABLE scheduled_match ADD COLUMN knockout INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE scheduled_match ADD COLUMN neutral INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE scheduled_match ADD COLUMN venue TEXT;
+ALTER TABLE scheduled_match ADD COLUMN first_leg TEXT;
+ALTER TABLE match ADD COLUMN extra_time INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE match ADD COLUMN home_penalties INTEGER;
+ALTER TABLE match ADD COLUMN away_penalties INTEGER;
 `;
 
 /** A posição no array + 1 é o número da versão do esquema. */
-export const MIGRACOES: readonly string[] = [V1, V2, V3, V4, V5];
-export const SCHEMA_VERSION = MIGRACOES.length;
+export const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5];
+export const SCHEMA_VERSION = MIGRATIONS.length;
 
 export function fileVersion(d: DriverSql): number {
   return Number(d.all("PRAGMA user_version")[0]?.user_version ?? 0);
@@ -170,14 +175,14 @@ export function fileVersion(d: DriverSql): number {
  * Leva a base de dados até à última versão, uma migração por transação.
  * Recusa ficheiros de uma versão mais recente do que o motor conhece.
  */
-export function migrar(d: DriverSql, migracoes: readonly string[] = MIGRACOES): { de: number; para: number } {
+export function migrate(d: DriverSql, migrations: readonly string[] = MIGRATIONS): { from: number; to: number } {
   d.runScript("PRAGMA foreign_keys = ON");
-  const de = fileVersion(d);
-  if (de > migracoes.length) throw new Error(`Save da versão ${de}, mais recente do que este motor (${migracoes.length}).`);
-  for (let v = de; v < migracoes.length; v++) {
+  const from = fileVersion(d);
+  if (from > migrations.length) throw new Error(`Save da versão ${from}, mais recente do que este motor (${migrations.length}).`);
+  for (let v = from; v < migrations.length; v++) {
     d.runScript("BEGIN");
     try {
-      d.runScript(migracoes[v] as string);
+      d.runScript(migrations[v] as string);
       d.runScript(`PRAGMA user_version = ${v + 1}`);
       d.runScript("COMMIT");
     } catch (e) {
@@ -185,5 +190,5 @@ export function migrar(d: DriverSql, migracoes: readonly string[] = MIGRACOES): 
       throw new Error(`Migração para a versão ${v + 1} falhou: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
-  return { de, para: migracoes.length };
+  return { from, to: migrations.length };
 }

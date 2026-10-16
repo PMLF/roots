@@ -7,7 +7,7 @@ import { Rng, clamp } from "../random/rng";
 import type { Params } from "../config/parameters";
 import type { Position } from "../world/types";
 import type { Injury } from "../injuries/injury";
-import { otherSide, type MatchInput, type MatchTeam, type MatchEvent, type SideStat, type Side, type Origin, type MatchSummary } from "./types";
+import { otherSide, type MatchInput, type MatchTeam, type MatchEvent, type SideStat, type Side, type Origin, type MatchSummary, type Shootout } from "./types";
 
 export type PlayerStat = {
   id: string;
@@ -53,6 +53,10 @@ export type MatchInjury = { minute: number; side: Side; player: string; injury: 
 
 export type MatchReport = {
   duration: number;
+  /** Houve prolongamento (a `duration` já o inclui). */
+  extraTime: boolean;
+  /** Série de penáltis, se o jogo a eliminar ficou empatado. */
+  shootout?: Shootout;
   homeGoals: number;
   awayGoals: number;
   /** Golos ao intervalo (até ao minuto `duracao`/2 arredondado, 45 num jogo normal). */
@@ -230,6 +234,8 @@ export function matchReport(
   moments.sort((a, b) => a.minute - b.minute);
   return {
     duration: summary.duration,
+    extraTime: summary.extraTime,
+    ...(summary.shootout ? { shootout: summary.shootout } : {}),
     homeGoals: scorer.home,
     awayGoals: scorer.away,
     halfTime,

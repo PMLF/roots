@@ -68,10 +68,22 @@ export type NewMatch = {
   revenue?: number;
   importance?: number;
   referee?: string;
+  /** Jogou-se prolongamento (2×15'): os golos já o incluem. */
+  extraTime?: boolean;
+  /** Decidido nos penáltis: golos marcados na série por cada lado (só quando o jogo ficou empatado). */
+  homePenalties?: number;
+  awayPenalties?: number;
   cause?: number;
 };
 
-export type Match = Required<Omit<NewMatch, "cause">> & { event: number };
+export type Match = Required<Omit<NewMatch, "cause" | "homePenalties" | "awayPenalties">> & { event: number; homePenalties?: number; awayPenalties?: number };
+
+/** O clube que passa num jogo a eliminar (golos e, se empatado, penáltis). Sem vencedor se ficou empatado sem penáltis. */
+export function matchWinner(m: Pick<Match, "home" | "away" | "homeGoals" | "awayGoals" | "homePenalties" | "awayPenalties">): string | undefined {
+  if (m.homeGoals !== m.awayGoals) return m.homeGoals > m.awayGoals ? m.home : m.away;
+  if (m.homePenalties === undefined || m.awayPenalties === undefined || m.homePenalties === m.awayPenalties) return undefined;
+  return m.homePenalties > m.awayPenalties ? m.home : m.away;
+}
 
 export type StandingsLine = {
   club: string;
@@ -136,7 +148,11 @@ export type StandingsAdjustment = {
 export type PointsPerResult = { win: number; draw: number };
 
 /** Jogo marcado no calendário (ainda sem resultado). Ao ser jogado passa a `jogo` (mesmo `id`). */
-export type ScheduledMatch = { id: string; competition: string; season: number; round: number; date: IsoDate; home: string; away: string };
+/**
+ * Jogo marcado. `knockout`: tem de haver vencedor (prolongamento e penáltis); `neutral`: campo neutro, no estádio de `venue`;
+ * `firstLeg`: id da primeira mão, quando este jogo é a segunda mão de uma eliminatória a duas mãos.
+ */
+export type ScheduledMatch = { id: string; competition: string; season: number; round: number; date: IsoDate; home: string; away: string; knockout?: boolean; neutral?: boolean; venue?: string; firstLeg?: string };
 /** Clube que folga numa jornada de uma liga com número ímpar de clubes. */
 export type ScheduledBye = { competition: string; season: number; round: number; club: string };
 

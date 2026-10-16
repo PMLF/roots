@@ -30,7 +30,7 @@ export function matchLevel(home: string, away: string, gamerClub?: string): Deta
 }
 
 /** O que se sabe publicamente de um jogo de nível 1. */
-export type PublicReport = Pick<MatchReport, "duration" | "homeGoals" | "awayGoals" | "halfTime" | "homePossession" | "home" | "away" | "goals" | "cards" | "injuries"> & {
+export type PublicReport = Pick<MatchReport, "duration" | "extraTime" | "shootout" | "homeGoals" | "awayGoals" | "halfTime" | "homePossession" | "home" | "away" | "goals" | "cards" | "injuries"> & {
   /** Só golos, expulsões e lesões. */
   moments: MomentKey[];
   matchMan: { id: string; rating: number };
@@ -52,6 +52,8 @@ function exposed(r: MatchReport): PublicReport {
   const best = r.players.find((j) => j.id === r.matchMan);
   return {
     duration: r.duration,
+    extraTime: r.extraTime,
+    ...(r.shootout ? { shootout: r.shootout } : {}),
     homeGoals: r.homeGoals,
     awayGoals: r.awayGoals,
     halfTime: r.halfTime,

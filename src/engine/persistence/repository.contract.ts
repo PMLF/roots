@@ -4,6 +4,7 @@
  */
 import { describe, expect, it } from "vitest";
 import type { Repository } from "./repository";
+import { matchWinner } from "./types";
 import type { NewEvent, FactMatch, NewMatch, LocalityRecord, WorldBatchRecord, Appearance } from "./types";
 
 export const ev = (type: string, extra: Partial<NewEvent> = {}): NewEvent => ({
@@ -221,6 +222,21 @@ export function repositoryContract(name: string, create: () => Repository): void
       expect(r.playerStats("A-12")[0]).toMatchObject({ matches: 0, minutes: 0 }); // suplente não utilizado
     });
 
+    it("guarda prolongamento e penáltis, e diz quem passou", () => {
+      const r = create();
+      const j = syntheticMatch("j1", { home: "A", away: "B", homeGoals: 1, awayGoals: 1, competition: "CUP" });
+      r.recordMatch({ ...j.match, extraTime: true, homePenalties: 3, awayPenalties: 4 }, j.facts, j.part);
+      const m = r.match("j1");
+      expect(m).toMatchObject({ extraTime: true, homePenalties: 3, awayPenalties: 4 });
+      expect(m && matchWinner(m)).toBe("B");
+      const k = syntheticMatch("j2", { home: "A", away: "B", homeGoals: 2, awayGoals: 1, round: 2, competition: "CUP" });
+      r.recordMatch(k.match, k.facts, k.part);
+      const n = r.match("j2");
+      expect(n).toMatchObject({ extraTime: false });
+      expect(n).not.toHaveProperty("homePenalties");
+      expect(n && matchWinner(n)).toBe("A");
+    });
+
     it("minutos jogados numa janela de datas (cansaço, RZ-177)", () => {
       const r = create();
       const j1 = syntheticMatch("j1", { home: "A", away: "B", homeGoals: 0, awayGoals: 0, date: "2026-08-10" }, {});
@@ -435,6 +451,23 @@ export function repositoryContract(name: string, create: () => Repository): void
       const r = create();
       expect(() => r.saveCalendar([j("q", 1, "2026-08-22", "X", "Y"), j("q", 2, "2026-08-29", "Y", "X")], [])).toThrow();
       expect(r.calendar("SL", 1).matches).toEqual([]);
+    });
+    it("aceita jornadas novas na mesma competição (taças geradas ronda a ronda), mas não repete uma jornada", () => {
+      const r = create();
+      r.saveCalendar([j("r1", 1, "2026-09-02", "X", "Y")], []);
+      r.saveCalendar([j("r2", 2, "2026-09-23", "X", "Z")], []);
+      expect(r.calendar("SL", 1).matches.map((x) => x.id)).toEqual(["r1", "r2"]);
+      expect(() => r.saveCalendar([j("r2b", 2, "2026-09-23", "Y", "W")], [])).toThrow();
+    });
+    it("guarda jogos a eliminar, campo neutro, local e primeira mão", () => {
+      const r = create();
+      r.saveCalendar([{ ...j("f", 3, "2027-05-30", "X", "Y"), knockout: true, neutral: true, venue: "Z" }, { ...j("s2", 4, "2027-06-06", "Y", "X"), knockout: true, firstLeg: "f" }, j("n", 5, "2027-06-07", "X", "W")], []);
+      const [f, s2, n] = r.calendar("SL", 1).matches;
+      expect(f).toMatchObject({ knockout: true, neutral: true, venue: "Z" });
+      expect(s2).toMatchObject({ id: "s2", knockout: true, firstLeg: "f" });
+      expect(n).not.toHaveProperty("knockout");
+      expect(n).not.toHaveProperty("neutral");
+      expect(n).not.toHaveProperty("venue");
     });
   });
 

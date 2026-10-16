@@ -81,6 +81,12 @@ export type MatchSummary = {
   away: SideStat;
   /** Fração de posse da equipa da casa, 0-1. */
   homePossession: number;
+  /** Duração regular (90 + acréscimos); `duration` inclui o prolongamento, se houve. */
+  regularDuration: number;
+  /** Jogou-se prolongamento. */
+  extraTime: boolean;
+  /** Só quando o jogo (ou a eliminatória) acabou empatado depois do prolongamento. */
+  shootout?: Shootout;
 };
 
 export type MatchInput = {
@@ -91,4 +97,13 @@ export type MatchInput = {
   away: MatchTeam;
   /** Qualidade do relvado do estádio da casa, 0 (péssimo) a 1 (perfeito); por omissão 0,5. */
   turf?: number;
+  /** Jogo a eliminar (RZ-140): se acaba empatado joga-se prolongamento e, se continua empatado, decidem os penáltis. */
+  knockout?: boolean;
+  /** Campo neutro: sem vantagem de jogar em casa. */
+  neutral?: boolean;
+  /** Golos de cada lado na primeira mão (do ponto de vista desta casa/fora): a eliminatória decide-se pelo agregado. */
+  carry?: { home: number; away: number };
 };
+
+/** Série de penáltis: totais e cada cobrança, por ordem. */
+export type Shootout = { home: number; away: number; kicks: { side: Side; player: string; scored: boolean }[] };

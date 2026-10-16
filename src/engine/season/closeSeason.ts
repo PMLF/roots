@@ -17,6 +17,7 @@ import { groupCalendar, rankGroup, buildGroups, groupPromoted } from "./promotio
 import { applyMovements, SERIES, type Movement } from "./movements";
 import { saveParameters } from "./saveYear";
 import { cpChampionOf } from "./cpFinalPhase";
+import { planSupercup } from "./competitions";
 import { sackByRelegation } from "./coachMarket";
 import { adjustDistricts, isInSecondDistrict, type SecondDistrict } from "./districts";
 import { closeUntilMonths, post } from "../club/finances";
@@ -110,7 +111,7 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
   r.warnings.push(...adjustment.warnings);
 
   const champions = [first, second, third, ...SERIES.map((s) => cp[s])].map((t) => ({ league: leagueName(t[0] as string), club: t[0] as string, name: name.get(t[0] as string) ?? "" }));
-  const cpChampion = cpChampionOf(repo, params, season);
+  const cpChampion = cpChampionOf(repo, season);
   repo.transaction(() => {
     for (const c of champions) repo.appendEvent({ type: "CHAMPION", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: c.club, roleKind: "champion" }, { k: "competition", id: c.league }], data: { league: c.league } });
     if (cpChampion) repo.appendEvent({ type: "CHAMPION", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: cpChampion, roleKind: "champion" }, { k: "competition", id: "Campeonato de Portugal" }], data: { league: "Campeonato de Portugal" } });
@@ -144,6 +145,8 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
       if (cbp) post(repo, cbp, "prizes", params.prizes.club);
       repo.appendEvent({ type: "STATE_PRIZE", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: p.club, roleKind: "premiado" }, ...(city ? [{ k: "city" as const, id: city, roleKind: "council" }] : [])], data: { district: p.district, clubValue: params.prizes.club, cityValue: params.prizes.city, consecutive } });
     }
+    // Supertaça da época seguinte: campeão da Primeira Liga contra o vencedor da Taça (RZ-141)
+    planSupercup(repo, season, first[0]);
     repo.setMeta("secondDistrict", JSON.stringify(adjustment.second));
     for (const a of adjustment.adjustments) repo.appendEvent({ type: a.type === "relegation" ? "SECOND_DISTRICT_RELEGATION" : "DISTRICT_RETURN", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: a.club }], data: { district: a.district } });
     // as cidades reagem aos resultados dos clubes e ao que lhes acontece (RZ-133)
