@@ -8,6 +8,7 @@ import { Cartao, Dados, Topo } from "@/ui/components/Cartao";
 import { Ficha } from "@/ui/components/Ficha";
 import { GraficoDivisoes } from "@/ui/components/GraficoDivisoes";
 import { Ligacao } from "@/ui/components/Ligacao";
+import { OrcamentoClube } from "@/ui/components/fichas/OrcamentoClube";
 import { Tabela } from "@/ui/components/Tabela";
 import { Valor } from "@/ui/components/Valor";
 import type { Chave } from "@/ui/i18n";
@@ -196,6 +197,7 @@ export function FichaClube({ d, verTudo, soPlantel = false }: { d: FichaClubeDad
             ]),
           ]}
         />
+        {d.financas.orcamento && d.financas.saldo !== undefined && <OrcamentoClube inicial={d.financas.orcamento} saldo={d.financas.saldo} />}
       </Cartao>
       {epocaClube}
       {topsClube}

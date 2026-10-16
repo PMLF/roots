@@ -11,10 +11,14 @@ import type { ClubeBase, DadosBase } from "../dados/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
 
-export type CategoriaFinanceira = "bilheteira" | "patrocinios" | "comercial" | "premios" | "salarios" | "staff" | "estadio" | "fixos";
+/**
+ * `transferencias` (compra e venda de jogadores) e `compensacoes` (rescisões e passes de staff) levam os dois sinais: o que
+ * entra e o que sai no mesmo mês somam-se. Os patrocínios passam a vir de contratos de patrocínio reais (RZ-311/RZ-219); até lá
+ * vêm da fórmula por escalão e reputação.
+ */
+export type CategoriaFinanceira = "bilheteira" | "patrocinios" | "comercial" | "premios" | "transferencias" | "compensacoes" | "salarios" | "staff" | "estadio" | "fixos";
 export type Mes = Partial<Record<CategoriaFinanceira, number>>;
 
-const RECEITAS: readonly CategoriaFinanceira[] = ["bilheteira", "patrocinios", "comercial", "premios"];
 
 export function saldoDoClube(repo: Repositorio, clube: ClubeBase): number {
   const v = repo.meta(`saldo.${clube.id}`);
@@ -76,8 +80,8 @@ export function fecharMes(repo: Repositorio, dados: DadosBase, params: Parametro
     lancar(repo, c, "estadio", -custos.estadio);
     lancar(repo, c, "fixos", -custos.fixos);
     const mes = mesDoClube(repo, c.id);
-    const receitas = RECEITAS.reduce((t, k) => t + (mes[k] ?? 0), 0);
-    const despesas = Object.entries(mes).reduce((t, [k, v]) => t + (RECEITAS.includes(k as CategoriaFinanceira) ? 0 : (v as number)), 0);
+    const receitas = Object.values(mes).reduce((t, v) => t + Math.max(0, v as number), 0);
+    const despesas = Object.values(mes).reduce((t, v) => t + Math.min(0, v as number), 0);
     repo.acrescentarEvento({ tipo: "FECHO_FINANCEIRO", data, epoca, vis: "privado", origem: "jogo", entidades: [{ k: "clube", id: c.id, papel: "clube" }], dados: { receitas, despesas, saldo: saldoDoClube(repo, c), mes } });
     repo.definirMeta(`mes.${c.id}`, "{}");
   }
@@ -99,12 +103,16 @@ const BANDAS: Record<Escalao, [Riqueza, Riqueza, Riqueza, Riqueza, Riqueza]> = {
 
 type Medida = { clube: ClubeBase; saldo: number; custos: number; receitas: number };
 
+/** Receitas anuais esperadas (patrocínios + comercial + bilheteira típica de ~15 jogos em casa): serve o estado público e o orçamento. */
+export function receitaAnualEstimada(c: ClubeBase, params: Parametros): number {
+  const m = params.financas.modelo;
+  const fixas = receitasFixasAnuais(c, params);
+  return fixas.patrocinios + fixas.comercial + c.estadio.capacidade * m.ocupacao[c.escalao] * m.precoBilhete[c.escalao] * 15;
+}
+
 function medir(repo: Repositorio, c: ClubeBase, params: Parametros): Medida {
   const cm = custosMensais(repo, c, params);
-  const fixas = receitasFixasAnuais(c, params);
-  const m = params.financas.modelo;
-  const bilheteira = c.estadio.capacidade * m.ocupacao[c.escalao] * m.precoBilhete[c.escalao] * 15;
-  return { clube: c, saldo: saldoDoClube(repo, c), custos: cm.salarios + cm.staff + cm.estadio + cm.fixos, receitas: fixas.patrocinios + fixas.comercial + bilheteira };
+  return { clube: c, saldo: saldoDoClube(repo, c), custos: cm.salarios + cm.staff + cm.estadio + cm.fixos, receitas: receitaAnualEstimada(c, params) };
 }
 
 /**
@@ -152,4 +160,16 @@ export function fecharMesesAte(repo: Repositorio, dados: DadosBase, params: Para
     fecharMes(repo, dados, params, `${m}-01`, epoca, ativo);
   }
   repo.definirMeta("financas.fechadoAte", m);
+}
+
+/**
+ * Pagamento entre dois clubes (compra de um jogador, passe de staff, indemnização): o comprador paga e o vendedor recebe, na
+ * mesma transação. `categoria` é `transferencias` (jogadores) ou `compensacoes` (staff). Quem chama grava o evento da transferência.
+ */
+export function liquidar(repo: Repositorio, comprador: ClubeBase, vendedor: ClubeBase, valor: number, categoria: "transferencias" | "compensacoes"): void {
+  if (!(valor > 0)) return;
+  repo.transacao(() => {
+    lancar(repo, comprador, categoria, -valor);
+    lancar(repo, vendedor, categoria, valor);
+  });
 }

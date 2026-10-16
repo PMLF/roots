@@ -44,6 +44,11 @@ describe("calibração das finanças (RZ-114)", () => {
     expect(meu!.financas.ultimoFecho).toBeDefined();
     expect(outro!.financas.exato).toBe(false);
     expect(outro!.financas.saldo).toBeUndefined();
+    // orçamento do teu clube: por defeito para a nova época; redefinível
+    expect(meu!.financas.orcamento?.massaSalarialMax).toBeGreaterThan(0);
+    const novo = await tratar({ id: 7, tipo: "definirOrcamento", entrada: { massaSalarialMax: 123_000, transferencias: 0 } }, s);
+    expect(novo.orcamento?.massaSalarialMax).toBe(123_000);
+    expect(novo.orcamento?.acima).toBe(true);
     // calibração: o clube mediano de cada escalão fica perto do equilíbrio e ninguém (ou quase) acaba o ano em negativo
     for (const [e, x] of por) {
       expect(mediana(x.pct), e).toBeGreaterThan(-0.2);

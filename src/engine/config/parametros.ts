@@ -188,6 +188,8 @@ export type Parametros = {
     probErroEstimativaRival: number;
     /** Receitas, custos e bilheteira por escalão (RZ-114/RZ-115), em euros. */
     modelo: ModeloFinancas;
+    /** Orçamento anual por defeito (RZ-114): peso da massa salarial nas receitas, meses de reserva e fração da folga para transferências. */
+    orcamento: { massaSobreReceita: number; reservaMeses: number; folgaTransferencias: number };
   };
   personalidade: {
     tracoMin: number;
@@ -503,6 +505,7 @@ export const PARAMETROS_PADRAO: Parametros = {
     mesesSalariosAtrasoFalencia: 3,
     percentisRiqueza: [90, 70, 40, 15],
     probErroEstimativaRival: 0.25,
+    orcamento: { massaSobreReceita: 0.7, reservaMeses: 3, folgaTransferencias: 0.35 },
     modelo: {
       reputacaoRef: { primeiraLiga: 5300, segundaLiga: 4650, terceiraLiga: 3000, cp: 2590, distrital: 1295 },
       expoenteReputacao: 1.2,

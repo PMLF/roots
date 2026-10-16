@@ -16,6 +16,7 @@ import type { EquipaJogo, ResumoJogo } from "../jogo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
 import { assistenciaDoJogo } from "../clube/assistencia";
+import { garantirOrcamentos } from "../clube/orcamento";
 import { fecharMesesAte, lancar } from "../clube/financas";
 import { estaNaSegundaDistrital } from "./distritais";
 import { COMPETICAO_FINAL_CP, gerarFinalCp, gerarMeiasFinaisCp } from "./faseFinalCp";
@@ -120,6 +121,7 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
   const nomeClube = new Map(dados.clubes.map((c) => [c.id, c.nome] as const));
   const nomePessoa = (id: string) => repo.pessoaPublica(id)?.nomeDesportivo ?? id;
   return repo.transacao(() => {
+    garantirOrcamentos(repo, dados, params, epoca);
     const jogos: JogoDoDia[] = [];
     // a tabela de cada competição onde o gamer joga hoje, antes dos jogos (para o ver ao vivo)
     const tabelas = new Map<string, LinhaTabelaVivo[]>();

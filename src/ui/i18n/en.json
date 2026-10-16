@@ -968,5 +968,10 @@
   "jogo.ind.vermelho": "red card",
   "jogo.ind.lesao": "injured",
   "jogo.ind.entrou": "Came on at {min}'",
-  "jogo.ind.saiu": "Went off at {min}'"
+  "jogo.ind.saiu": "Went off at {min}'",
+  "financas.massaAtual": "Wage bill (per year)",
+  "financas.acimaOrcamento": "over budget",
+  "financas.massaMax": "Maximum wage bill (€/year)",
+  "financas.verbaTransferencias": "Transfer budget (€)",
+  "financas.guardarOrcamento": "Save budget"
 }
