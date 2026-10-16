@@ -1,16 +1,15 @@
 /**
  * Fase final do Campeonato de Portugal: meias-finais e final, a jogo único, entre os campeões das quatro séries.
  * Joga-se em domingos, em duas competições («CP Meias-Finais» e «CP Final», porque cada calendário se grava de uma vez), depois de acabarem as séries e tem de acabar em maio. Os campeões das séries sobem à Terceira Liga
- * na mesma; a fase final decide só o campeão do CP. Se o jogo acaba empatado, decidem os penáltis (função pura, estável
- * por seed e jogo, por isso nada se guarda além do resultado).
+ * na mesma; a fase final decide só o campeão do CP. São jogos a eliminar: se acabam empatados há prolongamento e, se
+ * continua, penáltis (o motor de jogo guarda-os; quem passa lê-se do resultado guardado).
  */
-import { Rng } from "../random/rng";
 import { addDays, nextWeekday } from "../calendar/dates";
 import type { Params } from "../config/parameters";
 import type { ClubId, BaseData, CpSeries } from "../data/types";
 import { competitionTable } from "../competition/table";
 import type { Repository } from "../persistence/repository";
-import type { IsoDate, ScheduledMatch } from "../persistence/types";
+import { matchWinner, type IsoDate, type ScheduledMatch } from "../persistence/types";
 import { SERIES } from "./movements";
 
 export const CP_FINAL_SEMI_COMPETITION = "CP Meias-Finais";
@@ -31,27 +30,6 @@ export function finalSemiPair(champions: readonly SeriesChampion[]): [{ home: Cl
   const [a, b, c, d] = sortChampions(champions);
   if (!a || !b || !c || !d) throw new Error("A fase final do CP precisa dos campeões das quatro séries");
   return [{ home: a.club, away: d.club }, { home: b.club, away: c.club }];
-}
-
-/** Quem passa num jogo a eliminar e, se foi para penáltis, o resultado desses. Determinístico por seed e jogo. */
-export function knockoutRoundWinner(j: { seed: string; id: string; home: ClubId; away: ClubId; homeGoals: number; awayGoals: number }, params: Params): { winner: ClubId; penalties?: { home: number; away: number } } {
-  if (j.homeGoals !== j.awayGoals) return { winner: j.homeGoals > j.awayGoals ? j.home : j.away };
-  const { initial, goalProb } = params.knockoutRounds.penalties;
-  const rng = new Rng(j.seed, `penaltis/${j.id}`);
-  let home = 0;
-  let away = 0;
-  for (let i = 0; i < initial; i++) {
-    if (rng.float() < goalProb) home++;
-    if (rng.float() < goalProb) away++;
-    // decidido antes do fim: a equipa que fica atrás já não alcança
-    const remain = initial - 1 - i;
-    if (home > away + remain || away > home + remain) return { winner: home > away ? j.home : j.away, penalties: { home, away } };
-  }
-  while (home === away) {
-    if (rng.float() < goalProb) home++;
-    if (rng.float() < goalProb) away++;
-  }
-  return { winner: home > away ? j.home : j.away, penalties: { home, away } };
 }
 
 /** Datas: meias-finais no primeiro domingo `diasAposSeries` depois do último jogo das séries; a final `diasEntreRondas` depois. */
@@ -82,7 +60,7 @@ export function generateCpFinalSemi(repo: Repository, data: BaseData, params: Pa
   }
   const [m1, m2] = finalSemiPair(champions);
   const dates = finalPhaseDates(last, params);
-  const match = (id: string, home: ClubId, away: ClubId, date: IsoDate): ScheduledMatch => ({ id, competition: CP_FINAL_SEMI_COMPETITION, season, round: 1, date, home, away });
+  const match = (id: string, home: ClubId, away: ClubId, date: IsoDate): ScheduledMatch => ({ id, competition: CP_FINAL_SEMI_COMPETITION, season, round: 1, date, home, away, knockout: true });
   repo.transaction(() => {
     repo.saveCalendar([match(finalPhaseMatchId(season, "semi1"), m1.home, m1.away, dates.finalSemi), match(finalPhaseMatchId(season, "semi2"), m2.home, m2.away, dates.finalSemi)], []);
     repo.setMeta(`cpFinal.${season}`, JSON.stringify({ champions: sortChampions(champions).map((c) => c.club), final: dates.final }));
@@ -91,32 +69,31 @@ export function generateCpFinalSemi(repo: Repository, data: BaseData, params: Pa
 }
 
 /** Quem passou em cada meia-final, se as duas já se jogaram. */
-function finalists(repo: Repository, params: Params, season: number): [ClubId, ClubId] | undefined {
-  const seed = repo.meta("seed") ?? "?";
+function finalists(repo: Repository, season: number): [ClubId, ClubId] | undefined {
   const out: ClubId[] = [];
   for (const r of ["semi1", "semi2"] as const) {
-    const id = finalPhaseMatchId(season, r);
-    const j = repo.match(id);
-    if (!j) return undefined;
-    out.push(knockoutRoundWinner({ seed, id, home: j.home, away: j.away, homeGoals: j.homeGoals, awayGoals: j.awayGoals }, params).winner);
+    const j = repo.match(finalPhaseMatchId(season, r));
+    const winner = j && matchWinner(j);
+    if (!winner) return undefined;
+    out.push(winner);
   }
   return [out[0] as ClubId, out[1] as ClubId];
 }
 
 /** Jogadas as meias-finais, marca a final (joga em casa o melhor classificado nas séries). */
-export function generateCpFinal(repo: Repository, params: Params, season: number): boolean {
+export function generateCpFinal(repo: Repository, season: number): boolean {
   const raw = repo.meta(`cpFinal.${season}`);
   if (!raw || repo.calendar(CP_FINAL_COMPETITION, season).matches.length > 0) return false;
-  const pair = finalists(repo, params, season);
+  const pair = finalists(repo, season);
   if (!pair) return false;
   const { champions, final } = JSON.parse(raw) as { champions: ClubId[]; final: IsoDate };
   const [home, away] = champions.indexOf(pair[0]) <= champions.indexOf(pair[1]) ? pair : ([pair[1], pair[0]] as [ClubId, ClubId]);
-  repo.saveCalendar([{ id: finalPhaseMatchId(season, "final"), competition: CP_FINAL_COMPETITION, season, round: 1, date: final, home, away }], []);
+  repo.saveCalendar([{ id: finalPhaseMatchId(season, "final"), competition: CP_FINAL_COMPETITION, season, round: 1, date: final, home, away, knockout: true }], []);
   return true;
 }
 
 /** O campeão do CP, depois da final. */
-export function cpChampionOf(repo: Repository, params: Params, season: number): ClubId | undefined {
+export function cpChampionOf(repo: Repository, season: number): ClubId | undefined {
   const j = repo.match(finalPhaseMatchId(season, "final"));
-  return j ? knockoutRoundWinner({ seed: repo.meta("seed") ?? "?", id: j.id, home: j.home, away: j.away, homeGoals: j.homeGoals, awayGoals: j.awayGoals }, params).winner : undefined;
+  return j ? matchWinner(j) : undefined;
 }

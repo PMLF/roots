@@ -35,7 +35,7 @@ export function validateMatch(j: NewMatch, facts: FactMatch[], appearances: Appe
   let awayG = 0;
   for (const f of facts) {
     if (!clubs.has(f.club)) errors.push(`facto ${f.type} de um clube que não joga (${f.club})`);
-    if (!integer(f.minute) || f.minute < 0 || f.minute > 130) errors.push(`minuto inválido (${f.minute})`);
+    if (!integer(f.minute) || f.minute < 0 || f.minute > 140) errors.push(`minuto inválido (${f.minute})`);
     if (f.type === "G" && f.club === j.home) homeG++;
     else if (f.type === "G") awayG++;
   }
@@ -46,7 +46,7 @@ export function validateMatch(j: NewMatch, facts: FactMatch[], appearances: Appe
     if (!clubs.has(p.club)) errors.push(`participação de um clube que não joga (${p.club})`);
     if (players.has(p.player)) errors.push(`jogador repetido: ${p.player}`);
     players.add(p.player);
-    if (!integer(p.minutes) || p.minutes < 0 || p.minutes > 130) errors.push(`minutos inválidos (${p.minutes})`);
+    if (!integer(p.minutes) || p.minutes < 0 || p.minutes > 140) errors.push(`minutos inválidos (${p.minutes})`);
   }
   if (errors.length > 0) throw new Error(`Jogo ${j.id} inválido: ${errors.join("; ")}`);
 }

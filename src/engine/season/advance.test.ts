@@ -2,6 +2,9 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { handle, type Servicos } from "../api/handler";
 import { MemoryRepository } from "../persistence/repositoryMemory";
+import { matchWinner } from "../persistence/types";
+import { weekDay } from "../calendar/dates";
+import { CUP, SUPERCUP, districtCupName } from "./competitions";
 
 const read = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
 const servicos = (now = new Date(2026, 9, 15)): Servicos => {
@@ -162,9 +165,41 @@ describe("avançar no tempo", () => {
     for (const j of [...repo.competitionMatches("CP Meias-Finais", 1), ...repo.competitionMatches("CP Final", 1)].filter((x) => x.competition === "CP Meias-Finais")) {
       expect(seriesChampions.has(j.home) && seriesChampions.has(j.away)).toBe(true);
     }
-    expect(repo.count("CHAMPION")).toBe(8); // sete campeões de liga/série e o campeão do CP
-    // prémios por vencer cada competição (RZ-216): 3 ligas + 4 séries + vencedor do CP + 20 distritais + 4 grupos da Fase de Promoção
-    expect(repo.count("COMPETITION_PRIZE")).toBe(32);
+    expect(repo.count("CHAMPION")).toBe(9); // sete campeões de liga/série, o campeão do CP e o vencedor da Taça
+    // Taça (RZ-140): jogo único, só jogos com vencedor, final em campo neutro e último jogo interno da época
+    const cupMatches = repo.competitionMatches(CUP, 1);
+    expect(cupMatches.length).toBeGreaterThan(250); // uma eliminatória por clube que sai: N − 1
+    expect(cupMatches.every((j) => matchWinner(j) !== undefined)).toBe(true);
+    const cupCalendar = repo.calendar(CUP, 1).matches;
+    const cupFinal = cupCalendar.reduce((a, b) => (b.date > a.date ? b : a));
+    expect(cupCalendar.filter((j) => j.date === cupFinal.date)).toHaveLength(1);
+    expect(cupFinal.neutral).toBe(true);
+    expect(cupFinal.venue && cupFinal.venue !== cupFinal.home && cupFinal.venue !== cupFinal.away).toBe(true);
+    expect(cupCalendar.every((j) => j.knockout === true)).toBe(true);
+    const everyLeague = [...(await handle({ id: 10, type: "competitions", input: null }, s)).map((c) => c.league), "CP Meias-Finais", "CP Final", ...["A", "B", "C", "D"].map((g) => `Fase de Promoção ${g}`)];
+    for (const c of everyLeague) expect(last(c) < cupFinal.date, c).toBe(true);
+    // as rondas da Taça jogam-se a meio da semana, em dias sem jogos das ligas
+    const leagueDays = new Set(everyLeague.flatMap((c) => repo.competitionMatches(c, 1).map((j) => j.date)));
+    for (const j of cupCalendar.filter((x) => x.date !== cupFinal.date)) {
+      expect(leagueDays.has(j.date), j.date).toBe(false);
+      expect(weekDay(j.date)).toBe(3);
+    }
+    // os clubes da Primeira Liga só entram na última vaga: ninguém dela joga na primeira ronda se houver ronda anterior
+    const rounds = [...new Set(cupCalendar.map((j) => j.round))].sort((a, b) => a - b);
+    expect(rounds.length).toBeGreaterThanOrEqual(7);
+    const firstLeague = new Set(repo.calendar((await handle({ id: 11, type: "competitions", input: null }, s)).find((c) => c.tier === "firstLeague")!.league, 1).matches.flatMap((j) => [j.home, j.away]));
+    expect(cupCalendar.filter((j) => j.round === rounds[0]).some((j) => firstLeague.has(j.home) || firstLeague.has(j.away))).toBe(false);
+    expect(cupCalendar.some((j) => firstLeague.has(j.home) || firstLeague.has(j.away))).toBe(true);
+    // Taças Distritais (RZ-142): uma por distrito, só com clubes desse distrito
+    const districtCups = (await handle({ id: 12, type: "competitions", input: null }, s)).filter((c) => c.tier === "district").map((c) => districtCupName(c.league.replace(/^Distrital /, "")));
+    for (const c of districtCups) {
+      const ms = repo.competitionMatches(c, 1);
+      expect(ms.length, c).toBeGreaterThanOrEqual(5);
+      expect(ms.every((j) => matchWinner(j) !== undefined)).toBe(true);
+    }
+    // prémios por vencer cada competição (RZ-216): 3 ligas + 4 séries + vencedor do CP + 20 distritais + 4 grupos da Fase de Promoção;
+    // taças: vencedor e finalista de 21 taças, mais um prémio por cada eliminatória ganha na Taça antes da final
+    expect(repo.count("COMPETITION_PRIZE")).toBe(32 + 2 * 21 + (cupMatches.length - 1));
     // Prémio do Estado: um por distrito (20), pago ao melhor classificado da pirâmide, com o valor dos parâmetros
     expect(repo.count("STATE_PRIZE")).toBe(20);
     const firstChampion = summary!.champions.find((x) => x.league === "Primeira Liga")!.club;
@@ -219,4 +254,43 @@ describe("plano de jogo", () => {
     const leg = await handle({ id: 10, type: "savePlan", input: { tactic: fresh.tactic, lineup: null } }, s);
     expect(leg.automatic).toBe(true);
   }, 60000);
+});
+
+describe("Supertaça (RZ-141)", () => {
+  it("joga-se antes da primeira jornada da época seguinte, em campo neutro, entre o campeão e o vencedor da Taça", async () => {
+    const s = servicos();
+    await handle({ id: 1, type: "createWorld", input: { seed: "supercup" } }, s);
+    const { repository: repo } = await s.openRepository();
+    // a primeira época não tem Supertaça (ainda não houve campeão)
+    expect(repo.calendar(SUPERCUP, 1).matches).toHaveLength(0);
+    let end = false, keeps = 0, summary: Awaited<ReturnType<typeof handle<"advance">>>["seasonSummary"];
+    while (!end && keeps++ < 80) {
+      const r = await handle({ id: 2, type: "advance", input: { mode: "week" } }, s);
+      end = r.seasonEnd;
+      summary = r.seasonSummary;
+    }
+    expect(end).toBe(true);
+    const champion = summary!.champions.find((x) => x.league === "Primeira Liga")!.club;
+    const cupFinal = repo.competitionMatches(CUP, 1).reduce((a, b) => (b.date > a.date ? b : a));
+    const cupWinner = matchWinner(cupFinal)!;
+    const expected = cupWinner === champion ? (cupFinal.home === champion ? cupFinal.away : cupFinal.home) : cupWinner;
+    // marcada logo no arranque da época 2
+    const [game] = repo.calendar(SUPERCUP, 2).matches;
+    expect(repo.calendar(SUPERCUP, 2).matches).toHaveLength(1);
+    expect([game!.home, game!.away].sort()).toEqual([champion, expected].sort());
+    expect(game!.knockout).toBe(true);
+    expect(game!.neutral).toBe(true);
+    expect(game!.venue && game!.venue !== game!.home && game!.venue !== game!.away).toBe(true);
+    const firstLeague = (await handle({ id: 3, type: "competitions", input: null }, s)).find((c) => c.tier === "firstLeague")!.league;
+    const firstRound = repo.calendar(firstLeague, 2).matches.map((j) => j.date).sort()[0]!;
+    expect(game!.date < firstRound).toBe(true);
+    // joga-se mesmo: o vencedor recebe o prémio e há campeão
+    keeps = 0;
+    while (repo.competitionMatches(SUPERCUP, 2).length === 0 && keeps++ < 20) await handle({ id: 4, type: "advance", input: { mode: "week" } }, s);
+    expect(repo.competitionMatches(SUPERCUP, 2)).toHaveLength(1);
+    const played = repo.competitionMatches(SUPERCUP, 2)[0]!;
+    expect(matchWinner(played)).toBeDefined();
+    expect(played.date).toBe(game!.date);
+    expect(repo.count("CHAMPION", { k: "club", id: matchWinner(played)! })).toBeGreaterThanOrEqual(1);
+  }, 240000);
 });

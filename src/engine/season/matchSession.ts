@@ -13,8 +13,7 @@ import type { MatchInput, MatchEvent, Side, Tactic } from "../match/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { matchReferee } from "../match/matchContext";
-import { matchTicket, matchContext, coloursOf, teamForMatch, beforeTable, zonesOf } from "./advance";
-import { post } from "../club/finances";
+import { matchTicket, postTicketing, matchContext, coloursOf, teamForMatch, beforeTable, zonesOf, flagsOf, inputFlags } from "./advance";
 import { SESSION_KEY, xgCurve, matchTeams, type LiveMeeting, type MatchInfo, saveLiveMatch, matchLines, type LiveMatch, type LiveTableLine, type OtherLiveMatch } from "./liveMatch";
 import { seasonData } from "./seasonPyramid";
 import { rivalEvent, rivalReason } from "./rivals";
@@ -43,6 +42,8 @@ export type SavedSession = {
   zones?: { promoted: number; relegated: number };
   meetings?: LiveMeeting[];
   info?: MatchInfo;
+  /** Jogo a eliminar / em campo neutro (e o clube cujo estádio recebe). */
+  flags?: { knockout?: boolean; neutral?: boolean; venue?: string };
 };
 
 export function readSession(repo: Repository): SavedSession | undefined {
@@ -119,14 +120,15 @@ export function startSession(repo: Repository, base: BaseData, params: Params, g
     if (o.id === g.id || o.competition !== g.competition || repo.match(o.id)) continue;
     const ec = teamForMatch(repo, o.home, o.competition, season, o.round, today, seed, params);
     const ef = teamForMatch(repo, o.away, o.competition, season, o.round, today, seed, params);
-    const r = playMatch({ seed, id: o.id, home: ec, away: ef }, 1, { id: o.id, competition: o.competition, season, round: o.round, date: today }, params);
+    const r = playMatch({ seed, id: o.id, home: ec, away: ef, ...inputFlags(o) }, 1, { id: o.id, competition: o.competition, season, round: o.round, date: today }, params);
     others.push({ id: o.id, home: { id: o.home, name: names.get(o.home) ?? o.home }, away: { id: o.away, name: names.get(o.away) ?? o.away }, duration: r.report.duration, goals: r.report.goals.map((x) => ({ minute: x.minute, side: x.side })), homeGoals: r.report.homeGoals, awayGoals: r.report.awayGoals });
   }
-  const table = beforeTable(repo, g.competition, season, names);
+  const table = g.knockout ? [] : beforeTable(repo, g.competition, season, names);
+  const flags = flagsOf(g);
   const s: SavedSession = {
-    match: g.id, competition: g.competition, round: g.round, season, date: today, side, input: { seed, id: g.id, home, away }, changes: [], minute: 0,
+    match: g.id, competition: g.competition, round: g.round, season, date: today, side, input: { seed, id: g.id, home, away, ...inputFlags(g) }, changes: [], minute: 0, ...(Object.keys(flags).length > 0 ? { flags } : {}),
     table, others, winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, colours: coloursOf(data, [g.home, g.away, ...table.map((l) => l.club)]), zones: zonesOf(data, params, gamerClub),
-    ...matchContext(repo, data, params, g.home, g.away, g.competition, g.id),
+    ...matchContext(repo, data, params, g.home, g.away, g.competition, g.id, flags),
   };
   save(repo, s);
   return view(repo, s, params, names);
@@ -143,9 +145,10 @@ export function sessionStep(repo: Repository, base: BaseData, params: Params, mi
   const s = readSession(repo);
   if (!s) throw new Error("Não há jogo a decorrer");
   const data = seasonData(repo, base);
-  const { sim } = replay(s, params);
+  // o prolongamento só existe depois de simular os 90': a duração vê-se no minuto de destino, não no atual
+  const { sim } = replay(s, params, s.minute + Math.max(0, Math.floor(minutes)));
   const fresh = { ...s, minute: Math.min(sim.duration, s.minute + Math.max(0, Math.floor(minutes))) };
-  if (fresh.minute >= sim.duration) return finish(repo, data, params, fresh);
+  if (sim.finished) return finish(repo, data, params, fresh);
   save(repo, fresh);
   return view(repo, fresh, params, namesOf(data));
 }
@@ -206,9 +209,9 @@ function finish(repo: Repository, data: BaseData, params: Params, s: SavedSessio
   return repo.transaction(() => {
     const gamer = repo.meta("gamer.club");
     const rival = gamer ? rivalReason(repo, data, params, s.competition, s.season, gamer, s.input.home.club === gamer ? s.input.away.club : s.input.home.club) : undefined;
-    const ticket = matchTicket(data, params, s.input.home.club, s.input.away.club, s.competition);
+    const ticket = matchTicket(data, params, s.input.home.club, s.input.away.club, s.competition, s.flags ?? {});
     const { event } = repo.recordMatch({ ...r.record.match, referee: matchReferee(s.input.seed, s.match), ...(ticket ? { attendance: ticket.attendance, revenue: ticket.revenue } : {}) }, r.record.facts, r.record.appearances);
-    if (ticket) post(repo, ticket.club, "ticketing", ticket.revenue);
+    if (ticket) postTicketing(repo, ticket);
     if (rival) repo.appendEvent(rivalEvent(s.match, s.input.home.club, s.input.away.club, s.date, s.season, s.round, event, rival));
     for (const l of r.record.injuries) repo.appendEvent({ ...l, cause: event });
     for (const h of r.stories) repo.appendEvent({ ...h, cause: event });

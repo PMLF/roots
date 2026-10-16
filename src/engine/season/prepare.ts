@@ -8,6 +8,7 @@ import type { Repository } from "../persistence/repository";
 import type { IsoDate, ScheduledMatch } from "../persistence/types";
 import { isInSecondDistrict } from "./districts";
 import { CP_FINAL_PHASE_COMPETITIONS } from "./cpFinalPhase";
+import { ensureCompetitions, pendingCupMatches } from "./competitions";
 import { saveParameters } from "./saveYear";
 import { currentSeason, savePyramid, initialPyramid } from "./seasonPyramid";
 
@@ -37,6 +38,7 @@ export function prepareSeason(repo: Repository, data: BaseData, paramsBase: Para
   }
   if (repo.meta("date.today") === undefined) repo.setMeta("date.today", createDate(params.calendar.initialYear + season - 1, params.calendar.seasonStartMonth, 1));
   repo.setMeta("season", String(season));
+  ensureCompetitions(repo, data, params, season);
   return { today: repo.meta("date.today") as IsoDate, season };
 }
 
@@ -54,5 +56,6 @@ export function matchesPerPlay(repo: Repository, data: BaseData, season: number)
     const played = new Set(repo.competitionMatches(c, season).map((j) => j.id));
     for (const j of repo.calendar(c, season).matches) if (!played.has(j.id)) out.push(j);
   }
+  out.push(...pendingCupMatches(repo, season));
   return out;
 }

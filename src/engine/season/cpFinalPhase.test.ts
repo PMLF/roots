@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PARAMETERS as P } from "../config/parameters";
 import { weekDay } from "../calendar/dates";
-import { finalPhaseDates, finalSemiPair, sortChampions, knockoutRoundWinner, type SeriesChampion } from "./cpFinalPhase";
+import { finalPhaseDates, finalSemiPair, sortChampions, type SeriesChampion } from "./cpFinalPhase";
 
 const c = (club: string, series: SeriesChampion["series"], points: number, extra: Partial<SeriesChampion> = {}): SeriesChampion => ({ series, club, matches: 18, points, difference: 20, scoredGoals: 40, reputation: 100, ...extra });
 
@@ -19,21 +19,6 @@ describe("fase final do CP", () => {
   });
   it("precisa dos quatro campeões", () => {
     expect(() => finalSemiPair([c("a", "A", 40)])).toThrow();
-  });
-  it("sem empate passa quem marcou mais; com empate decidem os penáltis, sempre os mesmos e com um vencedor", () => {
-    expect(knockoutRoundWinner({ seed: "s", id: "j", home: "x", away: "y", homeGoals: 2, awayGoals: 1 }, P)).toEqual({ winner: "x" });
-    expect(knockoutRoundWinner({ seed: "s", id: "j", home: "x", away: "y", homeGoals: 0, awayGoals: 1 }, P)).toEqual({ winner: "y" });
-    const a = knockoutRoundWinner({ seed: "s", id: "j", home: "x", away: "y", homeGoals: 1, awayGoals: 1 }, P);
-    expect(knockoutRoundWinner({ seed: "s", id: "j", home: "x", away: "y", homeGoals: 1, awayGoals: 1 }, P)).toEqual(a);
-    expect(a.penalties).toBeDefined();
-    expect(a.penalties!.home).not.toBe(a.penalties!.away);
-    expect(a.winner).toBe(a.penalties!.home > a.penalties!.away ? "x" : "y");
-  });
-  it("os penáltis dão vitórias aos dois lados, perto de metade-metade", () => {
-    let home = 0;
-    for (let i = 0; i < 2000; i++) if (knockoutRoundWinner({ seed: "s", id: `j${i}`, home: "x", away: "y", homeGoals: 0, awayGoals: 0 }, P).winner === "x") home++;
-    expect(home / 2000).toBeGreaterThan(0.45);
-    expect(home / 2000).toBeLessThan(0.55);
   });
   it("as datas são domingos, depois das séries, e a final vem a seguir às meias-finais", () => {
     const d = finalPhaseDates("2027-04-25", P);

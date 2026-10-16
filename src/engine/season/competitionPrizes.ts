@@ -27,12 +27,12 @@ export function districtFactors(cities: readonly BaseCity[], params: Params): Ma
   return new Map([...r].map(([d, v]) => [d, mean > 0 ? Math.min(max, Math.max(min, v / mean)) : 1] as const));
 }
 
-export type PrizeType = "firstLeague" | "secondLeague" | "thirdLeague" | "cpSeries" | "cpWinner" | "district" | "promotionPhase";
+export type PrizeType = "firstLeague" | "secondLeague" | "thirdLeague" | "cpSeries" | "cpWinner" | "district" | "promotionPhase" | "portugalCup" | "superCup" | "districtCup";
 
 /** Valor do prémio (euros, arredondado às dezenas), com o fator do distrito nas competições distritais. */
 export function prizeValue(type: PrizeType, params: Params, factor = 1): number {
   const base = params.prizes.competitions[type];
-  const f = type === "district" || type === "promotionPhase" ? factor : 1;
+  const f = type === "district" || type === "promotionPhase" || type === "districtCup" ? factor : 1;
   return Math.round((base * f) / 10) * 10;
 }
 

@@ -21,6 +21,7 @@ import { ensureBudgets } from "../club/budget";
 import { closeUntilMonths, post } from "../club/finances";
 import { isInSecondDistrict } from "./districts";
 import { CP_FINAL_COMPETITION, generateCpFinal, generateCpFinalSemi } from "./cpFinalPhase";
+import { advanceCompetitions } from "./competitions";
 import { closeSeason, generatePromotionPhase, type SeasonSummary } from "./closeSeason";
 import { playersForm } from "./fitness";
 import { rivalEvent, rivalReason } from "./rivals";
@@ -109,24 +110,43 @@ export function coloursOf(data: { clubs: readonly { id: string; colours: string 
   return out;
 }
 
-/** Assistência e bilheteira do jogo (RZ-114/115); a receita fica com o clube da casa. */
-export function matchTicket(data: BaseData, params: Params, home: string, away: string, competition: string): { attendance: number; revenue: number; club: BaseClub } | undefined {
+/** Marcas de um jogo marcado que mudam como se joga e como se cobra: a eliminar (prolongamento e penáltis) e em campo neutro. */
+export type MatchFlags = { knockout?: boolean; neutral?: boolean; venue?: string };
+export const flagsOf = (g: MatchFlags): MatchFlags => ({ ...(g.knockout ? { knockout: true } : {}), ...(g.neutral ? { neutral: true } : {}), ...(g.venue ? { venue: g.venue } : {}) });
+/** O que entra na simulação do jogo (`MatchInput`) a partir das marcas. */
+export const inputFlags = (g: MatchFlags): { knockout?: true; neutral?: true } => ({ ...(g.knockout ? { knockout: true as const } : {}), ...(g.neutral ? { neutral: true as const } : {}) });
+
+/**
+ * Assistência e bilheteira do jogo (RZ-114/115). A receita fica com o clube da casa; em campo neutro joga-se no estádio do
+ * clube `venue` e a receita reparte-se pelos dois clubes (`shared`).
+ */
+export function matchTicket(data: BaseData, params: Params, home: string, away: string, competition: string, flags: MatchFlags = {}): { attendance: number; revenue: number; club: BaseClub; /** O clube de cujo estádio se joga. */ host: BaseClub; shared?: [BaseClub, BaseClub] } | undefined {
   const cc = data.clubs.find((x) => x.id === home);
   const cf = data.clubs.find((x) => x.id === away);
   if (!cc || !cf) return undefined;
-  const b = matchAttendance({ home: cc, away: cf, footballCulture: data.cities.find((x) => x.id === cc.city)?.footballCulture ?? 50, final: competition === CP_FINAL_COMPETITION }, params);
-  return { ...b, club: cc };
+  const venue = flags.neutral && flags.venue ? data.clubs.find((x) => x.id === flags.venue) : undefined;
+  const host = venue ?? cc;
+  const b = matchAttendance({ home: venue ? { ...cc, stadium: venue.stadium } : cc, away: cf, footballCulture: data.cities.find((x) => x.id === host.city)?.footballCulture ?? 50, final: competition === CP_FINAL_COMPETITION || !!flags.neutral }, params);
+  return { ...b, club: cc, host, ...(flags.neutral ? { shared: [cc, cf] as [BaseClub, BaseClub] } : {}) };
+}
+
+/** Lança a receita de bilheteira nas tesourarias: tudo ao clube da casa ou, em campo neutro, metade a cada um. */
+export function postTicketing(repo: Repository, ticket: NonNullable<ReturnType<typeof matchTicket>>): void {
+  if (!ticket.shared) return post(repo, ticket.club, "ticketing", ticket.revenue);
+  const half = Math.floor(ticket.revenue / 2);
+  post(repo, ticket.shared[0], "ticketing", ticket.revenue - half);
+  post(repo, ticket.shared[1], "ticketing", half);
 }
 
 /** Os últimos jogos entre os dois clubes e os dados do estádio, para a página do jogo. `excepto` é o próprio jogo. */
-export function matchContext(repo: Repository, data: BaseData, params: Params, home: string, away: string, competition: string, except: string): { info?: MatchInfo; meetings: LiveMeeting[] } {
+export function matchContext(repo: Repository, data: BaseData, params: Params, home: string, away: string, competition: string, except: string, flags: MatchFlags = {}): { info?: MatchInfo; meetings: LiveMeeting[] } {
   const meetings = repo.meetings(home, away, 6).filter((j) => j.id !== except).slice(0, 5)
     .map((j) => ({ id: j.id, date: j.date, competition: j.competition, season: j.season, home: j.home, away: j.away, homeGoals: j.homeGoals, awayGoals: j.awayGoals }));
-  const b = matchTicket(data, params, home, away, competition);
+  const b = matchTicket(data, params, home, away, competition, flags);
   if (!b) return { meetings };
-  const e = b.club.stadium;
+  const e = b.host.stadium;
   const seed = repo.meta("seed") ?? "?";
-  return { meetings, info: { stadium: { name: e.name, locality: b.club.locality, capacity: e.capacity }, attendance: b.attendance, referee: matchReferee(seed, except), channels: matchChannels(b.club.tier, competition, seed, except) } };
+  return { meetings, info: { stadium: { name: e.name, locality: b.host.locality, capacity: e.capacity }, attendance: b.attendance, referee: matchReferee(seed, except), channels: matchChannels(b.club.tier, competition, seed, except) } };
 }
 
 /** Joga os jogos de `hoje` e passa ao dia seguinte. Tudo numa transação. */
@@ -142,7 +162,7 @@ export function advanceDay(repo: Repository, base: BaseData, params: Params, gam
     // a tabela de cada competição onde o gamer joga hoje, antes dos jogos (para o ver ao vivo)
     const tables = new Map<string, LiveTableLine[]>();
     for (const g of repo.dayMatches(today)) {
-      if (repo.match(g.id) || matchLevel(g.home, g.away, gamerClub) !== 0 || tables.has(g.competition)) continue;
+      if (repo.match(g.id) || g.knockout || matchLevel(g.home, g.away, gamerClub) !== 0 || tables.has(g.competition)) continue;
       tables.set(g.competition, beforeTable(repo, g.competition, season, clubName));
     }
     const live: { id: string; competition: string; round: number; home: string; away: string; duration: number; homeGoals: number; awayGoals: number; lines: ReturnType<typeof matchLines>; summary: MatchSummary; teams: LiveTeams; xg: XgCurve }[] = [];
@@ -152,11 +172,11 @@ export function advanceDay(repo: Repository, base: BaseData, params: Params, gam
       const level = matchLevel(g.home, g.away, gamerClub);
       const home = teamForMatch(repo, g.home, g.competition, season, g.round, today, seed, params, g.home === gamerClub ? readPlan(repo, g.home) : undefined);
       const away = teamForMatch(repo, g.away, g.competition, season, g.round, today, seed, params, g.away === gamerClub ? readPlan(repo, g.away) : undefined);
-      const r = playMatch({ seed, id: g.id, home, away }, level, { id: g.id, competition: g.competition, season, round: g.round, date: today }, params);
+      const r = playMatch({ seed, id: g.id, home, away, ...inputFlags(g) }, level, { id: g.id, competition: g.competition, season, round: g.round, date: today }, params);
       const rival = gamerClub && level === 0 ? rivalReason(repo, data, params, g.competition, season, gamerClub, g.home === gamerClub ? g.away : g.home) : undefined;
-      const ticket = matchTicket(data, params, g.home, g.away, g.competition);
+      const ticket = matchTicket(data, params, g.home, g.away, g.competition, g);
       const { event } = repo.recordMatch({ ...r.record.match, referee: matchReferee(seed, g.id), ...(ticket ? { attendance: ticket.attendance, revenue: ticket.revenue } : {}) }, r.record.facts, r.record.appearances);
-      if (ticket) post(repo, ticket.club, "ticketing", ticket.revenue);
+      if (ticket) postTicketing(repo, ticket);
       if (rival) repo.appendEvent(rivalEvent(g.id, g.home, g.away, today, season, g.round, event, rival));
       for (const l of r.record.injuries) repo.appendEvent({ ...l, cause: event });
       for (const h of r.stories) repo.appendEvent({ ...h, cause: event });
@@ -179,7 +199,7 @@ export function advanceDay(repo: Repository, base: BaseData, params: Params, gam
         id: j.id, home: { id: j.home, name: j.homeName }, away: { id: j.away, name: j.awayName }, duration: durations.get(j.id) ?? 90,
         goals: j.goals.map((x) => ({ minute: x.minute, side: (x.club === j.home ? "home" : "away") as "home" | "away" })), homeGoals: j.homeGoals, awayGoals: j.awayGoals,
       }));
-      saveLiveMatch(repo, { ...v, ...matchContext(repo, data, params, v.home, v.away, v.competition, v.id), date: today, home: { id: v.home, name: clubName.get(v.home) ?? v.home }, away: { id: v.away, name: clubName.get(v.away) ?? v.away }, table: tables.get(v.competition) ?? [], winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, others, colours: coloursOf(data, [v.home, v.away, ...(tables.get(v.competition) ?? []).map((l) => l.club)]), gamerSide: v.home === gamerClub ? "home" : "away", zones: zonesOf(data, params, v.home) });
+      saveLiveMatch(repo, { ...v, ...matchContext(repo, data, params, v.home, v.away, v.competition, v.id, flagsOf(repo.dayMatches(today).find((x) => x.id === v.id) ?? {})), date: today, home: { id: v.home, name: clubName.get(v.home) ?? v.home }, away: { id: v.away, name: clubName.get(v.away) ?? v.away }, table: tables.get(v.competition) ?? [], winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, others, colours: coloursOf(data, [v.home, v.away, ...(tables.get(v.competition) ?? []).map((l) => l.club)]), gamerSide: v.home === gamerClub ? "home" : "away", zones: zonesOf(data, params, v.home) });
     }
     const tomorrow = addDays(today, 1);
     repo.setMeta("date.today", tomorrow);
@@ -210,7 +230,9 @@ export function advance(repo: Repository, base: BaseData, params: Params, mode: 
     const districtLeagues = new Set(data.clubs.filter((c) => c.tier === "district").map((c) => c.league));
     if (!promotionGroups(repo, season) && !pending.some((j) => districtLeagues.has(j.competition))) { generatePromotionPhase(repo, data, params, season); return "generated"; }
     // Fase final do CP (meias-finais e final entre os campeões das séries): marca-se quando as séries acabam e a final quando as meias-finais se jogaram
-    if (generateCpFinalSemi(repo, data, params, season) || generateCpFinal(repo, params, season)) return "generated";
+    if (generateCpFinalSemi(repo, data, params, season) || generateCpFinal(repo, season)) return "generated";
+    // Taças: resolvem-se as rondas decididas e marcam-se as seguintes
+    if (advanceCompetitions(repo, data, params, season)) return "generated";
     if (pending.length > 0) return "free";
     seasonSummary = closeSeason(repo, data, params, season);
     return "closed";

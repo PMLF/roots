@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { handle, type Servicos } from "../api/handler";
 import { DEFAULT_TACTIC } from "../match/formations";
 import { MemoryRepository } from "../persistence/repositoryMemory";
+import { matchWinner } from "../persistence/types";
 
 const read = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
 const servicos = (): Servicos => {
@@ -198,4 +199,36 @@ describe("jogo do gamer minuto a minuto (RZ-170)", () => {
       expect(end.lines.filter((l) => l.type === "substitution" && l.minute === 10).length).toBe(1);
     }, 120000);
   });
+});
+
+describe("jogo a eliminar ao vivo (RZ-140)", () => {
+  it("empatado aos 90' segue para o prolongamento e acaba com vencedor (golos ou penáltis)", async () => {
+    let extra = 0;
+    for (let i = 0; i < 25 && extra < 2; i++) {
+      const s = servicos();
+      await handle({ id: 1, type: "createWorld", input: { seed: `eliminatoria-${i}` } }, s);
+      const clubs = await handle({ id: 2, type: "clubs", input: null }, s);
+      await handle({ id: 20, type: "timeState", input: null }, s); // gera os calendários
+      const { repository: repo } = await s.openRepository();
+      const today = repo.meta("date.today") as string;
+      const playing = new Set(repo.dayMatches(today).flatMap((j) => [j.home, j.away]));
+      const [mine, other] = clubs.filter((c) => !playing.has(c.id)).slice(0, 2) as [(typeof clubs)[number], (typeof clubs)[number]];
+      await handle({ id: 3, type: "chooseClub", input: { id: mine.id } }, s);
+      repo.saveCalendar([{ id: "ko-test", competition: "Taça de Teste", season: 1, round: 1, date: today, home: mine.id, away: other.id, knockout: true }], []);
+      const r = await handle({ id: 4, type: "advance", input: { mode: "nextMatch" } }, s);
+      expect(r.pause?.match).toBe("ko-test");
+      await handle({ id: 5, type: "startMatch", input: { match: "ko-test" } }, s);
+      // um passo de 200 minutos nunca salta o prolongamento: a duração só se conhece depois de simular os 90'
+      await handle({ id: 6, type: "matchStep", input: { minutes: 90 } }, s);
+      const end = repo.match("ko-test") ? undefined : await handle({ id: 7, type: "matchStep", input: { minutes: 200 } }, s);
+      const done = repo.match("ko-test")!;
+      expect(matchWinner(done)).toBeDefined();
+      if (done.extraTime) {
+        extra++;
+        expect(end!.duration).toBeGreaterThanOrEqual(120);
+        expect(end!.lines.at(-1)!.type).toBe("end");
+      }
+    }
+    expect(extra).toBeGreaterThan(0);
+  }, 240000);
 });

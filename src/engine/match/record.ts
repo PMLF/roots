@@ -43,6 +43,8 @@ export function matchRecord(meta: MatchMeta, home: MatchTeam, away: MatchTeam, e
     ...(meta.importance !== undefined ? { importance: meta.importance } : {}),
     ...(meta.referee !== undefined ? { referee: meta.referee } : {}),
     ...(meta.cause !== undefined ? { cause: meta.cause } : {}),
+    ...(summary.extraTime ? { extraTime: true } : {}),
+    ...(summary.shootout ? { homePenalties: summary.shootout.home, awayPenalties: summary.shootout.away } : {}),
   };
   const rating = (id: string) => report?.players.find((x) => x.id === id)?.rating;
   /** Minuto em que o jogador saiu (lesão, expulsão) ou entrou (substituição). */
