@@ -12,6 +12,7 @@ import { caixa, marcarCaixaLida, marcarMensagem, noticias } from "../noticias/no
 import { epocaDoClube } from "../competicao/clubeEpoca";
 import { lerJogoVivo } from "../epoca/jogoAoVivo";
 import { iniciarSessao, mudarTaticaSessao, passoSessao, sessaoAtual } from "../epoca/sessaoJogo";
+import { estaNaSegundaDistrital } from "../epoca/distritais";
 import { aceitarOferta, demitir, estaDesempregado, ofertasDoGamer } from "../epoca/mercadoTreinadores";
 import { avancar, estadoDoTempo } from "../epoca/avancar";
 import { parametrosDoSave, anoDaEpocaQueContem, anoInicialDoSave, nomeDaEpoca } from "../epoca/anoDoSave";
@@ -252,7 +253,9 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
     case "escolherClube": {
       const { repositorio, dados } = await contexto(servicos);
       if (estaDesempregado(repositorio) && m.entrada.forcar !== true) throw new Error("Sem clube: escolhe uma das ofertas recebidas");
-      if (!dados.clubes.some((c) => c.id === m.entrada.id)) throw new Error("Clube desconhecido");
+      const escolhido = dados.clubes.find((c) => c.id === m.entrada.id);
+      if (!escolhido) throw new Error("Clube desconhecido");
+      if (estaNaSegundaDistrital(escolhido.liga)) throw new Error("Esse clube está na segunda distrital: só é jogável quando voltar à pirâmide");
       const atual = repositorio.meta("clube.gamer");
       if (atual && atual !== m.entrada.id && m.entrada.forcar !== true) throw new Error("O clube do save já foi escolhido: só muda se fores despedido ou te despedires");
       repositorio.definirMeta("clube.gamer", m.entrada.id);

@@ -33,7 +33,7 @@ type GameState = {
 
 | Entidade | Campos |
 |---|---|
-| **Distrito** | `id`, `nome`, `serieCP` (A-D), `ilhas: boolean`, `bolsa: ClubeId[]` (clubes do distrito fora de qualquer liga simulada), `ligaDistrital: CompeticaoId` |
+| **Distrito** | `id`, `nome`, `serieCP` (A-D), `ilhas: boolean`, `segundaDistrital: ClubeId[]` (clubes do distrito fora de qualquer liga simulada; no jogo não há esta liga, mas os clubes sabem que jogam nela), `ligaDistrital: CompeticaoId` |
 | **Cidade (concelho)** | `id`, `nome`, `distrito`, `populacao`, `setor`, `tag2`, `polo`, `ilha`, `orcamentoMunicipal`, `autarca: PessoaId`, `clubes: ClubeId[]` |
 
 Variáveis dinâmicas da cidade (RZ-301/309, F3; em F1 ficam a valores por omissão): `economia`, `turismo`, `orgulho`, `emprego`, `transportes`, `estacionamento`, `valorSoloEstadio`, `apoioClubes` (por clube), `humor`. Todas em 0-100 e atualizadas ao ritmo mensal/anual.

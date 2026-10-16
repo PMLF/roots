@@ -12,7 +12,7 @@ import type { Data } from "../persistencia/tipos";
 export type TipoNoticia =
   | "hattrick" | "vermelho" | "expulsao_dois_amarelos" | "goleada" | "golo_reviravolta" | "golo_descontos" | "lesao_grave"
   | "campeao" | "premio_estado" | "subida" | "descida" | "localidade" | "cidade_evento"
-  | "resultado" | "lesao" | "demissao" | "contratado";
+  | "resultado" | "lesao" | "demissao" | "despedido" | "contratado";
 
 export type LigacaoNoticia = { k: "clube" | "pessoa" | "localidade" | "competicao" | "cidade"; id: string; nome: string };
 
@@ -35,7 +35,7 @@ export type Mensagem = Noticia & { lida: boolean };
 /** Quantas variantes de texto existem por tipo (a interface tem as frases `noticia.<tipo>.<n>.titulo|corpo`). */
 export const VARIANTES: Record<TipoNoticia, number> = {
   hattrick: 2, vermelho: 2, expulsao_dois_amarelos: 2, goleada: 2, golo_reviravolta: 2, golo_descontos: 2, lesao_grave: 2,
-  campeao: 2, premio_estado: 2, subida: 2, descida: 2, localidade: 1, cidade_evento: 1, resultado: 2, lesao: 2, demissao: 1, contratado: 1,
+  campeao: 2, premio_estado: 2, subida: 2, descida: 2, localidade: 1, cidade_evento: 1, resultado: 2, lesao: 2, demissao: 1, despedido: 1, contratado: 1,
 };
 
 /** Tipos de evento que dão notícia para toda a gente. */
@@ -150,7 +150,7 @@ function construir(e: Evento, c: Contexto, soCaixa: boolean): Noticia | undefine
       return base("resultado", { casa: c.nomeClube(casa.id), fora: c.nomeClube(fora.id), golosCasa: gc, golosFora: gf, resultado: meus > deles ? "vitoria" : meus === deles ? "empate" : "derrota", competicao: competicao?.id ?? "" }, [lc(casa.id), lc(fora.id)]);
     }
     case "GAMER_DEMISSAO":
-      return soCaixa && clube ? base("demissao", { clube: c.nomeClube(clube.id) }, [lc(clube.id)]) : undefined;
+      return soCaixa && clube ? base(d.motivo === "segundaDistrital" ? "despedido" : "demissao", { clube: c.nomeClube(clube.id) }, [lc(clube.id)]) : undefined;
     case "GAMER_CONTRATADO":
       return soCaixa && clube ? base("contratado", { clube: c.nomeClube(clube.id) }, [lc(clube.id)]) : undefined;
     default:
