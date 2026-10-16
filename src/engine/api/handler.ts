@@ -1,9 +1,10 @@
+import { estadoFinanceiro, saldoDoClube } from "../clube/financas";
 import { criarData } from "../calendario/datas";
 import { PARAMETROS_PADRAO, type Parametros } from "../config/parametros";
 import { VERSAO_ESQUEMA as ESQUEMA_BD } from "../persistencia/esquema";
 import type { Repositorio } from "../persistencia/repositorio";
 import { importarDados } from "../dados/importar";
-import type { DadosBase, FontesCsv } from "../dados/tipos";
+import type { ClubeBase, DadosBase, FontesCsv } from "../dados/tipos";
 import { gerarMundo } from "../mundo/gerarMundo";
 import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
@@ -27,7 +28,7 @@ import { CHAVE } from "../mundo/jogador";
 import type { Atributo, Posicao } from "../mundo/tipos";
 import { Vista } from "../vista/vista";
 import { indexar, pesquisar, type EntradaIndice, type Indexada } from "../pesquisa/pesquisar";
-import type { NivelEstimado, VerdadePessoa, ClubeResumo, DiagnosticoBd, FichaClubeDados, FichaLocalidadeDados, FichaPessoaDados, RefEntidade, EstatutoLocalidade, Mensagem, PedidosMotor, ProgressoMundo, ResumoMundoCriado, TipoPedido } from "./contratos";
+import type { NivelEstimado, VerdadePessoa, ClubeResumo, DiagnosticoBd, FichaClubeDados, FinancasClube, FichaLocalidadeDados, FichaPessoaDados, RefEntidade, EstatutoLocalidade, Mensagem, PedidosMotor, ProgressoMundo, ResumoMundoCriado, TipoPedido } from "./contratos";
 
 export const VERSAO_MOTOR = "0.1.0";
 export const VERSAO_ESQUEMA = ESQUEMA_BD;
@@ -132,6 +133,7 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
         cargos: vista.cargos({ clube: c.id }),
         escalao: c.escalao,
         nivelReputacao: nivelDeReputacao(c.reputacao, params),
+        financas: financasDoClube(repositorio, dados, params, c, repositorio.meta("clube.gamer") === c.id || verTudo),
         estadioDetalhe: { propriedade: c.estadio.propriedade, zona: c.estadio.localizacao.zona, distanciaCentroKm: c.estadio.localizacao.distanciaCentroKm, transportes: c.estadio.localizacao.transportes, acessoRodoviario: c.estadio.localizacao.acessoRodoviario, estacionamento: c.estadio.localizacao.estacionamento, terrenoExpansao: c.estadio.localizacao.terrenoExpansao },
         historicoDivisoes: historicoDeDivisoes(repositorio, base, c.id).map((h) => ({ ...h, label: nomeDaEpoca(h.epoca, params.calendario.anoInicial) })),
         plantelExtra: {},
@@ -147,7 +149,7 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
         const niveis = saida.plantel.map((j) => saida.plantelExtra[j.id]?.nivel?.valor).filter((v): v is number => v !== undefined);
         saida.verdade = {
           reputacao: c.reputacao,
-          financas: c.financas,
+          financas: saldoDoClube(repositorio, c),
           qualidadeStaff: Object.fromEntries(saida.cargos.flatMap((p) => { const q = repositorio.cargo(p.id)?.qualidade; return q ? [[p.id, q]] : []; })),
           plantelNivel: niveis.length ? Math.round((niveis.reduce((s, v) => s + v, 0) / niveis.length) * 10) / 10 : 0,
         };
@@ -438,4 +440,15 @@ function indiceDePesquisa(r: Repositorio, dados: DadosBase): Indexada[] {
   const indice = indexar(entradas);
   indices.set(r, { pessoas: total, indice });
   return indice;
+}
+
+/** Estado das finanças de um clube; o próprio clube (ou o modo developer) vê também o saldo exato e o último fecho mensal. */
+function financasDoClube(repositorio: Repositorio, dados: DadosBase, params: Parametros, c: ClubeBase, proprio: boolean): FinancasClube {
+  const e = estadoFinanceiro(repositorio, dados, params, c, { proprio, epoca: Number(repositorio.meta("epoca") ?? 1), seed: repositorio.meta("seed") ?? "?" });
+  if (!proprio) return { estado: e.estado, exato: false };
+  const ultimo = repositorio.ultimo("FECHO_FINANCEIRO", { k: "clube", id: c.id });
+  return {
+    estado: e.estado, exato: true, saldo: saldoDoClube(repositorio, c),
+    ...(ultimo ? { ultimoFecho: { data: ultimo.data, receitas: Number(ultimo.dados.receitas), despesas: Number(ultimo.dados.despesas), porCategoria: ultimo.dados.mes as Record<string, number> } } : {}),
+  };
 }

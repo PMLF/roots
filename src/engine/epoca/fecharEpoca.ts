@@ -19,6 +19,7 @@ import { parametrosDoSave } from "./anoDoSave";
 import { campeaoDoCp } from "./faseFinalCp";
 import { despedirPorDescida } from "./mercadoTreinadores";
 import { ajustarDistritais, estaNaSegundaDistrital, type SegundaDistrital } from "./distritais";
+import { fecharMesesAte, lancar } from "../clube/financas";
 import { fatoresDeDistrito, valorDoPremio, type TipoPremio } from "./premiosCompeticao";
 import { anosSeguidos, premiadosPorDistrito, type ClubeClassificado } from "./premioEstado";
 import { dadosDaEpoca, guardarPiramide, lerPiramide, ligasDaPiramide } from "./piramideEpoca";
@@ -119,7 +120,10 @@ export function fecharEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Par
     const premiar = (tipo: TipoPremio, clube: string, competicao: string, distrito?: string) => {
       const fator = distrito ? fatores.get(distrito) ?? 1 : 1;
       const cidade = cidadeDe0.get(clube);
-      repo.acrescentarEvento({ tipo: "PREMIO_COMPETICAO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: clube, papel: "premiado" }, { k: "competicao", id: competicao }, ...(cidade ? [{ k: "cidade" as const, id: cidade, papel: "sede" }] : [])], dados: { competicao, tipo, valor: valorDoPremio(tipo, params, fator), fatorDistrito: distrito ? fator : undefined, posicao: 1 } });
+      const valor = valorDoPremio(tipo, params, fator);
+      const cb = dados.clubes.find((x) => x.id === clube);
+      if (cb) lancar(repo, cb, "premios", valor);
+      repo.acrescentarEvento({ tipo: "PREMIO_COMPETICAO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: clube, papel: "premiado" }, { k: "competicao", id: competicao }, ...(cidade ? [{ k: "cidade" as const, id: cidade, papel: "sede" }] : [])], dados: { competicao, tipo, valor, fatorDistrito: distrito ? fator : undefined, posicao: 1 } });
     };
     const tipoDaLiga: TipoPremio[] = ["primeiraLiga", "segundaLiga", "terceiraLiga", "serieCp", "serieCp", "serieCp", "serieCp"];
     campeoes.forEach((c, i) => premiar(tipoDaLiga[i] as TipoPremio, c.clube, c.liga));
@@ -136,6 +140,8 @@ export function fecharEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Par
       const seguidos = anosSeguidos(anterior, p.clube);
       repo.definirMeta(chave, JSON.stringify({ clube: p.clube, seguidos, epoca }));
       const cidade = cidadeDe0.get(p.clube);
+      const cbp = dados.clubes.find((x) => x.id === p.clube);
+      if (cbp) lancar(repo, cbp, "premios", params.premios.clube);
       repo.acrescentarEvento({ tipo: "PREMIO_ESTADO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: p.clube, papel: "premiado" }, ...(cidade ? [{ k: "cidade" as const, id: cidade, papel: "camara" }] : [])], dados: { distrito: p.distrito, valorClube: params.premios.clube, valorCidade: params.premios.cidade, seguidos } });
     }
     repo.definirMeta("segundaDistrital", JSON.stringify(ajuste.segunda));
@@ -155,6 +161,8 @@ export function fecharEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Par
     repo.definirMeta("data.hoje", criarData(params.calendario.anoInicial + epoca, params.calendario.mesInicioEpoca, 1));
   });
   prepararEpoca(repo, dadosDaEpoca(repo, dados), paramsBase);
+  // os meses sem jogos (junho, julho) também pagam custos
+  fecharMesesAte(repo, dadosDaEpoca(repo, dados), params, repo.meta("data.hoje") as Data, epoca + 1, (c) => !estaNaSegundaDistrital(c.liga));
   // o clube do gamer que desceu à segunda distrital é despedido (deixa de ser jogável até voltar à pirâmide)
   const gamer = repo.meta("clube.gamer");
   if (gamer && ajuste.ajustes.some((a) => a.tipo === "descida" && a.clube === gamer)) despedirPorDescida(repo, dadosDaEpoca(repo, dados), params, gamer, repo.meta("data.hoje") as Data, epoca);

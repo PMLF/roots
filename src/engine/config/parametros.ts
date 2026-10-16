@@ -62,6 +62,31 @@ export type ParametrosCidade = {
   };
 };
 
+/** Valores por escalão do livro de finanças do clube (RZ-114) e da assistência simples (RZ-115). */
+export type ModeloFinancas = {
+  /** Reputação de referência de cada escalão: acima dela o clube vale mais (patrocínio, comercial, ocupação). */
+  reputacaoRef: Record<Escalao, number>;
+  /** Expoente da razão reputação / referência nas receitas. */
+  expoenteReputacao: number;
+  /** Limites da razão reputação / referência. */
+  razaoReputacao: { min: number; max: number };
+  /** Preço médio do bilhete. */
+  precoBilhete: Record<Escalao, number>;
+  /** Ocupação média do estádio num jogo normal (0-1), antes dos multiplicadores. */
+  ocupacao: Record<Escalao, number>;
+  /** Quanto a cultura de futebol da cidade (0-100) move a ocupação: ocupação × (1 − k + 2k × cultura/100). */
+  ocupacaoCultura: number;
+  /** Patrocínios por ano. */
+  patrocinioAnual: Record<Escalao, number>;
+  /** Receitas comerciais e de sócios por ano (provisório até às transmissões, RZ-218, e às empresas, RZ-219). */
+  comercialAnual: Record<Escalao, number>;
+  /** Custos do staff, da administração e da operação por mês. */
+  staffMensal: Record<Escalao, number>;
+  fixoMensal: Record<Escalao, number>;
+  /** Custo de manter cada lugar do estádio por ano. */
+  estadioPorLugarAno: Record<Escalao, number>;
+};
+
 export type Parametros = {
   versao: 1;
   premios: {
@@ -78,6 +103,8 @@ export type Parametros = {
     };
     /** Fração do prémio do vencedor que recebe o finalista vencido (taças). */
     finalistaVencido: number;
+    /** Prémio de passar cada ronda da Taça de Portugal (RZ-216/RZ-140): `meias` nas meias-finais, o fator por ronda para trás, com mínimo. */
+    tacaPortugalPorRonda: { meias: number; fator: number; minimo: number };
     /** Limites do fator de riqueza de um distrito (autarcas e orçamento municipal) sobre os prémios distritais. */
     fatorDistrito: { min: number; max: number };
   };
@@ -159,6 +186,8 @@ export type Parametros = {
     /** Percentis (do mais alto ao mais baixo) que separam as 5 bandas de riqueza. */
     percentisRiqueza: [number, number, number, number];
     probErroEstimativaRival: number;
+    /** Receitas, custos e bilheteira por escalão (RZ-114/RZ-115), em euros. */
+    modelo: ModeloFinancas;
   };
   personalidade: {
     tracoMin: number;
@@ -403,6 +432,7 @@ export const PARAMETROS_PADRAO: Parametros = {
     clube: 2_000_000, cidade: 1_000_000,
     competicoes: { primeiraLiga: 10_000_000, segundaLiga: 2_000_000, terceiraLiga: 500_000, serieCp: 100_000, vencedorCp: 100_000, distrital: 5_000, fasePromocao: 10_000, tacaPortugal: 2_000_000, supertaca: 500_000, tacaDistrital: 5_000 },
     finalistaVencido: 0.25,
+    tacaPortugalPorRonda: { meias: 500_000, fator: 0.5, minimo: 5_000 },
     fatorDistrito: { min: 0.4, max: 2.5 },
   },
   piramide: {
@@ -473,6 +503,19 @@ export const PARAMETROS_PADRAO: Parametros = {
     mesesSalariosAtrasoFalencia: 3,
     percentisRiqueza: [90, 70, 40, 15],
     probErroEstimativaRival: 0.25,
+    modelo: {
+      reputacaoRef: { primeiraLiga: 5300, segundaLiga: 4650, terceiraLiga: 3000, cp: 2590, distrital: 1295 },
+      expoenteReputacao: 1.2,
+      razaoReputacao: { min: 0.5, max: 3 },
+      precoBilhete: { primeiraLiga: 9, segundaLiga: 8, terceiraLiga: 7, cp: 6, distrital: 4.5 },
+      ocupacao: { primeiraLiga: 0.55, segundaLiga: 0.45, terceiraLiga: 0.4, cp: 0.35, distrital: 0.3 },
+      ocupacaoCultura: 0.3,
+      patrocinioAnual: { primeiraLiga: 1_400_000, segundaLiga: 550_000, terceiraLiga: 250_000, cp: 110_000, distrital: 28_000 },
+      comercialAnual: { primeiraLiga: 600_000, segundaLiga: 300_000, terceiraLiga: 110_000, cp: 60_000, distrital: 18_000 },
+      staffMensal: { primeiraLiga: 40_000, segundaLiga: 12_000, terceiraLiga: 4_500, cp: 1_200, distrital: 250 },
+      fixoMensal: { primeiraLiga: 35_000, segundaLiga: 12_000, terceiraLiga: 5_000, cp: 1_200, distrital: 300 },
+      estadioPorLugarAno: { primeiraLiga: 40, segundaLiga: 25, terceiraLiga: 15, cp: 10, distrital: 4 },
+    },
   },
   personalidade: {
     tracoMin: 1,
@@ -654,6 +697,7 @@ export function validarParametros(p: Parametros): string[] {
   pos("premios.clube", p.premios.clube);
   pos("premios.cidade", p.premios.cidade);
   for (const [k, v] of Object.entries(p.premios.competicoes)) pos(`premios.competicoes.${k}`, v);
+  if (!(p.premios.tacaPortugalPorRonda.fator > 0 && p.premios.tacaPortugalPorRonda.fator <= 1)) erros.push("premios.tacaPortugalPorRonda.fator deve estar em (0, 1]");
   if (!(p.premios.finalistaVencido >= 0 && p.premios.finalistaVencido <= 1)) erros.push("premios.finalistaVencido deve estar em [0, 1]");
   if (!(p.premios.fatorDistrito.min > 0 && p.premios.fatorDistrito.min <= 1 && p.premios.fatorDistrito.max >= 1)) erros.push("premios.fatorDistrito deve ter min em (0, 1] e max >= 1");
 

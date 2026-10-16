@@ -76,6 +76,15 @@ export type FichaPessoaDados = {
   verdade?: VerdadePessoa;
 };
 
+/** Finanças do clube na ficha (RZ-114): uma palavra para todos; o clube do gamer vê também o saldo e o último fecho mensal. */
+export type FinancasClube = {
+  estado: "beiraFalencia" | "emRisco" | "apertado" | "poderoso" | "muitoRico" | "rico" | "folgado" | "remediado" | "estavel" | "modesto" | "pobre";
+  /** Sem erro de estimativa (o próprio clube). */
+  exato: boolean;
+  saldo?: number;
+  ultimoFecho?: { data: string; receitas: number; despesas: number; porCategoria: Record<string, number> };
+};
+
 export type FichaClubeDados = {
   id: string;
   nome: string;
@@ -92,6 +101,7 @@ export type FichaClubeDados = {
   plantel: PessoaVista[];
   cargos: PessoaVista[];
   escalao: Escalao;
+  financas: FinancasClube;
   nivelReputacao: NivelReputacao;
   estadioDetalhe: { propriedade: string; zona: string; distanciaCentroKm: number; transportes: number; acessoRodoviario: number; estacionamento: number; terrenoExpansao: number };
   /** Divisão em que o clube esteve, por época (a história de subidas e descidas). */

@@ -133,7 +133,7 @@ Regras:
 |---|---|---|
 | Jogo | `JOGO_JOGADO`, `GOLO_NOTAVEL`, `HATTRICK`, `CARTAO_VERMELHO`, `LESAO` (dados em MOTOR_JOGO §9; a recuperação deriva de `ate`, sem evento próprio), `LESAO_RECUPERADA` (reservado), `SUSPENSAO`, `SUSPENSAO_CUMPRIDA`, `JOGO_ADIADO`; `JOGO_RIVAL` (privado, ligado ao `JOGO_JOGADO` por `causa`: marca os resultados que vão para a caixa do gamer, ver `caixa.*`) | público |
 | Competição | `INICIO_EPOCA`, `CALENDARIO_GERADO`, `CLASSIFICACAO_FINAL`, `TITULO`, `SUBIDA`, `DESCIDA`, `FASE_PROMOCAO`, `CLUBE_NOVO`, `DISTRITAL_REDIMENSIONADA`, `LICENCA_NEGADA`, `FIM_EPOCA` | público |
-| Dinheiro | `PREMIO_ESTADO`, `PREMIO_COMPETICAO`, `DESTINO_PREMIO_CAMARA`, `PATROCINIO_ASSINADO`, `FECHO_FINANCEIRO` (mensal, por clube) | prémios públicos; resto privado |
+| Dinheiro | `PREMIO_ESTADO`, `PREMIO_COMPETICAO`, `DESTINO_PREMIO_CAMARA`, `PATROCINIO_ASSINADO`, `FECHO_FINANCEIRO` (mensal, por clube, privado; `{receitas, despesas, saldo, mes}` com o resumo por categoria) | prémios públicos; resto privado |
 | Pessoas | `JOGADOR_GERADO`, `CONTRATO_ASSINADO`, `CONTRATO_TERMINADO`, `TRANSFERENCIA`, `EMPRESTIMO`, `RENOVACAO`, `PEDIDO_SAIDA`, `TREINADOR_CONTRATADO`, `TREINADOR_DEMITIDO`, `REFORMA` | transferência pública (valor aproximado); termos do contrato privados |
 | Promessas | `PROMESSA_FEITA`, `PROMESSA_CUMPRIDA`, `PROMESSA_FALHADA`, `QUEIXA_PUBLICA` | privado; queixa pública |
 | Cidade | `ELEICAO`, `APOIO_CAMARA`, `CORTE_APOIO`, `OBRA_INICIADA`, `OBRA_CONCLUIDA`, `EVENTO_CONTEXTO` (baralho político/económico), `MARCO_CIDADE` | público |

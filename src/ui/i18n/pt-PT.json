@@ -941,5 +941,21 @@
   "noticia.segunda_distrital.1.titulo": "{clube} desce à segunda distrital",
   "noticia.segunda_distrital.1.corpo": "Fica fora das competições que acompanhamos no distrito de {distrito}, mas continua a existir e pode voltar.",
   "noticia.regresso_distrital.1.titulo": "{clube} regressa à distrital de {distrito}",
-  "noticia.regresso_distrital.1.corpo": "O clube volta à competição para completar a liga do distrito."
+  "noticia.regresso_distrital.1.corpo": "O clube volta à competição para completar a liga do distrito.",
+  "financas.estado": "Estado",
+  "financas.estimativa": "Estimativa da imprensa: pode estar uma banda ao lado",
+  "financas.saldo": "Caixa",
+  "financas.receitasMes": "Receitas (último mês)",
+  "financas.despesasMes": "Despesas (último mês)",
+  "financas.estado.beiraFalencia": "À beira da falência",
+  "financas.estado.emRisco": "Em risco",
+  "financas.estado.apertado": "Apertado",
+  "financas.estado.poderoso": "Poderoso",
+  "financas.estado.muitoRico": "Muito rico",
+  "financas.estado.rico": "Rico",
+  "financas.estado.folgado": "Folgado",
+  "financas.estado.remediado": "Remediado",
+  "financas.estado.estavel": "Estável",
+  "financas.estado.modesto": "Modesto",
+  "financas.estado.pobre": "Pobre"
 }

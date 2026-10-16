@@ -15,7 +15,10 @@ import { indisponiveis, jogoConfirmado, lerPlano, onzeDoPlano, type Plano } from
 import type { EquipaJogo, ResumoJogo } from "../jogo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
-import { gerarFinalCp, gerarMeiasFinaisCp } from "./faseFinalCp";
+import { assistenciaDoJogo } from "../clube/assistencia";
+import { fecharMesesAte, lancar } from "../clube/financas";
+import { estaNaSegundaDistrital } from "./distritais";
+import { COMPETICAO_FINAL_CP, gerarFinalCp, gerarMeiasFinaisCp } from "./faseFinalCp";
 import { fecharEpoca, gerarFasePromocao, type ResumoEpoca } from "./fecharEpoca";
 import { eventoRival, motivoDeRival } from "./rivais";
 import { CHAVE_SESSAO, guardarJogoVivo, linhasDoJogo, type LinhaTabelaVivo } from "./jogoAoVivo";
@@ -124,7 +127,12 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
       const fora = equipaParaJogo(repo, g.fora, g.competicao, epoca, g.jornada, hoje, seed, params, g.fora === clubeGamer ? lerPlano(repo, g.fora) : undefined);
       const r = jogarJogo({ seed, id: g.id, casa, fora }, nivel, { id: g.id, competicao: g.competicao, epoca, jornada: g.jornada, data: hoje }, params);
       const rival = clubeGamer && nivel === 0 ? motivoDeRival(repo, dados, params, g.competicao, epoca, clubeGamer, g.casa === clubeGamer ? g.fora : g.casa) : undefined;
-      const { evento } = repo.registarJogo(r.registo.jogo, r.registo.factos, r.registo.participacoes);
+      // bilheteira (RZ-114/115): assistência simples; a receita fica com o clube da casa
+      const cc = dados.clubes.find((x) => x.id === g.casa);
+      const cf = dados.clubes.find((x) => x.id === g.fora);
+      const bilhete = cc && cf ? assistenciaDoJogo({ casa: cc, fora: cf, culturaFutebol: dados.cidades.find((x) => x.id === cc.cidade)?.culturaFutebol ?? 50, final: g.competicao === COMPETICAO_FINAL_CP }, params) : undefined;
+      const { evento } = repo.registarJogo(bilhete ? { ...r.registo.jogo, assistencia: bilhete.assistencia, receita: bilhete.receita } : r.registo.jogo, r.registo.factos, r.registo.participacoes);
+      if (cc && bilhete) lancar(repo, cc, "bilheteira", bilhete.receita);
       if (rival) repo.acrescentarEvento(eventoRival(g.id, g.casa, g.fora, hoje, epoca, g.jornada, evento, rival));
       for (const l of r.registo.lesoes) repo.acrescentarEvento({ ...l, causa: evento });
       for (const h of r.historias) repo.acrescentarEvento({ ...h, causa: evento });
@@ -151,6 +159,8 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
     }
     const amanha = somarDias(hoje, 1);
     repo.definirMeta("data.hoje", amanha);
+    // fecho mensal das finanças (RZ-114): ao passar para o dia 1 de um mês
+    if (amanha.endsWith("-01")) fecharMesesAte(repo, dados, params, amanha, epoca, (c) => !estaNaSegundaDistrital(c.liga));
     // Sem clube, chegam ofertas novas todas as segundas-feiras.
     if (estaDesempregado(repo) && diaDaSemana(amanha) === 1) atualizarOfertas(repo, dados, params, amanha);
     return { data: hoje, jogos };
