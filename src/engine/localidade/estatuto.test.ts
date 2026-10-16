@@ -1,37 +1,37 @@
 import { describe, expect, it } from "vitest";
-import { PARAMETROS_PADRAO as P } from "../config/parametros";
-import { avaliarEstatuto, bandaDoEstatuto, estatutoCoerente, estatutoInicial } from "./estatuto";
+import { DEFAULT_PARAMETERS as P } from "../config/parametros";
+import { evaluateStatus, statusBand, coherentStatus, initialStatus } from "./estatuto";
 
 describe("estatuto das localidades", () => {
   it("arranca pelos limiares", () => {
-    expect(estatutoInicial(150, P)).toBe("aldeia");
-    expect(estatutoInicial(1499, P)).toBe("aldeia");
-    expect(estatutoInicial(1500, P)).toBe("vila");
-    expect(estatutoInicial(7999, P)).toBe("vila");
-    expect(estatutoInicial(8000, P)).toBe("cidade");
+    expect(initialStatus(150, P)).toBe("aldeia");
+    expect(initialStatus(1499, P)).toBe("aldeia");
+    expect(initialStatus(1500, P)).toBe("vila");
+    expect(initialStatus(7999, P)).toBe("vila");
+    expect(initialStatus(8000, P)).toBe("city");
   });
   it("só sobe depois de passar a margem e só desce depois de cair abaixo dela", () => {
-    expect(avaliarEstatuto(1600, "aldeia", P)).toBe("aldeia"); // 1500 < 1600 < 1650
-    expect(avaliarEstatuto(1650, "aldeia", P)).toBe("vila");
-    expect(avaliarEstatuto(1400, "vila", P)).toBe("vila"); // 1350 < 1400
-    expect(avaliarEstatuto(1349, "vila", P)).toBe("aldeia");
-    expect(avaliarEstatuto(8700, "vila", P)).toBe("vila");
-    expect(avaliarEstatuto(8800, "vila", P)).toBe("cidade");
-    expect(avaliarEstatuto(7300, "cidade", P)).toBe("cidade");
-    expect(avaliarEstatuto(7199, "cidade", P)).toBe("vila");
+    expect(evaluateStatus(1600, "aldeia", P)).toBe("aldeia"); // 1500 < 1600 < 1650
+    expect(evaluateStatus(1650, "aldeia", P)).toBe("vila");
+    expect(evaluateStatus(1400, "vila", P)).toBe("vila"); // 1350 < 1400
+    expect(evaluateStatus(1349, "vila", P)).toBe("aldeia");
+    expect(evaluateStatus(8700, "vila", P)).toBe("vila");
+    expect(evaluateStatus(8800, "vila", P)).toBe("city");
+    expect(evaluateStatus(7300, "city", P)).toBe("city");
+    expect(evaluateStatus(7199, "city", P)).toBe("vila");
   });
   it("não oscila: a mesma população dá o mesmo estatuto vindo de cima ou de baixo só na zona de margem", () => {
-    expect(avaliarEstatuto(8000, "vila", P)).toBe("vila");
-    expect(avaliarEstatuto(8000, "cidade", P)).toBe("cidade");
+    expect(evaluateStatus(8000, "vila", P)).toBe("vila");
+    expect(evaluateStatus(8000, "city", P)).toBe("city");
   });
   it("salta vários degraus se a população o justificar", () => {
-    expect(avaliarEstatuto(50_000, "aldeia", P)).toBe("cidade");
-    expect(avaliarEstatuto(100, "cidade", P)).toBe("aldeia");
+    expect(evaluateStatus(50_000, "aldeia", P)).toBe("city");
+    expect(evaluateStatus(100, "city", P)).toBe("aldeia");
   });
   it("a banda de cada estatuto contém o estatuto de arranque de qualquer população", () => {
     for (const pop of [1, 150, 1499, 1500, 3000, 7999, 8000, 20_000, 400_000])
-      expect(estatutoCoerente(pop, estatutoInicial(pop, P), P)).toBe(true);
-    expect(bandaDoEstatuto("vila", P)).toEqual({ min: 1350, max: 8800 });
-    expect(estatutoCoerente(20_000, "aldeia", P)).toBe(false);
+      expect(coherentStatus(pop, initialStatus(pop, P), P)).toBe(true);
+    expect(statusBand("vila", P)).toEqual({ min: 1350, max: 8800 });
+    expect(coherentStatus(20_000, "aldeia", P)).toBe(false);
   });
 });

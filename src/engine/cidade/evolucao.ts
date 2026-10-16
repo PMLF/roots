@@ -1,41 +1,41 @@
 /** Evolução anual de uma cidade (RZ-133; docs/CIDADE.md §11): regressão ao alvo, resultados dos clubes e acontecimentos. Puro. */
 import type { Rng } from "../aleatorio/rng";
-import { limitar } from "../aleatorio/rng";
-import type { EfeitosCidade, Parametros } from "../config/parametros";
-import type { AlvosCidade, EstadoCidade } from "./estado";
+import { clamp } from "../aleatorio/rng";
+import type { CityEffects, Params } from "../config/parametros";
+import type { CityTargets, CityState } from "./estado";
 
-export type ResultadosClubes = { campeoes: number; subidas: number; descidas: number };
-export const SEM_RESULTADOS: ResultadosClubes = { campeoes: 0, subidas: 0, descidas: 0 };
+export type ClubsResults = { champions: number; promotions: number; relegations: number };
+export const WITHOUT_RESULTS: ClubsResults = { champions: 0, promotions: 0, relegations: 0 };
 
-export type EntradaEvolucao = {
-  alvos: AlvosCidade;
+export type EvolutionInput = {
+  targets: CityTargets;
   /** Variação anual da população por causa do setor, em %. */
-  derivaPopulacaoPct: number;
-  resultados: ResultadosClubes;
+  driftPopulationPct: number;
+  results: ClubsResults;
   /** Efeitos dos acontecimentos desta época (já escolhidos). */
-  efeitos: readonly EfeitosCidade[];
+  effects: readonly CityEffects[];
 };
 
-const lim = (x: number) => limitar(x, 0, 100);
+const clampPct = (x: number) => clamp(x, 0, 100);
 
-export function evoluirCidade(antes: EstadoCidade, e: EntradaEvolucao, rng: Rng, params: Pick<Parametros, "cidade">): EstadoCidade {
-  const k = params.cidade.evolucao;
-  const soma = (campo: keyof EfeitosCidade) => e.efeitos.reduce((s, x) => s + (x[campo] ?? 0), 0);
-  const rumo = (atual: number, alvo: number) => atual + (alvo - atual) * k.regressao + rng.gauss(0, k.ruido);
-  const r = e.resultados;
+export function evolveCity(before: CityState, e: EvolutionInput, rng: Rng, params: Pick<Params, "city">): CityState {
+  const k = params.city.evolution;
+  const sum = (pitch: keyof CityEffects) => e.effects.reduce((s, x) => s + (x[pitch] ?? 0), 0);
+  const course = (current: number, target: number) => current + (target - current) * k.regression + rng.gauss(0, k.noise);
+  const r = e.results;
 
-  const economia = lim(rumo(antes.economia, e.alvos.economia) + soma("economia"));
-  const emprego = lim(rumo(antes.emprego, e.alvos.emprego) + soma("emprego"));
-  const turismo = lim(rumo(antes.turismo, e.alvos.turismo) + soma("turismo"));
-  const orgulho = lim(rumo(antes.orgulho, e.alvos.orgulho) + r.campeoes * k.orgulho.campeao + r.subidas * k.orgulho.subida + r.descidas * k.orgulho.descida + soma("orgulho"));
-  const notoriedade = lim(antes.notoriedade + (e.alvos.notoriedade - antes.notoriedade) * k.notoriedade.regressao + (orgulho - 50) * k.notoriedade.porOrgulho + soma("notoriedade") + rng.gauss(0, k.ruido / 2));
-  const culturaFutebol = limitar(antes.culturaFutebol + (orgulho - 50) * k.cultura.porOrgulho + r.campeoes * k.cultura.campeao + r.subidas * k.cultura.subida, 5, 95);
+  const economy = clampPct(course(before.economy, e.targets.economy) + sum("economy"));
+  const employment = clampPct(course(before.employment, e.targets.employment) + sum("employment"));
+  const tourism = clampPct(course(before.tourism, e.targets.tourism) + sum("tourism"));
+  const pride = clampPct(course(before.pride, e.targets.pride) + r.champions * k.pride.champion + r.promotions * k.pride.promotion + r.relegations * k.pride.relegation + sum("pride"));
+  const notoriety = clampPct(before.notoriety + (e.targets.notoriety - before.notoriety) * k.notoriety.regression + (pride - 50) * k.notoriety.byPride + sum("notoriety") + rng.gauss(0, k.noise / 2));
+  const footballCulture = clamp(before.footballCulture + (pride - 50) * k.culture.byPride + r.champions * k.culture.champion + r.promotions * k.culture.promotion, 5, 95);
 
-  const pct = limitar(
-    e.derivaPopulacaoPct + (economia - 50) * k.populacao.porEconomia + (orgulho - 50) * k.populacao.porOrgulho + soma("populacaoPct") + rng.gauss(0, k.populacao.ruidoPct),
-    -k.populacao.maxPct,
-    k.populacao.maxPct,
+  const pct = clamp(
+    e.driftPopulationPct + (economy - 50) * k.population.byEconomy + (pride - 50) * k.population.byPride + sum("populationPct") + rng.gauss(0, k.population.noisePct),
+    -k.population.maxPct,
+    k.population.maxPct,
   );
-  const populacao = Math.max(50, Math.round(antes.populacao * (1 + pct / 100)));
-  return { populacao, emprego, economia, turismo, orgulho, notoriedade, culturaFutebol };
+  const population = Math.max(50, Math.round(before.population * (1 + pct / 100)));
+  return { population, employment, economy, tourism, pride, notoriety, footballCulture };
 }

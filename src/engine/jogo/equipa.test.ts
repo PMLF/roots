@@ -1,39 +1,39 @@
 import { describe, expect, it } from "vitest";
-import { ATRIBUTOS, type Atributos } from "../mundo/tipos";
-import { forcaEquipa, onzeAutomatico, type CandidatoOnze } from "./equipa";
-import { equipaSintetica } from "./teste-util";
+import { ATTRIBUTES, type Attributes } from "../mundo/tipos";
+import { teamStrength, automaticLineup, type LineupCandidate } from "./equipa";
+import { syntheticTeam } from "./teste-util";
 
-const atr = (n: number, extra: Partial<Atributos> = {}): Atributos => {
-  const a = {} as Atributos;
-  for (const k of ATRIBUTOS) a[k] = n;
+const attr = (n: number, extra: Partial<Attributes> = {}): Attributes => {
+  const a = {} as Attributes;
+  for (const k of ATTRIBUTES) a[k] = n;
   return Object.assign(a, extra);
 };
-const cand = (pessoa: string, pos: string, nivel: number, extra: Partial<Atributos> = {}): CandidatoOnze => ({ pessoa, posicoes: [{ pos, aptidao: 20 }], atributos: atr(nivel, extra), alturaCm: 180 });
+const cand = (person: string, pos: string, level: number, extra: Partial<Attributes> = {}): LineupCandidate => ({ person, positions: [{ pos, aptitude: 20 }], attributes: attr(level, extra), heightCm: 180 });
 
-describe("equipa", () => {
+describe("team", () => {
   it("a força sobe com a qualidade, linha a linha", () => {
-    const fraca = forcaEquipa(equipaSintetica("A", 6).onze);
-    const forte = forcaEquipa(equipaSintetica("B", 14).onze);
-    for (const k of ["ataque", "controlo", "defesa", "guardaRedes"] as const) expect(forte[k]).toBeGreaterThan(fraca[k]);
-    const soAtaque = forcaEquipa(equipaSintetica("C", 10, { finalizacao: 20, drible: 20, desmarcacao: 20, velocidade: 20, tecnica: 20 }).onze);
-    expect(soAtaque.ataque).toBeGreaterThan(15);
-    expect(soAtaque.defesa).toBeCloseTo(10, 5);
+    const weak = teamStrength(syntheticTeam("A", 6).lineup);
+    const strong = teamStrength(syntheticTeam("B", 14).lineup);
+    for (const k of ["attack", "control", "defence", "goalkeeper"] as const) expect(strong[k]).toBeGreaterThan(weak[k]);
+    const attackOnly = teamStrength(syntheticTeam("C", 10, { finishing: 20, dribble: 20, unmarking: 20, speed: 20, technical: 20 }).lineup);
+    expect(attackOnly.attack).toBeGreaterThan(15);
+    expect(attackOnly.defence).toBeCloseTo(10, 5);
   });
 
   it("o onze automático põe cada um onde rende mais e usa 11 jogadores diferentes", () => {
-    const plantel: CandidatoOnze[] = [
+    const squad: LineupCandidate[] = [
       cand("gr1", "GK", 8), cand("gr2", "GK", 14),
       ...["rb", "cb1", "cb2", "cb3", "lb", "dm", "cm1", "cm2", "am", "rw", "lw", "st1", "st2"].map((id, i) => cand(id, id.replace(/\d/g, "").toUpperCase(), 9 + (i % 4))),
     ];
-    const onze = onzeAutomatico(plantel);
-    expect(onze).toHaveLength(11);
-    expect(new Set(onze.map((j) => j.id)).size).toBe(11);
-    expect(onze.find((j) => j.posicao === "GK")?.id).toBe("gr2");
-    expect(onzeAutomatico(plantel)).toEqual(onze);
+    const lineup = automaticLineup(squad);
+    expect(lineup).toHaveLength(11);
+    expect(new Set(lineup.map((j) => j.id)).size).toBe(11);
+    expect(lineup.find((j) => j.position === "GK")?.id).toBe("gr2");
+    expect(automaticLineup(squad)).toEqual(lineup);
   });
 
   it("sem guarda-redes à vista, ainda assim monta onze (pior)", () => {
-    const sem = Array.from({ length: 14 }, (_, i) => cand(`p${i}`, "CM", 10));
-    expect(onzeAutomatico(sem)).toHaveLength(11);
+    const without = Array.from({ length: 14 }, (_, i) => cand(`p${i}`, "CM", 10));
+    expect(automaticLineup(without)).toHaveLength(11);
   });
 });

@@ -1,29 +1,29 @@
 "use client";
 import { Suspense, useEffect, useState } from "react";
-import type { FichaClubeDados } from "@/engine/api/contratos";
-import { ComClube } from "@/ui/components/ComClube";
-import { FichaClube } from "@/ui/components/fichas/FichaClube";
+import type { ClubProfileData } from "@/engine/api/contratos";
+import { WithClub } from "@/ui/components/ComClube";
+import { ClubProfile } from "@/ui/components/fichas/FichaClube";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useVerTudo } from "@/ui/dev";
-import { useMotor } from "@/ui/MotorProvider";
+import { useSeeAll } from "@/ui/dev";
+import { useEngine } from "@/ui/MotorProvider";
 
-function Conteudo({ clube }: { clube: string }) {
-  const motor = useMotor();
+function Content({ club }: { club: string }) {
+  const engine = useEngine();
   const { t } = useT();
-  const [verTudo] = useVerTudo();
-  const [d, setD] = useState<FichaClubeDados | null | undefined>(undefined);
+  const [seeAll] = useSeeAll();
+  const [d, setD] = useState<ClubProfileData | null | undefined>(undefined);
   useEffect(() => {
-    if (!motor) return;
-    let vivo = true;
-    motor.chamar("fichaClube", { id: clube, verTudo }).then((r) => vivo && setD(r)).catch(() => vivo && setD(null));
-    return () => { vivo = false; };
-  }, [motor, clube, verTudo]);
+    if (!engine) return;
+    let live = true;
+    engine.call("clubProfile", { id: club, seeAll }).then((r) => live && setD(r)).catch(() => live && setD(null));
+    return () => { live = false; };
+  }, [engine, club, seeAll]);
   if (d === undefined) return <p>{t("ficha.aCarregar")}</p>;
   if (d === null) return <p className="erro">{t("ficha.naoEncontrada")}</p>;
-  return <FichaClube d={d} verTudo={verTudo} />;
+  return <ClubProfile d={d} seeAll={seeAll} />;
 }
 
 /** Clube (RZ-145): a ficha do clube do gamer. */
-export default function PaginaClube() {
-  return <Suspense fallback={null}><ComClube titulo="">{(c) => <Conteudo clube={c} />}</ComClube></Suspense>;
+export default function ClubPage() {
+  return <Suspense fallback={null}><WithClub title="">{(c) => <Content club={c} />}</WithClub></Suspense>;
 }

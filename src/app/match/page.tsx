@@ -2,217 +2,217 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import type { JogoVivo } from "@/engine/epoca/jogoAoVivo";
-import type { Tatica } from "@/engine/jogo/tipos";
-import { Icone } from "@/ui/components/Icone";
-import { IconeEvento } from "@/ui/components/IconeEvento";
-import { Ligacao } from "@/ui/components/Ligacao";
-import { AmostraClube } from "@/ui/components/AmostraClube";
-import { CartaoEquipa, Confrontos, Estatisticas, Eventos, GraficoXg, InfoCabecalho, Intervalo, OutrosJogos, TabelaViva, TaticaNoJogo } from "@/ui/components/jogo/PainelJogo";
-import { SubstituicoesNoJogo, ContadoresSubs, semSubstituicoes } from "@/ui/components/jogo/Substituicoes";
-import { guardar, ler } from "@/ui/armazenamento";
-import { useModoDev } from "@/ui/dev";
-import type { Chave } from "@/ui/i18n";
+import type { LiveMatch } from "@/engine/epoca/jogoAoVivo";
+import type { Tactic } from "@/engine/jogo/tipos";
+import { Icon } from "@/ui/components/Icone";
+import { EventIcon } from "@/ui/components/IconeEvento";
+import { EntityLink } from "@/ui/components/Ligacao";
+import { ClubSwatch } from "@/ui/components/AmostraClube";
+import { TeamCard, Meetings, Statistics, HistoryEvents, XgChart, HeaderInfo, HalfTime, OthersMatches, LiveTable, TacticInMatch } from "@/ui/components/jogo/PainelJogo";
+import { SubstitutionsInMatch, SubsCounters, withoutSubstitutions } from "@/ui/components/jogo/Substituicoes";
+import { save, read } from "@/ui/armazenamento";
+import { useDevMode } from "@/ui/dev";
+import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useMeuClube } from "@/ui/meuClube";
-import { useMotor } from "@/ui/MotorProvider";
+import { useOwnClub } from "@/ui/meuClube";
+import { useEngine } from "@/ui/MotorProvider";
 
 /** Segundos de relógio por minuto de jogo em cada velocidade. */
-const VELOCIDADES = [{ rotulo: "1×", seg: 0.5 }, { rotulo: "2×", seg: 0.25 }, { rotulo: "4×", seg: 0.1 }] as const;
-const SEPARADORES = ["jogo", "estatisticas"] as const;
-type Separador = (typeof SEPARADORES)[number];
-const eSeparador = (v: unknown): v is Separador => SEPARADORES.includes(v as Separador);
-const eVelocidade = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0 && (v as number) < VELOCIDADES.length;
+const SPEEDS = [{ label: "1×", sec: 0.5 }, { label: "2×", sec: 0.25 }, { label: "4×", sec: 0.1 }] as const;
+const TABS = ["match", "statistics"] as const;
+type Tab = (typeof TABS)[number];
+const isTab = (v: unknown): v is Tab => TABS.includes(v as Tab);
+const isSpeed = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0 && (v as number) < SPEEDS.length;
 
-function Conteudo() {
+function Content() {
   const { t } = useT();
-  const motor = useMotor();
-  const dev = useModoDev();
-  const [meu] = useMeuClube();
+  const engine = useEngine();
+  const dev = useDevMode();
+  const [mine] = useOwnClub();
   const params = useSearchParams();
   const id = params.get("id") ?? undefined;
-  const arrancar = params.get("arrancar") === "1";
-  const [jogo, setJogo] = useState<JogoVivo | null | undefined>(undefined);
-  const [aCorrer, setACorrer] = useState(false);
-  const [vel, setVel] = useState(0);
-  const [separador, setSeparador] = useState<Separador>("jogo");
-  const [soImportante, setSoImportante] = useState(false);
-  const [taticaAberta, setTaticaAberta] = useState(false);
-  const [aMudar, setAMudar] = useState(false);
-  const [erro, setErro] = useState<string | undefined>(undefined);
-  const corriaAntes = useRef(false);
-  const [intervalo, setIntervalo] = useState(false);
-  const [subsAberto, setSubsAberto] = useState(false);
-  const [erroSubs, setErroSubs] = useState<string | undefined>(undefined);
-  const intervaloVisto = useRef<string | undefined>(undefined);
-  const daPausaDoIntervalo = useRef(false);
+  const launch = params.get("launch") === "1";
+  const [match, setMatch] = useState<LiveMatch | null | undefined>(undefined);
+  const [running, setRunning] = useState(false);
+  const [speed, setSpeed] = useState(0);
+  const [tab, setTab] = useState<Tab>("match");
+  const [importantOnly, setImportantOnly] = useState(false);
+  const [tacticOpen, setIsOpenTactic] = useState(false);
+  const [changing, setChanging] = useState(false);
+  const [error, setError] = useState<string | undefined>(undefined);
+  const beforeRan = useRef(false);
+  const [halfTime, setHalfTime] = useState(false);
+  const [subsOpen, setIsOpenSubs] = useState(false);
+  const [subsError, setSubsError] = useState<string | undefined>(undefined);
+  const seenHalfTime = useRef<string | undefined>(undefined);
+  const ofHalfTimePause = useRef(false);
 
-  useEffect(() => { setSeparador(ler("raizes.separadorJogo", eSeparador) ?? "jogo"); }, []);
-  useEffect(() => { setVel(ler("raizes.velocidadeJogo", eVelocidade) ?? 0); }, []);
+  useEffect(() => { setTab(read("raizes.separadorJogo", isTab) ?? "match"); }, []);
+  useEffect(() => { setSpeed(read("raizes.velocidadeJogo", isSpeed) ?? 0); }, []);
   useEffect(() => {
-    if (!motor) return;
-    let vivo = true;
-    motor.chamar("jogoAoVivo", id ? { id } : {}).then((j) => { if (vivo) { setJogo(j); setACorrer(!!j?.emCurso && arrancar); } }).catch(() => vivo && setJogo(null));
-    return () => { vivo = false; };
-  }, [motor, id, arrancar]);
+    if (!engine) return;
+    let live = true;
+    engine.call("liveMatch", id ? { id } : {}).then((j) => { if (live) { setMatch(j); setRunning(!!j?.ongoing && launch); } }).catch(() => live && setMatch(null));
+    return () => { live = false; };
+  }, [engine, id, launch]);
 
-  const terminou = useCallback(() => {
+  const ended = useCallback(() => {
     for (const e of ["raizes:tempo", "raizes:caixa", "raizes:meuClube"]) window.dispatchEvent(new Event(e));
   }, []);
 
-  const passo = useCallback(async (minutos: number) => {
-    if (!motor) return;
+  const step = useCallback(async (minutes: number) => {
+    if (!engine) return;
     try {
-      const j = await motor.chamar("passoJogo", { minutos });
-      setJogo(j);
-      if (!j.emCurso) { setACorrer(false); terminou(); }
+      const j = await engine.call("matchStep", { minutes });
+      setMatch(j);
+      if (!j.ongoing) { setRunning(false); ended(); }
     } catch (e) {
-      setErro(e instanceof Error ? e.message : String(e));
-      setACorrer(false);
+      setError(e instanceof Error ? e.message : String(e));
+      setRunning(false);
     }
-  }, [motor, terminou]);
+  }, [engine, ended]);
 
   // o relógio: cada tique pede ao motor mais um minuto, com a tática em vigor nesse momento
-  const emCurso = !!jogo?.emCurso;
+  const ongoing = !!match?.ongoing;
   useEffect(() => {
-    if (!jogo || !emCurso || !aCorrer) return;
-    const timer = window.setTimeout(() => { void passo(1); }, (VELOCIDADES[vel] as { seg: number }).seg * 1000);
+    if (!match || !ongoing || !running) return;
+    const timer = window.setTimeout(() => { void step(1); }, (SPEEDS[speed] as { sec: number }).sec * 1000);
     return () => window.clearTimeout(timer);
-  }, [jogo, emCurso, aCorrer, vel, passo]);
+  }, [match, ongoing, running, speed, step]);
 
   // a barra de progresso do rodapé segue o jogo do gamer enquanto decorre
-  const duracaoJogo = jogo?.duracao;
-  const minutoJogo = jogo?.minuto;
+  const matchDuration = match?.duration;
+  const matchMinute = match?.minute;
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent("raizes:jogoEmCurso", { detail: emCurso && duracaoJogo ? { minuto: minutoJogo ?? 0, duracao: duracaoJogo } : null }));
-  }, [emCurso, minutoJogo, duracaoJogo]);
+    window.dispatchEvent(new CustomEvent("raizes:jogoEmCurso", { detail: ongoing && matchDuration ? { minute: matchMinute ?? 0, duration: matchDuration } : null }));
+  }, [ongoing, matchMinute, matchDuration]);
 
   // ao intervalo o jogo pára e abre-se o popup (uma vez por jogo; ao reabrir a página no intervalo volta a abrir)
-  const minutoIntervalo = jogo?.linhas.find((l) => l.tipo === "intervalo")?.minuto;
-  const idJogo = jogo?.id;
+  const halfTimeMinute = match?.lines.find((l) => l.type === "halfTime")?.minute;
+  const matchId = match?.id;
   useEffect(() => {
-    if (!emCurso || minutoIntervalo === undefined || minutoJogo !== minutoIntervalo || intervaloVisto.current === idJogo) return;
-    intervaloVisto.current = idJogo;
-    setACorrer(false);
-    setIntervalo(true);
-  }, [emCurso, minutoIntervalo, minutoJogo, idJogo]);
+    if (!ongoing || halfTimeMinute === undefined || matchMinute !== halfTimeMinute || seenHalfTime.current === matchId) return;
+    seenHalfTime.current = matchId;
+    setRunning(false);
+    setHalfTime(true);
+  }, [ongoing, halfTimeMinute, matchMinute, matchId]);
 
   // espaço: pausa e continua (a barra global não avança o tempo nesta página)
   useEffect(() => {
-    if (!emCurso) return;
-    const tecla = (e: KeyboardEvent) => {
+    if (!ongoing) return;
+    const hotkey = (e: KeyboardEvent) => {
       if (e.code !== "Space" || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.target instanceof Element && e.target.closest("input, textarea, select, button, a, [contenteditable]")) return;
       e.preventDefault();
-      setACorrer((v) => !v);
+      setRunning((v) => !v);
     };
-    window.addEventListener("keydown", tecla);
-    return () => window.removeEventListener("keydown", tecla);
-  }, [emCurso]);
+    window.addEventListener("keydown", hotkey);
+    return () => window.removeEventListener("keydown", hotkey);
+  }, [ongoing]);
 
-  const abrirTatica = () => {
-    corriaAntes.current = aCorrer;
-    setACorrer(false);
-    setTaticaAberta(true);
+  const openTactic = () => {
+    beforeRan.current = running;
+    setRunning(false);
+    setIsOpenTactic(true);
   };
-  const fecharTatica = useCallback(() => {
-    setTaticaAberta((aberta) => { if (aberta) setACorrer(corriaAntes.current); return false; });
-    if (daPausaDoIntervalo.current) { daPausaDoIntervalo.current = false; setIntervalo(true); }
+  const closeTactic = useCallback(() => {
+    setIsOpenTactic((isOpen) => { if (isOpen) setRunning(beforeRan.current); return false; });
+    if (ofHalfTimePause.current) { ofHalfTimePause.current = false; setHalfTime(true); }
   }, []);
-  const abrirSubs = () => {
-    corriaAntes.current = aCorrer;
-    setACorrer(false);
-    setErroSubs(undefined);
-    setSubsAberto(true);
+  const openSubs = () => {
+    beforeRan.current = running;
+    setRunning(false);
+    setSubsError(undefined);
+    setIsOpenSubs(true);
   };
-  const fecharSubs = useCallback(() => {
-    setSubsAberto((aberto) => { if (aberto) setACorrer(corriaAntes.current); return false; });
-    if (daPausaDoIntervalo.current) { daPausaDoIntervalo.current = false; setIntervalo(true); }
+  const closeSubs = useCallback(() => {
+    setIsOpenSubs((isOpen) => { if (isOpen) setRunning(beforeRan.current); return false; });
+    if (ofHalfTimePause.current) { ofHalfTimePause.current = false; setHalfTime(true); }
   }, []);
-  const confirmarSubs = async (trocas: { sai: string; entra: string }[]) => {
-    if (!motor) return;
-    setAMudar(true);
-    try { setJogo(await motor.chamar("substituicoesNoJogo", { trocas })); fecharSubs(); } catch (e) { setErroSubs(e instanceof Error ? e.message : String(e)); } finally { setAMudar(false); }
+  const confirmSubs = async (substitutions: { playerOut: string; playerIn: string }[]) => {
+    if (!engine) return;
+    setChanging(true);
+    try { setMatch(await engine.call("substitutionsInMatch", { substitutions })); closeSubs(); } catch (e) { setSubsError(e instanceof Error ? e.message : String(e)); } finally { setChanging(false); }
   };
-  const subsDoIntervalo = () => { daPausaDoIntervalo.current = true; setIntervalo(false); abrirSubs(); };
-  const taticaDoIntervalo = () => { daPausaDoIntervalo.current = true; setIntervalo(false); abrirTatica(); };
-  const segundaParte = () => { setIntervalo(false); setACorrer(true); };
-  const mudarTatica = async (tatica: Tatica) => {
-    if (!motor) return;
-    setAMudar(true);
-    try { setJogo(await motor.chamar("taticaNoJogo", { tatica })); setErro(undefined); } catch (e) { setErro(e instanceof Error ? e.message : String(e)); } finally { setAMudar(false); }
+  const halfTimeSubs = () => { ofHalfTimePause.current = true; setHalfTime(false); openSubs(); };
+  const halfTimeTactic = () => { ofHalfTimePause.current = true; setHalfTime(false); openTactic(); };
+  const secondHalf = () => { setHalfTime(false); setRunning(true); };
+  const changeTactic = async (tactic: Tactic) => {
+    if (!engine) return;
+    setChanging(true);
+    try { setMatch(await engine.call("tacticInMatch", { tactic })); setError(undefined); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } finally { setChanging(false); }
   };
 
-  if (jogo === undefined) return <p>{t("ficha.aCarregar")}</p>;
-  if (jogo === null) return <p className="vazio">{t("jogo.semJogo")} <Link href="/">{t("jogo.voltar")}</Link></p>;
-  const minuto = jogo.minuto ?? jogo.duracao;
-  const ultima = jogo.linhas.filter((l) => l.minuto <= minuto).at(-1);
-  const gc = ultima?.golosCasa ?? 0;
-  const gf = ultima?.golosFora ?? 0;
+  if (match === undefined) return <p>{t("ficha.aCarregar")}</p>;
+  if (match === null) return <p className="vazio">{t("jogo.semJogo")} <Link href="/">{t("jogo.voltar")}</Link></p>;
+  const minute = match.minute ?? match.duration;
+  const last = match.lines.filter((l) => l.minute <= minute).at(-1);
+  const gc = last?.homeGoals ?? 0;
+  const gf = last?.awayGoals ?? 0;
   return (
     <section className="pagina-jogo">
-      <p className="suave jogo-contexto"><Ligacao k="competicao" id={jogo.competicao}>{jogo.competicao}</Ligacao> · {t("jogo.jornada", { n: jogo.jornada })} · {jogo.data}</p>
-      <InfoCabecalho jogo={jogo} />
+      <p className="suave jogo-contexto"><EntityLink k="competition" id={match.competition}>{match.competition}</EntityLink> · {t("jogo.jornada", { n: match.round })} · {match.date}</p>
+      <HeaderInfo match={match} />
       <div className="placar" aria-live="polite">
-        <span className="placar-equipa placar-casa"><AmostraClube cores={jogo.cores?.[jogo.casa.id]} /><Ligacao k="clube" id={jogo.casa.id} semAmostra>{jogo.casa.nome}</Ligacao></span>
+        <span className="placar-equipa placar-casa"><ClubSwatch colours={match.colours?.[match.home.id]} /><EntityLink k="club" id={match.home.id} withoutSwatch>{match.home.name}</EntityLink></span>
         <b className="placar-golos">{gc}–{gf}</b>
-        <span className="placar-equipa placar-fora"><Ligacao k="clube" id={jogo.fora.id} semAmostra>{jogo.fora.nome}</Ligacao><AmostraClube cores={jogo.cores?.[jogo.fora.id]} /></span>
+        <span className="placar-equipa placar-fora"><EntityLink k="club" id={match.away.id} withoutSwatch>{match.away.name}</EntityLink><ClubSwatch colours={match.colours?.[match.away.id]} /></span>
       </div>
-      <p className="relogio">{emCurso ? `${Math.floor(minuto)}'` : t("jogo.terminado")}</p>
-      {emCurso && jogo.subs && <p className="subs-resumo"><ContadoresSubs subs={jogo.subs} /></p>}
-      {emCurso ? (
+      <p className="relogio">{ongoing ? `${Math.floor(minute)}'` : t("jogo.terminado")}</p>
+      {ongoing && match.subs && <p className="subs-resumo"><SubsCounters subs={match.subs} /></p>}
+      {ongoing ? (
         <>
           <div className="controlos-fixos" role="group" aria-label={t("jogo.controlos")}>
-            <button type="button" className="primario controlo-principal" onClick={() => setACorrer((v) => !v)} disabled={taticaAberta || subsAberto} aria-label={aCorrer ? t("jogo.pausa") : minuto === 0 ? t("jogo.comecar") : t("jogo.continuar")}>
-              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d={aCorrer ? "M7 5h3.500v14H7zM13.500 5H17v14h-3.500z" : "M8 5v14l11-7z"} fill="currentColor" /></svg>
-              <span>{aCorrer ? t("jogo.pausa") : minuto === 0 ? t("jogo.comecar") : t("jogo.continuar")}</span>
+            <button type="button" className="primario controlo-principal" onClick={() => setRunning((v) => !v)} disabled={tacticOpen || subsOpen} aria-label={running ? t("jogo.pausa") : minute === 0 ? t("jogo.comecar") : t("jogo.continuar")}>
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d={running ? "M7 5h3.500v14H7zM13.500 5H17v14h-3.500z" : "M8 5v14l11-7z"} fill="currentColor" /></svg>
+              <span>{running ? t("jogo.pausa") : minute === 0 ? t("jogo.comecar") : t("jogo.continuar")}</span>
             </button>
             <span className="velocidade-seg" role="radiogroup" aria-label={t("jogo.velocidade")}>
-              {VELOCIDADES.map((v, i) => (
-                <button key={v.rotulo} type="button" role="radio" aria-checked={vel === i} onClick={() => { setVel(i); guardar("raizes.velocidadeJogo", i); }}>{v.rotulo}</button>
+              {SPEEDS.map((v, i) => (
+                <button key={v.label} type="button" role="radio" aria-checked={speed === i} onClick={() => { setSpeed(i); save("raizes.velocidadeJogo", i); }}>{v.label}</button>
               ))}
             </span>
             {dev && (
-              <button type="button" className="controlo-saltar" title={t("jogo.saltar")} aria-label={t("jogo.saltar")} onClick={() => { setACorrer(false); void passo(500); }}>
+              <button type="button" className="controlo-saltar" title={t("jogo.saltar")} aria-label={t("jogo.saltar")} onClick={() => { setRunning(false); void step(500); }}>
                 <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 5v14l9-7zM16.500 5H19v14h-2.500z" fill="currentColor" /></svg>
               </button>
             )}
           </div>
           <div className="acoes controlos-jogo">
-            <button type="button" onClick={abrirTatica}><Icone nome="tatica" />{t("jogo.taticaBotao")}</button>
-            <button type="button" onClick={abrirSubs} disabled={minuto < 1 || semSubstituicoes(jogo.subs, minuto === minutoIntervalo)} title={semSubstituicoes(jogo.subs, minuto === minutoIntervalo) ? t("jogo.subs.semMais") : undefined}><IconeEvento chave="substituicao" />{t("jogo.subs.botao")}</button>
-            <label><input type="checkbox" checked={soImportante} onChange={(e) => setSoImportante(e.target.checked)} /> {t("jogo.soImportante")}</label>
+            <button type="button" onClick={openTactic}><Icon name="tactic" />{t("jogo.taticaBotao")}</button>
+            <button type="button" onClick={openSubs} disabled={minute < 1 || withoutSubstitutions(match.subs, minute === halfTimeMinute)} title={withoutSubstitutions(match.subs, minute === halfTimeMinute) ? t("jogo.subs.semMais") : undefined}><EventIcon rowKey="substitution" />{t("jogo.subs.botao")}</button>
+            <label><input type="checkbox" checked={importantOnly} onChange={(e) => setImportantOnly(e.target.checked)} /> {t("jogo.soImportante")}</label>
           </div>
         </>
       ) : null}
-      {erro && <p className="erro" role="alert">{erro}</p>}
-      {intervalo && emCurso && <Intervalo jogo={jogo} aoTatica={taticaDoIntervalo} aoSubs={subsDoIntervalo} aoContinuar={segundaParte} />}
-      {subsAberto && emCurso && <SubstituicoesNoJogo jogo={jogo} ocupado={aMudar} {...(erroSubs ? { erro: erroSubs } : {})} aoConfirmar={(x) => void confirmarSubs(x)} aoFechar={fecharSubs} />}
-      {taticaAberta && emCurso && jogo.tatica && <TaticaNoJogo tatica={jogo.tatica} aoMudar={(x) => void mudarTatica(x)} aoFechar={fecharTatica} ocupado={aMudar} />}
+      {error && <p className="erro" role="alert">{error}</p>}
+      {halfTime && ongoing && <HalfTime match={match} onTactic={halfTimeTactic} aoSubs={halfTimeSubs} onContinue={secondHalf} />}
+      {subsOpen && ongoing && <SubstitutionsInMatch match={match} busy={changing} {...(subsError ? { error: subsError } : {})} onConfirm={(x) => void confirmSubs(x)} onClose={closeSubs} />}
+      {tacticOpen && ongoing && match.tactic && <TacticInMatch tactic={match.tactic} onChange={(x) => void changeTactic(x)} onClose={closeTactic} busy={changing} />}
       <div className="separadores" role="tablist" aria-label={t("jogo.separadores")}>
-        {SEPARADORES.map((x) => (
-          <button key={x} type="button" role="tab" id={`sep-${x}`} aria-selected={separador === x} aria-controls={`pn-${x}`} onClick={() => { setSeparador(x); guardar("raizes.separadorJogo", x); }}>{t(`jogo.tab.${x}` as Chave)}</button>
+        {TABS.map((x) => (
+          <button key={x} type="button" role="tab" id={`sep-${x}`} aria-selected={tab === x} aria-controls={`pn-${x}`} onClick={() => { setTab(x); save("raizes.separadorJogo", x); }}>{t(`jogo.tab.${x}` as Key)}</button>
         ))}
       </div>
-      <div role="tabpanel" id={`pn-${separador}`} aria-labelledby={`sep-${separador}`}>
-        {separador === "jogo" && (
+      <div role="tabpanel" id={`pn-${tab}`} aria-labelledby={`sep-${tab}`}>
+        {tab === "match" && (
           <>
             <section className="painel painel-eventos" aria-label={t("jogo.eventos")}>
               <h2>{t("jogo.eventos")}</h2>
-              <Eventos jogo={jogo} soImportante={soImportante} />
+              <HistoryEvents match={match} importantOnly={importantOnly} />
             </section>
             <div className="jogo-grelha">
-              <div className="jogo-coluna"><CartaoEquipa jogo={jogo} lado="casa" /></div>
-              <div className="jogo-coluna"><CartaoEquipa jogo={jogo} lado="fora" /></div>
-              <div className="jogo-coluna"><OutrosJogos jogo={jogo} meu={meu ?? undefined} /><TabelaViva jogo={jogo} meu={meu ?? undefined} /></div>
+              <div className="jogo-coluna"><TeamCard match={match} side="home" /></div>
+              <div className="jogo-coluna"><TeamCard match={match} side="away" /></div>
+              <div className="jogo-coluna"><OthersMatches match={match} mine={mine ?? undefined} /><LiveTable match={match} mine={mine ?? undefined} /></div>
             </div>
           </>
         )}
-        {separador === "estatisticas" && (
+        {tab === "statistics" && (
           <div className="jogo-grelha">
-            <div className="jogo-coluna"><Estatisticas jogo={jogo} /></div>
-            <div className="jogo-coluna"><GraficoXg jogo={jogo} /></div>
-            <div className="jogo-coluna"><Confrontos jogo={jogo} /></div>
+            <div className="jogo-coluna"><Statistics match={match} /></div>
+            <div className="jogo-coluna"><XgChart match={match} /></div>
+            <div className="jogo-coluna"><Meetings match={match} /></div>
           </div>
         )}
       </div>
@@ -221,6 +221,6 @@ function Conteudo() {
 }
 
 /** Jogo (RZ-130/170): ao vivo, minuto a minuto, enquanto decorre; depois de jogado, só o resultado e os eventos. */
-export default function PaginaJogo() {
-  return <Suspense fallback={null}><Conteudo /></Suspense>;
+export default function MatchPage() {
+  return <Suspense fallback={null}><Content /></Suspense>;
 }

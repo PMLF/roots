@@ -1,26 +1,26 @@
 import { describe, expect, it } from "vitest";
-import { corCss, fundoCores, lerCores } from "./cores";
+import { cssColour, backgroundColours, readColours } from "./cores";
 
 describe("cores do clube", () => {
   it("uma cor é lisa", () => {
-    expect(lerCores("Verde")).toMatchObject({ padrao: "lisa", segmentos: [{ cor: corCss("verde") }] });
+    expect(readColours("Verde")).toMatchObject({ fallback: "lisa", segments: [{ colour: cssColour("green") }] });
   });
   it("duas cores dividem ao meio; três em terços", () => {
-    expect(lerCores("Amarelo e preto").segmentos.map((s) => s.peso)).toEqual([50, 50]);
-    expect(lerCores("Azul, branco e preto").segmentos.map((s) => Math.round(s.peso))).toEqual([33, 33, 33]);
+    expect(readColours("Amarelo e preto").segments.map((s) => s.weight)).toEqual([50, 50]);
+    expect(readColours("Azul, branco e preto").segments.map((s) => Math.round(s.weight))).toEqual([33, 33, 33]);
   });
   it("riscas verticais e horizontais", () => {
-    expect(lerCores("Azul e branco riscas").padrao).toBe("riscas-verticais");
-    expect(lerCores("Vermelho e branco horizontal")).toMatchObject({ padrao: "riscas-horizontais", segmentos: [{}, {}] });
+    expect(readColours("Azul e branco riscas").fallback).toBe("riscas-verticais");
+    expect(readColours("Vermelho e branco horizontal")).toMatchObject({ fallback: "riscas-horizontais", segments: [{}, {}] });
   });
   it("maioria por percentagem", () => {
-    const c = lerCores("Azul 80% e branco");
-    expect(c.segmentos.map((s) => s.peso)).toEqual([80, 20]);
-    expect(fundoCores(c)).toContain("80%");
+    const c = readColours("Azul 80% e branco");
+    expect(c.segments.map((s) => s.weight)).toEqual([80, 20]);
+    expect(backgroundColours(c)).toContain("80%");
   });
   it("nomes compostos e desconhecidos", () => {
-    expect(corCss("Azul-marinho")).not.toBe(corCss("Azul"));
-    expect(corCss("Grená")).toBe("#7a1230");
-    expect(corCss("xyz")).toBe("#9aa0a6");
+    expect(cssColour("Azul-marinho")).not.toBe(cssColour("Azul"));
+    expect(cssColour("Grená")).toBe("#7a1230");
+    expect(cssColour("xyz")).toBe("#9aa0a6");
   });
 });

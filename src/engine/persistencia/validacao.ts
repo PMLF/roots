@@ -1,54 +1,54 @@
 /** Validações partilhadas por todos os adaptadores (o comportamento tem de ser igual em qualquer um). */
-import type { EventoNovo, JogoFacto, JogoNovo, Participacao } from "./tipos";
+import type { NewEvent, FactMatch, NewMatch, Appearance } from "./tipos";
 
-const DATA = /^\d{4}-\d{2}-\d{2}$/;
-const inteiro = (n: number) => Number.isInteger(n);
+const DATE = /^\d{4}-\d{2}-\d{2}$/;
+const integer = (n: number) => Number.isInteger(n);
 
-export function validarEventoNovo(e: EventoNovo): void {
-  const erros: string[] = [];
-  if (!e.tipo) erros.push("tipo vazio");
-  if (!DATA.test(e.data)) erros.push(`data inválida "${e.data}" (AAAA-MM-DD)`);
-  if (!inteiro(e.epoca)) erros.push("epoca deve ser inteira");
-  if (e.jornada !== undefined && !inteiro(e.jornada)) erros.push("jornada deve ser inteira");
-  if (e.v !== undefined && (!inteiro(e.v) || e.v < 1)) erros.push("v deve ser um inteiro ≥ 1");
-  if (e.corrige !== undefined && e.tipo !== "CORRECAO") erros.push("só eventos CORRECAO podem ter 'corrige'");
-  if (e.tipo === "CORRECAO" && e.corrige === undefined) erros.push("CORRECAO exige 'corrige'");
-  const vistas = new Set<string>();
-  for (const x of e.entidades) {
-    const chave = `${x.k}:${x.id}`;
-    if (!x.id) erros.push(`entidade ${x.k} sem id`);
-    if (vistas.has(chave)) erros.push(`entidade repetida: ${chave}`);
-    vistas.add(chave);
+export function validateNewEvent(e: NewEvent): void {
+  const errors: string[] = [];
+  if (!e.type) errors.push("tipo vazio");
+  if (!DATE.test(e.date)) errors.push(`data inválida "${e.date}" (AAAA-MM-DD)`);
+  if (!integer(e.season)) errors.push("epoca deve ser inteira");
+  if (e.round !== undefined && !integer(e.round)) errors.push("jornada deve ser inteira");
+  if (e.v !== undefined && (!integer(e.v) || e.v < 1)) errors.push("v deve ser um inteiro ≥ 1");
+  if (e.fixes !== undefined && e.type !== "CORRECAO") errors.push("só eventos CORRECAO podem ter 'corrige'");
+  if (e.type === "CORRECAO" && e.fixes === undefined) errors.push("CORRECAO exige 'corrige'");
+  const views = new Set<string>();
+  for (const x of e.entities) {
+    const rowKey = `${x.k}:${x.id}`;
+    if (!x.id) errors.push(`entidade ${x.k} sem id`);
+    if (views.has(rowKey)) errors.push(`entidade repetida: ${rowKey}`);
+    views.add(rowKey);
   }
-  if (erros.length > 0) throw new Error(`Evento ${e.tipo || "?"} inválido: ${erros.join("; ")}`);
+  if (errors.length > 0) throw new Error(`Evento ${e.type || "?"} inválido: ${errors.join("; ")}`);
 }
 
-export function validarJogo(j: JogoNovo, factos: JogoFacto[], participacoes: Participacao[]): void {
-  const erros: string[] = [];
-  if (!j.id) erros.push("id vazio");
-  if (j.casa === j.fora) erros.push("casa e fora são o mesmo clube");
-  if (!DATA.test(j.data)) erros.push(`data inválida "${j.data}"`);
-  for (const [nome, v] of [["golosCasa", j.golosCasa], ["golosFora", j.golosFora]] as const)
-    if (!inteiro(v) || v < 0) erros.push(`${nome} deve ser um inteiro ≥ 0`);
-  const clubes = new Set([j.casa, j.fora]);
-  let gCasa = 0;
-  let gFora = 0;
-  for (const f of factos) {
-    if (!clubes.has(f.clube)) erros.push(`facto ${f.tipo} de um clube que não joga (${f.clube})`);
-    if (!inteiro(f.minuto) || f.minuto < 0 || f.minuto > 130) erros.push(`minuto inválido (${f.minuto})`);
-    if (f.tipo === "G" && f.clube === j.casa) gCasa++;
-    else if (f.tipo === "G") gFora++;
+export function validateMatch(j: NewMatch, facts: FactMatch[], appearances: Appearance[]): void {
+  const errors: string[] = [];
+  if (!j.id) errors.push("id vazio");
+  if (j.home === j.away) errors.push("casa e fora são o mesmo clube");
+  if (!DATE.test(j.date)) errors.push(`data inválida "${j.date}"`);
+  for (const [name, v] of [["homeGoals", j.homeGoals], ["awayGoals", j.awayGoals]] as const)
+    if (!integer(v) || v < 0) errors.push(`${name} deve ser um inteiro ≥ 0`);
+  const clubs = new Set([j.home, j.away]);
+  let homeG = 0;
+  let awayG = 0;
+  for (const f of facts) {
+    if (!clubs.has(f.club)) errors.push(`facto ${f.type} de um clube que não joga (${f.club})`);
+    if (!integer(f.minute) || f.minute < 0 || f.minute > 130) errors.push(`minuto inválido (${f.minute})`);
+    if (f.type === "G" && f.club === j.home) homeG++;
+    else if (f.type === "G") awayG++;
   }
-  if (gCasa !== j.golosCasa || gFora !== j.golosFora)
-    erros.push(`os golos registados (${gCasa}-${gFora}) não batem com o resultado (${j.golosCasa}-${j.golosFora})`);
-  const jogadores = new Set<string>();
-  for (const p of participacoes) {
-    if (!clubes.has(p.clube)) erros.push(`participação de um clube que não joga (${p.clube})`);
-    if (jogadores.has(p.jogador)) erros.push(`jogador repetido: ${p.jogador}`);
-    jogadores.add(p.jogador);
-    if (!inteiro(p.minutos) || p.minutos < 0 || p.minutos > 130) erros.push(`minutos inválidos (${p.minutos})`);
+  if (homeG !== j.homeGoals || awayG !== j.awayGoals)
+    errors.push(`os golos registados (${homeG}-${awayG}) não batem com o resultado (${j.homeGoals}-${j.awayGoals})`);
+  const players = new Set<string>();
+  for (const p of appearances) {
+    if (!clubs.has(p.club)) errors.push(`participação de um clube que não joga (${p.club})`);
+    if (players.has(p.player)) errors.push(`jogador repetido: ${p.player}`);
+    players.add(p.player);
+    if (!integer(p.minutes) || p.minutes < 0 || p.minutes > 130) errors.push(`minutos inválidos (${p.minutes})`);
   }
-  if (erros.length > 0) throw new Error(`Jogo ${j.id} inválido: ${erros.join("; ")}`);
+  if (errors.length > 0) throw new Error(`Jogo ${j.id} inválido: ${errors.join("; ")}`);
 }
 
 /** Comparação de texto igual à do SQLite (binária): evita diferenças de ordenação entre adaptadores. */

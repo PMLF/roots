@@ -4,193 +4,193 @@
  */
 
 /** 'AAAA-MM-DD' no calendário do jogo. */
-export type Data = string;
+export type IsoDate = string;
 
-export type Visibilidade = "publico" | "privado" | "secreto";
-export type TipoEntidade = "clube" | "pessoa" | "cidade" | "localidade" | "competicao" | "jogo";
-export type Origem = "jogo" | "gerado";
+export type Visibility = "exposed" | "privado" | "secreto";
+export type EntityType = "club" | "person" | "city" | "locality" | "competition" | "match";
+export type Origin = "match" | "gerado";
 
-export type EntidadeRef = { k: TipoEntidade; id: string; papel?: string };
+export type RefEntity = { k: EntityType; id: string; roleKind?: string };
 
 /** O que o motor entrega para acrescentar; `id` e `v` atribuem-se ao gravar. */
-export type EventoNovo = {
-  tipo: string;
+export type NewEvent = {
+  type: string;
   /** Versão do esquema de `dados` para este tipo (por omissão 1). */
   v?: number;
-  data: Data;
-  epoca: number;
-  jornada?: number;
-  vis: Visibilidade;
-  entidades: EntidadeRef[];
-  causa?: number;
+  date: IsoDate;
+  season: number;
+  round?: number;
+  visibility: Visibility;
+  entities: RefEntity[];
+  cause?: number;
   /** Só em eventos CORRECAO. */
-  corrige?: number;
-  origem?: Origem;
-  dados: Record<string, unknown>;
+  fixes?: number;
+  origin?: Origin;
+  data: Record<string, unknown>;
 };
 
-export type Evento = Required<Omit<EventoNovo, "jornada" | "causa" | "corrige">> & {
+export type HistoryEvent = Required<Omit<NewEvent, "round" | "cause" | "fixes">> & {
   id: number;
-  jornada?: number;
-  causa?: number;
-  corrige?: number;
+  round?: number;
+  cause?: number;
+  fixes?: number;
 };
 
 /** Códigos de `jogo_facto`: G golo, A assistência, CA amarelo, CV vermelho, L lesão, S substituição, P penálti falhado. */
-export type TipoFacto = "G" | "A" | "CA" | "CV" | "L" | "S" | "P";
+export type FactType = "G" | "A" | "CA" | "CV" | "L" | "S" | "P";
 
-export type JogoFacto = {
-  minuto: number;
-  tipo: TipoFacto;
-  jogador: string;
+export type FactMatch = {
+  minute: number;
+  type: FactType;
+  player: string;
   /** Em G: o clube a quem o golo é creditado (num auto-golo, o adversário do jogador). */
-  clube: string;
+  club: string;
   /** p. ex. 'penalti', 'auto', 'gravidade:3'. */
   extra?: string;
 };
 
-export type Participacao = { jogador: string; clube: string; titular: boolean; minutos: number; nota?: number };
+export type Appearance = { player: string; club: string; starter: boolean; minutes: number; rating?: number };
 
-export type JogoNovo = {
+export type NewMatch = {
   id: string;
-  competicao: string;
-  epoca: number;
-  jornada: number;
-  data: Data;
-  casa: string;
-  fora: string;
-  golosCasa: number;
-  golosFora: number;
-  xgCasa?: number;
-  xgFora?: number;
-  posseCasa?: number;
-  assistencia?: number;
-  receita?: number;
-  importancia?: number;
-  arbitro?: string;
-  causa?: number;
+  competition: string;
+  season: number;
+  round: number;
+  date: IsoDate;
+  home: string;
+  away: string;
+  homeGoals: number;
+  awayGoals: number;
+  homeXg?: number;
+  awayXg?: number;
+  homePossession?: number;
+  attendance?: number;
+  revenue?: number;
+  importance?: number;
+  referee?: string;
+  cause?: number;
 };
 
-export type Jogo = Required<Omit<JogoNovo, "causa">> & { evento: number };
+export type Match = Required<Omit<NewMatch, "cause">> & { event: number };
 
-export type LinhaClassificacao = {
-  clube: string;
-  jogos: number;
-  vitorias: number;
-  empates: number;
-  derrotas: number;
-  golosMarcados: number;
-  golosSofridos: number;
+export type StandingsLine = {
+  club: string;
+  matches: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  scoredGoals: number;
+  concededGoals: number;
   /** Pontos dos jogos, sem ajustes. */
-  pontosJogos: number;
+  matchesPoints: number;
   /** Soma dos ajustes (sanções retroativas). */
-  ajuste: number;
-  pontos: number;
+  adjustment: number;
+  points: number;
 };
 
 /** Estatísticas de um jogador numa competição e época, com a nota média das participações com nota. */
-export type PlayerCompetitionStats = LinhaStatJogador & { avgRating?: number; ratedGames: number };
+export type PlayerCompetitionStats = PlayerStatLine & { avgRating?: number; ratedGames: number };
 
-export type LinhaStatJogador = {
-  jogador: string;
-  epoca: number;
-  clube: string;
-  competicao: string;
-  jogos: number;
-  minutos: number;
-  golos: number;
-  assistencias: number;
-  amarelos: number;
-  vermelhos: number;
+export type PlayerStatLine = {
+  player: string;
+  season: number;
+  club: string;
+  competition: string;
+  matches: number;
+  minutes: number;
+  goals: number;
+  assists: number;
+  yellows: number;
+  reds: number;
 };
 
 /** Um cartão registado (facto CA ou CV) com a jornada do jogo, para calcular castigos (RZ-106). `extra` «2A» = vermelho por segundo amarelo. */
-export type RegistoCartao = { jogador: string; jogo: string; jornada: number; minuto: number; tipo: "CA" | "CV"; extra: string };
+export type CardRecord = { player: string; match: string; round: number; minute: number; type: "CA" | "CV"; extra: string };
 
-export type Marcador = { jogador: string; clube: string; minuto: number; jogo: string };
+export type Scorer = { player: string; club: string; minute: number; match: string };
 
-export type Observacao = {
+export type Observation = {
   id: number;
-  observador: string;
-  alvoK: TipoEntidade;
-  alvoId: string;
+  observer: string;
+  targetK: EntityType;
+  targetId: string;
   /** atributos | personalidade | potencial | financas | contrato */
-  grupo: string;
-  valores: Record<string, unknown>;
-  qualidade: number;
-  fonte: string;
-  data: Data;
-  epoca: number;
+  group: string;
+  values: Record<string, unknown>;
+  quality: number;
+  source: string;
+  date: IsoDate;
+  season: number;
 };
-export type ObservacaoNova = Omit<Observacao, "id">;
+export type NewObservation = Omit<Observation, "id">;
 
-export type AjusteClassificacao = {
-  competicao: string;
-  epoca: number;
-  clube: string;
-  pontos: number;
+export type StandingsAdjustment = {
+  competition: string;
+  season: number;
+  club: string;
+  points: number;
   /** Evento (p. ex. SANCAO_APLICADA) que justifica o ajuste. */
-  evento: number;
+  event: number;
 };
 
-export type PontosPorResultado = { vitoria: number; empate: number };
+export type PointsPerResult = { win: number; draw: number };
 
 /** Jogo marcado no calendário (ainda sem resultado). Ao ser jogado passa a `jogo` (mesmo `id`). */
-export type JogoAgendado = { id: string; competicao: string; epoca: number; jornada: number; data: Data; casa: string; fora: string };
+export type ScheduledMatch = { id: string; competition: string; season: number; round: number; date: IsoDate; home: string; away: string };
 /** Clube que folga numa jornada de uma liga com número ímpar de clubes. */
-export type FolgaAgendada = { competicao: string; epoca: number; jornada: number; clube: string };
+export type ScheduledBye = { competition: string; season: number; round: number; club: string };
 
 // ---------- pessoas (RZ-103). Tipos de armazenamento: o motor converte de/para os tipos ricos de `mundo`.
-export type PessoaReg = {
+export type PersonRecord = {
   id: string;
-  nome: string;
-  nomeDesportivo: string;
-  nascimento: Data;
-  nacionalidade: string;
+  name: string;
+  sportingName: string;
+  birth: IsoDate;
+  nationality: string;
   naturalDe?: string;
-  papeis: string[];
+  roles: string[];
   /** Verdade oculta. */
-  personalidade: Record<string, number>;
-  arquetipo: string;
+  personality: Record<string, number>;
+  archetype: string;
   lod: 1 | 2 | 3;
 };
-export type JogadorReg = {
-  pessoa: string;
-  posicoes: { pos: string; aptidao: number }[];
+export type PlayerRecord = {
+  person: string;
+  positions: { pos: string; aptitude: number }[];
   /** Verdade oculta. */
-  atributos: Record<string, number>;
+  attributes: Record<string, number>;
   /** Verdade oculta. */
-  potencial: number;
-  alturaCm: number;
-  pesoKg: number;
+  potential: number;
+  heightCm: number;
+  weightKg: number;
   pe: "D" | "E" | "A";
-  clube?: string;
-  estado: "ativo" | "livre";
+  club?: string;
+  state: "active" | "free";
 };
-export type ContratoReg = { pessoa: string; clube: string; salarioMensal: number; inicio: Data; fim: Data };
-export type CargoReg = { pessoa: string; funcao: string; clube?: string; cidade?: string; qualidade?: Record<string, number> };
+export type ContractRecord = { person: string; club: string; monthlyWage: number; start: IsoDate; end: IsoDate };
+export type RoleRecord = { person: string; fn: string; club?: string; city?: string; quality?: Record<string, number> };
 // ---------- localidades (RZ-136)
-export type EstatutoLocalidade = "aldeia" | "vila" | "cidade";
+export type LocalityStatus = "aldeia" | "vila" | "city";
 /** Estado atual de uma localidade. `desde` = data em que passou a ter o estatuto atual. */
-export type LocalidadeReg = { id: string; nome: string; cidade: string; populacao: number; estatuto: EstatutoLocalidade; desde: Data };
+export type LocalityRecord = { id: string; name: string; city: string; population: number; status: LocalityStatus; since: IsoDate };
 /** Mudança de população/estatuto. Se o estatuto mudar, regista-se o evento público LOCALIDADE_ESTATUTO. */
-export type AtualizacaoLocalidade = { populacao: number; estatuto: EstatutoLocalidade; data: Data; epoca: number; causa?: number };
+export type LocalityUpdate = { population: number; status: LocalityStatus; date: IsoDate; season: number; cause?: number };
 
-export type LoteMundoReg = { pessoas: PessoaReg[]; jogadores: JogadorReg[]; contratos: ContratoReg[]; cargos: CargoReg[] };
+export type WorldBatchRecord = { people: PersonRecord[]; players: PlayerRecord[]; contracts: ContractRecord[]; roles: RoleRecord[] };
 
 /** O que qualquer observador pode saber de uma pessoa sem a ter observado: factos públicos. */
-export type PessoaPublica = {
+export type PublicPerson = {
   id: string;
-  nome: string;
-  nomeDesportivo: string;
-  nascimento: Data;
-  nacionalidade: string;
+  name: string;
+  sportingName: string;
+  birth: IsoDate;
+  nationality: string;
   naturalDe?: string;
-  papeis: string[];
-  clube?: string;
-  funcao?: string;
-  jogador?: { posicao: string; alturaCm: number; pesoKg: number; pe: "D" | "E" | "A"; estado: "ativo" | "livre" };
+  roles: string[];
+  club?: string;
+  fn?: string;
+  player?: { position: string; heightCm: number; weightKg: number; pe: "D" | "E" | "A"; state: "active" | "free" };
 };
 
 /** Entrada do índice de pesquisa de pessoas: só factos públicos. */
-export type PessoaIndice = { id: string; nome: string; nomeDesportivo: string; clube?: string; posicao?: string; funcao?: string };
+export type PersonIndex = { id: string; name: string; sportingName: string; club?: string; position?: string; fn?: string };

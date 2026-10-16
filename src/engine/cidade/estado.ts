@@ -3,75 +3,75 @@
  * Tudo aqui é puro. O estado "verdadeiro" são números 0-100; a interface só vê níveis em palavras e tendências.
  */
 import type { Rng } from "../aleatorio/rng";
-import { limitar } from "../aleatorio/rng";
-import type { EfeitosCidade, Parametros } from "../config/parametros";
-import type { CidadeBase, ClubeBase } from "../dados/tipos";
+import { clamp } from "../aleatorio/rng";
+import type { CityEffects, Params } from "../config/parametros";
+import type { BaseCity, BaseClub } from "../dados/tipos";
 
-export type EstadoCidade = {
-  populacao: number;
-  emprego: number;
-  economia: number;
-  turismo: number;
-  orgulho: number;
-  notoriedade: number;
-  culturaFutebol: number;
+export type CityState = {
+  population: number;
+  employment: number;
+  economy: number;
+  tourism: number;
+  pride: number;
+  notoriety: number;
+  footballCulture: number;
 };
 
-export type Indicador = Exclude<keyof EstadoCidade, "populacao">;
-export const INDICADORES: readonly Indicador[] = ["economia", "emprego", "turismo", "orgulho", "notoriedade", "culturaFutebol"];
+export type Indicator = Exclude<keyof CityState, "population">;
+export const INDICATORS: readonly Indicator[] = ["economy", "employment", "tourism", "pride", "notoriety", "footballCulture"];
 
 /** Níveis em palavras: 1 muito baixo … 5 muito alto. */
-export type NivelCidade = 1 | 2 | 3 | 4 | 5;
-export type Tendencia = "sobe" | "estavel" | "desce";
+export type CityLevel = 1 | 2 | 3 | 4 | 5;
+export type Trend = "rises" | "stable" | "drops";
 
-export type AlvosCidade = Pick<EstadoCidade, "emprego" | "economia" | "turismo" | "orgulho" | "notoriedade">;
+export type CityTargets = Pick<CityState, "employment" | "economy" | "tourism" | "pride" | "notoriety">;
 
-const DECADA_BASE = Math.log10(15000);
+const BASE_DECADE = Math.log10(15000);
 
-export function nivelDe(valor: number, params: Pick<Parametros, "cidade">): NivelCidade {
-  const cortes = params.cidade.niveis;
-  return (1 + cortes.filter((c) => valor >= c).length) as NivelCidade;
+export function levelOf(value: number, params: Pick<Params, "city">): CityLevel {
+  const cuts = params.city.levels;
+  return (1 + cuts.filter((c) => value >= c).length) as CityLevel;
 }
 
-export function tendenciaDe(antes: number | undefined, agora: number, params: Pick<Parametros, "cidade">): Tendencia {
-  if (antes === undefined) return "estavel";
-  const d = agora - antes;
-  return d >= params.cidade.limiarTendencia ? "sobe" : d <= -params.cidade.limiarTendencia ? "desce" : "estavel";
+export function trendOf(before: number | undefined, now: number, params: Pick<Params, "city">): Trend {
+  if (before === undefined) return "stable";
+  const d = now - before;
+  return d >= params.city.trendThreshold ? "rises" : d <= -params.city.trendThreshold ? "drops" : "stable";
 }
 
 /** Efeito do setor num campo: o principal a 100 %, o secundário a 50 %, mais o das ilhas. */
-export function efeitoDoSetor(c: Pick<CidadeBase, "setor" | "tag2" | "ilha">, campo: keyof EfeitosCidade, params: Pick<Parametros, "cidade">): number {
-  const s = params.cidade.setores;
-  return (s[c.setor]?.[campo] ?? 0) + 0.5 * (s[c.tag2]?.[campo] ?? 0) + (c.ilha ? (s.ILH?.[campo] ?? 0) : 0);
+export function sectorEffect(c: Pick<BaseCity, "sector" | "tag2" | "island">, pitch: keyof CityEffects, params: Pick<Params, "city">): number {
+  const s = params.city.sectors;
+  return (s[c.sector]?.[pitch] ?? 0) + 0.5 * (s[c.tag2]?.[pitch] ?? 0) + (c.island ? (s.ILH?.[pitch] ?? 0) : 0);
 }
 
-const lim = (x: number) => limitar(x, 0, 100);
+const clampPct = (x: number) => clamp(x, 0, 100);
 
 /** Valores para onde a cidade tende, sem ruído: o setor, o tamanho e o melhor clube da terra. */
-export function alvosDaCidade(c: CidadeBase, clubes: readonly ClubeBase[], params: Pick<Parametros, "cidade">): AlvosCidade {
-  const k = params.cidade.inicial;
-  const decadas = Math.log10(Math.max(c.populacao, 1)) - DECADA_BASE;
-  const rep = Math.max(0, ...clubes.filter((x) => x.cidade === c.id).map((x) => x.reputacao)) / k.reputacaoMax;
+export function cityTargets(c: BaseCity, clubs: readonly BaseClub[], params: Pick<Params, "city">): CityTargets {
+  const k = params.city.initial;
+  const decades = Math.log10(Math.max(c.population, 1)) - BASE_DECADE;
+  const rep = Math.max(0, ...clubs.filter((x) => x.city === c.id).map((x) => x.reputation)) / k.reputationMax;
   return {
-    emprego: lim(k.base + efeitoDoSetor(c, "emprego", params) + k.porDecadaEmprego * decadas),
-    economia: lim(k.base + efeitoDoSetor(c, "economia", params) + k.porDecadaEconomia * decadas),
-    turismo: lim(k.base + efeitoDoSetor(c, "turismo", params)),
-    orgulho: lim(k.orgulho.base + k.orgulho.porReputacao * rep),
-    notoriedade: lim(k.notoriedade.base + k.notoriedade.porReputacao * rep + k.notoriedade.porDecada * decadas),
+    employment: clampPct(k.base + sectorEffect(c, "employment", params) + k.byEmploymentDecade * decades),
+    economy: clampPct(k.base + sectorEffect(c, "economy", params) + k.byEconomyDecade * decades),
+    tourism: clampPct(k.base + sectorEffect(c, "tourism", params)),
+    pride: clampPct(k.pride.base + k.pride.byReputation * rep),
+    notoriety: clampPct(k.notoriety.base + k.notoriety.byReputation * rep + k.notoriety.byDecade * decades),
   };
 }
 
 /** Estado de arranque: os alvos mais um desvio sorteado (mesma seed → mesma cidade). */
-export function estadoInicial(c: CidadeBase, clubes: readonly ClubeBase[], rng: Rng, params: Pick<Parametros, "cidade">): EstadoCidade {
-  const k = params.cidade.inicial;
-  const a = alvosDaCidade(c, clubes, params);
+export function initialState(c: BaseCity, clubs: readonly BaseClub[], rng: Rng, params: Pick<Params, "city">): CityState {
+  const k = params.city.initial;
+  const a = cityTargets(c, clubs, params);
   return {
-    populacao: c.populacao,
-    emprego: lim(a.emprego + rng.gauss(0, k.ruido)),
-    economia: lim(a.economia + rng.gauss(0, k.ruido)),
-    turismo: lim(a.turismo + rng.gauss(0, k.ruido)),
-    orgulho: lim(a.orgulho + rng.gauss(0, k.orgulho.ruido)),
-    notoriedade: lim(a.notoriedade + rng.gauss(0, k.notoriedade.ruido)),
-    culturaFutebol: c.culturaFutebol,
+    population: c.population,
+    employment: clampPct(a.employment + rng.gauss(0, k.noise)),
+    economy: clampPct(a.economy + rng.gauss(0, k.noise)),
+    tourism: clampPct(a.tourism + rng.gauss(0, k.noise)),
+    pride: clampPct(a.pride + rng.gauss(0, k.pride.noise)),
+    notoriety: clampPct(a.notoriety + rng.gauss(0, k.notoriety.noise)),
+    footballCulture: c.footballCulture,
   };
 }

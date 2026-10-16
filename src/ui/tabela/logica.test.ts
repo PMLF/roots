@@ -1,53 +1,53 @@
 import { describe, expect, it } from "vitest";
-import { colunasDoConjunto, filtrar, ordenar, paraCsv, proximaOrdem, type Coluna } from "./logica";
+import { presetColumns, filter, sort, paraCsv, nextOrder, type Column } from "./logica";
 
-type L = { nome: string; idade: number; pos: string };
-const linhas: L[] = [
-  { nome: "Álvaro Dias", idade: 31, pos: "CB" },
-  { nome: "Bruno Costa", idade: 19, pos: "CM" },
-  { nome: "Zé Maria", idade: 31, pos: "GK" },
-  { nome: "alberto Sá", idade: 24, pos: "ST" },
+type L = { name: string; age: number; pos: string };
+const lines: L[] = [
+  { name: "Álvaro Dias", age: 31, pos: "CB" },
+  { name: "Bruno Costa", age: 19, pos: "CM" },
+  { name: "Zé Maria", age: 31, pos: "GK" },
+  { name: "alberto Sá", age: 24, pos: "ST" },
 ];
-const colunas: Coluna<L>[] = [
-  { id: "nome", titulo: "Nome", valor: (l) => l.nome },
-  { id: "idade", titulo: "Idade", valor: (l) => l.idade, numerica: true },
-  { id: "pos", titulo: "Posição", valor: (l) => l.pos },
+const columns: Column<L>[] = [
+  { id: "name", title: "Name", value: (l) => l.name },
+  { id: "age", title: "Idade", value: (l) => l.age, numeric: true },
+  { id: "pos", title: "Posição", value: (l) => l.pos },
 ];
 
 describe("tabela: ordenar", () => {
   it("texto ignora acentos e maiúsculas", () => {
-    expect(ordenar(linhas, colunas, { coluna: "nome", direcao: "asc" }).map((l) => l.nome)).toEqual(["alberto Sá", "Álvaro Dias", "Bruno Costa", "Zé Maria"]);
+    expect(sort(lines, columns, { column: "name", direction: "asc" }).map((l) => l.name)).toEqual(["alberto Sá", "Álvaro Dias", "Bruno Costa", "Zé Maria"]);
   });
   it("números por valor, desc, e estável nos empates", () => {
-    expect(ordenar(linhas, colunas, { coluna: "idade", direcao: "desc" }).map((l) => l.nome)).toEqual(["Álvaro Dias", "Zé Maria", "alberto Sá", "Bruno Costa"]);
+    expect(sort(lines, columns, { column: "age", direction: "desc" }).map((l) => l.name)).toEqual(["Álvaro Dias", "Zé Maria", "alberto Sá", "Bruno Costa"]);
   });
   it("sem ordem devolve cópia na ordem original", () => {
-    const r = ordenar(linhas, colunas, null);
-    expect(r).toEqual(linhas);
-    expect(r).not.toBe(linhas);
+    const r = sort(lines, columns, null);
+    expect(r).toEqual(lines);
+    expect(r).not.toBe(lines);
   });
   it("ciclo do cabeçalho", () => {
-    const a = proximaOrdem(null, "idade");
-    expect(a).toEqual({ coluna: "idade", direcao: "asc" });
-    expect(proximaOrdem(a, "idade")).toEqual({ coluna: "idade", direcao: "desc" });
-    expect(proximaOrdem(proximaOrdem(a, "idade"), "idade")).toBeNull();
-    expect(proximaOrdem(a, "nome")).toEqual({ coluna: "nome", direcao: "asc" });
+    const a = nextOrder(null, "age");
+    expect(a).toEqual({ column: "age", direction: "asc" });
+    expect(nextOrder(a, "age")).toEqual({ column: "age", direction: "desc" });
+    expect(nextOrder(nextOrder(a, "age"), "age")).toBeNull();
+    expect(nextOrder(a, "name")).toEqual({ column: "name", direction: "asc" });
   });
 });
 
 describe("tabela: filtrar, exportar, conjuntos", () => {
   it("filtro com várias palavras em colunas diferentes", () => {
-    expect(filtrar(linhas, colunas, "alvaro cb").map((l) => l.nome)).toEqual(["Álvaro Dias"]);
-    expect(filtrar(linhas, colunas, "   ")).toHaveLength(4);
-    expect(filtrar(linhas, colunas, "31")).toHaveLength(2);
+    expect(filter(lines, columns, "alvaro cb").map((l) => l.name)).toEqual(["Álvaro Dias"]);
+    expect(filter(lines, columns, "   ")).toHaveLength(4);
+    expect(filter(lines, columns, "31")).toHaveLength(2);
   });
   it("CSV com ; BOM e aspas", () => {
-    const csv = paraCsv([{ nome: 'Rui "Pé" Alves; Jr', idade: 20, pos: "CM" }], colunas);
+    const csv = paraCsv([{ name: 'Rui "Pé" Alves; Jr', age: 20, pos: "CM" }], columns);
     expect(csv).toBe('﻿Nome;Idade;Posição\r\n"Rui ""Pé"" Alves; Jr";20;CM\r\n');
   });
   it("conjunto de colunas mantém a ordem e ignora ids em falta", () => {
-    expect(colunasDoConjunto(colunas, { nome: "x", colunas: ["pos", "nome", "fantasma"] }).map((c) => c.id)).toEqual(["pos", "nome"]);
-    expect(colunasDoConjunto(colunas, { nome: "x", colunas: ["fantasma"] })).toHaveLength(3);
-    expect(colunasDoConjunto(colunas, undefined)).toHaveLength(3);
+    expect(presetColumns(columns, { name: "x", columns: ["pos", "name", "fantasma"] }).map((c) => c.id)).toEqual(["pos", "name"]);
+    expect(presetColumns(columns, { name: "x", columns: ["fantasma"] })).toHaveLength(3);
+    expect(presetColumns(columns, undefined)).toHaveLength(3);
   });
 });

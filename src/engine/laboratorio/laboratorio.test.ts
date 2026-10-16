@@ -1,48 +1,48 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { tratar, type Servicos } from "../api/handler";
-import { RepositorioMemoria } from "../persistencia/repositorioMemoria";
+import { handle, type Servicos } from "../api/handler";
+import { MemoryRepository } from "../persistencia/repositorioMemoria";
 
-const ler = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
+const read = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
 const servicos: Servicos = {
-  abrirRepositorio: (() => { const repositorio = new RepositorioMemoria(); return async () => ({ repositorio, backend: "memoria" as const, versaoSqlite: "teste" }); })(),
-  carregarDados: async () => ({ clubes: ler("clubes"), cidades: ler("cidades"), localidades: ler("localidades"), rivalidades: ler("rivalidades"), distritos: ler("distritos"), paises: ler("paises") }),
+  openRepository: (() => { const repository = new MemoryRepository(); return async () => ({ repository, backend: "memory" as const, sqliteVersion: "teste" }); })(),
+  loadData: async () => ({ clubs: read("clubs"), cities: read("cities"), localities: read("localities"), rivalries: read("rivalries"), districts: read("districts"), countries: read("countries") }),
 };
 
 describe("laboratório", () => {
   it("lista as competições e simula um jogo e uma liga sem gravar nada", async () => {
-    await tratar({ id: 1, tipo: "criarMundo", entrada: { seed: "lab" } }, servicos);
-    const { repositorio } = await servicos.abrirRepositorio();
-    const eventos = repositorio.totalEventos();
+    await handle({ id: 1, type: "createWorld", input: { seed: "lab" } }, servicos);
+    const { repository } = await servicos.openRepository();
+    const events = repository.eventsTotal();
 
-    const comps = await tratar({ id: 2, tipo: "competicoes", entrada: null }, servicos);
-    expect(comps[0]).toMatchObject({ escalao: "primeiraLiga", clubes: 20 });
+    const comps = await handle({ id: 2, type: "competitions", input: null }, servicos);
+    expect(comps[0]).toMatchObject({ tier: "firstLeague", clubs: 20 });
     expect(comps.length).toBeGreaterThan(10);
 
-    const clubes = await tratar({ id: 3, tipo: "clubes", entrada: null }, servicos);
-    const [a, b] = clubes.filter((c) => c.liga === comps[0]!.liga) as [(typeof clubes)[0], (typeof clubes)[0]];
-    const j = await tratar({ id: 4, tipo: "laboratorioJogo", entrada: { casa: a.id, fora: b.id, seed: "s1", taticaCasa: { formacao: "4-4-2", estilo: "direto" } } }, servicos);
-    expect(j.casa.tatica).toMatchObject({ formacao: "4-4-2", estilo: "direto" });
-    expect(j.relatorio.golos).toHaveLength(j.relatorio.golosCasa + j.relatorio.golosFora);
-    expect(j.onzes.casa).toHaveLength(11);
-    for (const p of j.onzes.casa) expect(j.nomes[p.id]).toBeTruthy();
-    for (const g of j.relatorio.golos) expect(j.nomes[g.jogador]).toBeTruthy();
+    const clubs = await handle({ id: 3, type: "clubs", input: null }, servicos);
+    const [a, b] = clubs.filter((c) => c.league === comps[0]!.league) as [(typeof clubs)[0], (typeof clubs)[0]];
+    const j = await handle({ id: 4, type: "matchLab", input: { home: a.id, away: b.id, seed: "s1", homeTactic: { formation: "4-4-2", style: "direct" } } }, servicos);
+    expect(j.home.tactic).toMatchObject({ formation: "4-4-2", style: "direct" });
+    expect(j.report.goals).toHaveLength(j.report.homeGoals + j.report.awayGoals);
+    expect(j.lineups.home).toHaveLength(11);
+    for (const p of j.lineups.home) expect(j.names[p.id]).toBeTruthy();
+    for (const g of j.report.goals) expect(j.names[g.player]).toBeTruthy();
     // mesma seed, mesmo jogo; seed diferente, jogo (quase de certeza) diferente
-    expect((await tratar({ id: 5, tipo: "laboratorioJogo", entrada: { casa: a.id, fora: b.id, seed: "s1", taticaCasa: { formacao: "4-4-2", estilo: "direto" } } }, servicos)).relatorio).toEqual(j.relatorio);
-    await expect(tratar({ id: 6, tipo: "laboratorioJogo", entrada: { casa: a.id, fora: a.id, seed: "x" } }, servicos)).rejects.toThrow();
+    expect((await handle({ id: 5, type: "matchLab", input: { home: a.id, away: b.id, seed: "s1", homeTactic: { formation: "4-4-2", style: "direct" } } }, servicos)).report).toEqual(j.report);
+    await expect(handle({ id: 6, type: "matchLab", input: { home: a.id, away: a.id, seed: "x" } }, servicos)).rejects.toThrow();
 
-    const l = await tratar({ id: 7, tipo: "laboratorioLiga", entrada: { liga: comps[0]!.liga, seed: "s1" } }, servicos);
-    expect(l.tabela).toHaveLength(20);
-    expect(l.jogos).toBe(20 * 19);
-    expect(l.tabela.every((x) => x.jogos === 38)).toBe(true);
-    expect(l.tabela.map((x) => x.posicao)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
-    expect(l.totais.golosPorJogo).toBeGreaterThan(2);
-    expect(l.totais.golosPorJogo).toBeLessThan(3.4);
-    expect(l.artilheiros[0]!.golos).toBeGreaterThan(5);
-    const distrital = comps.find((c) => c.escalao === "distrital")!;
-    const d = await tratar({ id: 8, tipo: "laboratorioLiga", entrada: { liga: distrital.liga, seed: "s1" } }, servicos);
-    expect(d.tabela).toHaveLength(distrital.clubes);
+    const l = await handle({ id: 7, type: "leagueLab", input: { league: comps[0]!.league, seed: "s1" } }, servicos);
+    expect(l.table).toHaveLength(20);
+    expect(l.matches).toBe(20 * 19);
+    expect(l.table.every((x) => x.matches === 38)).toBe(true);
+    expect(l.table.map((x) => x.position)).toEqual(Array.from({ length: 20 }, (_, i) => i + 1));
+    expect(l.totals.goalsPerMatch).toBeGreaterThan(2);
+    expect(l.totals.goalsPerMatch).toBeLessThan(3.4);
+    expect(l.topScorers[0]!.goals).toBeGreaterThan(5);
+    const district = comps.find((c) => c.tier === "district")!;
+    const d = await handle({ id: 8, type: "leagueLab", input: { league: district.league, seed: "s1" } }, servicos);
+    expect(d.table).toHaveLength(district.clubs);
 
-    expect(repositorio.totalEventos()).toBe(eventos); // nada foi gravado
+    expect(repository.eventsTotal()).toBe(events); // nada foi gravado
   }, 60000);
 });

@@ -4,25 +4,25 @@ import en from "./en.json";
 
 export type Locale = "pt-PT" | "en";
 export const LOCALES: readonly Locale[] = ["pt-PT", "en"];
-export const LOCALE_PADRAO: Locale = "pt-PT";
+export const DEFAULT_LOCALE: Locale = "pt-PT";
 
 /** Chaves tipadas a partir do catálogo base (pt-PT). O inglês tem de ter exatamente as mesmas (há um teste). */
-export type Chave = keyof typeof ptPT;
+export type Key = keyof typeof ptPT;
 
-const catalogos: Record<Locale, Record<string, string>> = { "pt-PT": ptPT, en };
+const catalogues: Record<Locale, Record<string, string>> = { "pt-PT": ptPT, en };
 const cache = new Map<string, IntlMessageFormat>();
 
-export function traduzir(locale: Locale, chave: Chave, valores?: Record<string, string | number>): string {
-  const texto = catalogos[locale][chave] ?? catalogos[LOCALE_PADRAO][chave] ?? chave;
-  const k = `${locale}|${chave}`;
+export function translate(locale: Locale, rowKey: Key, values?: Record<string, string | number>): string {
+  const text = catalogues[locale][rowKey] ?? catalogues[DEFAULT_LOCALE][rowKey] ?? rowKey;
+  const k = `${locale}|${rowKey}`;
   let fmt = cache.get(k);
   if (!fmt) {
-    fmt = new IntlMessageFormat(texto, locale);
+    fmt = new IntlMessageFormat(text, locale);
     cache.set(k, fmt);
   }
-  return String(fmt.format(valores));
+  return String(fmt.format(values));
 }
 
-export function catalogo(locale: Locale): Record<string, string> {
-  return catalogos[locale];
+export function catalogue(locale: Locale): Record<string, string> {
+  return catalogues[locale];
 }

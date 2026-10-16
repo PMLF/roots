@@ -1,36 +1,36 @@
 /** Ligação ao repositório: a tabela classificativa final de uma competição e o seu estado de jornadas (RZ-110). */
-import type { Parametros } from "../config/parametros";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { Data } from "../persistencia/tipos";
-import { ordenarClassificacao, type LinhaOrdenada } from "./classificacao";
-import { estadoCompeticao, type EstadoCompeticao } from "./jornadas";
+import type { Params } from "../config/parametros";
+import type { Repository } from "../persistencia/repositorio";
+import type { IsoDate } from "../persistencia/tipos";
+import { sortStandings, type SortedLine } from "./classificacao";
+import { competitionState, type CompetitionState } from "./jornadas";
 
-export type TipoCompeticao = "liga" | "promocao";
+export type CompetitionType = "league" | "promotion";
 
 /** Classificação ordenada com os desempates da competição. Inclui clubes do calendário que ainda não jogaram. */
-export function tabelaDaCompeticao(
-  repo: Repositorio,
-  competicao: string,
-  epoca: number,
-  tipo: TipoCompeticao,
-  params: Parametros,
-  ctx: { seed: string; reputacao?: ReadonlyMap<string, number> },
-): LinhaOrdenada[] {
-  const cal = repo.calendario(competicao, epoca);
-  const clubes = [...new Set([...cal.jogos.flatMap((j) => [j.casa, j.fora]), ...cal.folgas.map((f) => f.clube)])];
-  return ordenarClassificacao(repo.classificacao(competicao, epoca), repo.jogosDaCompeticao(competicao, epoca), params.desempate[tipo === "liga" ? "liga" : "promocao"], {
-    pontosVitoria: params.classificacao.pontosVitoria,
-    pontosEmpate: params.classificacao.pontosEmpate,
+export function competitionTable(
+  repo: Repository,
+  competition: string,
+  season: number,
+  type: CompetitionType,
+  params: Params,
+  ctx: { seed: string; reputation?: ReadonlyMap<string, number> },
+): SortedLine[] {
+  const cal = repo.calendar(competition, season);
+  const clubs = [...new Set([...cal.matches.flatMap((j) => [j.home, j.away]), ...cal.byes.map((f) => f.club)])];
+  return sortStandings(repo.standings(competition, season), repo.competitionMatches(competition, season), params.tiebreak[type === "league" ? "league" : "promotion"], {
+    winPoints: params.standings.winPoints,
+    drawPoints: params.standings.drawPoints,
     seed: ctx.seed,
-    competicao,
-    epoca,
-    clubes,
-    ...(ctx.reputacao ? { reputacao: ctx.reputacao } : {}),
+    competition,
+    season,
+    clubs,
+    ...(ctx.reputation ? { reputation: ctx.reputation } : {}),
   });
 }
 
 /** Estado das jornadas de uma competição na data `hoje`. */
-export function estadoDaCompeticao(repo: Repositorio, competicao: string, epoca: number, hoje: Data): EstadoCompeticao {
-  const jogados = new Set(repo.jogosDaCompeticao(competicao, epoca).map((j) => j.id));
-  return estadoCompeticao(competicao, epoca, repo.calendario(competicao, epoca).jogos, jogados, hoje);
+export function competitionStatus(repo: Repository, competition: string, season: number, today: IsoDate): CompetitionState {
+  const played = new Set(repo.competitionMatches(competition, season).map((j) => j.id));
+  return competitionState(competition, season, repo.calendar(competition, season).matches, played, today);
 }

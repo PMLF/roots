@@ -1,17 +1,17 @@
 /** localStorage seguro: pode não existir (janela privada, bloqueado). Só para conveniências por pessoa. */
-export function ler<T>(chave: string, valida: (v: unknown) => v is T): T | undefined {
+export function read<T>(rowKey: string, valid: (v: unknown) => v is T): T | undefined {
   try {
-    const bruto = window.localStorage.getItem(chave);
-    if (bruto === null) return undefined;
-    const v: unknown = JSON.parse(bruto);
-    return valida(v) ? v : undefined;
+    const raw = window.localStorage.getItem(rowKey);
+    if (raw === null) return undefined;
+    const v: unknown = JSON.parse(raw);
+    return valid(v) ? v : undefined;
   } catch {
     return undefined;
   }
 }
-export function guardar(chave: string, valor: unknown): void {
+export function save(rowKey: string, value: unknown): void {
   try {
-    window.localStorage.setItem(chave, JSON.stringify(valor));
+    window.localStorage.setItem(rowKey, JSON.stringify(value));
   } catch {
     /* sem armazenamento: só não se lembra */
   }

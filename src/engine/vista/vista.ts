@@ -4,84 +4,84 @@
  * participa, e (c) estimativas com margem vindas de observações. Não recebe nem importa a "verdade"
  * (atributos, potencial, personalidade, finanças): por construção, não tem como a devolver.
  */
-import type { Parametros } from "../config/parametros";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { FiltroEventos } from "../persistencia/repositorio";
-import type { Data, EntidadeRef, Evento, Jogo, LinhaClassificacao, LinhaStatJogador, Marcador, Observacao, PessoaPublica } from "../persistencia/tipos";
-import { paraDias } from "../calendario/datas";
-import type { Alvo, Conhecimento, Estimativa, FichaPessoa, Frescura, PessoaVista, Rotulo, ValoresObservados } from "./tipos";
+import type { Params } from "../config/parametros";
+import type { Repository } from "../persistencia/repositorio";
+import type { EventsFilter } from "../persistencia/repositorio";
+import type { IsoDate, RefEntity, HistoryEvent, Match, StandingsLine, PlayerStatLine, Scorer, Observation, PublicPerson } from "../persistencia/tipos";
+import { forDays } from "../calendario/datas";
+import type { Target, Knowledge, Estimate, PersonProfile, Freshness, ViewPerson, Label, ObservedValues } from "./tipos";
 
 /** Só o que a Vista usa do repositório: leitura de factos públicos e de observações. */
-export type FontePublica = Pick<Repositorio, "eventosDe" | "jogo" | "marcadores" | "classificacao" | "statsJogador" | "observacoes" | "pessoaPublica" | "plantelPublico" | "cargosPublicos">;
+export type PublicSource = Pick<Repository, "eventsOf" | "match" | "scorers" | "standings" | "playerStats" | "observations" | "publicPerson" | "publicSquad" | "publicRoles">;
 
-export type ContextoVista = {
+export type ViewContext = {
   /** Quem observa (o clube do gamer). As observações são suas. */
-  observador: string;
+  observer: string;
   /** Entidades "nossas" ("clube:id", "pessoa:id"): vemos os eventos privados/secretos em que participam. */
-  participantes: ReadonlySet<string>;
-  data: Data;
-  epoca: number;
+  participants: ReadonlySet<string>;
+  date: IsoDate;
+  season: number;
 };
 
-export const chaveParticipante = (e: Pick<EntidadeRef, "k" | "id">): string => `${e.k}:${e.id}`;
+export const participantKey = (e: Pick<RefEntity, "k" | "id">): string => `${e.k}:${e.id}`;
 
-export class Vista {
+export class View {
   constructor(
-    private readonly fonte: FontePublica,
-    private readonly ctx: ContextoVista,
-    private readonly k: Parametros["conhecimento"],
+    private readonly source: PublicSource,
+    private readonly ctx: ViewContext,
+    private readonly k: Params["knowledge"],
   ) {}
 
   // ---------- factos públicos
   /** Eventos de uma entidade: todos os públicos + os privados/secretos em que participamos. Mais recentes primeiro. */
-  eventos(entidade: Alvo, filtro: Omit<FiltroEventos, "apenasPublicos" | "vis"> = {}): Evento[] {
-    const { limite, ...resto } = filtro;
-    const publicos = this.fonte.eventosDe(entidade, { ...resto, vis: ["publico"], ...(limite !== undefined ? { limite } : {}) });
-    const nossos = this.fonte
-      .eventosDe(entidade, { ...resto, vis: ["privado", "secreto"] })
-      .filter((e) => e.entidades.some((x) => this.ctx.participantes.has(chaveParticipante(x))));
-    const todos = [...publicos, ...nossos].sort((a, b) => b.id - a.id);
-    return limite === undefined ? todos : todos.slice(0, limite);
+  events(entity: Target, filter: Omit<EventsFilter, "publicOnly" | "visibility"> = {}): HistoryEvent[] {
+    const { limit, ...rest } = filter;
+    const exposed = this.source.eventsOf(entity, { ...rest, visibility: ["exposed"], ...(limit !== undefined ? { limit } : {}) });
+    const our = this.source
+      .eventsOf(entity, { ...rest, visibility: ["privado", "secreto"] })
+      .filter((e) => e.entities.some((x) => this.ctx.participants.has(participantKey(x))));
+    const all = [...exposed, ...our].sort((a, b) => b.id - a.id);
+    return limit === undefined ? all : all.slice(0, limit);
   }
 
-  jogo(id: string): Jogo | undefined {
-    return this.fonte.jogo(id);
+  match(id: string): Match | undefined {
+    return this.source.match(id);
   }
-  marcadores(competicao: string, epoca: number, jornada: number): Marcador[] {
-    return this.fonte.marcadores(competicao, epoca, jornada);
+  scorers(competition: string, season: number, round: number): Scorer[] {
+    return this.source.scorers(competition, season, round);
   }
-  classificacao(competicao: string, epoca: number): LinhaClassificacao[] {
-    return this.fonte.classificacao(competicao, epoca);
+  standings(competition: string, season: number): StandingsLine[] {
+    return this.source.standings(competition, season);
   }
   /** Golos, jogos, cartões… são factos de jogo e portanto públicos (não são atributos). */
-  statsJogador(jogador: string): LinhaStatJogador[] {
-    return this.fonte.statsJogador(jogador);
+  playerStats(player: string): PlayerStatLine[] {
+    return this.source.playerStats(player);
   }
 
   // ---------- pessoas
-  private comIdade(p: PessoaPublica): PessoaVista {
-    return { ...p, idade: Math.floor((paraDias(this.ctx.data) - paraDias(p.nascimento)) / 365.25) };
+  private withAge(p: PublicPerson): ViewPerson {
+    return { ...p, age: Math.floor((forDays(this.ctx.date) - forDays(p.birth)) / 365.25) };
   }
   /** Factos públicos de uma pessoa (nome, idade, clube, posição, corpo). */
-  pessoa(id: string): PessoaVista | undefined {
-    const p = this.fonte.pessoaPublica(id);
-    return p ? this.comIdade(p) : undefined;
+  person(id: string): ViewPerson | undefined {
+    const p = this.source.publicPerson(id);
+    return p ? this.withAge(p) : undefined;
   }
-  plantel(clube: string): PessoaVista[] {
-    return this.fonte.plantelPublico(clube).map((p) => this.comIdade(p));
+  squad(club: string): ViewPerson[] {
+    return this.source.publicSquad(club).map((p) => this.withAge(p));
   }
-  cargos(filtro: { clube?: string; cidade?: string }): PessoaVista[] {
-    return this.fonte.cargosPublicos(filtro).map((p) => this.comIdade(p));
+  roles(filter: { club?: string; city?: string }): ViewPerson[] {
+    return this.source.publicRoles(filter).map((p) => this.withAge(p));
   }
   /** Ficha completa para a interface: factos públicos + o que se sabe (com margem) dos grupos observados. */
-  ficha(id: string): FichaPessoa | undefined {
-    const publico = this.pessoa(id);
-    if (!publico) return undefined;
-    const alvo: Alvo = { k: "pessoa", id };
-    const atributos = this.conhecimento(alvo, "atributos");
-    const potencial = this.conhecimento(alvo, "potencial");
-    const personalidade = this.conhecimento(alvo, "personalidade");
-    return { publico, ...(atributos ? { atributos } : {}), ...(potencial ? { potencial } : {}), ...(personalidade ? { personalidade } : {}) };
+  profile(id: string): PersonProfile | undefined {
+    const exposed = this.person(id);
+    if (!exposed) return undefined;
+    const target: Target = { k: "person", id };
+    const attributes = this.knowledge(target, "attributes");
+    const potential = this.knowledge(target, "potential");
+    const personality = this.knowledge(target, "personality");
+    return { exposed, ...(attributes ? { attributes } : {}), ...(potential ? { potential } : {}), ...(personality ? { personality } : {}) };
   }
 
   // ---------- conhecimento
@@ -90,59 +90,59 @@ export class Vista {
    * `undefined` se nunca o observou. Várias observações combinam-se por média ponderada pelo inverso da
    * variância, com a incerteza a crescer com a idade da observação.
    */
-  conhecimento(alvo: Alvo, grupo: string): Conhecimento | undefined {
-    const obs = this.fonte.observacoes(this.ctx.observador, alvo, grupo);
+  knowledge(target: Target, group: string): Knowledge | undefined {
+    const obs = this.source.observations(this.ctx.observer, target, group);
     if (obs.length === 0) return undefined;
     const k = this.k;
-    const idade = (o: Observacao) => Math.max(0, this.ctx.epoca - o.epoca);
-    const frescura = (o: Observacao): Frescura => ({
-      vistoEm: o.data,
-      epocasDesde: idade(o),
-      desatualizado: idade(o) >= k.desatualizadoAposEpocas,
+    const age = (o: Observation) => Math.max(0, this.ctx.season - o.season);
+    const freshness = (o: Observation): Freshness => ({
+      seenIn: o.date,
+      sinceSeasons: age(o),
+      outdated: age(o) >= k.seasonsAfterOutdated,
     });
 
-    type Acum = { somaPeso: number; somaPesoEst: number; escala?: [number, number]; recente: Observacao };
-    const acum = new Map<string, Acum>();
-    let rotulos: Rotulo[] = [];
-    let rotulosJaVistos = false;
+    type Cumulative = { sumWeight: number; estWeightSum: number; scale?: [number, number]; recent: Observation };
+    const cumulative = new Map<string, Cumulative>();
+    let labels: Label[] = [];
+    let seenAlreadyLabels = false;
     for (const o of obs) {
       // `obs` vem das mais recentes para as mais antigas
-      const v = o.valores as ValoresObservados;
-      if (!rotulosJaVistos && v.rotulos) {
-        rotulos = v.rotulos;
-        rotulosJaVistos = true;
+      const v = o.values as ObservedValues;
+      if (!seenAlreadyLabels && v.labels) {
+        labels = v.labels;
+        seenAlreadyLabels = true;
       }
-      for (const [campo, { est, sigma }] of Object.entries(v.campos ?? {})) {
-        const sigmaEfetivo = Math.max(sigma, 1e-6) * (1 + k.crescimentoIncertezaPorEpoca * idade(o));
-        const peso = 1 / (sigmaEfetivo * sigmaEfetivo);
-        const a = acum.get(campo);
+      for (const [pitch, { est, sigma }] of Object.entries(v.fields ?? {})) {
+        const effectiveSigma = Math.max(sigma, 1e-6) * (1 + k.uncertaintyGrowthPerSeason * age(o));
+        const weight = 1 / (effectiveSigma * effectiveSigma);
+        const a = cumulative.get(pitch);
         if (a) {
-          a.somaPeso += peso;
-          a.somaPesoEst += peso * est;
-        } else acum.set(campo, { somaPeso: peso, somaPesoEst: peso * est, ...(v.escala ? { escala: v.escala } : {}), recente: o });
+          a.sumWeight += weight;
+          a.estWeightSum += weight * est;
+        } else cumulative.set(pitch, { sumWeight: weight, estWeightSum: weight * est, ...(v.scale ? { scale: v.scale } : {}), recent: o });
       }
     }
 
-    const campos: Conhecimento["campos"] = {};
-    for (const [campo, a] of acum) {
-      const media = a.somaPesoEst / a.somaPeso;
-      const margem = k.z * Math.sqrt(1 / a.somaPeso);
-      const [min, max] = a.escala ?? [-Infinity, Infinity];
-      const est: Estimativa = {
-        valor: arred(Math.min(max, Math.max(min, media))),
-        margem: arred(margem),
-        intervalo: [arred(Math.max(min, media - margem)), arred(Math.min(max, media + margem))],
+    const fields: Knowledge["fields"] = {};
+    for (const [pitch, a] of cumulative) {
+      const mean = a.estWeightSum / a.sumWeight;
+      const margin = k.z * Math.sqrt(1 / a.sumWeight);
+      const [min, max] = a.scale ?? [-Infinity, Infinity];
+      const est: Estimate = {
+        value: round(Math.min(max, Math.max(min, mean))),
+        margin: round(margin),
+        halfTime: [round(Math.max(min, mean - margin)), round(Math.min(max, mean + margin))],
       };
-      campos[campo] = { ...est, ...frescura(a.recente) };
+      fields[pitch] = { ...est, ...freshness(a.recent) };
     }
-    const maisRecente = obs[0] as Observacao;
-    return { ...frescura(maisRecente), observacoes: obs.length, campos, rotulos };
+    const moreRecent = obs[0] as Observation;
+    return { ...freshness(moreRecent), observations: obs.length, fields, labels };
   }
 
   /** Atalho: estimativa de um campo (p. ex. "finalizacao") dentro de um grupo. */
-  estimativa(alvo: Alvo, grupo: string, campo: string): (Estimativa & Frescura) | undefined {
-    return this.conhecimento(alvo, grupo)?.campos[campo];
+  estimate(target: Target, group: string, pitch: string): (Estimate & Freshness) | undefined {
+    return this.knowledge(target, group)?.fields[pitch];
   }
 }
 
-const arred = (x: number) => Math.round(x * 10) / 10;
+const round = (x: number) => Math.round(x * 10) / 10;

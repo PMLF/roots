@@ -1,10 +1,10 @@
 "use client";
-import { useModoDev } from "@/ui/dev";
-import { useMotor } from "@/ui/MotorProvider";
-import { Laboratorio } from "@/ui/components/Laboratorio";
+import { useDevMode } from "@/ui/dev";
+import { useEngine } from "@/ui/MotorProvider";
+import { Lab } from "@/ui/components/Laboratorio";
 
-export default function PaginaLaboratorio() {
-  const motor = useMotor();
-  const dev = useModoDev();
-  return dev && motor ? <Laboratorio motor={motor} /> : null;
+export default function LabPage() {
+  const engine = useEngine();
+  const dev = useDevMode();
+  return dev && engine ? <Lab engine={engine} /> : null;
 }

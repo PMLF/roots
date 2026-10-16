@@ -1,69 +1,69 @@
 import { describe, expect, it } from "vitest";
 import { Rng } from "../aleatorio/rng";
-import { PARAMETROS_PADRAO as PARAMETROS } from "../config/parametros";
-import { diaDaSemana } from "./datas";
-import { gerarCalendarioLiga, validarCalendario } from "./calendario";
-import { maiorSequenciaCasaFora, todosContraTodos } from "./todosContraTodos";
+import { DEFAULT_PARAMETERS as PARAMETERS } from "../config/parametros";
+import { weekDay } from "./datas";
+import { generateLeagueCalendar, validateCalendar } from "./calendario";
+import { largerAwayHomeSequence, allAgainstAll } from "./todosContraTodos";
 
-const clubes = (n: number) => Array.from({ length: n }, (_, i) => `c${i + 1}`);
-const C = PARAMETROS.calendario;
+const clubs = (n: number) => Array.from({ length: n }, (_, i) => `c${i + 1}`);
+const C = PARAMETERS.calendar;
 
 describe("todos contra todos", () => {
   it.each([4, 6, 8, 10, 12, 16, 18, 20])("n=%i: sem sequências de 3 casa/fora", (n) => {
-    const r = todosContraTodos(clubes(n), 2, new Rng("7"));
+    const r = allAgainstAll(clubs(n), 2, new Rng("7"));
     expect(r.length).toBe(2 * (n - 1));
-    for (const m of maiorSequenciaCasaFora(r).values()) expect(m).toBeLessThanOrEqual(2);
+    for (const m of largerAwayHomeSequence(r).values()) expect(m).toBeLessThanOrEqual(2);
   });
   it("n ímpar tem folga por ronda", () => {
-    const r = todosContraTodos(clubes(7), 2, new Rng("1"));
+    const r = allAgainstAll(clubs(7), 2, new Rng("1"));
     expect(r.length).toBe(14);
-    expect(r.every((x) => x.folga !== undefined)).toBe(true);
+    expect(r.every((x) => x.bye !== undefined)).toBe(true);
   });
   it("é determinístico", () => {
-    expect(todosContraTodos(clubes(10), 2, new Rng("3"))).toEqual(todosContraTodos(clubes(10), 2, new Rng("3")));
+    expect(allAgainstAll(clubs(10), 2, new Rng("3"))).toEqual(allAgainstAll(clubs(10), 2, new Rng("3")));
   });
 });
 
 describe("calendário de liga", () => {
   it.each([
-    ["primeiraLiga", 18],
-    ["segundaLiga", 16],
-    ["terceiraLiga", 20],
-    ["distrital", 14],
-    ["distrital", 11],
-  ] as const)("%s com %i clubes é válido e respeita as janelas", (escalao, n) => {
-    const cal = gerarCalendarioLiga({ competicao: `${escalao}-${n}`, escalao, clubes: clubes(n) }, 1, C, new Rng("42"));
-    expect(validarCalendario(cal)).toEqual([]);
-    const primeira = cal.jornadas[0]!.data;
-    const ultima = cal.jornadas[cal.jornadas.length - 1]!.data;
-    expect(primeira >= "2026-08-15").toBe(true);
-    expect(ultima <= "2027-05-18").toBe(true);
-    for (const j of cal.jornadas)
-      for (const g of j.jogos) expect(C.diasDeJogo[escalao].includes(diaDaSemana(g.data)) || diaDaSemana(g.data) === 3).toBe(true);
+    ["firstLeague", 18],
+    ["secondLeague", 16],
+    ["thirdLeague", 20],
+    ["district", 14],
+    ["district", 11],
+  ] as const)("%s com %i clubes é válido e respeita as janelas", (tier, n) => {
+    const cal = generateLeagueCalendar({ competition: `${tier}-${n}`, tier, clubs: clubs(n) }, 1, C, new Rng("42"));
+    expect(validateCalendar(cal)).toEqual([]);
+    const first = cal.rounds[0]!.date;
+    const last = cal.rounds[cal.rounds.length - 1]!.date;
+    expect(first >= "2026-08-15").toBe(true);
+    expect(last <= "2027-05-18").toBe(true);
+    for (const j of cal.rounds)
+      for (const g of j.matches) expect(C.matchDays[tier].includes(weekDay(g.date)) || weekDay(g.date) === 3).toBe(true);
   });
   it("não joga nas pausas", () => {
-    const cal = gerarCalendarioLiga({ competicao: "pl", escalao: "primeiraLiga", clubes: clubes(18) }, 1, C, new Rng("5"));
-    for (const j of cal.jornadas) {
-      expect(j.data >= "2026-12-22" && j.data <= "2027-01-02").toBe(false);
-      expect(j.data >= "2026-10-09" && j.data <= "2026-10-15").toBe(false);
+    const cal = generateLeagueCalendar({ competition: "pl", tier: "firstLeague", clubs: clubs(18) }, 1, C, new Rng("5"));
+    for (const j of cal.rounds) {
+      expect(j.date >= "2026-12-22" && j.date <= "2027-01-02").toBe(false);
+      expect(j.date >= "2026-10-09" && j.date <= "2026-10-15").toBe(false);
     }
   });
   it("determinístico por seed", () => {
-    const d = { competicao: "x", escalao: "segundaLiga" as const, clubes: clubes(16) };
-    expect(gerarCalendarioLiga(d, 2, C, new Rng("9"))).toEqual(gerarCalendarioLiga(d, 2, C, new Rng("9")));
+    const d = { competition: "x", tier: "secondLeague" as const, clubs: clubs(16) };
+    expect(generateLeagueCalendar(d, 2, C, new Rng("9"))).toEqual(generateLeagueCalendar(d, 2, C, new Rng("9")));
   });
 });
 
 describe("calendário no repositório", () => {
   it("guarda um calendário gerado e devolve-o igual", async () => {
-    const { RepositorioMemoria } = await import("../persistencia/repositorioMemoria");
-    const { paraRepositorio } = await import("./calendario");
-    const cal = gerarCalendarioLiga({ competicao: "SL", escalao: "segundaLiga", clubes: clubes(15) }, 1, C, new Rng("1"));
-    const r = new RepositorioMemoria();
-    const { jogos, folgas } = paraRepositorio(cal);
-    r.guardarCalendario(jogos, folgas);
-    expect(r.calendario("SL", 1).jogos).toHaveLength(15 * 14);
-    expect(r.calendario("SL", 1).folgas).toHaveLength(30);
-    expect(r.calendarioDoClube("c1", 1)).toHaveLength(28);
+    const { MemoryRepository } = await import("../persistencia/repositorioMemoria");
+    const { forRepository } = await import("./calendario");
+    const cal = generateLeagueCalendar({ competition: "SL", tier: "secondLeague", clubs: clubs(15) }, 1, C, new Rng("1"));
+    const r = new MemoryRepository();
+    const { matches, byes } = forRepository(cal);
+    r.saveCalendar(matches, byes);
+    expect(r.calendar("SL", 1).matches).toHaveLength(15 * 14);
+    expect(r.calendar("SL", 1).byes).toHaveLength(30);
+    expect(r.clubCalendar("c1", 1)).toHaveLength(28);
   });
 });

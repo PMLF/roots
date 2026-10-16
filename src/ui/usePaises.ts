@@ -1,21 +1,21 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useMotor } from "@/ui/MotorProvider";
+import { useEngine } from "@/ui/MotorProvider";
 
 let cache: Record<string, string> | undefined;
 
 /** Nome do país a partir do id (`pt` → «Portugal»). Carrega-se uma vez. */
-export function usePaises(): (id: string) => string {
-  const motor = useMotor();
-  const [mapa, setMapa] = useState<Record<string, string>>(cache ?? {});
+export function useCountries(): (id: string) => string {
+  const engine = useEngine();
+  const [map, setMap] = useState<Record<string, string>>(cache ?? {});
   useEffect(() => {
-    if (cache || !motor) return;
-    let vivo = true;
-    motor.chamar("paises", null).then((lista) => {
-      cache = Object.fromEntries(lista.map((p) => [p.id, p.nome]));
-      if (vivo) setMapa(cache);
+    if (cache || !engine) return;
+    let live = true;
+    engine.call("countries", null).then((list) => {
+      cache = Object.fromEntries(list.map((p) => [p.id, p.name]));
+      if (live) setMap(cache);
     }).catch(() => undefined);
-    return () => { vivo = false; };
-  }, [motor]);
-  return (id) => mapa[id] ?? id;
+    return () => { live = false; };
+  }, [engine]);
+  return (id) => map[id] ?? id;
 }

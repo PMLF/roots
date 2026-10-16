@@ -3,168 +3,168 @@
  * liga inteira com o mundo gerado, para ver o motor a funcionar e dar feedback enquanto o ciclo de dias (RZ-119) não existe.
  * Usa o mesmo motor, o mesmo calendário e os mesmos desempates do jogo a sério; um repositório em memória guarda a liga.
  */
-import { estaNaSegundaDistrital } from "../epoca/distritais";
+import { isInSecondDistrict } from "../epoca/distritais";
 import { Rng } from "../aleatorio/rng";
-import { gerarCalendarioLiga, paraRepositorio } from "../calendario/calendario";
-import { ordenarClassificacao } from "../competicao/classificacao";
-import type { Parametros, Escalao } from "../config/parametros";
-import type { DadosBase } from "../dados/tipos";
-import { FORMACOES, TATICA_PADRAO } from "../jogo/formacoes";
-import { onzeAutomatico, type CandidatoOnze } from "../jogo/equipa";
-import { jogarJogo } from "../jogo/detalhe";
-import type { RelatorioJogo } from "../jogo/estatisticas";
-import type { EquipaJogo, FormacaoId, Tatica } from "../jogo/tipos";
-import type { Repositorio } from "../persistencia/repositorio";
-import { RepositorioMemoria } from "../persistencia/repositorioMemoria";
+import { generateLeagueCalendar, forRepository } from "../calendario/calendario";
+import { sortStandings } from "../competicao/classificacao";
+import type { Params, Tier } from "../config/parametros";
+import type { BaseData } from "../dados/tipos";
+import { FORMATIONS, DEFAULT_TACTIC } from "../jogo/formacoes";
+import { automaticLineup, type LineupCandidate } from "../jogo/equipa";
+import { playMatch } from "../jogo/detalhe";
+import type { MatchReport } from "../jogo/estatisticas";
+import type { MatchTeam, FormationId, Tactic } from "../jogo/tipos";
+import type { Repository } from "../persistencia/repositorio";
+import { MemoryRepository } from "../persistencia/repositorioMemoria";
 
-export type CompeticaoResumo = { liga: string; escalao: Escalao; clubes: number; /** Só nas distritais. */ distrito?: string };
+export type SummaryCompetition = { league: string; tier: Tier; clubs: number; /** Só nas distritais. */ district?: string };
 
 /** As ligas/séries do mundo, da mais alta para a mais baixa. */
-export function competicoesDoMundo(dados: DadosBase): CompeticaoResumo[] {
-  const ordem: Escalao[] = ["primeiraLiga", "segundaLiga", "terceiraLiga", "cp", "distrital"];
-  const m = new Map<string, CompeticaoResumo>();
-  for (const c of dados.clubes) {
-    if (estaNaSegundaDistrital(c.liga)) continue; // a SegundaDistrital distrital não é uma competição simulada
-    const l = m.get(c.liga) ?? m.set(c.liga, { liga: c.liga, escalao: c.escalao, clubes: 0, ...(c.escalao === "distrital" ? { distrito: c.distrito } : {}) }).get(c.liga)!;
-    l.clubes++;
+export function worldCompetitions(data: BaseData): SummaryCompetition[] {
+  const order: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
+  const m = new Map<string, SummaryCompetition>();
+  for (const c of data.clubs) {
+    if (isInSecondDistrict(c.league)) continue; // a SegundaDistrital distrital não é uma competição simulada
+    const l = m.get(c.league) ?? m.set(c.league, { league: c.league, tier: c.tier, clubs: 0, ...(c.tier === "district" ? { district: c.district } : {}) }).get(c.league)!;
+    l.clubs++;
   }
-  return [...m.values()].sort((a, b) => ordem.indexOf(a.escalao) - ordem.indexOf(b.escalao) || a.liga.localeCompare(b.liga, "pt"));
+  return [...m.values()].sort((a, b) => order.indexOf(a.tier) - order.indexOf(b.tier) || a.league.localeCompare(b.league, "pt"));
 }
 
-function candidatos(repo: Repositorio, clube: string): CandidatoOnze[] {
+function candidates(repo: Repository, club: string): LineupCandidate[] {
   return repo
-    .jogadoresDoClube(clube)
-    .filter((j) => j.estado === "ativo")
-    .map((j) => ({ pessoa: j.pessoa, posicoes: j.posicoes, atributos: j.atributos, alturaCm: j.alturaCm }));
+    .clubPlayers(club)
+    .filter((j) => j.state === "active")
+    .map((j) => ({ person: j.person, positions: j.positions, attributes: j.attributes, heightCm: j.heightCm }));
 }
 
-function equipa(clube: string, cands: readonly CandidatoOnze[], tatica?: Partial<Tatica>): EquipaJogo {
-  const t: Tatica = { ...TATICA_PADRAO, ...tatica };
-  return { clube, onze: onzeAutomatico(cands, FORMACOES[t.formacao]), tatica: t };
+function team(club: string, candidates: readonly LineupCandidate[], tactic?: Partial<Tactic>): MatchTeam {
+  const t: Tactic = { ...DEFAULT_TACTIC, ...tactic };
+  return { club, lineup: automaticLineup(candidates, FORMATIONS[t.formation]), tactic: t };
 }
 
-export type JogoLab = {
-  casa: { id: string; nome: string; tatica: Tatica };
-  fora: { id: string; nome: string; tatica: Tatica };
-  relatorio: RelatorioJogo;
+export type LabMatch = {
+  home: { id: string; name: string; tactic: Tactic };
+  away: { id: string; name: string; tactic: Tactic };
+  report: MatchReport;
   /** Nome de cada jogador que apareceu no relatório. */
-  nomes: Record<string, string>;
+  names: Record<string, string>;
   /** Quem começou: posição ocupada e nome. */
-  onzes: { casa: { id: string; posicao: string }[]; fora: { id: string; posicao: string }[] };
-  historias: string[];
+  lineups: { home: { id: string; position: string }[]; away: { id: string; position: string }[] };
+  stories: string[];
 };
 
-export function jogoLab(
-  repo: Repositorio,
-  dados: DadosBase,
-  params: Parametros,
-  e: { casa: string; fora: string; seed: string; taticaCasa?: Partial<Tatica>; taticaFora?: Partial<Tatica> },
-): JogoLab {
-  const cc = dados.clubes.find((c) => c.id === e.casa);
-  const cf = dados.clubes.find((c) => c.id === e.fora);
+export function labMatch(
+  repo: Repository,
+  data: BaseData,
+  params: Params,
+  e: { home: string; away: string; seed: string; homeTactic?: Partial<Tactic>; awayTactic?: Partial<Tactic> },
+): LabMatch {
+  const cc = data.clubs.find((c) => c.id === e.home);
+  const cf = data.clubs.find((c) => c.id === e.away);
   if (!cc || !cf) throw new Error("Clube desconhecido");
   if (cc.id === cf.id) throw new Error("Escolhe dois clubes diferentes");
-  const casa = equipa(cc.id, candidatos(repo, cc.id), e.taticaCasa);
-  const fora = equipa(cf.id, candidatos(repo, cf.id), e.taticaFora);
-  const r = jogarJogo({ seed: e.seed, id: `lab-${e.seed}`, casa, fora }, 0, { id: `lab-${e.seed}`, competicao: "LAB", epoca: 0, jornada: 1, data: "2026-08-15" }, params);
-  if (r.nivel !== 0) throw new Error("nível inesperado");
-  const nomes: Record<string, string> = {};
-  for (const c of [cc.id, cf.id]) for (const p of repo.plantelPublico(c)) nomes[p.id] = p.nomeDesportivo;
+  const home = team(cc.id, candidates(repo, cc.id), e.homeTactic);
+  const away = team(cf.id, candidates(repo, cf.id), e.awayTactic);
+  const r = playMatch({ seed: e.seed, id: `lab-${e.seed}`, home, away }, 0, { id: `lab-${e.seed}`, competition: "LAB", season: 0, round: 1, date: "2026-08-15" }, params);
+  if (r.level !== 0) throw new Error("nível inesperado");
+  const names: Record<string, string> = {};
+  for (const c of [cc.id, cf.id]) for (const p of repo.publicSquad(c)) names[p.id] = p.sportingName;
   return {
-    casa: { id: cc.id, nome: cc.nome, tatica: casa.tatica as Tatica },
-    fora: { id: cf.id, nome: cf.nome, tatica: fora.tatica as Tatica },
-    relatorio: r.relatorio,
-    nomes,
-    onzes: { casa: casa.onze.map((j) => ({ id: j.id, posicao: j.posicao })), fora: fora.onze.map((j) => ({ id: j.id, posicao: j.posicao })) },
-    historias: r.historias.map((h) => h.tipo),
+    home: { id: cc.id, name: cc.name, tactic: home.tactic as Tactic },
+    away: { id: cf.id, name: cf.name, tactic: away.tactic as Tactic },
+    report: r.report,
+    names,
+    lineups: { home: home.lineup.map((j) => ({ id: j.id, position: j.position })), away: away.lineup.map((j) => ({ id: j.id, position: j.position })) },
+    stories: r.stories.map((h) => h.type),
   };
 }
 
-export type LinhaLiga = {
-  posicao: number;
-  clube: string;
-  nome: string;
-  jogos: number;
-  vitorias: number;
-  empates: number;
-  derrotas: number;
-  golosMarcados: number;
-  golosSofridos: number;
-  diferenca: number;
-  pontos: number;
-  desempatePor?: string;
-  reputacao: number;
+export type LeagueLine = {
+  position: number;
+  club: string;
+  name: string;
+  matches: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  scoredGoals: number;
+  concededGoals: number;
+  difference: number;
+  points: number;
+  tiebreakPer?: string;
+  reputation: number;
 };
 
-export type LigaLab = {
-  liga: string;
-  escalao: Escalao;
-  jornadas: number;
-  jogos: number;
-  tabela: LinhaLiga[];
-  artilheiros: { jogador: string; nome: string; clube: string; golos: number }[];
-  totais: { golosPorJogo: number; amarelosPorJogo: number; vermelhosPorJogo: number; lesoesPorJogo: number; goleadas: number; hatTricks: number; ms: number };
+export type LabLeague = {
+  league: string;
+  tier: Tier;
+  rounds: number;
+  matches: number;
+  table: LeagueLine[];
+  topScorers: { player: string; name: string; club: string; goals: number }[];
+  totals: { goalsPerMatch: number; yellowsPerMatch: number; redsPerMatch: number; injuriesPerMatch: number; routs: number; hatTricks: number; ms: number };
 };
 
-export function ligaLab(repo: Repositorio, dados: DadosBase, params: Parametros, e: { liga: string; seed: string; formacao?: FormacaoId }): LigaLab {
+export function labLeague(repo: Repository, data: BaseData, params: Params, e: { league: string; seed: string; formation?: FormationId }): LabLeague {
   const t0 = Date.now();
-  const clubes = dados.clubes.filter((c) => c.liga === e.liga);
-  if (clubes.length < 2) throw new Error("Liga desconhecida");
-  const escalao = (clubes[0] as { escalao: Escalao }).escalao;
-  const equipas = new Map(clubes.map((c) => [c.id, equipa(c.id, candidatos(repo, c.id), e.formacao ? { formacao: e.formacao } : undefined)]));
-  const cal = gerarCalendarioLiga({ competicao: e.liga, escalao, clubes: clubes.map((c) => c.id) }, 1, params.calendario, new Rng(`${e.seed}|cal|${e.liga}`));
-  const { jogos } = paraRepositorio(cal);
-  const mem = new RepositorioMemoria();
-  const golos = new Map<string, { clube: string; golos: number }>();
-  let amarelos = 0, vermelhos = 0, lesoes = 0, goleadas = 0, hatTricks = 0;
-  for (const g of [...jogos].sort((a, b) => (a.data < b.data ? -1 : a.data > b.data ? 1 : a.id < b.id ? -1 : 1))) {
-    const r = jogarJogo({ seed: e.seed, id: g.id, casa: equipas.get(g.casa) as EquipaJogo, fora: equipas.get(g.fora) as EquipaJogo }, 1, { id: g.id, competicao: g.competicao, epoca: g.epoca, jornada: g.jornada, data: g.data }, params);
-    mem.registarJogo(r.registo.jogo, r.registo.factos, r.registo.participacoes);
-    for (const f of r.registo.factos) {
-      if (f.tipo === "G" && f.extra !== "auto") golos.set(f.jogador, { clube: f.clube, golos: (golos.get(f.jogador)?.golos ?? 0) + 1 });
-      if (f.tipo === "CA") amarelos++;
-      if (f.tipo === "CV") vermelhos++;
+  const clubs = data.clubs.filter((c) => c.league === e.league);
+  if (clubs.length < 2) throw new Error("Liga desconhecida");
+  const tier = (clubs[0] as { tier: Tier }).tier;
+  const teams = new Map(clubs.map((c) => [c.id, team(c.id, candidates(repo, c.id), e.formation ? { formation: e.formation } : undefined)]));
+  const cal = generateLeagueCalendar({ competition: e.league, tier, clubs: clubs.map((c) => c.id) }, 1, params.calendar, new Rng(`${e.seed}|cal|${e.league}`));
+  const { matches } = forRepository(cal);
+  const mem = new MemoryRepository();
+  const goals = new Map<string, { club: string; goals: number }>();
+  let yellows = 0, reds = 0, injuries = 0, routs = 0, hatTricks = 0;
+  for (const g of [...matches].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : a.id < b.id ? -1 : 1))) {
+    const r = playMatch({ seed: e.seed, id: g.id, home: teams.get(g.home) as MatchTeam, away: teams.get(g.away) as MatchTeam }, 1, { id: g.id, competition: g.competition, season: g.season, round: g.round, date: g.date }, params);
+    mem.recordMatch(r.record.match, r.record.facts, r.record.appearances);
+    for (const f of r.record.facts) {
+      if (f.type === "G" && f.extra !== "auto") goals.set(f.player, { club: f.club, goals: (goals.get(f.player)?.goals ?? 0) + 1 });
+      if (f.type === "CA") yellows++;
+      if (f.type === "CV") reds++;
     }
-    lesoes += r.registo.lesoes.length;
-    for (const h of r.historias) {
-      if (h.tipo === "GOLEADA") goleadas++;
-      if (h.tipo === "HATTRICK") hatTricks++;
+    injuries += r.record.injuries.length;
+    for (const h of r.stories) {
+      if (h.type === "GOLEADA") routs++;
+      if (h.type === "HATTRICK") hatTricks++;
     }
   }
-  const rep = new Map(clubes.map((c) => [c.id, c.reputacao] as const));
-  const nome = new Map(clubes.map((c) => [c.id, c.nome] as const));
-  const tabela = ordenarClassificacao(mem.classificacao(e.liga, 1), mem.jogosDaCompeticao(e.liga, 1), params.desempate[escalao === "cp" || escalao === "distrital" ? "promocao" : "liga"], {
-    pontosVitoria: params.classificacao.pontosVitoria,
-    pontosEmpate: params.classificacao.pontosEmpate,
+  const rep = new Map(clubs.map((c) => [c.id, c.reputation] as const));
+  const name = new Map(clubs.map((c) => [c.id, c.name] as const));
+  const table = sortStandings(mem.standings(e.league, 1), mem.competitionMatches(e.league, 1), params.tiebreak[tier === "cp" || tier === "district" ? "promotion" : "league"], {
+    winPoints: params.standings.winPoints,
+    drawPoints: params.standings.drawPoints,
     seed: e.seed,
-    competicao: e.liga,
-    epoca: 1,
-    reputacao: rep,
-    clubes: clubes.map((c) => c.id),
-  }).map((l): LinhaLiga => ({
-    posicao: l.posicao, clube: l.clube, nome: nome.get(l.clube) ?? l.clube, jogos: l.jogos, vitorias: l.vitorias, empates: l.empates, derrotas: l.derrotas,
-    golosMarcados: l.golosMarcados, golosSofridos: l.golosSofridos, diferenca: l.diferenca, pontos: l.pontos, reputacao: rep.get(l.clube) ?? 0,
-    ...(l.desempatePor ? { desempatePor: l.desempatePor } : {}),
+    competition: e.league,
+    season: 1,
+    reputation: rep,
+    clubs: clubs.map((c) => c.id),
+  }).map((l): LeagueLine => ({
+    position: l.position, club: l.club, name: name.get(l.club) ?? l.club, matches: l.matches, wins: l.wins, draws: l.draws, losses: l.losses,
+    scoredGoals: l.scoredGoals, concededGoals: l.concededGoals, difference: l.difference, points: l.points, reputation: rep.get(l.club) ?? 0,
+    ...(l.tiebreakPer ? { tiebreakPer: l.tiebreakPer } : {}),
   }));
-  const nomes = new Map<string, string>();
-  for (const c of clubes) for (const p of repo.plantelPublico(c.id)) nomes.set(p.id, p.nomeDesportivo);
-  const n = jogos.length || 1;
+  const names = new Map<string, string>();
+  for (const c of clubs) for (const p of repo.publicSquad(c.id)) names.set(p.id, p.sportingName);
+  const n = matches.length || 1;
   return {
-    liga: e.liga,
-    escalao,
-    jornadas: cal.jornadas.length,
-    jogos: jogos.length,
-    tabela,
-    artilheiros: [...golos.entries()]
-      .sort((a, b) => b[1].golos - a[1].golos || (a[0] < b[0] ? -1 : 1))
+    league: e.league,
+    tier,
+    rounds: cal.rounds.length,
+    matches: matches.length,
+    table,
+    topScorers: [...goals.entries()]
+      .sort((a, b) => b[1].goals - a[1].goals || (a[0] < b[0] ? -1 : 1))
       .slice(0, 10)
-      .map(([jogador, v]) => ({ jogador, nome: nomes.get(jogador) ?? jogador, clube: nome.get(v.clube) ?? v.clube, golos: v.golos })),
-    totais: {
-      golosPorJogo: tabela.reduce((s, l) => s + l.golosMarcados, 0) / n,
-      amarelosPorJogo: amarelos / n,
-      vermelhosPorJogo: vermelhos / n,
-      lesoesPorJogo: lesoes / n,
-      goleadas: goleadas,
+      .map(([player, v]) => ({ player, name: names.get(player) ?? player, club: name.get(v.club) ?? v.club, goals: v.goals })),
+    totals: {
+      goalsPerMatch: table.reduce((s, l) => s + l.scoredGoals, 0) / n,
+      yellowsPerMatch: yellows / n,
+      redsPerMatch: reds / n,
+      injuriesPerMatch: injuries / n,
+      routs: routs,
       hatTricks,
       ms: Date.now() - t0,
     },

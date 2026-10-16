@@ -1,64 +1,64 @@
 /** Lógica pura da tabela única (TOM_E_UX §3.6): ordenar, filtrar, conjuntos de colunas e exportação. */
-export type Coluna<L> = {
+export type Column<L> = {
   id: string;
-  titulo: string;
+  title: string;
   /** Valor para ordenar e exportar. */
-  valor: (linha: L) => string | number;
+  value: (line: L) => string | number;
   /** Alinhar à direita (números). */
-  numerica?: boolean;
+  numeric?: boolean;
 };
 
-export type Ordem = { coluna: string; direcao: "asc" | "desc" } | null;
+export type Order = { column: string; direction: "asc" | "desc" } | null;
 
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-export function ordenar<L>(linhas: readonly L[], colunas: readonly Coluna<L>[], ordem: Ordem): L[] {
-  if (!ordem) return [...linhas];
-  const c = colunas.find((x) => x.id === ordem.coluna);
-  if (!c) return [...linhas];
-  const sinal = ordem.direcao === "asc" ? 1 : -1;
-  return linhas
-    .map((l, i) => ({ l, i, v: c.valor(l) }))
+export function sort<L>(lines: readonly L[], columns: readonly Column<L>[], order: Order): L[] {
+  if (!order) return [...lines];
+  const c = columns.find((x) => x.id === order.column);
+  if (!c) return [...lines];
+  const sign = order.direction === "asc" ? 1 : -1;
+  return lines
+    .map((l, i) => ({ l, i, v: c.value(l) }))
     .sort((a, b) => {
       const r = typeof a.v === "number" && typeof b.v === "number" ? a.v - b.v : norm(String(a.v)).localeCompare(norm(String(b.v)), "pt");
-      return r * sinal || a.i - b.i; // estável
+      return r * sign || a.i - b.i; // estável
     })
     .map((x) => x.l);
 }
 
 /** Todas as palavras do filtro têm de aparecer em alguma coluna visível. */
-export function filtrar<L>(linhas: readonly L[], colunas: readonly Coluna<L>[], texto: string): L[] {
-  const termos = norm(texto).split(/\s+/).filter(Boolean);
-  if (termos.length === 0) return [...linhas];
-  return linhas.filter((l) => {
-    const alvo = norm(colunas.map((c) => String(c.valor(l))).join(" "));
-    return termos.every((t) => alvo.includes(t));
+export function filter<L>(lines: readonly L[], columns: readonly Column<L>[], text: string): L[] {
+  const terms = norm(text).split(/\s+/).filter(Boolean);
+  if (terms.length === 0) return [...lines];
+  return lines.filter((l) => {
+    const target = norm(columns.map((c) => String(c.value(l))).join(" "));
+    return terms.every((t) => target.includes(t));
   });
 }
 
 /** Clique no cabeçalho: sem ordem → asc → desc → sem ordem. */
-export function proximaOrdem(atual: Ordem, coluna: string): Ordem {
-  if (!atual || atual.coluna !== coluna) return { coluna, direcao: "asc" };
-  return atual.direcao === "asc" ? { coluna, direcao: "desc" } : null;
+export function nextOrder(current: Order, column: string): Order {
+  if (!current || current.column !== column) return { column, direction: "asc" };
+  return current.direction === "asc" ? { column, direction: "desc" } : null;
 }
 
-const celulaCsv = (v: string | number) => {
+const cellCsv = (v: string | number) => {
   const s = String(v);
   return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 };
 
 /** CSV com `;` (Excel em pt-PT) e BOM. */
-export function paraCsv<L>(linhas: readonly L[], colunas: readonly Coluna<L>[]): string {
-  const cab = colunas.map((c) => celulaCsv(c.titulo)).join(";");
-  const corpo = linhas.map((l) => colunas.map((c) => celulaCsv(c.valor(l))).join(";"));
-  return "﻿" + [cab, ...corpo].join("\r\n") + "\r\n";
+export function paraCsv<L>(lines: readonly L[], columns: readonly Column<L>[]): string {
+  const header = columns.map((c) => cellCsv(c.title)).join(";");
+  const body = lines.map((l) => columns.map((c) => cellCsv(c.value(l))).join(";"));
+  return "﻿" + [header, ...body].join("\r\n") + "\r\n";
 }
 
-export type ConjuntoColunas = { nome: string; colunas: string[] };
+export type ColumnsPreset = { name: string; columns: string[] };
 
 /** Colunas visíveis na ordem do conjunto, ignorando ids que já não existem. */
-export function colunasDoConjunto<L>(todas: readonly Coluna<L>[], conjunto: ConjuntoColunas | undefined): Coluna<L>[] {
-  if (!conjunto) return [...todas];
-  const r = conjunto.colunas.map((id) => todas.find((c) => c.id === id)).filter((c): c is Coluna<L> => c !== undefined);
-  return r.length > 0 ? r : [...todas];
+export function presetColumns<L>(all: readonly Column<L>[], preset: ColumnsPreset | undefined): Column<L>[] {
+  if (!preset) return [...all];
+  const r = preset.columns.map((id) => all.find((c) => c.id === id)).filter((c): c is Column<L> => c !== undefined);
+  return r.length > 0 ? r : [...all];
 }

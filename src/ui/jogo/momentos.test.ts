@@ -1,35 +1,35 @@
 import { describe, expect, it } from "vitest";
-import type { MomentoChave } from "../../engine/jogo/estatisticas";
-import { marcadorEmTexto, momentoEmTexto } from "./momentos";
+import type { MomentKey } from "../../engine/jogo/estatisticas";
+import { scorerInText, momentInText } from "./momentos";
 
-const nomes = { jogador: (id: string) => ({ a: "Rui Alves", b: "Tiago Melo", gr: "Nuno Reis" })[id] ?? id, clube: { casa: "CD Foz", fora: "SC Mar" } };
-const golo = (extra: Partial<Extract<MomentoChave, { tipo: "golo" }>> = {}): Extract<MomentoChave, { tipo: "golo" }> => ({ tipo: "golo", minuto: 34, lado: "casa", jogador: "a", origem: "jogada", contexto: "abertura", golosCasa: 1, golosFora: 0, ...extra });
+const names = { player: (id: string) => ({ a: "Rui Alves", b: "Tiago Melo", gk: "Nuno Reis" })[id] ?? id, club: { home: "CD Foz", away: "SC Mar" } };
+const goal = (extra: Partial<Extract<MomentKey, { type: "goal" }>> = {}): Extract<MomentKey, { type: "goal" }> => ({ type: "goal", minute: 34, side: "home", player: "a", origin: "jogada", context: "abertura", homeGoals: 1, awayGoals: 0, ...extra });
 
 describe("momentos em texto", () => {
   it("escreve golos com contexto e assistência", () => {
-    expect(momentoEmTexto("pt-PT", golo({ assistente: "b" }), nomes)).toBe("34' — Rui Alves abre o marcador (CD Foz). Assistência de Tiago Melo.");
-    expect(momentoEmTexto("en", golo({ contexto: "reviravolta", lado: "fora" }), nomes)).toBe("34' — Rui Alves turns the game around for SC Mar.");
+    expect(momentInText("pt-PT", goal({ assistant: "b" }), names)).toBe("34' — Rui Alves abre o marcador (CD Foz). Assistência de Tiago Melo.");
+    expect(momentInText("en", goal({ context: "turnaround", side: "away" }), names)).toBe("34' — Rui Alves turns the game around for SC Mar.");
   });
   it("a origem do golo tem prioridade sobre o contexto", () => {
-    expect(momentoEmTexto("pt-PT", golo({ origem: "penalti" }), nomes)).toContain("converte o penálti");
-    expect(momentoEmTexto("pt-PT", golo({ origem: "canto" }), nomes)).toContain("canto");
+    expect(momentInText("pt-PT", goal({ origin: "penalty" }), names)).toContain("converte o penálti");
+    expect(momentInText("pt-PT", goal({ origin: "corner" }), names)).toContain("corner");
   });
   it("escreve penáltis falhados, grandes defesas e ocasiões falhadas", () => {
-    expect(momentoEmTexto("pt-PT", { tipo: "penalti-falhado", minuto: 70, lado: "fora", jogador: "a", guardaRedes: "gr", defendido: true }, nomes)).toBe("70' — Nuno Reis defende o penálti de Rui Alves.");
-    expect(momentoEmTexto("pt-PT", { tipo: "penalti-falhado", minuto: 70, lado: "fora", jogador: "a", defendido: false }, nomes)).toBe("70' — Rui Alves falha o penálti.");
-    expect(momentoEmTexto("en", { tipo: "grande-defesa", minuto: 12, lado: "casa", jogador: "a", guardaRedes: "gr", xg: 0.4 }, nomes)).toBe("12' — Great save by Nuno Reis from Rui Alves.");
-    expect(momentoEmTexto("pt-PT", { tipo: "ocasiao-falhada", minuto: 5, lado: "casa", jogador: "a", xg: 0.5 }, nomes)).toBe("5' — Rui Alves desperdiça uma grande ocasião para CD Foz.");
+    expect(momentInText("pt-PT", { type: "penalti-falhado", minute: 70, side: "away", player: "a", goalkeeper: "gk", saved: true }, names)).toBe("70' — Nuno Reis defende o penálti de Rui Alves.");
+    expect(momentInText("pt-PT", { type: "penalti-falhado", minute: 70, side: "away", player: "a", saved: false }, names)).toBe("70' — Rui Alves falha o penálti.");
+    expect(momentInText("en", { type: "grande-defesa", minute: 12, side: "home", player: "a", goalkeeper: "gk", xg: 0.4 }, names)).toBe("12' — Great save by Nuno Reis from Rui Alves.");
+    expect(momentInText("pt-PT", { type: "ocasiao-falhada", minute: 5, side: "home", player: "a", xg: 0.5 }, names)).toBe("5' — Rui Alves desperdiça uma grande ocasião para CD Foz.");
   });
   it("escreve expulsões", () => {
-    expect(momentoEmTexto("pt-PT", { tipo: "expulsao", minuto: 61, lado: "fora", jogador: "a", segundoAmarelo: false }, nomes)).toBe("61' — Rui Alves é expulso e SC Mar fica com menos um.");
-    expect(momentoEmTexto("en", { tipo: "expulsao", minuto: 61, lado: "fora", jogador: "a", segundoAmarelo: true }, nomes)).toContain("second yellow");
+    expect(momentInText("pt-PT", { type: "expulsao", minute: 61, side: "away", player: "a", secondYellow: false }, names)).toBe("61' — Rui Alves é expulso e SC Mar fica com menos um.");
+    expect(momentInText("en", { type: "expulsao", minute: 61, side: "away", player: "a", secondYellow: true }, names)).toContain("second yellow");
   });
   it("escreve lesões, com e sem suplente", () => {
-    const lesao = { tipo: "muscular", gravidade: 2, dias: 15, recaida: false } as const;
-    expect(momentoEmTexto("pt-PT", { tipo: "lesao", minuto: 40, lado: "casa", jogador: "a", lesao, substituto: "b" }, nomes)).toBe("40' — Rui Alves lesiona-se (lesão muscular, moderada). Entra Tiago Melo.");
-    expect(momentoEmTexto("en", { tipo: "lesao", minuto: 40, lado: "casa", jogador: "a", lesao }, nomes)).toBe("40' — Rui Alves is injured (muscle injury, moderate). CD Foz have no substitute left and play with ten.");
+    const injury = { type: "muscular", severity: 2, days: 15, relapse: false } as const;
+    expect(momentInText("pt-PT", { type: "injury", minute: 40, side: "home", player: "a", injury, substitute: "b" }, names)).toBe("40' — Rui Alves lesiona-se (lesão muscular, moderada). Entra Tiago Melo.");
+    expect(momentInText("en", { type: "injury", minute: 40, side: "home", player: "a", injury }, names)).toBe("40' — Rui Alves is injured (muscle injury, moderate). CD Foz have no substitute left and play with ten.");
   });
   it("escreve o marcador", () => {
-    expect(marcadorEmTexto("pt-PT", golo(), nomes)).toBe("CD Foz 1-0 SC Mar");
+    expect(scorerInText("pt-PT", goal(), names)).toBe("CD Foz 1-0 SC Mar");
   });
 });

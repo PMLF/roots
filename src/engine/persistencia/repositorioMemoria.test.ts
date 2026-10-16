@@ -1,4 +1,4 @@
-import { contratoRepositorio } from "./repositorio.contrato";
-import { RepositorioMemoria } from "./repositorioMemoria";
+import { repositoryContract } from "./repositorio.contrato";
+import { MemoryRepository } from "./repositorioMemoria";
 
-contratoRepositorio("memória", () => new RepositorioMemoria());
+repositoryContract("memória", () => new MemoryRepository());

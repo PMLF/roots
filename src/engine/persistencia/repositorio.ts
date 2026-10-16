@@ -1,57 +1,57 @@
 import type {
-  AjusteClassificacao,
-  AtualizacaoLocalidade,
-  LocalidadeReg,
-  CargoReg,
-  ContratoReg,
-  Data,
-  EntidadeRef,
-  Evento,
-  EventoNovo,
-  FolgaAgendada,
-  Jogo,
-  JogoAgendado,
-  JogoFacto,
-  RegistoCartao,
-  JogadorReg,
-  JogoNovo,
-  LinhaClassificacao,
-  LinhaStatJogador,
+  StandingsAdjustment,
+  LocalityUpdate,
+  LocalityRecord,
+  RoleRecord,
+  ContractRecord,
+  IsoDate,
+  RefEntity,
+  HistoryEvent,
+  NewEvent,
+  ScheduledBye,
+  Match,
+  ScheduledMatch,
+  FactMatch,
+  CardRecord,
+  PlayerRecord,
+  NewMatch,
+  StandingsLine,
+  PlayerStatLine,
   PlayerCompetitionStats,
-  Marcador,
-  Observacao,
-  ObservacaoNova,
-  Participacao,
-  PessoaIndice,
-  PessoaPublica,
-  PessoaReg,
-  LoteMundoReg,
-  Visibilidade,
+  Scorer,
+  Observation,
+  NewObservation,
+  Appearance,
+  PersonIndex,
+  PublicPerson,
+  PersonRecord,
+  WorldBatchRecord,
+  Visibility,
 } from "./tipos";
 
 /** Eventos de todo o mundo, por ordem de id decrescente (as notícias e a caixa de entrada). */
-export type FiltroRecentes = {
-  tipos?: readonly string[];
-  apenasPublicos?: boolean;
+export type RecentFilter = {
+  types?: readonly string[];
+  publicOnly?: boolean;
   /** Só eventos com id maior (por exemplo, os que chegaram depois da última leitura). */
-  depoisDe?: number;
+  afterOf?: number;
   /** Só eventos com id menor (para paginar). */
-  antesDe?: number;
-  limite?: number;
+  beforeOf?: number;
+  limit?: number;
 };
 
-export type FiltroEventos = {
+export type EventsFilter = {
   /** Só eventos públicos (o que qualquer interessado pode ver). Atalho de `vis: ["publico"]`. */
-  apenasPublicos?: boolean;
+  publicOnly?: boolean;
   /** Só eventos com estas visibilidades. */
-  vis?: readonly Visibilidade[];
-  tipo?: string;
-  desdeEpoca?: number;
-  ateEpoca?: number;
+  visibility?: readonly Visibility[];
+  type?: string;
+  seasonSince?: number;
+  untilSeason?: number;
   /** Só eventos com id maior / menor (paginação e «desde a última leitura»). */
-  depoisDe?: number;
-  antesDe?: number;
-  limite?: number;
+  afterOf?: number;
+  beforeOf?: number;
+  limit?: number;
 };
 
 /**
@@ -59,109 +59,109 @@ export type FiltroEventos = {
  * Adaptadores: memória (testes rápidos), SQLite (Node e browser). Todos passam na mesma bateria de testes.
  * A história é só de acrescentar; as derivadas atualizam-se na mesma transação e são reconstruíveis.
  */
-export interface Repositorio {
-  readonly versaoEsquema: number;
+export interface Repository {
+  readonly schemaVersion: number;
 
   /** Atómico e encadeável: se `fn` lançar, desfaz tudo o que fez (incluindo transações internas). */
-  transacao<T>(fn: () => T): T;
+  transaction<T>(fn: () => T): T;
 
   /**
    * Apaga tudo (história incluída) e deixa o save como novo. É o «novo mundo»: nunca se usa a meio de um jogo
    * (as ranhuras e os saves exportados chegam com RZ-134). Fora de qualquer transação.
    */
-  reiniciar(): void;
+  restart(): void;
 
   // --- metadados do save (seed, versão do motor, …)
-  meta(chave: string): string | undefined;
-  definirMeta(chave: string, valor: string): void;
+  meta(rowKey: string): string | undefined;
+  setMeta(rowKey: string, value: string): void;
 
   // --- história
-  acrescentarEvento(e: EventoNovo): number;
-  evento(id: number): Evento | undefined;
-  totalEventos(): number;
+  appendEvent(e: NewEvent): number;
+  event(id: number): HistoryEvent | undefined;
+  eventsTotal(): number;
   /** Mais recentes primeiro. */
-  eventosDe(entidade: Pick<EntidadeRef, "k" | "id">, filtro?: FiltroEventos): Evento[];
+  eventsOf(entity: Pick<RefEntity, "k" | "id">, filter?: EventsFilter): HistoryEvent[];
   /** Os eventos mais recentes de qualquer entidade, mais recente primeiro. */
-  eventosRecentes(filtro?: FiltroRecentes): Evento[];
-  contar(tipo: string, entidade?: Pick<EntidadeRef, "k" | "id">, intervalo?: { desdeEpoca?: number; ateEpoca?: number }): number;
-  ultimo(tipo: string, entidade: Pick<EntidadeRef, "k" | "id">): Evento | undefined;
+  recentEvents(filter?: RecentFilter): HistoryEvent[];
+  count(type: string, entity?: Pick<RefEntity, "k" | "id">, halfTime?: { seasonSince?: number; untilSeason?: number }): number;
+  last(type: string, entity: Pick<RefEntity, "k" | "id">): HistoryEvent | undefined;
   /** Os `n` eventos mais recentes do tipo para a entidade (mais recente primeiro). Rege "3 derrotas seguidas", etc. */
-  ultimos(tipo: string, entidade: Pick<EntidadeRef, "k" | "id">, n: number): Evento[];
+  lastN(type: string, entity: Pick<RefEntity, "k" | "id">, n: number): HistoryEvent[];
   /** O evento, as suas causas (para trás) e os seus efeitos (para a frente), por ordem de id. */
-  cadeia(eventoId: number): Evento[];
+  chain(eventId: number): HistoryEvent[];
   /** Todos os eventos por ordem de id, uma linha JSON cada (crónica, partilha, depuração). */
-  exportarNdjson(): string;
+  exportNdjson(): string;
 
   // --- jogos (factos compactos) + derivadas
-  registarJogo(jogo: JogoNovo, factos: JogoFacto[], participacoes: Participacao[]): { evento: number };
-  jogo(id: string): Jogo | undefined;
+  recordMatch(match: NewMatch, facts: FactMatch[], appearances: Appearance[]): { event: number };
+  match(id: string): Match | undefined;
   /** Os jogos já jogados entre dois clubes (em qualquer dos campos), do mais recente para o mais antigo. */
-  confrontos(a: string, b: string, limite: number): Jogo[];
-  marcadores(competicao: string, epoca: number, jornada: number): Marcador[];
+  meetings(a: string, b: string, limit: number): Match[];
+  scorers(competition: string, season: number, round: number): Scorer[];
   /** Cartões (CA, CV) destes jogadores nesta competição e época, por jornada, data, jogo e minuto. */
-  cartoes(competicao: string, epoca: number, jogadores: readonly string[]): RegistoCartao[];
+  cards(competition: string, season: number, players: readonly string[]): CardRecord[];
   /** Minutos jogados por cada jogador em jogos com data em [desde, ate): serve o cansaço (RZ-177). Só devolve quem jogou. */
-  minutosJogados(jogadores: readonly string[], desde: Data, ate: Data): Map<string, number>;
+  playedMinutes(players: readonly string[], since: IsoDate, until: IsoDate): Map<string, number>;
   /** Jornadas (sem repetidas, por ordem) em que o clube jogou nesta competição e época. */
-  jornadasJogadas(clube: string, competicao: string, epoca: number): number[];
+  playedRounds(club: string, competition: string, season: number): number[];
   /** Jogos jogados nesta competição e época, por jornada, data e id. */
-  jogosDaCompeticao(competicao: string, epoca: number): Jogo[];
-  classificacao(competicao: string, epoca: number): LinhaClassificacao[];
-  statsJogador(jogador: string): LinhaStatJogador[];
+  competitionMatches(competition: string, season: number): Match[];
+  standings(competition: string, season: number): StandingsLine[];
+  playerStats(player: string): PlayerStatLine[];
   /** Estatísticas de todos os jogadores numa competição e época (golos, assistências, cartões, nota média). Só quem já jogou ou foi convocado. */
   playerStatsForCompetition(competition: string, season: number): PlayerCompetitionStats[];
   /** Acrescenta uma sanção retroativa: não reescreve nenhum jogo nem evento. */
-  ajustarClassificacao(a: AjusteClassificacao): void;
+  adjustStandings(a: StandingsAdjustment): void;
   /** Recalcula todas as derivadas a partir da história. Deve dar o mesmo que o incremental. */
-  reconstruirDerivadas(): void;
+  rebuildDerived(): void;
 
   // --- calendário (RZ-102)
   /** Guarda o calendário de uma liga numa época. Recusa se já existir calendário dessa competição/época. */
-  guardarCalendario(jogos: readonly JogoAgendado[], folgas: readonly FolgaAgendada[]): void;
+  saveCalendar(matches: readonly ScheduledMatch[], byes: readonly ScheduledBye[]): void;
   /** Por jornada e, dentro dela, por id. */
-  calendario(competicao: string, epoca: number): { jogos: JogoAgendado[]; folgas: FolgaAgendada[] };
+  calendar(competition: string, season: number): { matches: ScheduledMatch[]; byes: ScheduledBye[] };
   /** Jogos de um clube na época (casa ou fora), por data. */
-  calendarioDoClube(clube: string, epoca: number): JogoAgendado[];
+  clubCalendar(club: string, season: number): ScheduledMatch[];
   /** Todos os jogos marcados para um dia (de todas as competições), por id. */
-  jogosDoDia(data: Data): JogoAgendado[];
+  dayMatches(date: IsoDate): ScheduledMatch[];
   /** Primeiro jogo marcado do clube em `desde` ou depois. */
-  proximoJogo(clube: string, desde: Data): JogoAgendado | undefined;
+  nextMatch(club: string, since: IsoDate): ScheduledMatch | undefined;
 
   // --- pessoas (RZ-103)
   /** Guarda o mundo gerado numa só transação (`aoProgredir` é chamado por lotes). Recusa se já existirem pessoas. */
-  guardarMundo(lote: LoteMundoReg, aoProgredir?: (feito: number, total: number) => void): void;
-  totalPessoas(): number;
+  saveWorld(batch: WorldBatchRecord, onProgress?: (done: number, total: number) => void): void;
+  peopleTotal(): number;
   /** Todas as pessoas com os factos públicos mínimos para pesquisar (nome, clube, posição, função). */
-  indicePessoas(): PessoaIndice[];
+  peopleIndex(): PersonIndex[];
   /** Factos públicos de uma pessoa: nome, idade, clube, posição, corpo. Nunca atributos, potencial nem personalidade. */
-  pessoaPublica(id: string): PessoaPublica | undefined;
+  publicPerson(id: string): PublicPerson | undefined;
   /** Plantel público de um clube (jogadores ativos, por posição e nome). */
-  plantelPublico(clube: string): PessoaPublica[];
+  publicSquad(club: string): PublicPerson[];
   /** Cargos (presidente, treinador…) públicos de um clube ou cidade. */
-  cargosPublicos(filtro: { clube?: string; cidade?: string }): PessoaPublica[];
+  publicRoles(filter: { club?: string; city?: string }): PublicPerson[];
   // verdade oculta (só o motor: simulação, geração, observações)
-  pessoa(id: string): PessoaReg | undefined;
-  jogador(pessoa: string): JogadorReg | undefined;
-  contrato(pessoa: string): ContratoReg | undefined;
-  cargo(pessoa: string): CargoReg | undefined;
-  jogadoresDoClube(clube: string): JogadorReg[];
+  person(id: string): PersonRecord | undefined;
+  player(person: string): PlayerRecord | undefined;
+  contract(person: string): ContractRecord | undefined;
+  role(person: string): RoleRecord | undefined;
+  clubPlayers(club: string): PlayerRecord[];
 
   // --- localidades (RZ-136)
   /** Guarda as localidades de arranque. Recusa se já existirem. */
-  guardarLocalidades(localidades: readonly LocalidadeReg[]): void;
-  localidade(id: string): LocalidadeReg | undefined;
+  saveLocalities(localities: readonly LocalityRecord[]): void;
+  locality(id: string): LocalityRecord | undefined;
   /** Por id; com `cidade`, só as desse concelho. */
-  localidades(filtro?: { cidade?: string }): LocalidadeReg[];
+  localities(filter?: { city?: string }): LocalityRecord[];
   /**
    * Atualiza população e estatuto. Se o estatuto mudar, acrescenta o evento público LOCALIDADE_ESTATUTO
    * ({ de, para, populacao }) e atualiza `desde`; devolve o id do evento (ou `undefined` se não mudou).
    */
-  atualizarLocalidade(id: string, a: AtualizacaoLocalidade): { evento?: number };
+  updateLocality(id: string, a: LocalityUpdate): { event?: number };
 
   // --- conhecimento
-  acrescentarObservacao(o: ObservacaoNova): number;
+  appendObservation(o: NewObservation): number;
   /** Mais recentes primeiro. */
-  observacoes(observador: string, alvo: Pick<EntidadeRef, "k" | "id">, grupo?: string): Observacao[];
+  observations(observer: string, target: Pick<RefEntity, "k" | "id">, group?: string): Observation[];
 }
 
-export type { Data };
+export type { IsoDate };

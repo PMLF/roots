@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { guardar, ler } from "@/ui/armazenamento";
+import { save, read } from "@/ui/armazenamento";
 
 /**
  * Modo developer: páginas de ferramentas (Laboratório, Mundo) que não são «jogar o jogo».
@@ -9,10 +9,10 @@ import { guardar, ler } from "@/ui/armazenamento";
  */
 const daBuild = process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_RAIZES_DEV === "1";
 
-export function useModoDev(): boolean {
+export function useDevMode(): boolean {
   const [dev, setDev] = useState(false);
   useEffect(() => {
-    setDev(daBuild || ler("raizes.dev", (v): v is boolean => typeof v === "boolean") === true);
+    setDev(daBuild || read("raizes.dev", (v): v is boolean => typeof v === "boolean") === true);
   }, []);
   return dev;
 }
@@ -21,25 +21,25 @@ export function useModoDev(): boolean {
  * «Ver tudo» (só no modo developer): mostra a verdade oculta (atributos, potencial, personalidade, finanças…) em vez do
  * que o gamer sabe. Guardado no browser; todas as páginas reagem à mudança.
  */
-const CHAVE_VER_TUDO = "raizes.verTudo";
-const EVENTO_VER_TUDO = "raizes:verTudo";
+const ALL_SEE_KEY = "raizes.verTudo";
+const ALL_SEE_EVENT = "raizes:verTudo";
 
-function lerVerTudo(): boolean {
-  return ler(CHAVE_VER_TUDO, (v): v is boolean => typeof v === "boolean") === true;
+function readSeeAll(): boolean {
+  return read(ALL_SEE_KEY, (v): v is boolean => typeof v === "boolean") === true;
 }
 
-export function useVerTudo(): [boolean, (v: boolean) => void] {
-  const dev = useModoDev();
-  const [valor, setValor] = useState(false);
+export function useSeeAll(): [boolean, (v: boolean) => void] {
+  const dev = useDevMode();
+  const [value, setValue] = useState(false);
   useEffect(() => {
-    setValor(lerVerTudo());
-    const aoMudar = () => setValor(lerVerTudo());
-    window.addEventListener(EVENTO_VER_TUDO, aoMudar);
-    return () => window.removeEventListener(EVENTO_VER_TUDO, aoMudar);
+    setValue(readSeeAll());
+    const onChange = () => setValue(readSeeAll());
+    window.addEventListener(ALL_SEE_EVENT, onChange);
+    return () => window.removeEventListener(ALL_SEE_EVENT, onChange);
   }, []);
-  const definir = (v: boolean) => {
-    guardar(CHAVE_VER_TUDO, v);
-    window.dispatchEvent(new Event(EVENTO_VER_TUDO));
+  const set = (v: boolean) => {
+    save(ALL_SEE_KEY, v);
+    window.dispatchEvent(new Event(ALL_SEE_EVENT));
   };
-  return [dev && valor, definir];
+  return [dev && value, set];
 }

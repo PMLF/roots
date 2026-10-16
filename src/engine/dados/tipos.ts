@@ -3,128 +3,128 @@
  * não o modelo completo de MODELO_DADOS: plantéis, finanças detalhadas, estádios por
  * setores e pessoas são gerados depois (RZ-103). Tudo aqui é imutável pelo motor.
  */
-import type { Escalao } from "../config/parametros";
-import type { Estatuto } from "../localidade/estatuto";
+import type { Tier } from "../config/parametros";
+import type { Status } from "../localidade/estatuto";
 
-export type ClubeId = string;
-export type CidadeId = string;
-export type LocalidadeId = string;
-export type DistritoId = string;
-export type SerieCP = "A" | "B" | "C" | "D";
-export type Zona = "centro" | "perto" | "periferia" | "fora";
-export type Propriedade = "clube" | "municipal" | "partilhada";
+export type ClubId = string;
+export type CityId = string;
+export type LocalityId = string;
+export type DistrictId = string;
+export type CpSeries = "A" | "B" | "C" | "D";
+export type Zone = "centro" | "perto" | "periferia" | "away";
+export type Ownership = "club" | "municipal" | "partilhada";
 
-export type LocalizacaoEstadio = {
-  zona: Zona;
-  distanciaCentroKm: number;
+export type StadiumLocation = {
+  zone: Zone;
+  centreDistanceKm: number;
   /** 0-100 */
-  transportes: number;
-  acessoRodoviario: number;
-  estacionamento: number;
-  lugaresEstacionamento: number;
-  envolvente: number;
-  terrenoExpansao: number;
+  transport: number;
+  roadAccess: number;
+  parking: number;
+  parkingPlaces: number;
+  surroundings: number;
+  expansionTerrain: number;
 };
 
-export type EstadioBase = {
-  nome: string;
-  propriedade: Propriedade;
-  capacidade: number;
-  localizacao: LocalizacaoEstadio;
+export type BaseStadium = {
+  name: string;
+  ownership: Ownership;
+  capacity: number;
+  location: StadiumLocation;
 };
 
-export type ClubeBase = {
-  id: ClubeId;
-  nome: string;
+export type BaseClub = {
+  id: ClubId;
+  name: string;
   /** Nome da localidade do clube (coluna "cidade" do CSV). */
-  localidade: string;
-  localidadeId: LocalidadeId;
+  locality: string;
+  localityId: LocalityId;
   /** Concelho: a cidade do jogo. */
-  cidade: CidadeId;
-  distrito: DistritoId;
-  escalao: Escalao;
+  city: CityId;
+  district: DistrictId;
+  tier: Tier;
   /** Liga/série onde joga no início, tal como no CSV ("CP Série A", "Distrital Beja", ...). */
-  liga: string;
-  reputacao: number;
+  league: string;
+  reputation: number;
   /** Capital inicial em euros. */
-  financas: number;
-  estadio: EstadioBase;
-  cores: string;
-  alcunha: string;
-  mascote: string;
-  rival: ClubeId;
-  setor: string;
+  finances: number;
+  stadium: BaseStadium;
+  colours: string;
+  nickname: string;
+  mascot: string;
+  rival: ClubId;
+  sector: string;
   tag2: string;
-  polo: string;
-  origem: "existente" | "novo";
+  hub: string;
+  origin: "existing" | "fresh";
 };
 
-export type AutarcaBase = {
-  nome: string;
+export type BaseMayor = {
+  name: string;
   /** Traços na escala 1-20 (valores do CSV, 1-10, ×2; PERSONALIDADE §2). */
-  tracos: { ambicao: number; vaidade: number; paciencia: number; integridade: number };
+  traits: { ambition: number; vanity: number; patience: number; integrity: number };
   /** Atitude da Câmara perante o desporto, 1-10 (não é traço). */
-  apoioDesporto: number;
+  sportSupport: number;
 };
 
-export type CidadeBase = {
-  id: CidadeId;
-  nome: string;
-  distrito: DistritoId;
-  populacao: number;
-  setor: string;
+export type BaseCity = {
+  id: CityId;
+  name: string;
+  district: DistrictId;
+  population: number;
+  sector: string;
   tag2: string;
-  polo: string;
-  ilha: boolean;
+  hub: string;
+  island: boolean;
   /** Euros por ano. */
-  orcamentoMunicipal: number;
-  autarca: AutarcaBase;
+  municipalBudget: number;
+  mayor: BaseMayor;
   /** 0-100 */
-  culturaFutebol: number;
-  clubes: ClubeId[];
+  footballCulture: number;
+  clubs: ClubId[];
 };
 
 /** Aldeia, vila ou cidade onde o clube vive, dentro de um concelho (RZ-136). O estatuto e a população evoluem no save. */
-export type LocalidadeBase = {
-  id: LocalidadeId;
-  nome: string;
-  cidade: CidadeId;
-  distrito: DistritoId;
-  populacao: number;
-  estatuto: Estatuto;
+export type BaseLocality = {
+  id: LocalityId;
+  name: string;
+  city: CityId;
+  district: DistrictId;
+  population: number;
+  status: Status;
   /** É a sede do concelho. */
-  sede: boolean;
-  clubes: ClubeId[];
+  host: boolean;
+  clubs: ClubId[];
 };
 
-export type DistritoBase = {
-  id: DistritoId;
-  nome: string;
-  serieCP: SerieCP;
+export type BaseDistrict = {
+  id: DistrictId;
+  name: string;
+  cpSeries: CpSeries;
   /** Nº de clubes por escalão, para validar. */
-  clubesPorEscalao: Record<Escalao, number>;
+  clubsPerTier: Record<Tier, number>;
 };
 
-export type RivalidadeBase = {
-  a: ClubeId;
-  b: ClubeId;
-  mutua: boolean;
-  mesmoConcelho: boolean;
-  mesmoDistrito: boolean;
-  mesmoPolo: boolean;
-  mesmaDivisao: boolean;
+export type BaseRivalry = {
+  a: ClubId;
+  b: ClubId;
+  mutual: boolean;
+  sameMunicipality: boolean;
+  sameDistrict: boolean;
+  sameHub: boolean;
+  sameDivision: boolean;
 };
 
-export type DadosBase = {
-  distritos: DistritoBase[];
-  cidades: CidadeBase[];
-  localidades: LocalidadeBase[];
-  clubes: ClubeBase[];
-  rivalidades: RivalidadeBase[];
+export type BaseData = {
+  districts: BaseDistrict[];
+  cities: BaseCity[];
+  localities: BaseLocality[];
+  clubs: BaseClub[];
+  rivalries: BaseRivalry[];
 };
 
-export type FontesCsv = { clubes: string; cidades: string; localidades: string; rivalidades: string; distritos: string };
+export type SourcesCsv = { clubs: string; cities: string; localities: string; rivalries: string; districts: string };
 
-export type ResultadoImportacao =
-  | { ok: true; dados: DadosBase; avisos: string[] }
-  | { ok: false; erros: string[] };
+export type ImportResult =
+  | { ok: true; data: BaseData; warnings: string[] }
+  | { ok: false; errors: string[] };

@@ -1,15 +1,15 @@
 "use client";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import type { ValorMostrado } from "@/ui/valor";
+import type { ShownValue } from "@/ui/valor";
 
 /** Exato, estimado (≈) e desatualizado têm aspeto diferente e dizem-no a quem usa leitor de ecrã. */
-export function Valor({ v }: { v: ValorMostrado }) {
+export function Value({ v }: { v: ShownValue }) {
   const { t } = useT();
-  const nota = v.estado === "desatualizado" ? t("valor.vistoHa", { epocas: v.epocasDesde ?? 0 }) : v.estado === "estimado" ? t("valor.estimado") : undefined;
+  const rating = v.state === "outdated" ? t("valor.vistoHa", { seasons: v.sinceSeasons ?? 0 }) : v.state === "estimado" ? t("valor.estimado") : undefined;
   return (
-    <span className={`valor valor-${v.estado}`} title={nota}>
-      {v.texto}
-      {v.estado === "desatualizado" && <small className="valor-nota"> · {nota}</small>}
+    <span className={`valor valor-${v.state}`} title={rating}>
+      {v.text}
+      {v.state === "outdated" && <small className="valor-nota"> · {rating}</small>}
     </span>
   );
 }

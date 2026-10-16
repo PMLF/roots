@@ -1,118 +1,118 @@
 "use client";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import type { Chave } from "@/ui/i18n";
+import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { guardar, ler } from "@/ui/armazenamento";
-import { useMeuClube } from "@/ui/meuClube";
-import { useMotor } from "@/ui/MotorProvider";
-import { useTempo } from "@/ui/useTempo";
+import { save, read } from "@/ui/armazenamento";
+import { useOwnClub } from "@/ui/meuClube";
+import { useEngine } from "@/ui/MotorProvider";
+import { useTime } from "@/ui/useTempo";
 
-const MODOS = ["dia", "semana", "proximoJogo"] as const;
-type ModoAvancar = (typeof MODOS)[number];
-const eModo = (v: unknown): v is ModoAvancar => MODOS.includes(v as ModoAvancar);
+const MODES = ["day", "semana", "nextMatch"] as const;
+type AdvanceMode = (typeof MODES)[number];
+const isMode = (v: unknown): v is AdvanceMode => MODES.includes(v as AdvanceMode);
 
 /** Elementos onde a barra de espaço já tem outro significado: escrever, ativar um botão ou ligação, abrir um menu. */
-const ONDE_ESPACO_E_DO_ELEMENTO = "input, textarea, select, button, a, summary, [contenteditable], [role=tab], [role=menuitemradio], [role=switch]";
+const WHERE_SPACE_IS_ELEMENT = "input, textarea, select, button, a, summary, [contenteditable], [role=tab], [role=menuitemradio], [role=switch]";
 
 /**
  * «Avançar» (RZ-166): botão dividido, em baixo à direita em todas as páginas. Por defeito passa um dia; a seta deixa escolher
  * um dia, uma semana ou até ao próximo jogo (fica guardado). A barra de espaço conta como clicar. Quando há jogo do teu clube
  * por jogar, o botão leva ao ecrã pré-jogo (ou ao jogo a decorrer) em vez de avançar: o tempo nunca passa por cima de uma decisão.
  */
-export function BotaoAvancar() {
+export function AdvanceButton() {
   const { t } = useT();
-  const tempo = useTempo();
-  const motor = useMotor();
-  const [meu] = useMeuClube();
+  const time = useTime();
+  const engine = useEngine();
+  const [mine] = useOwnClub();
   const router = useRouter();
-  const caminho = usePathname() ?? "/";
-  const [modo, setModo] = useState<ModoAvancar>("dia");
-  const [aberto, setAberto] = useState(false);
-  const raiz = useRef<HTMLDivElement>(null);
+  const path = usePathname() ?? "/";
+  const [mode, setMode] = useState<AdvanceMode>("day");
+  const [isOpen, setIsOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
 
-  useEffect(() => { setModo(ler("raizes.avancar", eModo) ?? "dia"); }, []);
-  const escolher = (m: ModoAvancar) => { setModo(m); guardar("raizes.avancar", m); setAberto(false); };
+  useEffect(() => { setMode(read("raizes.avancar", isMode) ?? "day"); }, []);
+  const choose = (m: AdvanceMode) => { setMode(m); save("raizes.avancar", m); setIsOpen(false); };
   // sem clube não há «próximo jogo»: avança-se por dias
-  const efetivo: ModoAvancar = modo === "proximoJogo" && !meu ? "dia" : modo;
+  const effective: AdvanceMode = mode === "nextMatch" && !mine ? "day" : mode;
 
-  const semMundo = !tempo.estado;
-  const acabou = tempo.estado?.porJogar === 0;
-  const desativado = semMundo || tempo.aAvancar || acabou;
+  const withoutWorld = !time.state;
+  const ended = time.state?.byPlay === 0;
+  const disabled = withoutWorld || time.advancing || ended;
 
   // no pré-jogo o botão é o «começar o jogo»; num jogo já acabado só leva ao Início, sem passar tempo
-  const noPreJogo = caminho.startsWith("/prematch") && !!tempo.pausa && !tempo.pausa.emCurso;
-  const jogoAcabado = caminho.startsWith("/match") && !tempo.pausa?.emCurso;
-  const simples = noPreJogo || jogoAcabado;
-  const [aIniciar, setAIniciar] = useState(false);
+  const inPrematch = path.startsWith("/prematch") && !!time.pause && !time.pause.ongoing;
+  const finishedMatch = path.startsWith("/match") && !time.pause?.ongoing;
+  const simple = inPrematch || finishedMatch;
+  const [starting, setStarting] = useState(false);
 
-  const carregar = () => {
-    if (noPreJogo) {
-      if (!motor || !tempo.pausa || aIniciar) return;
-      const jogo = tempo.pausa.jogo;
-      setAIniciar(true);
-      void motor.chamar("iniciarJogo", { jogo }).then(() => {
+  const load = () => {
+    if (inPrematch) {
+      if (!engine || !time.pause || starting) return;
+      const match = time.pause.match;
+      setStarting(true);
+      void engine.call("startMatch", { match }).then(() => {
         window.dispatchEvent(new Event("raizes:tempo"));
-        router.push(`/match/?id=${encodeURIComponent(jogo)}&arrancar=1`);
-      }).catch(() => undefined).finally(() => setAIniciar(false));
+        router.push(`/match/?id=${encodeURIComponent(match)}&arrancar=1`);
+      }).catch(() => undefined).finally(() => setStarting(false));
       return;
     }
-    if (jogoAcabado) { router.push("/"); return; }
-    if (tempo.pausa) {
-      router.push(tempo.pausa.emCurso ? "/match/" : "/prematch/");
+    if (finishedMatch) { router.push("/"); return; }
+    if (time.pause) {
+      router.push(time.pause.ongoing ? "/match/" : "/prematch/");
       return;
     }
     // se o avanço pára num jogo do teu clube, um só clique leva-te ao pré-jogo
-    if (!desativado) void tempo.avancar(efetivo).then((r) => { if (r?.pausa) router.push(r.pausa.emCurso ? "/match/" : "/prematch/"); });
+    if (!disabled) void time.advance(effective).then((r) => { if (r?.pause) router.push(r.pause.ongoing ? "/match/" : "/prematch/"); });
   };
   // a função mais recente fica numa referência para o atalho de teclado não ter de se registar a cada render
-  const ultima = useRef(carregar);
-  ultima.current = carregar;
+  const last = useRef(load);
+  last.current = load;
 
   useEffect(() => {
-    const aoPremir = (e: KeyboardEvent) => {
+    const onPress = (e: KeyboardEvent) => {
       if (e.code !== "Space" || e.repeat || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey || e.defaultPrevented) return;
-      const alvo = e.target instanceof Element ? e.target : null;
-      if (alvo?.closest(ONDE_ESPACO_E_DO_ELEMENTO) || (caminho.startsWith("/match") && !jogoAcabado)) return;
+      const target = e.target instanceof Element ? e.target : null;
+      if (target?.closest(WHERE_SPACE_IS_ELEMENT) || (path.startsWith("/match") && !finishedMatch)) return;
       e.preventDefault();
-      ultima.current();
+      last.current();
     };
-    window.addEventListener("keydown", aoPremir);
-    return () => window.removeEventListener("keydown", aoPremir);
-  }, [caminho, jogoAcabado]);
+    window.addEventListener("keydown", onPress);
+    return () => window.removeEventListener("keydown", onPress);
+  }, [path, finishedMatch]);
 
   useEffect(() => {
-    if (!aberto) return;
-    const fora = (e: MouseEvent) => { if (!raiz.current?.contains(e.target as Node)) setAberto(false); };
-    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") setAberto(false); };
-    document.addEventListener("mousedown", fora);
-    document.addEventListener("keydown", tecla);
-    return () => { document.removeEventListener("mousedown", fora); document.removeEventListener("keydown", tecla); };
-  }, [aberto]);
+    if (!isOpen) return;
+    const away = (e: MouseEvent) => { if (!root.current?.contains(e.target as Node)) setIsOpen(false); };
+    const hotkey = (e: KeyboardEvent) => { if (e.key === "Escape") setIsOpen(false); };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", hotkey);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", hotkey); };
+  }, [isOpen]);
 
-  const rotuloModo = (m: ModoAvancar) => t(`avancar.modo.${m}` as Chave);
-  const principal = noPreJogo ? t("prematch.ir") : jogoAcabado ? t("avancar.inicio") : tempo.aAvancar ? t("avancar.aAvancar") : tempo.pausa ? t(tempo.pausa.emCurso ? "avancar.jogoEmCurso" : "avancar.jogoHoje") : t("avancar.rotulo");
+  const modeLabel = (m: AdvanceMode) => t(`avancar.modo.${m}` as Key);
+  const main = inPrematch ? t("prematch.ir") : finishedMatch ? t("avancar.inicio") : time.advancing ? t("avancar.aAvancar") : time.pause ? t(time.pause.ongoing ? "avancar.jogoEmCurso" : "avancar.jogoHoje") : t("avancar.rotulo");
 
   return (
-    <div className="avancar" ref={raiz}>
-      {tempo.erro && <span className="erro avancar-erro" role="alert">{tempo.erro}</span>}
+    <div className="avancar" ref={root}>
+      {time.error && <span className="erro avancar-erro" role="alert">{time.error}</span>}
       <div className="avancar-botao">
-        <button type="button" className={`primario avancar-principal${simples ? " avancar-sozinho" : ""}`} onClick={carregar} disabled={simples ? aIniciar : tempo.pausa ? false : desativado} title={t("avancar.dica")} data-testid="avancar">
-          <span>{principal}</span>
-          {!simples && !tempo.pausa && !tempo.aAvancar && <span className="avancar-modo">{rotuloModo(efetivo)}</span>}
+        <button type="button" className={`primario avancar-principal${simple ? " avancar-sozinho" : ""}`} onClick={load} disabled={simple ? starting : time.pause ? false : disabled} title={t("avancar.dica")} data-testid="advance">
+          <span>{main}</span>
+          {!simple && !time.pause && !time.advancing && <span className="avancar-modo">{modeLabel(effective)}</span>}
         </button>
-        {!simples && <button type="button" className="primario avancar-seta" aria-haspopup="menu" aria-expanded={aberto} aria-label={t("avancar.opcoes")} onClick={() => setAberto((a) => !a)} disabled={semMundo} data-testid="avancar-opcoes">
+        {!simple && <button type="button" className="primario avancar-seta" aria-haspopup="menu" aria-expanded={isOpen} aria-label={t("avancar.opcoes")} onClick={() => setIsOpen((a) => !a)} disabled={withoutWorld} data-testid="avancar-opcoes">
           <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true"><path d="M2 4.5 6 8.5l4-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </button>}
       </div>
-      {aberto && !simples && (
+      {isOpen && !simple && (
         <div className="avancar-menu" role="menu" aria-label={t("avancar.opcoes")}>
-          {MODOS.map((m) => {
-            const semJogo = m === "proximoJogo" && !meu;
+          {MODES.map((m) => {
+            const withoutMatch = m === "nextMatch" && !mine;
             return (
-              <button key={m} type="button" role="menuitemradio" aria-checked={efetivo === m} disabled={semJogo} title={semJogo ? t("avancar.semClube") : undefined} onClick={() => escolher(m)}>
-                <span className="avancar-visto" aria-hidden="true">{efetivo === m ? "✓" : ""}</span>
-                {rotuloModo(m)}
+              <button key={m} type="button" role="menuitemradio" aria-checked={effective === m} disabled={withoutMatch} title={withoutMatch ? t("avancar.semClube") : undefined} onClick={() => choose(m)}>
+                <span className="avancar-visto" aria-hidden="true">{effective === m ? "✓" : ""}</span>
+                {modeLabel(m)}
               </button>
             );
           })}

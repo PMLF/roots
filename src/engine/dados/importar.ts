@@ -4,40 +4,40 @@
  * Função pura: recebe o texto dos CSV e devolve os dados ou a lista completa de erros
  * (nunca falha à primeira). Os totais esperados vêm dos parâmetros (RZ-006).
  */
-import { PARAMETROS_PADRAO, type Escalao, type Parametros } from "../config/parametros";
-import { ESTATUTOS, estatutoCoerente } from "../localidade/estatuto";
-import { lerTabela, type LinhaCsv } from "./csv";
+import { DEFAULT_PARAMETERS, type Tier, type Params } from "../config/parametros";
+import { STATUSES, coherentStatus } from "../localidade/estatuto";
+import { readTable, type LineCsv } from "./csv";
 import type {
-  CidadeBase,
-  ClubeBase,
-  DadosBase,
-  DistritoBase,
-  FontesCsv,
-  LocalidadeBase,
-  Propriedade,
-  ResultadoImportacao,
-  RivalidadeBase,
-  SerieCP,
-  Zona,
+  BaseCity,
+  BaseClub,
+  BaseData,
+  BaseDistrict,
+  SourcesCsv,
+  BaseLocality,
+  Ownership,
+  ImportResult,
+  BaseRivalry,
+  CpSeries,
+  Zone,
 } from "./tipos";
 
-const ESCALOES: Record<string, Escalao> = {
-  "Primeira Liga": "primeiraLiga",
-  "Segunda Liga": "segundaLiga",
-  "Terceira Liga": "terceiraLiga",
+const TIERS: Record<string, Tier> = {
+  "Primeira Liga": "firstLeague",
+  "Segunda Liga": "secondLeague",
+  "Terceira Liga": "thirdLeague",
   "Campeonato de Portugal": "cp",
-  Distrital: "distrital",
+  District: "district",
 };
-const ZONAS: readonly Zona[] = ["centro", "perto", "periferia", "fora"];
-const PROPRIEDADES: readonly Propriedade[] = ["clube", "municipal", "partilhada"];
-const SERIES: readonly SerieCP[] = ["A", "B", "C", "D"];
+const ZONES: readonly Zone[] = ["centro", "perto", "periferia", "away"];
+const PROPERTIES: readonly Ownership[] = ["club", "municipal", "partilhada"];
+const SERIES: readonly CpSeries[] = ["A", "B", "C", "D"];
 
-const COLUNAS = {
-  clubes: ["id", "nome", "cidade", "concelho", "distrito", "divisao", "liga", "rep", "fin", "cap", "estadio", "cores", "alcunha", "mascote", "rival", "setor", "tag2", "polo", "serie_cp", "estadio_prop", "est_local", "est_dist_km", "est_transportes", "est_acesso_rodov", "est_estacionamento", "est_lugares_estac", "est_envolvente", "est_terreno", "origem", "localidade_id"],
-  cidades: ["concelho", "distrito", "populacao", "setor", "tag2", "polo", "ilha", "orcamento_municipal", "autarca", "ambicao", "apoio_desporto", "vaidade", "paciencia", "integridade", "cultura_futebol", "clubes"],
-  localidades: ["id", "nome", "concelho", "distrito", "populacao", "estatuto", "sede", "clubes"],
-  rivalidades: ["clube_a", "clube_b", "mutua", "mesmo_concelho", "mesmo_distrito", "mesmo_polo", "mesma_divisao"],
-  distritos: ["distrito", "serie_cp", "Primeira Liga", "Segunda Liga", "Terceira Liga", "Campeonato de Portugal", "Distrital", "total"],
+const COLUMNS = {
+  clubs: ["id", "name", "city", "concelho", "district", "division", "league", "rep", "end", "cap", "stadium", "colours", "nickname", "mascot", "rival", "sector", "tag2", "hub", "serie_cp", "estadio_prop", "est_local", "est_dist_km", "est_transportes", "est_acesso_rodov", "est_estacionamento", "est_lugares_estac", "est_envolvente", "est_terreno", "origin", "localidade_id"],
+  cities: ["concelho", "district", "population", "sector", "tag2", "hub", "island", "orcamento_municipal", "mayor", "ambition", "apoio_desporto", "vanity", "patience", "integrity", "cultura_futebol", "clubs"],
+  localities: ["id", "name", "concelho", "district", "population", "status", "host", "clubs"],
+  rivalries: ["clube_a", "clube_b", "mutual", "mesmo_concelho", "mesmo_distrito", "mesmo_polo", "mesma_divisao"],
+  districts: ["district", "serie_cp", "Primeira Liga", "Segunda Liga", "Terceira Liga", "Campeonato de Portugal", "District", "total"],
 } as const;
 
 /** Identificador estável: minúsculas, sem acentos, hífens. */
@@ -50,337 +50,337 @@ export function slug(s: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-type Ctx = { erros: string[]; avisos: string[] };
+type Ctx = { errors: string[]; warnings: string[] };
 
-function tabela(nome: keyof typeof COLUNAS, texto: string, ctx: Ctx): LinhaCsv[] {
-  const t = lerTabela(texto);
-  t.erros.forEach((e) => ctx.erros.push(`${nome}.csv ${e}`));
-  const falta = COLUNAS[nome].filter((c) => !t.colunas.includes(c));
-  if (falta.length > 0) {
-    ctx.erros.push(`${nome}.csv: colunas em falta: ${falta.join(", ")}`);
+function table(name: keyof typeof COLUMNS, text: string, ctx: Ctx): LineCsv[] {
+  const t = readTable(text);
+  t.errors.forEach((e) => ctx.errors.push(`${name}.csv ${e}`));
+  const foul = COLUMNS[name].filter((c) => !t.columns.includes(c));
+  if (foul.length > 0) {
+    ctx.errors.push(`${name}.csv: colunas em falta: ${foul.join(", ")}`);
     return [];
   }
-  return t.linhas;
+  return t.lines;
 }
 
-function leitor(ficheiro: string, l: LinhaCsv, ctx: Ctx) {
-  const onde = `${ficheiro}.csv linha ${l.numero}`;
-  const get = (c: string): string => l.valores[c] ?? "";
+function reader(file: string, l: LineCsv, ctx: Ctx) {
+  const where = `${file}.csv linha ${l.number}`;
+  const get = (c: string): string => l.values[c] ?? "";
   return {
-    onde,
+    where,
     txt(c: string): string {
       const v = get(c);
-      if (v === "") ctx.erros.push(`${onde}: "${c}" vazio`);
+      if (v === "") ctx.errors.push(`${where}: "${c}" vazio`);
       return v;
     },
-    txtOpc: (c: string): string => get(c),
-    num(c: string, min: number, max: number, inteiro = false): number {
+    optionTxt: (c: string): string => get(c),
+    within(c: string, min: number, max: number, integer = false): number {
       const v = Number(get(c));
-      if (get(c) === "" || !Number.isFinite(v) || (inteiro && !Number.isInteger(v)) || v < min || v > max) {
-        ctx.erros.push(`${onde}: "${c}" = "${get(c)}" fora de [${min}, ${max}]${inteiro ? " (inteiro)" : ""}`);
+      if (get(c) === "" || !Number.isFinite(v) || (integer && !Number.isInteger(v)) || v < min || v > max) {
+        ctx.errors.push(`${where}: "${c}" = "${get(c)}" fora de [${min}, ${max}]${integer ? " (inteiro)" : ""}`);
         return min;
       }
       return v;
     },
-    simNao(c: string): boolean {
+    yesNo(c: string): boolean {
       const v = get(c);
-      if (v !== "sim" && v !== "não") ctx.erros.push(`${onde}: "${c}" deve ser "sim" ou "não" (é "${v}")`);
+      if (v !== "sim" && v !== "não") ctx.errors.push(`${where}: "${c}" deve ser "sim" ou "não" (é "${v}")`);
       return v === "sim";
     },
-    em<T extends string>(c: string, validos: readonly T[]): T {
+    em<T extends string>(c: string, valid: readonly T[]): T {
       const v = get(c) as T;
-      if (!validos.includes(v)) {
-        ctx.erros.push(`${onde}: "${c}" = "${v}" inválido (${validos.join("/")})`);
-        return validos[0] as T;
+      if (!valid.includes(v)) {
+        ctx.errors.push(`${where}: "${c}" = "${v}" inválido (${valid.join("/")})`);
+        return valid[0] as T;
       }
       return v;
     },
   };
 }
 
-function contar<T>(xs: T[], chave: (x: T) => string): Map<string, number> {
+function count<T>(xs: T[], rowKey: (x: T) => string): Map<string, number> {
   const m = new Map<string, number>();
-  for (const x of xs) m.set(chave(x), (m.get(chave(x)) ?? 0) + 1);
+  for (const x of xs) m.set(rowKey(x), (m.get(rowKey(x)) ?? 0) + 1);
   return m;
 }
 
-export function importarDados(fontes: FontesCsv, params: Parametros = PARAMETROS_PADRAO): ResultadoImportacao {
-  const ctx: Ctx = { erros: [], avisos: [] };
-  const { erros } = ctx;
+export function importData(sources: SourcesCsv, params: Params = DEFAULT_PARAMETERS): ImportResult {
+  const ctx: Ctx = { errors: [], warnings: [] };
+  const { errors } = ctx;
 
   // ---------- distritos ----------
-  const distritos: DistritoBase[] = [];
-  for (const l of tabela("distritos", fontes.distritos, ctx)) {
-    const r = leitor("distritos", l, ctx);
-    const nome = r.txt("distrito");
-    const por = (c: string) => r.num(c, 0, 100, true);
-    const novo: DistritoBase = {
-      id: slug(nome),
-      nome,
-      serieCP: r.em("serie_cp", SERIES),
-      clubesPorEscalao: {
-        primeiraLiga: por("Primeira Liga"),
-        segundaLiga: por("Segunda Liga"),
-        terceiraLiga: por("Terceira Liga"),
+  const districts: BaseDistrict[] = [];
+  for (const l of table("districts", sources.districts, ctx)) {
+    const r = reader("districts", l, ctx);
+    const name = r.txt("district");
+    const por = (c: string) => r.within(c, 0, 100, true);
+    const fresh: BaseDistrict = {
+      id: slug(name),
+      name,
+      cpSeries: r.em("serie_cp", SERIES),
+      clubsPerTier: {
+        firstLeague: por("Primeira Liga"),
+        secondLeague: por("Segunda Liga"),
+        thirdLeague: por("Terceira Liga"),
         cp: por("Campeonato de Portugal"),
-        distrital: por("Distrital"),
+        district: por("District"),
       },
     };
-    distritos.push(novo);
-    const soma = Object.values(novo.clubesPorEscalao).reduce((a, b) => a + b, 0);
-    if (soma !== r.num("total", 0, 1000, true)) erros.push(`${r.onde}: "total" não é a soma dos escalões (${soma})`);
+    districts.push(fresh);
+    const sum = Object.values(fresh.clubsPerTier).reduce((a, b) => a + b, 0);
+    if (sum !== r.within("total", 0, 1000, true)) errors.push(`${r.where}: "total" não é a soma dos escalões (${sum})`);
   }
-  if (distritos.length !== params.piramide.distritos)
-    erros.push(`distritos.csv: ${distritos.length} distritos (esperado ${params.piramide.distritos})`);
-  for (const [id, n] of contar(distritos, (d) => d.id)) if (n > 1) erros.push(`distrito duplicado: ${id}`);
-  const distritoPorNome = new Map(distritos.map((d) => [d.nome, d]));
-  const seriesUsadas = new Set(distritos.map((d) => d.serieCP));
-  if (seriesUsadas.size !== params.piramide.cp.series)
-    erros.push(`distritos.csv: ${seriesUsadas.size} séries do CP (esperado ${params.piramide.cp.series})`);
+  if (districts.length !== params.pyramid.districts)
+    errors.push(`distritos.csv: ${districts.length} distritos (esperado ${params.pyramid.districts})`);
+  for (const [id, n] of count(districts, (d) => d.id)) if (n > 1) errors.push(`distrito duplicado: ${id}`);
+  const districtByName = new Map(districts.map((d) => [d.name, d]));
+  const usedSeries = new Set(districts.map((d) => d.cpSeries));
+  if (usedSeries.size !== params.pyramid.cp.series)
+    errors.push(`distritos.csv: ${usedSeries.size} séries do CP (esperado ${params.pyramid.cp.series})`);
 
   // ---------- clubes ----------
-  const clubes: ClubeBase[] = [];
-  const serieDeclarada = new Map<string, string>();
-  for (const l of tabela("clubes", fontes.clubes, ctx)) {
-    const r = leitor("clubes", l, ctx);
-    const nome = r.txt("nome");
+  const clubs: BaseClub[] = [];
+  const declaredSeries = new Map<string, string>();
+  for (const l of table("clubs", sources.clubs, ctx)) {
+    const r = reader("clubs", l, ctx);
+    const name = r.txt("name");
     const id = r.txt("id");
-    const divisao = r.txt("divisao");
-    const escalao = ESCALOES[divisao];
-    if (!escalao) erros.push(`${r.onde}: divisão desconhecida "${divisao}"`);
-    const cap = r.num("cap", 100, 200_000, true);
-    clubes.push({
+    const division = r.txt("division");
+    const tier = TIERS[division];
+    if (!tier) errors.push(`${r.where}: divisão desconhecida "${division}"`);
+    const cap = r.within("cap", 100, 200_000, true);
+    clubs.push({
       id,
-      nome,
-      localidade: r.txt("cidade"),
-      localidadeId: r.txt("localidade_id"),
-      cidade: slug(r.txt("concelho")),
-      distrito: r.txt("distrito"),
-      escalao: escalao ?? "distrital",
-      liga: r.txt("liga"),
-      reputacao: r.num("rep", 0, 10_000, true),
-      financas: r.num("fin", 0, 1e10, true),
-      estadio: {
-        nome: r.txt("estadio"),
-        propriedade: r.em("estadio_prop", PROPRIEDADES),
-        capacidade: cap,
-        localizacao: {
-          zona: r.em("est_local", ZONAS),
-          distanciaCentroKm: r.num("est_dist_km", 0, 200),
-          transportes: r.num("est_transportes", 0, 100),
-          acessoRodoviario: r.num("est_acesso_rodov", 0, 100),
-          estacionamento: r.num("est_estacionamento", 0, 100),
-          lugaresEstacionamento: r.num("est_lugares_estac", 0, 100_000, true),
-          envolvente: r.num("est_envolvente", 0, 100),
-          terrenoExpansao: r.num("est_terreno", 0, 100),
+      name,
+      locality: r.txt("city"),
+      localityId: r.txt("localidade_id"),
+      city: slug(r.txt("concelho")),
+      district: r.txt("district"),
+      tier: tier ?? "district",
+      league: r.txt("league"),
+      reputation: r.within("rep", 0, 10_000, true),
+      finances: r.within("end", 0, 1e10, true),
+      stadium: {
+        name: r.txt("stadium"),
+        ownership: r.em("estadio_prop", PROPERTIES),
+        capacity: cap,
+        location: {
+          zone: r.em("est_local", ZONES),
+          centreDistanceKm: r.within("est_dist_km", 0, 200),
+          transport: r.within("est_transportes", 0, 100),
+          roadAccess: r.within("est_acesso_rodov", 0, 100),
+          parking: r.within("est_estacionamento", 0, 100),
+          parkingPlaces: r.within("est_lugares_estac", 0, 100_000, true),
+          surroundings: r.within("est_envolvente", 0, 100),
+          expansionTerrain: r.within("est_terreno", 0, 100),
         },
       },
-      cores: r.txt("cores"),
-      alcunha: r.txtOpc("alcunha"),
-      mascote: r.txtOpc("mascote"),
+      colours: r.txt("colours"),
+      nickname: r.optionTxt("nickname"),
+      mascot: r.optionTxt("mascot"),
       rival: r.txt("rival"), // nome; resolvido abaixo
-      setor: r.txt("setor"),
+      sector: r.txt("sector"),
       tag2: r.txt("tag2"),
-      polo: r.txt("polo"),
-      origem: r.em("origem", ["existente", "novo"] as const),
+      hub: r.txt("hub"),
+      origin: r.em("origin", ["existing", "fresh"] as const),
     });
-    serieDeclarada.set(id, r.txtOpc("serie_cp"));
-    if (r.txtOpc("alcunha") === "" || r.txtOpc("mascote") === "")
-      ctx.avisos.push(`${r.onde}: ${nome} sem alcunha ou mascote`);
+    declaredSeries.set(id, r.optionTxt("serie_cp"));
+    if (r.optionTxt("nickname") === "" || r.optionTxt("mascot") === "")
+      ctx.warnings.push(`${r.where}: ${name} sem alcunha ou mascote`);
   }
 
-  const idPorNome = new Map<string, string>();
-  for (const c of clubes) {
-    if (idPorNome.has(c.nome)) erros.push(`nome de clube duplicado: ${c.nome}`);
-    idPorNome.set(c.nome, c.id);
+  const idByName = new Map<string, string>();
+  for (const c of clubs) {
+    if (idByName.has(c.name)) errors.push(`nome de clube duplicado: ${c.name}`);
+    idByName.set(c.name, c.id);
   }
-  for (const [id, n] of contar(clubes, (c) => c.id)) if (n > 1) erros.push(`id de clube duplicado: ${id}`);
-  const clubePorId = new Map(clubes.map((c) => [c.id, c]));
-  for (const c of clubes) {
-    const rival = idPorNome.get(c.rival);
-    if (!rival) erros.push(`rival inexistente: ${c.nome} -> ${c.rival}`);
-    else if (rival === c.id) erros.push(`rival é o próprio clube: ${c.nome}`);
+  for (const [id, n] of count(clubs, (c) => c.id)) if (n > 1) errors.push(`id de clube duplicado: ${id}`);
+  const clubById = new Map(clubs.map((c) => [c.id, c]));
+  for (const c of clubs) {
+    const rival = idByName.get(c.rival);
+    if (!rival) errors.push(`rival inexistente: ${c.name} -> ${c.rival}`);
+    else if (rival === c.id) errors.push(`rival é o próprio clube: ${c.name}`);
     c.rival = rival ?? c.rival;
   }
 
   // ---------- coerência clubes ↔ distritos ----------
-  for (const c of clubes) {
-    const d = distritoPorNome.get(c.distrito);
+  for (const c of clubs) {
+    const d = districtByName.get(c.district);
     if (!d) {
-      erros.push(`${c.nome}: distrito "${c.distrito}" não existe em distritos.csv`);
+      errors.push(`${c.name}: distrito "${c.district}" não existe em distritos.csv`);
       continue;
     }
-    if (serieDeclarada.get(c.id) !== d.serieCP)
-      erros.push(`${c.nome}: serie_cp "${serieDeclarada.get(c.id)}" != série do distrito ${d.nome} (${d.serieCP})`);
-    if (c.escalao === "cp" && c.liga !== `CP Série ${d.serieCP}`)
-      erros.push(`${c.nome}: distrito ${d.nome} pertence à série ${d.serieCP} mas a liga é "${c.liga}"`);
-    if (c.escalao === "distrital" && c.liga !== `Distrital ${d.nome}`)
-      erros.push(`${c.nome}: liga "${c.liga}" não corresponde ao distrito ${d.nome}`);
+    if (declaredSeries.get(c.id) !== d.cpSeries)
+      errors.push(`${c.name}: serie_cp "${declaredSeries.get(c.id)}" != série do distrito ${d.name} (${d.cpSeries})`);
+    if (c.tier === "cp" && c.league !== `CP Série ${d.cpSeries}`)
+      errors.push(`${c.name}: distrito ${d.name} pertence à série ${d.cpSeries} mas a liga é "${c.league}"`);
+    if (c.tier === "district" && c.league !== `Distrital ${d.name}`)
+      errors.push(`${c.name}: liga "${c.league}" não corresponde ao distrito ${d.name}`);
   }
 
   // ---------- totais por competição (a partir dos parâmetros) ----------
-  const pir = params.piramide;
-  const total = contar(clubes, (c) => c.escalao);
-  const esperados: [Escalao, number][] = [
-    ["primeiraLiga", pir.primeiraLiga.clubes],
-    ["segundaLiga", pir.segundaLiga.clubes],
-    ["terceiraLiga", pir.terceiraLiga.clubes],
-    ["cp", pir.cp.series * pir.cp.clubesPorSerie],
-    ["distrital", pir.distritos * params.distritais.alvo],
+  const pyramid = params.pyramid;
+  const total = count(clubs, (c) => c.tier);
+  const expected: [Tier, number][] = [
+    ["firstLeague", pyramid.firstLeague.clubs],
+    ["secondLeague", pyramid.secondLeague.clubs],
+    ["thirdLeague", pyramid.thirdLeague.clubs],
+    ["cp", pyramid.cp.series * pyramid.cp.clubsPerSeries],
+    ["district", pyramid.districts * params.districtLeagues.target],
   ];
-  for (const [e, n] of esperados) if ((total.get(e) ?? 0) !== n) erros.push(`${e}: ${total.get(e) ?? 0} clubes (esperado ${n})`);
-  const porLiga = contar(clubes, (c) => c.liga);
-  for (const s of seriesUsadas)
-    if ((porLiga.get(`CP Série ${s}`) ?? 0) !== pir.cp.clubesPorSerie)
-      erros.push(`CP Série ${s} tem ${porLiga.get(`CP Série ${s}`) ?? 0} clubes (esperado ${pir.cp.clubesPorSerie})`);
-  for (const d of distritos)
-    if ((porLiga.get(`Distrital ${d.nome}`) ?? 0) !== params.distritais.alvo)
-      erros.push(`Distrital ${d.nome} tem ${porLiga.get(`Distrital ${d.nome}`) ?? 0} clubes (esperado ${params.distritais.alvo})`);
-  const porDistritoEscalao = contar(clubes, (c) => `${c.distrito}|${c.escalao}`);
-  for (const d of distritos)
-    for (const [e, n] of Object.entries(d.clubesPorEscalao))
-      if ((porDistritoEscalao.get(`${d.nome}|${e}`) ?? 0) !== n)
-        erros.push(`distritos.csv: ${d.nome} ${e} = ${n} mas há ${porDistritoEscalao.get(`${d.nome}|${e}`) ?? 0} clubes`);
+  for (const [e, n] of expected) if ((total.get(e) ?? 0) !== n) errors.push(`${e}: ${total.get(e) ?? 0} clubes (esperado ${n})`);
+  const byLeague = count(clubs, (c) => c.league);
+  for (const s of usedSeries)
+    if ((byLeague.get(`CP Série ${s}`) ?? 0) !== pyramid.cp.clubsPerSeries)
+      errors.push(`CP Série ${s} tem ${byLeague.get(`CP Série ${s}`) ?? 0} clubes (esperado ${pyramid.cp.clubsPerSeries})`);
+  for (const d of districts)
+    if ((byLeague.get(`Distrital ${d.name}`) ?? 0) !== params.districtLeagues.target)
+      errors.push(`Distrital ${d.name} tem ${byLeague.get(`Distrital ${d.name}`) ?? 0} clubes (esperado ${params.districtLeagues.target})`);
+  const byTierDistrict = count(clubs, (c) => `${c.district}|${c.tier}`);
+  for (const d of districts)
+    for (const [e, n] of Object.entries(d.clubsPerTier))
+      if ((byTierDistrict.get(`${d.name}|${e}`) ?? 0) !== n)
+        errors.push(`distritos.csv: ${d.name} ${e} = ${n} mas há ${byTierDistrict.get(`${d.name}|${e}`) ?? 0} clubes`);
 
   // ---------- cidades ----------
-  const cidades: CidadeBase[] = [];
-  const nomesClubesCidade: string[][] = [];
-  for (const l of tabela("cidades", fontes.cidades, ctx)) {
-    const r = leitor("cidades", l, ctx);
-    const nome = r.txt("concelho");
-    const x2 = (c: string) => r.num(c, 1, 10, true) * 2;
-    const distrito = r.txt("distrito");
-    if (!distritoPorNome.has(distrito)) erros.push(`${r.onde}: distrito "${distrito}" não existe`);
-    cidades.push({
-      id: slug(nome),
-      nome,
-      distrito,
-      populacao: r.num("populacao", 1, 10_000_000, true),
-      setor: r.txt("setor"),
+  const cities: BaseCity[] = [];
+  const cityClubsNames: string[][] = [];
+  for (const l of table("cities", sources.cities, ctx)) {
+    const r = reader("cities", l, ctx);
+    const name = r.txt("concelho");
+    const x2 = (c: string) => r.within(c, 1, 10, true) * 2;
+    const district = r.txt("district");
+    if (!districtByName.has(district)) errors.push(`${r.where}: distrito "${district}" não existe`);
+    cities.push({
+      id: slug(name),
+      name,
+      district,
+      population: r.within("population", 1, 10_000_000, true),
+      sector: r.txt("sector"),
       tag2: r.txt("tag2"),
-      polo: r.txt("polo"),
-      ilha: r.simNao("ilha"),
-      orcamentoMunicipal: r.num("orcamento_municipal", 0, 1e10, true),
-      autarca: {
-        nome: r.txt("autarca"),
-        tracos: { ambicao: x2("ambicao"), vaidade: x2("vaidade"), paciencia: x2("paciencia"), integridade: x2("integridade") },
-        apoioDesporto: r.num("apoio_desporto", 1, 10, true),
+      hub: r.txt("hub"),
+      island: r.yesNo("island"),
+      municipalBudget: r.within("orcamento_municipal", 0, 1e10, true),
+      mayor: {
+        name: r.txt("mayor"),
+        traits: { ambition: x2("ambition"), vanity: x2("vanity"), patience: x2("patience"), integrity: x2("integrity") },
+        sportSupport: r.within("apoio_desporto", 1, 10, true),
       },
-      culturaFutebol: r.num("cultura_futebol", 0, 100),
-      clubes: [],
+      footballCulture: r.within("cultura_futebol", 0, 100),
+      clubs: [],
     });
-    nomesClubesCidade.push(r.txtOpc("clubes").split(";").map((s) => s.trim()).filter(Boolean));
+    cityClubsNames.push(r.optionTxt("clubs").split(";").map((s) => s.trim()).filter(Boolean));
   }
-  for (const [id, n] of contar(cidades, (c) => c.id)) if (n > 1) erros.push(`concelho duplicado: ${id}`);
-  const cidadePorId = new Map(cidades.map((c) => [c.id, c]));
-  cidades.forEach((c, i) => {
-    for (const nome of nomesClubesCidade[i] ?? []) {
-      const id = idPorNome.get(nome);
-      const clube = id ? clubePorId.get(id) : undefined;
-      if (!clube) erros.push(`cidade ${c.nome}: clube inexistente "${nome}"`);
-      else if (clube.cidade !== c.id) erros.push(`cidade ${c.nome}: o clube ${nome} é de outro concelho (${clube.cidade})`);
-      else c.clubes.push(clube.id);
+  for (const [id, n] of count(cities, (c) => c.id)) if (n > 1) errors.push(`concelho duplicado: ${id}`);
+  const cityById = new Map(cities.map((c) => [c.id, c]));
+  cities.forEach((c, i) => {
+    for (const name of cityClubsNames[i] ?? []) {
+      const id = idByName.get(name);
+      const club = id ? clubById.get(id) : undefined;
+      if (!club) errors.push(`cidade ${c.name}: clube inexistente "${name}"`);
+      else if (club.city !== c.id) errors.push(`cidade ${c.name}: o clube ${name} é de outro concelho (${club.city})`);
+      else c.clubs.push(club.id);
     }
   });
-  for (const c of clubes) {
-    const cidade = cidadePorId.get(c.cidade);
-    if (!cidade) erros.push(`${c.nome}: concelho "${c.cidade}" não existe em cidades.csv`);
+  for (const c of clubs) {
+    const city = cityById.get(c.city);
+    if (!city) errors.push(`${c.name}: concelho "${c.city}" não existe em cidades.csv`);
     else {
-      if (cidade.distrito !== c.distrito) erros.push(`${c.nome}: distrito "${c.distrito}" != concelho ${cidade.nome} ("${cidade.distrito}")`);
-      if (!cidade.clubes.includes(c.id)) erros.push(`${c.nome}: não consta na lista de clubes de ${cidade.nome}`);
+      if (city.district !== c.district) errors.push(`${c.name}: distrito "${c.district}" != concelho ${city.name} ("${city.district}")`);
+      if (!city.clubs.includes(c.id)) errors.push(`${c.name}: não consta na lista de clubes de ${city.name}`);
     }
   }
 
   // ---------- localidades (RZ-136) ----------
-  const localidades: LocalidadeBase[] = [];
-  const nomesClubesLocalidade: string[][] = [];
-  for (const l of tabela("localidades", fontes.localidades, ctx)) {
-    const r = leitor("localidades", l, ctx);
-    const estatuto = r.em("estatuto", ESTATUTOS);
-    const populacao = r.num("populacao", 1, 5_000_000, true);
-    const cidade = slug(r.txt("concelho"));
-    localidades.push({
+  const localities: BaseLocality[] = [];
+  const localityClubsNames: string[][] = [];
+  for (const l of table("localities", sources.localities, ctx)) {
+    const r = reader("localities", l, ctx);
+    const status = r.em("status", STATUSES);
+    const population = r.within("population", 1, 5_000_000, true);
+    const city = slug(r.txt("concelho"));
+    localities.push({
       id: r.txt("id"),
-      nome: r.txt("nome"),
-      cidade,
-      distrito: r.txt("distrito"),
-      populacao,
-      estatuto,
-      sede: r.em("sede", ["sim", "não"] as const) === "sim",
-      clubes: [],
+      name: r.txt("name"),
+      city,
+      district: r.txt("district"),
+      population,
+      status,
+      host: r.em("host", ["sim", "não"] as const) === "sim",
+      clubs: [],
     });
-    nomesClubesLocalidade.push(r.txtOpc("clubes").split(";").map((x) => x.trim()).filter(Boolean));
-    const c = cidadePorId.get(cidade);
-    if (!c) erros.push(`${r.onde}: concelho "${r.txtOpc("concelho")}" não existe em cidades.csv`);
+    localityClubsNames.push(r.optionTxt("clubs").split(";").map((x) => x.trim()).filter(Boolean));
+    const c = cityById.get(city);
+    if (!c) errors.push(`${r.where}: concelho "${r.optionTxt("concelho")}" não existe em cidades.csv`);
     else {
-      if (c.distrito !== r.txtOpc("distrito")) erros.push(`${r.onde}: distrito "${r.txtOpc("distrito")}" != concelho ${c.nome}`);
-      if (populacao > c.populacao) erros.push(`${r.onde}: a localidade (${populacao}) é maior do que o concelho ${c.nome} (${c.populacao})`);
+      if (c.district !== r.optionTxt("district")) errors.push(`${r.where}: distrito "${r.optionTxt("district")}" != concelho ${c.name}`);
+      if (population > c.population) errors.push(`${r.where}: a localidade (${population}) é maior do que o concelho ${c.name} (${c.population})`);
     }
-    if (!estatutoCoerente(populacao, estatuto, params))
-      erros.push(`${r.onde}: ${populacao} habitantes não é coerente com o estatuto "${estatuto}" (limiares em parametros.localidade)`);
+    if (!coherentStatus(population, status, params))
+      errors.push(`${r.where}: ${population} habitantes não é coerente com o estatuto "${status}" (limiares em parametros.localidade)`);
   }
-  for (const [id, n] of contar(localidades, (x) => x.id)) if (n > 1) erros.push(`localidade duplicada: ${id}`);
-  const localidadePorId = new Map(localidades.map((x) => [x.id, x]));
-  localidades.forEach((loc, i) => {
-    for (const nome of nomesClubesLocalidade[i] ?? []) {
-      const id = idPorNome.get(nome);
-      const clube = id ? clubePorId.get(id) : undefined;
-      if (!clube) erros.push(`localidade ${loc.nome}: clube inexistente "${nome}"`);
-      else if (clube.localidadeId !== loc.id) erros.push(`localidade ${loc.nome}: o clube ${nome} é de outra localidade (${clube.localidadeId})`);
-      else loc.clubes.push(clube.id);
+  for (const [id, n] of count(localities, (x) => x.id)) if (n > 1) errors.push(`localidade duplicada: ${id}`);
+  const localityById = new Map(localities.map((x) => [x.id, x]));
+  localities.forEach((locality, i) => {
+    for (const name of localityClubsNames[i] ?? []) {
+      const id = idByName.get(name);
+      const club = id ? clubById.get(id) : undefined;
+      if (!club) errors.push(`localidade ${locality.name}: clube inexistente "${name}"`);
+      else if (club.localityId !== locality.id) errors.push(`localidade ${locality.name}: o clube ${name} é de outra localidade (${club.localityId})`);
+      else locality.clubs.push(club.id);
     }
   });
-  for (const c of clubes) {
-    const loc = localidadePorId.get(c.localidadeId);
-    if (!loc) erros.push(`${c.nome}: localidade "${c.localidadeId}" não existe em localidades.csv`);
+  for (const c of clubs) {
+    const locality = localityById.get(c.localityId);
+    if (!locality) errors.push(`${c.name}: localidade "${c.localityId}" não existe em localidades.csv`);
     else {
-      if (loc.cidade !== c.cidade) erros.push(`${c.nome}: a localidade ${loc.nome} é de outro concelho (${loc.cidade})`);
-      if (loc.nome !== c.localidade) erros.push(`${c.nome}: nome de localidade "${c.localidade}" != "${loc.nome}"`);
-      if (!loc.clubes.includes(c.id)) erros.push(`${c.nome}: não consta na lista de clubes da localidade ${loc.nome}`);
+      if (locality.city !== c.city) errors.push(`${c.name}: a localidade ${locality.name} é de outro concelho (${locality.city})`);
+      if (locality.name !== c.locality) errors.push(`${c.name}: nome de localidade "${c.locality}" != "${locality.name}"`);
+      if (!locality.clubs.includes(c.id)) errors.push(`${c.name}: não consta na lista de clubes da localidade ${locality.name}`);
     }
   }
 
   // ---------- rivalidades ----------
-  const rivalidades: RivalidadeBase[] = [];
-  const arestas = new Set<string>();
-  for (const l of tabela("rivalidades", fontes.rivalidades, ctx)) {
-    const r = leitor("rivalidades", l, ctx);
-    const a = idPorNome.get(r.txt("clube_a"));
-    const b = idPorNome.get(r.txt("clube_b"));
+  const rivalries: BaseRivalry[] = [];
+  const edges = new Set<string>();
+  for (const l of table("rivalries", sources.rivalries, ctx)) {
+    const r = reader("rivalries", l, ctx);
+    const a = idByName.get(r.txt("clube_a"));
+    const b = idByName.get(r.txt("clube_b"));
     if (!a || !b) {
-      erros.push(`${r.onde}: clube inexistente (${r.txtOpc("clube_a")} / ${r.txtOpc("clube_b")})`);
+      errors.push(`${r.where}: clube inexistente (${r.optionTxt("clube_a")} / ${r.optionTxt("clube_b")})`);
       continue;
     }
-    const chave = [a, b].sort().join("|");
-    if (a === b) erros.push(`${r.onde}: rivalidade de um clube consigo próprio`);
-    if (arestas.has(chave)) erros.push(`${r.onde}: rivalidade duplicada`);
-    arestas.add(chave);
-    const ca = clubePorId.get(a);
-    const cb = clubePorId.get(b);
+    const rowKey = [a, b].sort().join("|");
+    if (a === b) errors.push(`${r.where}: rivalidade de um clube consigo próprio`);
+    if (edges.has(rowKey)) errors.push(`${r.where}: rivalidade duplicada`);
+    edges.add(rowKey);
+    const ca = clubById.get(a);
+    const cb = clubById.get(b);
     if (!ca || !cb) continue;
-    const rv: RivalidadeBase = {
+    const rv: BaseRivalry = {
       a, b,
-      mutua: r.simNao("mutua"),
-      mesmoConcelho: r.simNao("mesmo_concelho"),
-      mesmoDistrito: r.simNao("mesmo_distrito"),
-      mesmoPolo: r.simNao("mesmo_polo"),
-      mesmaDivisao: r.simNao("mesma_divisao"),
+      mutual: r.yesNo("mutual"),
+      sameMunicipality: r.yesNo("mesmo_concelho"),
+      sameDistrict: r.yesNo("mesmo_distrito"),
+      sameHub: r.yesNo("mesmo_polo"),
+      sameDivision: r.yesNo("mesma_divisao"),
     };
-    const esperada: Record<string, boolean> = {
-      mutua: ca.rival === b && cb.rival === a,
-      mesmoConcelho: ca.cidade === cb.cidade,
-      mesmoDistrito: ca.distrito === cb.distrito,
-      mesmoPolo: ca.polo === cb.polo,
-      mesmaDivisao: ca.escalao === cb.escalao,
+    const expected: Record<string, boolean> = {
+      mutual: ca.rival === b && cb.rival === a,
+      sameMunicipality: ca.city === cb.city,
+      sameDistrict: ca.district === cb.district,
+      sameHub: ca.hub === cb.hub,
+      sameDivision: ca.tier === cb.tier,
     };
-    for (const k of Object.keys(esperada))
-      if ((rv as unknown as Record<string, boolean>)[k] !== esperada[k]) erros.push(`${r.onde}: "${k}" incoerente com os dados dos clubes`);
-    rivalidades.push(rv);
+    for (const k of Object.keys(expected))
+      if ((rv as unknown as Record<string, boolean>)[k] !== expected[k]) errors.push(`${r.where}: "${k}" incoerente com os dados dos clubes`);
+    rivalries.push(rv);
   }
-  for (const c of clubes)
-    if (!arestas.has([c.id, c.rival].sort().join("|"))) erros.push(`${c.nome}: o rival principal não consta em rivalidades.csv`);
+  for (const c of clubs)
+    if (!edges.has([c.id, c.rival].sort().join("|"))) errors.push(`${c.name}: o rival principal não consta em rivalidades.csv`);
 
-  if (erros.length > 0) return { ok: false, erros };
-  const dados: DadosBase = { distritos, cidades, localidades, clubes, rivalidades };
-  return { ok: true, dados, avisos: ctx.avisos };
+  if (errors.length > 0) return { ok: false, errors };
+  const data: BaseData = { districts, cities, localities, clubs, rivalries };
+  return { ok: true, data, warnings: ctx.warnings };
 }

@@ -4,167 +4,167 @@
  * 2. Acabada a Fase de Promoção → classificações finais, movimentos entre escalões, calendário da época seguinte.
  * O Prémio do Estado entra com as finanças (RZ-112); o reajuste das distritais com RZ-113.
  */
-import { proximoDiaDaSemana, somarDias } from "../calendario/datas";
-import { criarData } from "../calendario/datas";
-import type { Parametros } from "../config/parametros";
-import type { DadosBase, SerieCP } from "../dados/tipos";
-import { evoluirCidades } from "../cidade/cidades";
-import type { ResultadosClubes } from "../cidade/evolucao";
-import { tabelaDaCompeticao } from "../competicao/tabela";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { Data } from "../persistencia/tipos";
-import { calendarioDoGrupo, classificarGrupo, formarGrupos, promovidosDoGrupo } from "./fasePromocao";
-import { aplicarMovimentos, SERIES, type Movimento } from "./movimentos";
-import { parametrosDoSave } from "./anoDoSave";
-import { campeaoDoCp } from "./faseFinalCp";
-import { despedirPorDescida } from "./mercadoTreinadores";
-import { ajustarDistritais, estaNaSegundaDistrital, type SegundaDistrital } from "./distritais";
-import { fecharMesesAte, lancar } from "../clube/financas";
-import { fatoresDeDistrito, valorDoPremio, type TipoPremio } from "./premiosCompeticao";
-import { anosSeguidos, premiadosPorDistrito, type ClubeClassificado } from "./premioEstado";
-import { dadosDaEpoca, guardarPiramide, lerPiramide, ligasDaPiramide } from "./piramideEpoca";
-import { nomeGrupoPromocao, gruposDaPromocao, prepararEpoca } from "./preparar";
+import { nextWeekday, addDays } from "../calendario/datas";
+import { createDate } from "../calendario/datas";
+import type { Params } from "../config/parametros";
+import type { BaseData, CpSeries } from "../dados/tipos";
+import { evolveCities } from "../cidade/cidades";
+import type { ClubsResults } from "../cidade/evolucao";
+import { competitionTable } from "../competicao/tabela";
+import type { Repository } from "../persistencia/repositorio";
+import type { IsoDate } from "../persistencia/tipos";
+import { groupCalendar, rankGroup, buildGroups, groupPromoted } from "./fasePromocao";
+import { applyMovements, SERIES, type Movement } from "./movimentos";
+import { saveParameters } from "./anoDoSave";
+import { cpChampionOf } from "./faseFinalCp";
+import { sackByRelegation } from "./mercadoTreinadores";
+import { adjustDistricts, isInSecondDistrict, type SecondDistrict } from "./distritais";
+import { closeUntilMonths, post } from "../clube/financas";
+import { districtFactors, prizeValue, type PrizeType } from "./premiosCompeticao";
+import { consecutiveYears, winnersPerDistrict, type RankedClub } from "./premioEstado";
+import { seasonData, savePyramid, readPyramid, pyramidLeagues } from "./piramideEpoca";
+import { promotionGroupName, promotionGroups, prepareSeason } from "./preparar";
 
-export type ResumoEpoca = {
-  epoca: number;
-  campeoes: { liga: string; clube: string; nome: string }[];
-  movimentos: (Movimento & { nome: string })[];
-  avisos: string[];
+export type SeasonSummary = {
+  season: number;
+  champions: { league: string; club: string; name: string }[];
+  movements: (Movement & { name: string })[];
+  warnings: string[];
 };
 
-const serieDoDistrito = (dados: DadosBase) => (d: string): SerieCP => dados.distritos.find((x) => x.id === d || x.nome === d)?.serieCP ?? "A";
+const districtSeries = (data: BaseData) => (d: string): CpSeries => data.districts.find((x) => x.id === d || x.name === d)?.cpSeries ?? "A";
 
 /** Gera a Fase de Promoção (calendário gravado) quando as ligas acabaram. Devolve os grupos. */
-export function gerarFasePromocao(repo: Repositorio, dados: DadosBase, paramsBase: Parametros, epoca: number) {
-  const params = parametrosDoSave(repo, paramsBase);
+export function generatePromotionPhase(repo: Repository, data: BaseData, paramsBase: Params, season: number) {
+  const params = saveParameters(repo, paramsBase);
   const seed = repo.meta("seed") ?? "?";
-  const rep = new Map(dados.clubes.map((c) => [c.id, c.reputacao] as const));
-  const campeoes = [...new Set(dados.clubes.filter((c) => c.escalao === "distrital" && !estaNaSegundaDistrital(c.liga)).map((c) => c.liga))].flatMap((liga) => {
-    const tabela = tabelaDaCompeticao(repo, liga, epoca, "promocao", params, { seed, reputacao: rep });
-    const clube = tabela[0]?.clube;
-    return clube ? [{ clube, distrito: dados.clubes.find((c) => c.id === clube)!.distrito }] : [];
+  const rep = new Map(data.clubs.map((c) => [c.id, c.reputation] as const));
+  const champions = [...new Set(data.clubs.filter((c) => c.tier === "district" && !isInSecondDistrict(c.league)).map((c) => c.league))].flatMap((league) => {
+    const table = competitionTable(repo, league, season, "promotion", params, { seed, reputation: rep });
+    const club = table[0]?.club;
+    return club ? [{ club, district: data.clubs.find((c) => c.id === club)!.district }] : [];
   });
-  const { grupos } = formarGrupos(campeoes, serieDoDistrito(dados), params);
-  const fimDistritais = params.calendario.ultimaJornadaPorEscalao.distrital ?? params.calendario.ultimaJornadaAte;
-  const fimDasLigas = criarData(params.calendario.anoInicial + epoca, fimDistritais.mes, fimDistritais.dia);
-  const primeiroSabado = proximoDiaDaSemana(somarDias(fimDasLigas, 8), 6);
-  repo.transacao(() => {
-    for (const g of grupos.filter((x) => x.clubes.length >= 2)) {
-      const rondas = calendarioDoGrupo(g, epoca, seed, params);
-      const comp = nomeGrupoPromocao(g.serie);
-      const jogos = rondas.flatMap((r, i) => r.jogos.map((j) => ({ id: `e${epoca}-promocao-${g.serie}-j${i + 1}-${j.casa}`, competicao: comp, epoca, jornada: i + 1, data: somarDias(primeiroSabado, 7 * i), casa: j.casa, fora: j.fora })));
-      const folgas = rondas.flatMap((r, i) => (r.folga ? [{ competicao: comp, epoca, jornada: i + 1, clube: r.folga }] : []));
-      repo.guardarCalendario(jogos, folgas);
+  const { groups } = buildGroups(champions, districtSeries(data), params);
+  const districtsEnd = params.calendar.lastRoundPerTier.district ?? params.calendar.lastRoundUntil;
+  const leaguesEnd = createDate(params.calendar.initialYear + season, districtsEnd.month, districtsEnd.day);
+  const firstSaturday = nextWeekday(addDays(leaguesEnd, 8), 6);
+  repo.transaction(() => {
+    for (const g of groups.filter((x) => x.clubs.length >= 2)) {
+      const pairings = groupCalendar(g, season, seed, params);
+      const comp = promotionGroupName(g.series);
+      const matches = pairings.flatMap((r, i) => r.matches.map((j) => ({ id: `e${season}-promocao-${g.series}-j${i + 1}-${j.home}`, competition: comp, season, round: i + 1, date: addDays(firstSaturday, 7 * i), home: j.home, away: j.away })));
+      const byes = pairings.flatMap((r, i) => (r.bye ? [{ competition: comp, season, round: i + 1, club: r.bye }] : []));
+      repo.saveCalendar(matches, byes);
     }
-    repo.definirMeta(`promocao.${epoca}`, JSON.stringify(grupos));
+    repo.setMeta(`promocao.${season}`, JSON.stringify(groups));
   });
-  return grupos;
+  return groups;
 }
 
 /** Fecha a época: classificações finais → movimentos → eventos → nova época com calendários. */
-export function fecharEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Parametros, epoca: number): ResumoEpoca {
-  const params = parametrosDoSave(repo, paramsBase);
+export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params, season: number): SeasonSummary {
+  const params = saveParameters(repo, paramsBase);
   const seed = repo.meta("seed") ?? "?";
-  const hoje = repo.meta("data.hoje") as Data;
-  const rep = new Map(dados.clubes.map((c) => [c.id, c.reputacao] as const));
-  const nome = new Map(dados.clubes.map((c) => [c.id, c.nome] as const));
-  const atual = lerPiramide(repo, dados, epoca);
-  const ligas = ligasDaPiramide(atual, dados);
-  const nomeLiga = (clube: string) => ligas.get(clube)?.liga ?? "";
-  const ordem = (liga: string, tipo: "liga" | "promocao") => tabelaDaCompeticao(repo, liga, epoca, tipo, params, { seed, reputacao: rep }).map((l) => l.clube);
-  const liga = (c: string[]) => nomeLiga(c[0] as string);
-  const primeira = ordem(liga(atual.primeira), "liga");
-  const segunda = ordem(liga(atual.segunda), "liga");
-  const terceira = ordem(liga(atual.terceira), "liga");
-  const cp = Object.fromEntries(SERIES.map((s) => [s, ordem(`CP Série ${s}`, "promocao")])) as Record<SerieCP, string[]>;
-  const vencedoresDosGrupos: string[] = [];
-  const promovidos = (gruposDaPromocao(repo, epoca) ?? []).flatMap((g) => {
-    const jogos = repo.jogosDaCompeticao(nomeGrupoPromocao(g.serie), epoca).map((j) => ({ casa: j.casa, fora: j.fora, golosCasa: j.golosCasa, golosFora: j.golosFora }));
-    const ordem = classificarGrupo(g, jogos, epoca, seed, params, rep);
-    if (jogos.length > 0 && ordem[0]) vencedoresDosGrupos.push(ordem[0]);
-    return promovidosDoGrupo(g, ordem, params);
+  const today = repo.meta("data.hoje") as IsoDate;
+  const rep = new Map(data.clubs.map((c) => [c.id, c.reputation] as const));
+  const name = new Map(data.clubs.map((c) => [c.id, c.name] as const));
+  const current = readPyramid(repo, data, season);
+  const leagues = pyramidLeagues(current, data);
+  const leagueName = (club: string) => leagues.get(club)?.league ?? "";
+  const order = (league: string, type: "league" | "promotion") => competitionTable(repo, league, season, type, params, { seed, reputation: rep }).map((l) => l.club);
+  const league = (c: string[]) => leagueName(c[0] as string);
+  const first = order(league(current.first), "league");
+  const second = order(league(current.second), "league");
+  const third = order(league(current.third), "league");
+  const cp = Object.fromEntries(SERIES.map((s) => [s, order(`CP Série ${s}`, "promotion")])) as Record<CpSeries, string[]>;
+  const groupsWinners: string[] = [];
+  const promoted = (promotionGroups(repo, season) ?? []).flatMap((g) => {
+    const matches = repo.competitionMatches(promotionGroupName(g.series), season).map((j) => ({ home: j.home, away: j.away, homeGoals: j.homeGoals, awayGoals: j.awayGoals }));
+    const order = rankGroup(g, matches, season, seed, params, rep);
+    if (matches.length > 0 && order[0]) groupsWinners.push(order[0]);
+    return groupPromoted(g, order, params);
   });
-  const ctx = { distritoDe: (c: string) => dados.clubes.find((x) => x.id === c)!.distrito, serieDoDistrito: serieDoDistrito(dados) };
-  const r = aplicarMovimentos(atual, { primeira, segunda, terceira, cp, promovidosFasePromocao: promovidos }, params, ctx);
+  const ctx = { districtOf: (c: string) => data.clubs.find((x) => x.id === c)!.district, districtSeries: districtSeries(data) };
+  const r = applyMovements(current, { first, second, third, cp, promotionPhasePromoted: promoted }, params, ctx);
 
   // Prémio do Estado (passo 2 do DESIGN_REGRAS §2): sobre as classificações finais, antes de qualquer movimento
-  const classificados: ClubeClassificado[] = [];
-  const competicoes = new Map([...ligas.values()].map((l) => [l.liga, l.escalao] as const));
-  for (const [competicao, escalao] of competicoes) {
-    for (const l of tabelaDaCompeticao(repo, competicao, epoca, escalao === "cp" || escalao === "distrital" ? "promocao" : "liga", params, { seed, reputacao: rep })) {
-      const cd = dados.clubes.find((x) => x.id === l.clube);
-      if (cd) classificados.push({ clube: l.clube, distrito: cd.distrito, escalao, posicao: l.posicao, jogos: l.jogos, pontos: l.pontos, diferenca: l.diferenca, golosMarcados: l.golosMarcados, reputacao: cd.reputacao });
+  const ranked: RankedClub[] = [];
+  const competitions = new Map([...leagues.values()].map((l) => [l.league, l.tier] as const));
+  for (const [competition, tier] of competitions) {
+    for (const l of competitionTable(repo, competition, season, tier === "cp" || tier === "district" ? "promotion" : "league", params, { seed, reputation: rep })) {
+      const cd = data.clubs.find((x) => x.id === l.club);
+      if (cd) ranked.push({ club: l.club, district: cd.district, tier, position: l.position, matches: l.matches, points: l.points, difference: l.difference, scoredGoals: l.scoredGoals, reputation: cd.reputation });
     }
   }
-  const premiados = premiadosPorDistrito(classificados);
-  const cidadeDe0 = new Map(dados.clubes.map((c) => [c.id, c.cidade] as const));
+  const winners = winnersPerDistrict(ranked);
+  const cityOf0 = new Map(data.clubs.map((c) => [c.id, c.city] as const));
 
   // Distritais de tamanho variável e segunda distrital (RZ-113): depois dos movimentos, ajusta-se cada distrito a [min, max]
-  const brutoSegunda = repo.meta("segundaDistrital");
-  const segundaAntes: SegundaDistrital = brutoSegunda ? (JSON.parse(brutoSegunda) as SegundaDistrital) : {};
-  const finaisDistritais: Record<string, string[]> = {};
-  for (const x of [...classificados].filter((c) => c.escalao === "distrital").sort((a, b) => a.posicao - b.posicao)) (finaisDistritais[x.distrito] ??= []).push(x.clube);
-  const despromovidosDoCp = new Set(r.movimentos.filter((m) => m.de.startsWith("cp-") && m.para.startsWith("distrital-")).map((m) => m.clube));
-  const ajuste = ajustarDistritais(r.piramide.distritais, { finais: finaisDistritais, protegidos: despromovidosDoCp, segunda: segundaAntes, epoca }, params);
-  r.piramide.distritais = ajuste.distritais;
-  r.avisos.push(...ajuste.avisos);
+  const secondRaw = repo.meta("segundaDistrital");
+  const secondBefore: SecondDistrict = secondRaw ? (JSON.parse(secondRaw) as SecondDistrict) : {};
+  const districtsFinal: Record<string, string[]> = {};
+  for (const x of [...ranked].filter((c) => c.tier === "district").sort((a, b) => a.position - b.position)) (districtsFinal[x.district] ??= []).push(x.club);
+  const cpRelegated = new Set(r.movements.filter((m) => m.de.startsWith("cp-") && m.para.startsWith("distrital-")).map((m) => m.club));
+  const adjustment = adjustDistricts(r.pyramid.districtLeagues, { final: districtsFinal, protected: cpRelegated, second: secondBefore, season }, params);
+  r.pyramid.districtLeagues = adjustment.districtLeagues;
+  r.warnings.push(...adjustment.warnings);
 
-  const campeoes = [primeira, segunda, terceira, ...SERIES.map((s) => cp[s])].map((t) => ({ liga: nomeLiga(t[0] as string), clube: t[0] as string, nome: nome.get(t[0] as string) ?? "" }));
-  const campeaoCp = campeaoDoCp(repo, params, epoca);
-  repo.transacao(() => {
-    for (const c of campeoes) repo.acrescentarEvento({ tipo: "CAMPEAO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: c.clube, papel: "campeao" }, { k: "competicao", id: c.liga }], dados: { liga: c.liga } });
-    if (campeaoCp) repo.acrescentarEvento({ tipo: "CAMPEAO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: campeaoCp, papel: "campeao" }, { k: "competicao", id: "Campeonato de Portugal" }], dados: { liga: "Campeonato de Portugal" } });
+  const champions = [first, second, third, ...SERIES.map((s) => cp[s])].map((t) => ({ league: leagueName(t[0] as string), club: t[0] as string, name: name.get(t[0] as string) ?? "" }));
+  const cpChampion = cpChampionOf(repo, params, season);
+  repo.transaction(() => {
+    for (const c of champions) repo.appendEvent({ type: "CAMPEAO", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: c.club, roleKind: "champion" }, { k: "competition", id: c.league }], data: { league: c.league } });
+    if (cpChampion) repo.appendEvent({ type: "CAMPEAO", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: cpChampion, roleKind: "champion" }, { k: "competition", id: "Campeonato de Portugal" }], data: { league: "Campeonato de Portugal" } });
     // prémio por vencer cada competição (RZ-216)
-    const fatores = fatoresDeDistrito(dados.cidades, params);
-    const distritoDe2 = new Map(dados.clubes.map((c) => [c.id, c.distrito] as const));
-    const premiar = (tipo: TipoPremio, clube: string, competicao: string, distrito?: string) => {
-      const fator = distrito ? fatores.get(distrito) ?? 1 : 1;
-      const cidade = cidadeDe0.get(clube);
-      const valor = valorDoPremio(tipo, params, fator);
-      const cb = dados.clubes.find((x) => x.id === clube);
-      if (cb) lancar(repo, cb, "premios", valor);
-      repo.acrescentarEvento({ tipo: "PREMIO_COMPETICAO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: clube, papel: "premiado" }, { k: "competicao", id: competicao }, ...(cidade ? [{ k: "cidade" as const, id: cidade, papel: "sede" }] : [])], dados: { competicao, tipo, valor, fatorDistrito: distrito ? fator : undefined, posicao: 1 } });
+    const factors = districtFactors(data.cities, params);
+    const districtOf2 = new Map(data.clubs.map((c) => [c.id, c.district] as const));
+    const award = (type: PrizeType, club: string, competition: string, district?: string) => {
+      const factor = district ? factors.get(district) ?? 1 : 1;
+      const city = cityOf0.get(club);
+      const value = prizeValue(type, params, factor);
+      const cb = data.clubs.find((x) => x.id === club);
+      if (cb) post(repo, cb, "prizes", value);
+      repo.appendEvent({ type: "PREMIO_COMPETICAO", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "premiado" }, { k: "competition", id: competition }, ...(city ? [{ k: "city" as const, id: city, roleKind: "host" }] : [])], data: { competition, type, value, districtFactor: district ? factor : undefined, position: 1 } });
     };
-    const tipoDaLiga: TipoPremio[] = ["primeiraLiga", "segundaLiga", "terceiraLiga", "serieCp", "serieCp", "serieCp", "serieCp"];
-    campeoes.forEach((c, i) => premiar(tipoDaLiga[i] as TipoPremio, c.clube, c.liga));
-    if (campeaoCp) premiar("vencedorCp", campeaoCp, "Campeonato de Portugal");
-    for (const [distrito, tabela] of Object.entries(finaisDistritais)) if (tabela[0]) premiar("distrital", tabela[0], `Distrital ${distrito}`, distrito);
-    for (const c of vencedoresDosGrupos) premiar("fasePromocao", c, "Fase de Promoção", distritoDe2.get(c));
-    for (const m of r.movimentos) {
+    const leagueType: PrizeType[] = ["firstLeague", "secondLeague", "thirdLeague", "cpSeries", "cpSeries", "cpSeries", "cpSeries"];
+    champions.forEach((c, i) => award(leagueType[i] as PrizeType, c.club, c.league));
+    if (cpChampion) award("cpWinner", cpChampion, "Campeonato de Portugal");
+    for (const [district, table] of Object.entries(districtsFinal)) if (table[0]) award("district", table[0], `Distrital ${district}`, district);
+    for (const c of groupsWinners) award("promotionPhase", c, "Fase de Promoção", districtOf2.get(c));
+    for (const m of r.movements) {
       const para = m.para.startsWith("cp-") ? `CP Série ${m.para.slice(3)}` : m.para;
-      repo.acrescentarEvento({ tipo: m.motivo === "descida" ? "DESCIDA" : "SUBIDA", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: m.clube }], dados: { de: m.de, para, motivo: m.motivo } });
+      repo.appendEvent({ type: m.reason === "relegation" ? "DESCIDA" : "SUBIDA", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: m.club }], data: { de: m.de, para, reason: m.reason } });
     }
-    for (const p of premiados) {
-      const chave = `premio.${p.distrito}`;
-      const anterior = repo.meta(chave) ? (JSON.parse(repo.meta(chave) as string) as { clube: string; seguidos: number }) : undefined;
-      const seguidos = anosSeguidos(anterior, p.clube);
-      repo.definirMeta(chave, JSON.stringify({ clube: p.clube, seguidos, epoca }));
-      const cidade = cidadeDe0.get(p.clube);
-      const cbp = dados.clubes.find((x) => x.id === p.clube);
-      if (cbp) lancar(repo, cbp, "premios", params.premios.clube);
-      repo.acrescentarEvento({ tipo: "PREMIO_ESTADO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: p.clube, papel: "premiado" }, ...(cidade ? [{ k: "cidade" as const, id: cidade, papel: "camara" }] : [])], dados: { distrito: p.distrito, valorClube: params.premios.clube, valorCidade: params.premios.cidade, seguidos } });
+    for (const p of winners) {
+      const rowKey = `premio.${p.district}`;
+      const previous = repo.meta(rowKey) ? (JSON.parse(repo.meta(rowKey) as string) as { club: string; consecutive: number }) : undefined;
+      const consecutive = consecutiveYears(previous, p.club);
+      repo.setMeta(rowKey, JSON.stringify({ club: p.club, consecutive, season }));
+      const city = cityOf0.get(p.club);
+      const cbp = data.clubs.find((x) => x.id === p.club);
+      if (cbp) post(repo, cbp, "prizes", params.prizes.club);
+      repo.appendEvent({ type: "PREMIO_ESTADO", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: p.club, roleKind: "premiado" }, ...(city ? [{ k: "city" as const, id: city, roleKind: "council" }] : [])], data: { district: p.district, clubValue: params.prizes.club, cityValue: params.prizes.city, consecutive } });
     }
-    repo.definirMeta("segundaDistrital", JSON.stringify(ajuste.segunda));
-    for (const a of ajuste.ajustes) repo.acrescentarEvento({ tipo: a.tipo === "descida" ? "DESCIDA_SEGUNDA_DISTRITAL" : "REGRESSO_DISTRITAL", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: a.clube }], dados: { distrito: a.distrito } });
+    repo.setMeta("segundaDistrital", JSON.stringify(adjustment.second));
+    for (const a of adjustment.adjustments) repo.appendEvent({ type: a.type === "relegation" ? "DESCIDA_SEGUNDA_DISTRITAL" : "REGRESSO_DISTRITAL", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: a.club }], data: { district: a.district } });
     // as cidades reagem aos resultados dos clubes e ao que lhes acontece (RZ-133)
-    const cidadeDe = new Map(dados.clubes.map((c) => [c.id, c.cidade] as const));
-    const resultados = new Map<string, ResultadosClubes>();
-    const somar = (clube: string, campo: keyof ResultadosClubes) => {
-      const cid = cidadeDe.get(clube);
-      if (cid) resultados.set(cid, { campeoes: 0, subidas: 0, descidas: 0, ...resultados.get(cid), [campo]: (resultados.get(cid)?.[campo] ?? 0) + 1 });
+    const cityOf = new Map(data.clubs.map((c) => [c.id, c.city] as const));
+    const results = new Map<string, ClubsResults>();
+    const add = (club: string, pitch: keyof ClubsResults) => {
+      const city = cityOf.get(club);
+      if (city) results.set(city, { champions: 0, promotions: 0, relegations: 0, ...results.get(city), [pitch]: (results.get(city)?.[pitch] ?? 0) + 1 });
     };
-    for (const c of campeoes) somar(c.clube, "campeoes");
-    for (const m of r.movimentos) somar(m.clube, m.motivo === "descida" ? "descidas" : "subidas");
-    evoluirCidades(repo, dados, params, epoca, hoje, resultados);
-    guardarPiramide(repo, epoca + 1, r.piramide);
-    repo.definirMeta("epoca", String(epoca + 1));
-    repo.definirMeta("data.hoje", criarData(params.calendario.anoInicial + epoca, params.calendario.mesInicioEpoca, 1));
+    for (const c of champions) add(c.club, "champions");
+    for (const m of r.movements) add(m.club, m.reason === "relegation" ? "relegations" : "promotions");
+    evolveCities(repo, data, params, season, today, results);
+    savePyramid(repo, season + 1, r.pyramid);
+    repo.setMeta("season", String(season + 1));
+    repo.setMeta("data.hoje", createDate(params.calendar.initialYear + season, params.calendar.seasonStartMonth, 1));
   });
-  prepararEpoca(repo, dadosDaEpoca(repo, dados), paramsBase);
+  prepareSeason(repo, seasonData(repo, data), paramsBase);
   // os meses sem jogos (junho, julho) também pagam custos
-  fecharMesesAte(repo, dadosDaEpoca(repo, dados), params, repo.meta("data.hoje") as Data, epoca + 1, (c) => !estaNaSegundaDistrital(c.liga));
+  closeUntilMonths(repo, seasonData(repo, data), params, repo.meta("data.hoje") as IsoDate, season + 1, (c) => !isInSecondDistrict(c.league));
   // o clube do gamer que desceu à segunda distrital é despedido (deixa de ser jogável até voltar à pirâmide)
   const gamer = repo.meta("clube.gamer");
-  if (gamer && ajuste.ajustes.some((a) => a.tipo === "descida" && a.clube === gamer)) despedirPorDescida(repo, dadosDaEpoca(repo, dados), params, gamer, repo.meta("data.hoje") as Data, epoca);
-  return { epoca, campeoes, movimentos: r.movimentos.map((m) => ({ ...m, nome: nome.get(m.clube) ?? m.clube })), avisos: r.avisos };
+  if (gamer && adjustment.adjustments.some((a) => a.type === "relegation" && a.club === gamer)) sackByRelegation(repo, seasonData(repo, data), params, gamer, repo.meta("data.hoje") as IsoDate, season);
+  return { season, champions, movements: r.movements.map((m) => ({ ...m, name: name.get(m.club) ?? m.club })), warnings: r.warnings };
 }

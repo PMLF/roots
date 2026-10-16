@@ -2,67 +2,67 @@
  * Controlo de jornadas (RZ-110): em que jornada está uma competição, o que falta jogar e o que está em atraso.
  * Puro: recebe o calendário e os ids dos jogos já jogados (um jogo jogado tem o mesmo id do jogo agendado).
  */
-import { comparar } from "../calendario/datas";
-import type { Data, JogoAgendado } from "../persistencia/tipos";
+import { compare } from "../calendario/datas";
+import type { IsoDate, ScheduledMatch } from "../persistencia/tipos";
 
-export type EstadoJornada = {
-  jornada: number;
+export type RoundState = {
+  round: number;
   /** Data prevista (a do primeiro jogo). */
-  data: Data;
-  jogos: number;
-  jogados: number;
-  completa: boolean;
+  date: IsoDate;
+  matches: number;
+  played: number;
+  full: boolean;
   /** Jogos desta jornada com data já passada e ainda por jogar. */
-  emAtraso: number;
+  inDelay: number;
 };
 
-export type EstadoCompeticao = {
-  competicao: string;
-  epoca: number;
-  jornadas: EstadoJornada[];
+export type CompetitionState = {
+  competition: string;
+  season: number;
+  rounds: RoundState[];
   /** A primeira jornada ainda incompleta; `undefined` se a competição terminou. */
-  jornadaAtual?: number;
-  jogosTotal: number;
-  jogosJogados: number;
-  jogosPorJogar: number;
-  terminada: boolean;
+  currentRound?: number;
+  totalMatches: number;
+  playedMatches: number;
+  matchesPerPlay: number;
+  finished: boolean;
   /** Data do próximo jogo por jogar (pode ser anterior a `hoje` se há atrasos). */
-  proximaData?: Data;
-  emAtraso: JogoAgendado[];
+  nextDate?: IsoDate;
+  inDelay: ScheduledMatch[];
 };
 
-export function estadoCompeticao(competicao: string, epoca: number, calendario: readonly JogoAgendado[], jogados: ReadonlySet<string>, hoje: Data): EstadoCompeticao {
-  const jogos = calendario.filter((j) => j.competicao === competicao && j.epoca === epoca);
-  const porJornada = new Map<number, JogoAgendado[]>();
-  for (const j of jogos) (porJornada.get(j.jornada) ?? porJornada.set(j.jornada, []).get(j.jornada)!).push(j);
-  const jornadas: EstadoJornada[] = [...porJornada.entries()]
+export function competitionState(competition: string, season: number, calendar: readonly ScheduledMatch[], played: ReadonlySet<string>, today: IsoDate): CompetitionState {
+  const matches = calendar.filter((j) => j.competition === competition && j.season === season);
+  const byRound = new Map<number, ScheduledMatch[]>();
+  for (const j of matches) (byRound.get(j.round) ?? byRound.set(j.round, []).get(j.round)!).push(j);
+  const rounds: RoundState[] = [...byRound.entries()]
     .sort((a, b) => a[0] - b[0])
-    .map(([jornada, js]) => {
-      const feitos = js.filter((j) => jogados.has(j.id)).length;
-      const atraso = js.filter((j) => !jogados.has(j.id) && comparar(j.data, hoje) < 0).length;
-      const data = js.reduce((m, j) => (comparar(j.data, m) < 0 ? j.data : m), (js[0] as JogoAgendado).data);
-      return { jornada, data, jogos: js.length, jogados: feitos, completa: feitos === js.length, emAtraso: atraso };
+    .map(([round, js]) => {
+      const done = js.filter((j) => played.has(j.id)).length;
+      const delay = js.filter((j) => !played.has(j.id) && compare(j.date, today) < 0).length;
+      const date = js.reduce((m, j) => (compare(j.date, m) < 0 ? j.date : m), (js[0] as ScheduledMatch).date);
+      return { round, date, matches: js.length, played: done, full: done === js.length, inDelay: delay };
     });
-  const porJogar = jogos.filter((j) => !jogados.has(j.id));
-  const atual = jornadas.find((j) => !j.completa);
-  const proxima = porJogar.reduce<Data | undefined>((m, j) => (m === undefined || comparar(j.data, m) < 0 ? j.data : m), undefined);
+  const byPlay = matches.filter((j) => !played.has(j.id));
+  const current = rounds.find((j) => !j.full);
+  const next = byPlay.reduce<IsoDate | undefined>((m, j) => (m === undefined || compare(j.date, m) < 0 ? j.date : m), undefined);
   return {
-    competicao,
-    epoca,
-    jornadas,
-    ...(atual ? { jornadaAtual: atual.jornada } : {}),
-    jogosTotal: jogos.length,
-    jogosJogados: jogos.length - porJogar.length,
-    jogosPorJogar: porJogar.length,
-    terminada: jogos.length > 0 && porJogar.length === 0,
-    ...(proxima ? { proximaData: proxima } : {}),
-    emAtraso: porJogar.filter((j) => comparar(j.data, hoje) < 0).sort((a, b) => comparar(a.data, b.data) || a.jornada - b.jornada || (a.id < b.id ? -1 : 1)),
+    competition,
+    season,
+    rounds,
+    ...(current ? { currentRound: current.round } : {}),
+    totalMatches: matches.length,
+    playedMatches: matches.length - byPlay.length,
+    matchesPerPlay: byPlay.length,
+    finished: matches.length > 0 && byPlay.length === 0,
+    ...(next ? { nextDate: next } : {}),
+    inDelay: byPlay.filter((j) => compare(j.date, today) < 0).sort((a, b) => compare(a.date, b.date) || a.round - b.round || (a.id < b.id ? -1 : 1)),
   };
 }
 
 /** Os jogos por jogar com data até `hoje` (inclusive), os atrasados primeiro: o que o loop de dias tem de jogar. */
-export function jogosParaJogar(calendario: readonly JogoAgendado[], jogados: ReadonlySet<string>, hoje: Data): JogoAgendado[] {
-  return calendario
-    .filter((j) => !jogados.has(j.id) && comparar(j.data, hoje) <= 0)
-    .sort((a, b) => comparar(a.data, b.data) || a.competicao.localeCompare(b.competicao) || a.jornada - b.jornada || (a.id < b.id ? -1 : 1));
+export function matchesForPlay(calendar: readonly ScheduledMatch[], played: ReadonlySet<string>, today: IsoDate): ScheduledMatch[] {
+  return calendar
+    .filter((j) => !played.has(j.id) && compare(j.date, today) <= 0)
+    .sort((a, b) => compare(a.date, b.date) || a.competition.localeCompare(b.competition) || a.round - b.round || (a.id < b.id ? -1 : 1));
 }

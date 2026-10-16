@@ -1,66 +1,66 @@
 /** Do resultado do motor de jogo para o que a persistência guarda (RZ-104 → RZ-122). */
-import type { JogoFacto, JogoNovo, Participacao } from "../persistencia/tipos";
-import { eventoLesao } from "../lesoes/estado";
-import type { EventoNovo } from "../persistencia/tipos";
-import type { RelatorioJogo } from "./estatisticas";
-import type { EquipaJogo, EventoJogo, ResumoJogo } from "./tipos";
+import type { FactMatch, NewMatch, Appearance } from "../persistencia/tipos";
+import { injuryEvent } from "../lesoes/estado";
+import type { NewEvent } from "../persistencia/tipos";
+import type { MatchReport } from "./estatisticas";
+import type { MatchTeam, MatchEvent, MatchSummary } from "./tipos";
 
-export type MetaJogo = { id: string; competicao: string; epoca: number; jornada: number; data: string; importancia?: number; arbitro?: string; assistencia?: number; receita?: number; causa?: number };
+export type MatchMeta = { id: string; competition: string; season: number; round: number; date: string; importance?: number; referee?: string; attendance?: number; revenue?: number; cause?: number };
 
 /**
  * Converte o jogo simulado em `JogoNovo` + factos + participações, prontos para `Repositorio.registarJogo`.
  * Golos (G), assistências (A), penáltis falhados (P) e cartões (CA, CV; `extra` «2A» num vermelho por segundo amarelo) são factos; os onze jogam o jogo todo (substituições: RZ-215). Com o `relatorio` (RZ-105), as participações levam a nota.
  */
-export function registoDoJogo(meta: MetaJogo, casa: EquipaJogo, fora: EquipaJogo, eventos: readonly EventoJogo[], resumo: ResumoJogo, relatorio?: RelatorioJogo): { jogo: JogoNovo; factos: JogoFacto[]; participacoes: Participacao[]; /** Eventos `LESAO` a acrescentar com `Repositorio.acrescentarEvento` (a seguir ao `registarJogo`). */ lesoes: EventoNovo[] } {
-  const clube = { casa: casa.clube, fora: fora.clube };
-  const factos: JogoFacto[] = [];
-  for (const e of eventos) {
-    if (e.tipo === "cartao") {
-      factos.push({ minuto: e.minuto, tipo: e.cor === "amarelo" ? "CA" : "CV", jogador: e.jogador, clube: clube[e.lado], ...(e.segundoAmarelo ? { extra: "2A" } : {}) });
+export function matchRecord(meta: MatchMeta, home: MatchTeam, away: MatchTeam, events: readonly MatchEvent[], summary: MatchSummary, report?: MatchReport): { match: NewMatch; facts: FactMatch[]; appearances: Appearance[]; /** Eventos `LESAO` a acrescentar com `Repositorio.acrescentarEvento` (a seguir ao `registarJogo`). */ injuries: NewEvent[] } {
+  const club = { home: home.club, away: away.club };
+  const facts: FactMatch[] = [];
+  for (const e of events) {
+    if (e.type === "card") {
+      facts.push({ minute: e.minute, type: e.colour === "yellow" ? "CA" : "CV", player: e.player, club: club[e.side], ...(e.secondYellow ? { extra: "2A" } : {}) });
       continue;
     }
-    if (e.tipo === "lesao") {
-      factos.push({ minuto: e.minuto, tipo: "L", jogador: e.jogador, clube: clube[e.lado], extra: `gravidade:${e.lesao.gravidade}` });
+    if (e.type === "injury") {
+      facts.push({ minute: e.minute, type: "L", player: e.player, club: club[e.side], extra: `gravidade:${e.injury.severity}` });
       continue;
     }
-    if (e.tipo === "substituicao") {
-      factos.push({ minuto: e.minuto, tipo: "S", jogador: e.entra, clube: clube[e.lado], extra: `sai:${e.sai}` });
+    if (e.type === "substitution") {
+      facts.push({ minute: e.minute, type: "S", player: e.playerIn, club: club[e.side], extra: `sai:${e.playerOut}` });
       continue;
     }
-    if (e.tipo !== "remate") continue;
-    if (e.resultado === "golo") {
-      factos.push({ minuto: e.minuto, tipo: "G", jogador: e.jogador, clube: clube[e.lado], ...(e.origem !== "jogada" ? { extra: e.origem } : {}) });
-      if (e.assistente) factos.push({ minuto: e.minuto, tipo: "A", jogador: e.assistente, clube: clube[e.lado] });
-    } else if (e.origem === "penalti") factos.push({ minuto: e.minuto, tipo: "P", jogador: e.jogador, clube: clube[e.lado] });
+    if (e.type !== "shot") continue;
+    if (e.outcome === "goal") {
+      facts.push({ minute: e.minute, type: "G", player: e.player, club: club[e.side], ...(e.origin !== "jogada" ? { extra: e.origin } : {}) });
+      if (e.assistant) facts.push({ minute: e.minute, type: "A", player: e.assistant, club: club[e.side] });
+    } else if (e.origin === "penalty") facts.push({ minute: e.minute, type: "P", player: e.player, club: club[e.side] });
   }
-  const arredondar = (x: number) => Math.round(x * 100) / 100;
-  const jogo: JogoNovo = {
-    id: meta.id, competicao: meta.competicao, epoca: meta.epoca, jornada: meta.jornada, data: meta.data,
-    casa: casa.clube, fora: fora.clube, golosCasa: resumo.casa.golos, golosFora: resumo.fora.golos,
-    xgCasa: arredondar(resumo.casa.xg), xgFora: arredondar(resumo.fora.xg), posseCasa: arredondar(resumo.posseCasa),
-    ...(meta.assistencia !== undefined ? { assistencia: meta.assistencia } : {}),
-    ...(meta.receita !== undefined ? { receita: meta.receita } : {}),
-    ...(meta.importancia !== undefined ? { importancia: meta.importancia } : {}),
-    ...(meta.arbitro !== undefined ? { arbitro: meta.arbitro } : {}),
-    ...(meta.causa !== undefined ? { causa: meta.causa } : {}),
+  const round = (x: number) => Math.round(x * 100) / 100;
+  const match: NewMatch = {
+    id: meta.id, competition: meta.competition, season: meta.season, round: meta.round, date: meta.date,
+    home: home.club, away: away.club, homeGoals: summary.home.goals, awayGoals: summary.away.goals,
+    homeXg: round(summary.home.xg), awayXg: round(summary.away.xg), homePossession: round(summary.homePossession),
+    ...(meta.attendance !== undefined ? { attendance: meta.attendance } : {}),
+    ...(meta.revenue !== undefined ? { revenue: meta.revenue } : {}),
+    ...(meta.importance !== undefined ? { importance: meta.importance } : {}),
+    ...(meta.referee !== undefined ? { referee: meta.referee } : {}),
+    ...(meta.cause !== undefined ? { cause: meta.cause } : {}),
   };
-  const nota = (id: string) => relatorio?.jogadores.find((x) => x.id === id)?.nota;
+  const rating = (id: string) => report?.players.find((x) => x.id === id)?.rating;
   /** Minuto em que o jogador saiu (lesão, expulsão) ou entrou (substituição). */
-  const saida = (id: string) => eventos.find((e) => (e.tipo === "lesao" && e.jogador === id) || (e.tipo === "cartao" && e.cor === "vermelho" && e.jogador === id) || (e.tipo === "substituicao" && e.sai === id))?.minuto;
-  const participar = (eq: EquipaJogo): Participacao[] => {
-    const com = (id: string, titular: boolean, minutos: number): Participacao => {
-      const n = nota(id);
-      return { jogador: id, clube: eq.clube, titular, minutos, ...(n !== undefined ? { nota: n } : {}) };
+  const output = (id: string) => events.find((e) => (e.type === "injury" && e.player === id) || (e.type === "card" && e.colour === "red" && e.player === id) || (e.type === "substitution" && e.playerOut === id))?.minute;
+  const take = (eq: MatchTeam): Appearance[] => {
+    const using = (id: string, starter: boolean, minutes: number): Appearance => {
+      const n = rating(id);
+      return { player: id, club: eq.club, starter, minutes, ...(n !== undefined ? { rating: n } : {}) };
     };
-    const entradas = eventos.filter((e): e is Extract<EventoJogo, { tipo: "substituicao" }> => e.tipo === "substituicao" && (eq.banco ?? []).some((b) => b.id === e.entra));
+    const inputs = events.filter((e): e is Extract<MatchEvent, { type: "substitution" }> => e.type === "substitution" && (eq.bench ?? []).some((b) => b.id === e.playerIn));
     return [
-      ...eq.onze.map((j) => com(j.id, true, saida(j.id) ?? resumo.duracao)),
-      ...entradas.map((e) => com(e.entra, false, resumo.duracao - e.minuto)),
+      ...eq.lineup.map((j) => using(j.id, true, output(j.id) ?? summary.duration)),
+      ...inputs.map((e) => using(e.playerIn, false, summary.duration - e.minute)),
     ];
   };
-  const participacoes: Participacao[] = [...participar(casa), ...participar(fora)];
-  const lesoes: EventoNovo[] = eventos
-    .filter((e): e is Extract<EventoJogo, { tipo: "lesao" }> => e.tipo === "lesao")
-    .map((e) => eventoLesao({ jogador: e.jogador, clube: clube[e.lado], data: meta.data, epoca: meta.epoca, jornada: meta.jornada, lesao: e.lesao, jogo: meta.id, minuto: e.minuto }));
-  return { jogo, factos, participacoes, lesoes };
+  const appearances: Appearance[] = [...take(home), ...take(away)];
+  const injuries: NewEvent[] = events
+    .filter((e): e is Extract<MatchEvent, { type: "injury" }> => e.type === "injury")
+    .map((e) => injuryEvent({ player: e.player, club: club[e.side], date: meta.date, season: meta.season, round: meta.round, injury: e.injury, match: meta.id, minute: e.minute }));
+  return { match, facts, appearances, injuries };
 }

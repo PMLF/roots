@@ -1,46 +1,46 @@
 "use client";
 import { useState } from "react";
-import type { FinancasClube } from "@/engine/api/contratos";
-import { useMotor } from "@/ui/MotorProvider";
-import { Dados } from "@/ui/components/Cartao";
+import type { ClubFinances } from "@/engine/api/contratos";
+import { useEngine } from "@/ui/MotorProvider";
+import { Data } from "@/ui/components/Cartao";
 import { useT } from "@/ui/i18n/LocaleProvider";
 
-type Orc = NonNullable<FinancasClube["orcamento"]>;
+type Budget = NonNullable<ClubFinances["budget"]>;
 
 /** O orçamento anual do teu clube: massa salarial máxima e verba para transferências, editáveis. */
-export function OrcamentoClube({ inicial, saldo }: { inicial: Orc; saldo: number }) {
+export function ClubBudget({ initial, balance }: { initial: Budget; balance: number }) {
   const { t, locale } = useT();
-  const motor = useMotor();
+  const engine = useEngine();
   const eur = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-  const [orc, setOrc] = useState(inicial);
-  const [massa, setMassa] = useState(String(inicial.massaSalarialMax));
-  const [transf, setTransf] = useState(String(inicial.transferencias));
-  const [erro, setErro] = useState<string>();
-  const [aGuardar, setAGuardar] = useState(false);
-  const guardar = async () => {
-    setAGuardar(true);
+  const [budget, setBudget] = useState(initial);
+  const [bill, setBill] = useState(String(initial.wageBillMax));
+  const [transfer, setTransfer] = useState(String(initial.transfers));
+  const [error, setError] = useState<string>();
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    setSaving(true);
     try {
-      if (!motor) return;
-      const f = await motor.chamar("definirOrcamento", { massaSalarialMax: Number(massa), transferencias: Number(transf) });
-      if (f.orcamento) { setOrc(f.orcamento); setMassa(String(f.orcamento.massaSalarialMax)); setTransf(String(f.orcamento.transferencias)); }
-      setErro(undefined);
-    } catch (e) { setErro(e instanceof Error ? e.message : String(e)); } finally { setAGuardar(false); }
+      if (!engine) return;
+      const f = await engine.call("setBudget", { wageBillMax: Number(bill), transfers: Number(transfer) });
+      if (f.budget) { setBudget(f.budget); setBill(String(f.budget.wageBillMax)); setTransfer(String(f.budget.transfers)); }
+      setError(undefined);
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); } finally { setSaving(false); }
   };
   return (
     <div className="orcamento-clube">
-      <Dados linhas={[
-        { rotulo: t("financas.massaAtual"), valor: <span className={orc.acima ? "erro" : undefined}>{eur.format(orc.massaAtual)} {orc.acima ? `· ${t("financas.acimaOrcamento")}` : ""}</span> },
+      <Data lines={[
+        { label: t("financas.massaAtual"), value: <span className={budget.above ? "error" : undefined}>{eur.format(budget.currentBill)} {budget.above ? `· ${t("financas.acimaOrcamento")}` : ""}</span> },
       ]} />
-      <form className="formulario" onSubmit={(e) => { e.preventDefault(); void guardar(); }}>
+      <form className="formulario" onSubmit={(e) => { e.preventDefault(); void save(); }}>
         <label>{t("financas.massaMax")}{" "}
-          <input type="number" min={0} step={1000} value={massa} onChange={(e) => setMassa(e.target.value)} />
+          <input type="number" min={0} step={1000} value={bill} onChange={(e) => setBill(e.target.value)} />
         </label>
         <label>{t("financas.verbaTransferencias")}{" "}
-          <input type="number" min={0} max={Math.max(0, Math.floor(saldo))} step={1000} value={transf} onChange={(e) => setTransf(e.target.value)} />
+          <input type="number" min={0} max={Math.max(0, Math.floor(balance))} step={1000} value={transfer} onChange={(e) => setTransfer(e.target.value)} />
         </label>
-        <button type="submit" disabled={aGuardar}>{t("financas.guardarOrcamento")}</button>
+        <button type="submit" disabled={saving}>{t("financas.guardarOrcamento")}</button>
       </form>
-      {erro && <p className="erro" role="alert">{erro}</p>}
+      {error && <p className="erro" role="alert">{error}</p>}
     </div>
   );
 }

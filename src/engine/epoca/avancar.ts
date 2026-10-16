@@ -5,189 +5,189 @@
  * histórias saem dos jogos como em qualquer outro. Puro em relação ao tempo real: a data vive no save (`data.hoje`).
  */
 import { zoneSizes } from "../competicao/ficha";
-import { diaDaSemana, somarDias } from "../calendario/datas";
-import type { Parametros } from "../config/parametros";
-import type { ClubeBase, DadosBase } from "../dados/tipos";
-import { arbitroDoJogo, canaisDoJogo } from "../jogo/contextoDoJogo";
-import { jogarJogo, nivelDoJogo } from "../jogo/detalhe";
-import { onzeAutomatico, type CandidatoOnze } from "../jogo/equipa";
-import { TATICA_PADRAO } from "../jogo/formacoes";
-import { indisponiveis, jogoConfirmado, lerPlano, onzeDoPlano, type Plano } from "./planoDeJogo";
-import type { EquipaJogo, ResumoJogo } from "../jogo/tipos";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { Data } from "../persistencia/tipos";
-import { assistenciaDoJogo } from "../clube/assistencia";
-import { garantirOrcamentos } from "../clube/orcamento";
-import { fecharMesesAte, lancar } from "../clube/financas";
-import { estaNaSegundaDistrital } from "./distritais";
-import { COMPETICAO_FINAL_CP, gerarFinalCp, gerarMeiasFinaisCp } from "./faseFinalCp";
-import { fecharEpoca, gerarFasePromocao, type ResumoEpoca } from "./fecharEpoca";
-import { formaDosJogadores } from "./formaFisica";
-import { eventoRival, motivoDeRival } from "./rivais";
-import { CHAVE_SESSAO, curvaXg, equipasDoJogo, guardarJogoVivo, linhasDoJogo, type ConfrontoVivo, type CurvaXg, type EquipasVivo, type InfoJogo, type LinhaTabelaVivo } from "./jogoAoVivo";
-import { atualizarOfertas, estaDesempregado } from "./mercadoTreinadores";
-import { dadosDaEpoca, epocaAtual } from "./piramideEpoca";
-import { gruposDaPromocao, jogosPorJogar, prepararEpoca } from "./preparar";
+import { weekDay, addDays } from "../calendario/datas";
+import type { Params } from "../config/parametros";
+import type { BaseClub, BaseData } from "../dados/tipos";
+import { matchReferee, matchChannels } from "../jogo/contextoDoJogo";
+import { playMatch, matchLevel } from "../jogo/detalhe";
+import { automaticLineup, type LineupCandidate } from "../jogo/equipa";
+import { DEFAULT_TACTIC } from "../jogo/formacoes";
+import { unavailable, confirmedMatch, readPlan, planLineup, type Plan } from "./planoDeJogo";
+import type { MatchTeam, MatchSummary } from "../jogo/tipos";
+import type { Repository } from "../persistencia/repositorio";
+import type { IsoDate } from "../persistencia/tipos";
+import { matchAttendance } from "../clube/assistencia";
+import { ensureBudgets } from "../clube/orcamento";
+import { closeUntilMonths, post } from "../clube/financas";
+import { isInSecondDistrict } from "./distritais";
+import { CP_FINAL_COMPETITION, generateCpFinal, generateCpFinalSemi } from "./faseFinalCp";
+import { closeSeason, generatePromotionPhase, type SeasonSummary } from "./fecharEpoca";
+import { playersForm } from "./formaFisica";
+import { rivalEvent, rivalReason } from "./rivais";
+import { SESSION_KEY, xgCurve, matchTeams, saveLiveMatch, matchLines, type LiveMeeting, type XgCurve, type LiveTeams, type MatchInfo, type LiveTableLine } from "./jogoAoVivo";
+import { updateOffers, isUnemployed } from "./mercadoTreinadores";
+import { seasonData, currentSeason } from "./piramideEpoca";
+import { promotionGroups, matchesPerPlay, prepareSeason } from "./preparar";
 
-export type JogoDoDia = {
+export type DayMatch = {
   id: string;
-  competicao: string;
-  jornada: number;
-  casa: string;
-  fora: string;
-  casaNome: string;
-  foraNome: string;
-  golosCasa: number;
-  golosFora: number;
-  nivel: 0 | 1;
-  golos: { minuto: number; jogador: string; nome: string; clube: string }[];
-  cartoes: { minuto: number; jogador: string; nome: string; clube: string; cor: "amarelo" | "vermelho" }[];
-  lesoes: { minuto: number; jogador: string; nome: string; clube: string; gravidade: number; dias: number }[];
-  homemDoJogo?: { jogador: string; nome: string; nota: number };
+  competition: string;
+  round: number;
+  home: string;
+  away: string;
+  homeName: string;
+  awayName: string;
+  homeGoals: number;
+  awayGoals: number;
+  level: 0 | 1;
+  goals: { minute: number; player: string; name: string; club: string }[];
+  cards: { minute: number; player: string; name: string; club: string; colour: "yellow" | "red" }[];
+  injuries: { minute: number; player: string; name: string; club: string; severity: number; days: number }[];
+  matchMan?: { player: string; name: string; rating: number };
 };
 
-export type ResumoDia = { data: Data; jogos: JogoDoDia[] };
+export type SummaryDay = { date: IsoDate; matches: DayMatch[] };
 
-export type EstadoTempo = { hoje: Data; epoca: number; /** Jogos por disputar nesta época. */ porJogar: number; /** Próximo dia com jogos. */ proximoDiaDeJogos?: Data };
+export type TimeState = { today: IsoDate; season: number; /** Jogos por disputar nesta época. */ byPlay: number; /** Próximo dia com jogos. */ matchesNextDay?: IsoDate };
 
-export type Modo = "dia" | "semana" | "proximoJogo";
+export type Mode = "day" | "semana" | "nextMatch";
 
 /** O avanço parou antes do jogo do clube do gamer: falta confirmar onze e tática. */
-export type Pausa = { /** Já começou (há um jogo a decorrer): continuar em vez de preparar. */ emCurso: boolean; jogo: string; data: Data; competicao: string; jornada: number; casa: string; fora: string; casaNome: string; foraNome: string };
+export type Pause = { /** Já começou (há um jogo a decorrer): continuar em vez de preparar. */ ongoing: boolean; match: string; date: IsoDate; competition: string; round: number; home: string; away: string; homeName: string; awayName: string };
 
-export type ResultadoAvanco = { de: Data; ate: Data; dias: ResumoDia[]; fimDeEpoca: boolean; /** Preenchido quando a época fechou durante este avanço. */ resumoEpoca?: ResumoEpoca; estado: EstadoTempo; pausa?: Pausa };
+export type AdvanceResult = { de: IsoDate; until: IsoDate; days: SummaryDay[]; seasonEnd: boolean; /** Preenchido quando a época fechou durante este avanço. */ seasonSummary?: SeasonSummary; state: TimeState; pause?: Pause };
 
-const MAX_DIAS = 400;
+const DAYS_MAX = 400;
 
-export function estadoDoTempo(repo: Repositorio, base: DadosBase, params: Parametros): EstadoTempo {
-  const dados = dadosDaEpoca(repo, base);
-  const { hoje, epoca } = prepararEpoca(repo, dados, params);
-  const pendentes = jogosPorJogar(repo, dados, epoca);
-  const proximo = pendentes.filter((j) => j.data >= hoje).map((j) => j.data).sort()[0];
-  return { hoje, epoca, porJogar: pendentes.length, ...(proximo ? { proximoDiaDeJogos: proximo } : {}) };
+export function timeState(repo: Repository, base: BaseData, params: Params): TimeState {
+  const data = seasonData(repo, base);
+  const { today, season } = prepareSeason(repo, data, params);
+  const pending = matchesPerPlay(repo, data, season);
+  const next = pending.filter((j) => j.date >= today).map((j) => j.date).sort()[0];
+  return { today, season, byPlay: pending.length, ...(next ? { matchesNextDay: next } : {}) };
 }
 
 /** Os jogadores ativos do clube como candidatos ao onze, já com a forma (cansaço) que têm em `hoje`. */
-export function candidatosDoClube(repo: Repositorio, clube: string, hoje: Data, params: Parametros): CandidatoOnze[] {
-  const ativos = repo.jogadoresDoClube(clube).filter((j) => j.estado === "ativo");
-  const forma = formaDosJogadores(repo, ativos.map((j) => j.pessoa), hoje, params);
-  return ativos.map((j) => ({ pessoa: j.pessoa, posicoes: j.posicoes, atributos: j.atributos, alturaCm: j.alturaCm, forma: forma.get(j.pessoa) ?? 1 }));
+export function clubCandidates(repo: Repository, club: string, today: IsoDate, params: Params): LineupCandidate[] {
+  const active = repo.clubPlayers(club).filter((j) => j.state === "active");
+  const form = playersForm(repo, active.map((j) => j.person), today, params);
+  return active.map((j) => ({ person: j.person, positions: j.positions, attributes: j.attributes, heightCm: j.heightCm, form: form.get(j.person) ?? 1 }));
 }
 
-export function equipaParaJogo(repo: Repositorio, clube: string, competicao: string, epoca: number, jornada: number, hoje: Data, seed: string, params: Parametros, plano?: Plano): EquipaJogo {
-  const todos = candidatosDoClube(repo, clube, hoje, params);
-  const fora = indisponiveis(repo, clube, todos.map((c) => c.pessoa), competicao, epoca, jornada, hoje, seed, params);
-  const tatica = plano?.tatica ?? { ...TATICA_PADRAO };
-  const onze = onzeDoPlano(plano ?? { tatica }, todos, new Set(fora.keys()), params);
-  const emCampo = new Set(onze.map((j) => j.id));
-  const disponiveis = todos.filter((c) => !emCampo.has(c.pessoa) && !fora.has(c.pessoa));
-  const banco = onzeAutomatico(disponiveis.length >= 7 ? disponiveis : todos.filter((c) => !emCampo.has(c.pessoa)), undefined, params).slice(0, 7);
-  return { clube, onze, tatica, banco };
+export function teamForMatch(repo: Repository, club: string, competition: string, season: number, round: number, today: IsoDate, seed: string, params: Params, plan?: Plan): MatchTeam {
+  const all = clubCandidates(repo, club, today, params);
+  const away = unavailable(repo, club, all.map((c) => c.person), competition, season, round, today, seed, params);
+  const tactic = plan?.tactic ?? { ...DEFAULT_TACTIC };
+  const lineup = planLineup(plan ?? { tactic }, all, new Set(away.keys()), params);
+  const onPitch = new Set(lineup.map((j) => j.id));
+  const available = all.filter((c) => !onPitch.has(c.person) && !away.has(c.person));
+  const bench = automaticLineup(available.length >= 7 ? available : all.filter((c) => !onPitch.has(c.person)), undefined, params).slice(0, 7);
+  return { club, lineup, tactic, bench };
 }
 
 /** A tabela de uma competição tal como está agora (antes dos jogos de hoje), com todos os clubes. */
-export function tabelaAntes(repo: Repositorio, competicao: string, epoca: number, nomeClube: ReadonlyMap<string, string>): LinhaTabelaVivo[] {
-  const cal = repo.calendario(competicao, epoca);
-  const clubes = [...new Set(cal.jogos.flatMap((j) => [j.casa, j.fora]))];
-  const linhas = new Map(repo.classificacao(competicao, epoca).map((l) => [l.clube, l] as const));
-  return clubes.map((c) => { const l = linhas.get(c); return { clube: c, nome: nomeClube.get(c) ?? c, jogos: l?.jogos ?? 0, pontos: l?.pontos ?? 0, golosMarcados: l?.golosMarcados ?? 0, golosSofridos: l?.golosSofridos ?? 0 }; });
+export function beforeTable(repo: Repository, competition: string, season: number, clubName: ReadonlyMap<string, string>): LiveTableLine[] {
+  const cal = repo.calendar(competition, season);
+  const clubs = [...new Set(cal.matches.flatMap((j) => [j.home, j.away]))];
+  const lines = new Map(repo.standings(competition, season).map((l) => [l.club, l] as const));
+  return clubs.map((c) => { const l = lines.get(c); return { club: c, name: clubName.get(c) ?? c, matches: l?.matches ?? 0, points: l?.points ?? 0, scoredGoals: l?.scoredGoals ?? 0, concededGoals: l?.concededGoals ?? 0 }; });
 }
 
 /** Quantos sobem e descem na competição de um clube (as zonas da tabela). */
-export function zonasDa(dados: DadosBase, params: Parametros, clube: string): { promovidos: number; descidos: number } | undefined {
-  const tier = dados.clubes.find((c) => c.id === clube)?.escalao;
+export function zonesOf(data: BaseData, params: Params, club: string): { promoted: number; relegated: number } | undefined {
+  const tier = data.clubs.find((c) => c.id === club)?.tier;
   if (!tier) return undefined;
   const z = zoneSizes(tier, params);
-  return { promovidos: z.promoted, descidos: z.relegated };
+  return { promoted: z.promoted, relegated: z.relegated };
 }
 
 /** Cores (texto dos dados) dos clubes pedidos. */
-export function coresDos(dados: { clubes: readonly { id: string; cores: string }[] }, ids: Iterable<string>): Record<string, string> {
-  const por = new Map(dados.clubes.map((c) => [c.id, c.cores] as const));
+export function coloursOf(data: { clubs: readonly { id: string; colours: string }[] }, ids: Iterable<string>): Record<string, string> {
+  const por = new Map(data.clubs.map((c) => [c.id, c.colours] as const));
   const out: Record<string, string> = {};
   for (const id of ids) { const c = por.get(id); if (c) out[id] = c; }
   return out;
 }
 
 /** Assistência e bilheteira do jogo (RZ-114/115); a receita fica com o clube da casa. */
-export function bilheteDoJogo(dados: DadosBase, params: Parametros, casa: string, fora: string, competicao: string): { assistencia: number; receita: number; clube: ClubeBase } | undefined {
-  const cc = dados.clubes.find((x) => x.id === casa);
-  const cf = dados.clubes.find((x) => x.id === fora);
+export function matchTicket(data: BaseData, params: Params, home: string, away: string, competition: string): { attendance: number; revenue: number; club: BaseClub } | undefined {
+  const cc = data.clubs.find((x) => x.id === home);
+  const cf = data.clubs.find((x) => x.id === away);
   if (!cc || !cf) return undefined;
-  const b = assistenciaDoJogo({ casa: cc, fora: cf, culturaFutebol: dados.cidades.find((x) => x.id === cc.cidade)?.culturaFutebol ?? 50, final: competicao === COMPETICAO_FINAL_CP }, params);
-  return { ...b, clube: cc };
+  const b = matchAttendance({ home: cc, away: cf, footballCulture: data.cities.find((x) => x.id === cc.city)?.footballCulture ?? 50, final: competition === CP_FINAL_COMPETITION }, params);
+  return { ...b, club: cc };
 }
 
 /** Os últimos jogos entre os dois clubes e os dados do estádio, para a página do jogo. `excepto` é o próprio jogo. */
-export function contextoDoJogo(repo: Repositorio, dados: DadosBase, params: Parametros, casa: string, fora: string, competicao: string, excepto: string): { info?: InfoJogo; confrontos: ConfrontoVivo[] } {
-  const confrontos = repo.confrontos(casa, fora, 6).filter((j) => j.id !== excepto).slice(0, 5)
-    .map((j) => ({ id: j.id, data: j.data, competicao: j.competicao, epoca: j.epoca, casa: j.casa, fora: j.fora, golosCasa: j.golosCasa, golosFora: j.golosFora }));
-  const b = bilheteDoJogo(dados, params, casa, fora, competicao);
-  if (!b) return { confrontos };
-  const e = b.clube.estadio;
+export function matchContext(repo: Repository, data: BaseData, params: Params, home: string, away: string, competition: string, except: string): { info?: MatchInfo; meetings: LiveMeeting[] } {
+  const meetings = repo.meetings(home, away, 6).filter((j) => j.id !== except).slice(0, 5)
+    .map((j) => ({ id: j.id, date: j.date, competition: j.competition, season: j.season, home: j.home, away: j.away, homeGoals: j.homeGoals, awayGoals: j.awayGoals }));
+  const b = matchTicket(data, params, home, away, competition);
+  if (!b) return { meetings };
+  const e = b.club.stadium;
   const seed = repo.meta("seed") ?? "?";
-  return { confrontos, info: { estadio: { nome: e.nome, localidade: b.clube.localidade, capacidade: e.capacidade }, assistencia: b.assistencia, arbitro: arbitroDoJogo(seed, excepto), canais: canaisDoJogo(b.clube.escalao, competicao, seed, excepto) } };
+  return { meetings, info: { stadium: { name: e.name, locality: b.club.locality, capacity: e.capacity }, attendance: b.attendance, referee: matchReferee(seed, except), channels: matchChannels(b.club.tier, competition, seed, except) } };
 }
 
 /** Joga os jogos de `hoje` e passa ao dia seguinte. Tudo numa transação. */
-export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametros, clubeGamer?: string): ResumoDia {
-  const dados = dadosDaEpoca(repo, base);
-  const { hoje, epoca } = prepararEpoca(repo, dados, params);
+export function advanceDay(repo: Repository, base: BaseData, params: Params, gamerClub?: string): SummaryDay {
+  const data = seasonData(repo, base);
+  const { today, season } = prepareSeason(repo, data, params);
   const seed = repo.meta("seed") ?? "?";
-  const nomeClube = new Map(dados.clubes.map((c) => [c.id, c.nome] as const));
-  const nomePessoa = (id: string) => repo.pessoaPublica(id)?.nomeDesportivo ?? id;
-  return repo.transacao(() => {
-    garantirOrcamentos(repo, dados, params, epoca);
-    const jogos: JogoDoDia[] = [];
+  const clubName = new Map(data.clubs.map((c) => [c.id, c.name] as const));
+  const personName = (id: string) => repo.publicPerson(id)?.sportingName ?? id;
+  return repo.transaction(() => {
+    ensureBudgets(repo, data, params, season);
+    const matches: DayMatch[] = [];
     // a tabela de cada competição onde o gamer joga hoje, antes dos jogos (para o ver ao vivo)
-    const tabelas = new Map<string, LinhaTabelaVivo[]>();
-    for (const g of repo.jogosDoDia(hoje)) {
-      if (repo.jogo(g.id) || nivelDoJogo(g.casa, g.fora, clubeGamer) !== 0 || tabelas.has(g.competicao)) continue;
-      tabelas.set(g.competicao, tabelaAntes(repo, g.competicao, epoca, nomeClube));
+    const tables = new Map<string, LiveTableLine[]>();
+    for (const g of repo.dayMatches(today)) {
+      if (repo.match(g.id) || matchLevel(g.home, g.away, gamerClub) !== 0 || tables.has(g.competition)) continue;
+      tables.set(g.competition, beforeTable(repo, g.competition, season, clubName));
     }
-    const vivos: { id: string; competicao: string; jornada: number; casa: string; fora: string; duracao: number; golosCasa: number; golosFora: number; linhas: ReturnType<typeof linhasDoJogo>; resumo: ResumoJogo; equipas: EquipasVivo; xg: CurvaXg }[] = [];
-    const duracoes = new Map<string, number>();
-    for (const g of repo.jogosDoDia(hoje)) {
-      if (repo.jogo(g.id)) continue;
-      const nivel = nivelDoJogo(g.casa, g.fora, clubeGamer);
-      const casa = equipaParaJogo(repo, g.casa, g.competicao, epoca, g.jornada, hoje, seed, params, g.casa === clubeGamer ? lerPlano(repo, g.casa) : undefined);
-      const fora = equipaParaJogo(repo, g.fora, g.competicao, epoca, g.jornada, hoje, seed, params, g.fora === clubeGamer ? lerPlano(repo, g.fora) : undefined);
-      const r = jogarJogo({ seed, id: g.id, casa, fora }, nivel, { id: g.id, competicao: g.competicao, epoca, jornada: g.jornada, data: hoje }, params);
-      const rival = clubeGamer && nivel === 0 ? motivoDeRival(repo, dados, params, g.competicao, epoca, clubeGamer, g.casa === clubeGamer ? g.fora : g.casa) : undefined;
-      const bilhete = bilheteDoJogo(dados, params, g.casa, g.fora, g.competicao);
-      const { evento } = repo.registarJogo({ ...r.registo.jogo, arbitro: arbitroDoJogo(seed, g.id), ...(bilhete ? { assistencia: bilhete.assistencia, receita: bilhete.receita } : {}) }, r.registo.factos, r.registo.participacoes);
-      if (bilhete) lancar(repo, bilhete.clube, "bilheteira", bilhete.receita);
-      if (rival) repo.acrescentarEvento(eventoRival(g.id, g.casa, g.fora, hoje, epoca, g.jornada, evento, rival));
-      for (const l of r.registo.lesoes) repo.acrescentarEvento({ ...l, causa: evento });
-      for (const h of r.historias) repo.acrescentarEvento({ ...h, causa: evento });
-      const rel = r.relatorio;
-      duracoes.set(g.id, rel.duracao);
-      if (r.nivel === 0) vivos.push({ id: g.id, competicao: g.competicao, jornada: g.jornada, casa: g.casa, fora: g.fora, duracao: rel.duracao, golosCasa: rel.golosCasa, golosFora: rel.golosFora, linhas: linhasDoJogo(r.eventos, rel.duracao, nomePessoa), resumo: r.resumo, equipas: equipasDoJogo({ casa, fora }, r.eventos, r.relatorio, nomePessoa), xg: curvaXg(r.eventos, rel.duracao) });
-      const clubeDe = (lado: "casa" | "fora") => (lado === "casa" ? g.casa : g.fora);
-      const homem = r.nivel === 1 ? { jogador: r.relatorio.homemDoJogo.id, nota: r.relatorio.homemDoJogo.nota } : (() => { const j = r.relatorio.jogadores.find((x) => x.id === r.relatorio.homemDoJogo); return j ? { jogador: j.id, nota: j.nota } : undefined; })();
-      jogos.push({
-        id: g.id, competicao: g.competicao, jornada: g.jornada, casa: g.casa, fora: g.fora, casaNome: nomeClube.get(g.casa) ?? g.casa, foraNome: nomeClube.get(g.fora) ?? g.fora, golosCasa: rel.golosCasa, golosFora: rel.golosFora, nivel,
-        golos: rel.golos.map((x) => ({ minuto: x.minuto, jogador: x.jogador, nome: nomePessoa(x.jogador), clube: clubeDe(x.lado) })),
-        cartoes: rel.cartoes.map((x) => ({ minuto: x.minuto, jogador: x.jogador, nome: nomePessoa(x.jogador), clube: clubeDe(x.lado), cor: x.cor })),
-        lesoes: rel.lesoes.map((x) => ({ minuto: x.minuto, jogador: x.jogador, nome: nomePessoa(x.jogador), clube: clubeDe(x.lado), gravidade: x.lesao.gravidade, dias: x.lesao.dias })),
-        ...(homem ? { homemDoJogo: { ...homem, nome: nomePessoa(homem.jogador) } } : {}),
+    const live: { id: string; competition: string; round: number; home: string; away: string; duration: number; homeGoals: number; awayGoals: number; lines: ReturnType<typeof matchLines>; summary: MatchSummary; teams: LiveTeams; xg: XgCurve }[] = [];
+    const durations = new Map<string, number>();
+    for (const g of repo.dayMatches(today)) {
+      if (repo.match(g.id)) continue;
+      const level = matchLevel(g.home, g.away, gamerClub);
+      const home = teamForMatch(repo, g.home, g.competition, season, g.round, today, seed, params, g.home === gamerClub ? readPlan(repo, g.home) : undefined);
+      const away = teamForMatch(repo, g.away, g.competition, season, g.round, today, seed, params, g.away === gamerClub ? readPlan(repo, g.away) : undefined);
+      const r = playMatch({ seed, id: g.id, home, away }, level, { id: g.id, competition: g.competition, season, round: g.round, date: today }, params);
+      const rival = gamerClub && level === 0 ? rivalReason(repo, data, params, g.competition, season, gamerClub, g.home === gamerClub ? g.away : g.home) : undefined;
+      const ticket = matchTicket(data, params, g.home, g.away, g.competition);
+      const { event } = repo.recordMatch({ ...r.record.match, referee: matchReferee(seed, g.id), ...(ticket ? { attendance: ticket.attendance, revenue: ticket.revenue } : {}) }, r.record.facts, r.record.appearances);
+      if (ticket) post(repo, ticket.club, "ticketing", ticket.revenue);
+      if (rival) repo.appendEvent(rivalEvent(g.id, g.home, g.away, today, season, g.round, event, rival));
+      for (const l of r.record.injuries) repo.appendEvent({ ...l, cause: event });
+      for (const h of r.stories) repo.appendEvent({ ...h, cause: event });
+      const report = r.report;
+      durations.set(g.id, report.duration);
+      if (r.level === 0) live.push({ id: g.id, competition: g.competition, round: g.round, home: g.home, away: g.away, duration: report.duration, homeGoals: report.homeGoals, awayGoals: report.awayGoals, lines: matchLines(r.events, report.duration, personName), summary: r.summary, teams: matchTeams({ home, away }, r.events, r.report, personName), xg: xgCurve(r.events, report.duration) });
+      const clubOf = (side: "home" | "away") => (side === "home" ? g.home : g.away);
+      const man = r.level === 1 ? { player: r.report.matchMan.id, rating: r.report.matchMan.rating } : (() => { const j = r.report.players.find((x) => x.id === r.report.matchMan); return j ? { player: j.id, rating: j.rating } : undefined; })();
+      matches.push({
+        id: g.id, competition: g.competition, round: g.round, home: g.home, away: g.away, homeName: clubName.get(g.home) ?? g.home, awayName: clubName.get(g.away) ?? g.away, homeGoals: report.homeGoals, awayGoals: report.awayGoals, level,
+        goals: report.goals.map((x) => ({ minute: x.minute, player: x.player, name: personName(x.player), club: clubOf(x.side) })),
+        cards: report.cards.map((x) => ({ minute: x.minute, player: x.player, name: personName(x.player), club: clubOf(x.side), colour: x.colour })),
+        injuries: report.injuries.map((x) => ({ minute: x.minute, player: x.player, name: personName(x.player), club: clubOf(x.side), severity: x.injury.severity, days: x.injury.days })),
+        ...(man ? { matchMan: { ...man, name: personName(man.player) } } : {}),
       });
     }
     // o jogo do gamer fica guardado com os outros jogos da competição e a tabela de antes (RZ-130)
-    for (const v of vivos) {
-      const outros = jogos.filter((j) => j.competicao === v.competicao && j.id !== v.id).map((j) => ({
-        id: j.id, casa: { id: j.casa, nome: j.casaNome }, fora: { id: j.fora, nome: j.foraNome }, duracao: duracoes.get(j.id) ?? 90,
-        golos: j.golos.map((x) => ({ minuto: x.minuto, lado: (x.clube === j.casa ? "casa" : "fora") as "casa" | "fora" })), golosCasa: j.golosCasa, golosFora: j.golosFora,
+    for (const v of live) {
+      const others = matches.filter((j) => j.competition === v.competition && j.id !== v.id).map((j) => ({
+        id: j.id, home: { id: j.home, name: j.homeName }, away: { id: j.away, name: j.awayName }, duration: durations.get(j.id) ?? 90,
+        goals: j.goals.map((x) => ({ minute: x.minute, side: (x.club === j.home ? "home" : "away") as "home" | "away" })), homeGoals: j.homeGoals, awayGoals: j.awayGoals,
       }));
-      guardarJogoVivo(repo, { ...v, ...contextoDoJogo(repo, dados, params, v.casa, v.fora, v.competicao, v.id), data: hoje, casa: { id: v.casa, nome: nomeClube.get(v.casa) ?? v.casa }, fora: { id: v.fora, nome: nomeClube.get(v.fora) ?? v.fora }, tabela: tabelas.get(v.competicao) ?? [], pontosVitoria: params.classificacao.pontosVitoria, pontosEmpate: params.classificacao.pontosEmpate, outros, cores: coresDos(dados, [v.casa, v.fora, ...(tabelas.get(v.competicao) ?? []).map((l) => l.clube)]), ladoGamer: v.casa === clubeGamer ? "casa" : "fora", zonas: zonasDa(dados, params, v.casa) });
+      saveLiveMatch(repo, { ...v, ...matchContext(repo, data, params, v.home, v.away, v.competition, v.id), date: today, home: { id: v.home, name: clubName.get(v.home) ?? v.home }, away: { id: v.away, name: clubName.get(v.away) ?? v.away }, table: tables.get(v.competition) ?? [], winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, others, colours: coloursOf(data, [v.home, v.away, ...(tables.get(v.competition) ?? []).map((l) => l.club)]), gamerSide: v.home === gamerClub ? "home" : "away", zones: zonesOf(data, params, v.home) });
     }
-    const amanha = somarDias(hoje, 1);
-    repo.definirMeta("data.hoje", amanha);
+    const tomorrow = addDays(today, 1);
+    repo.setMeta("data.hoje", tomorrow);
     // fecho mensal das finanças (RZ-114): ao passar para o dia 1 de um mês
-    if (amanha.endsWith("-01")) fecharMesesAte(repo, dados, params, amanha, epoca, (c) => !estaNaSegundaDistrital(c.liga));
+    if (tomorrow.endsWith("-01")) closeUntilMonths(repo, data, params, tomorrow, season, (c) => !isInSecondDistrict(c.league));
     // Sem clube, chegam ofertas novas todas as segundas-feiras.
-    if (estaDesempregado(repo) && diaDaSemana(amanha) === 1) atualizarOfertas(repo, dados, params, amanha);
-    return { data: hoje, jogos };
+    if (isUnemployed(repo) && weekDay(tomorrow) === 1) updateOffers(repo, data, params, tomorrow);
+    return { date: today, matches };
   });
 }
 
@@ -195,48 +195,48 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
  * Avança até um limite e pára: «dia» (1 dia), «semana» (7 dias) ou «proximoJogo» (até ao dia em que o clube do gamer joga,
  * inclusive; sem clube, 7 dias). Pára sempre no fim da época (sem mais jogos marcados).
  */
-export function avancar(repo: Repositorio, base: DadosBase, params: Parametros, modo: Modo, clubeGamer?: string): ResultadoAvanco {
-  const inicio = estadoDoTempo(repo, base, params);
-  const dias: ResumoDia[] = [];
-  const limite = modo === "dia" ? 1 : modo === "semana" || !clubeGamer ? 7 : MAX_DIAS;
-  let pausa: Pausa | undefined;
-  let resumoEpoca: ResumoEpoca | undefined;
+export function advance(repo: Repository, base: BaseData, params: Params, mode: Mode, gamerClub?: string): AdvanceResult {
+  const start = timeState(repo, base, params);
+  const days: SummaryDay[] = [];
+  const limit = mode === "day" ? 1 : mode === "semana" || !gamerClub ? 7 : DAYS_MAX;
+  let pause: Pause | undefined;
+  let seasonSummary: SeasonSummary | undefined;
   /** Se já não há jogos por jogar: gera a Fase de Promoção ou fecha a época (automático, RZ-159). */
-  const etapaDeEpoca = (): "livre" | "gerou" | "fechou" => {
-    const dados = dadosDaEpoca(repo, base);
-    const epoca = epocaAtual(repo);
-    const pendentes = jogosPorJogar(repo, dados, epoca);
+  const seasonStage = (): "free" | "gerou" | "fechou" => {
+    const data = seasonData(repo, base);
+    const season = currentSeason(repo);
+    const pending = matchesPerPlay(repo, data, season);
     // A Fase de Promoção marca-se assim que acabam as distritais (cedo, para se jogar até maio), com as outras ligas ainda a decorrer.
-    const distritais = new Set(dados.clubes.filter((c) => c.escalao === "distrital").map((c) => c.liga));
-    if (!gruposDaPromocao(repo, epoca) && !pendentes.some((j) => distritais.has(j.competicao))) { gerarFasePromocao(repo, dados, params, epoca); return "gerou"; }
+    const districtLeagues = new Set(data.clubs.filter((c) => c.tier === "district").map((c) => c.league));
+    if (!promotionGroups(repo, season) && !pending.some((j) => districtLeagues.has(j.competition))) { generatePromotionPhase(repo, data, params, season); return "gerou"; }
     // Fase final do CP (meias-finais e final entre os campeões das séries): marca-se quando as séries acabam e a final quando as meias-finais se jogaram
-    if (gerarMeiasFinaisCp(repo, dados, params, epoca) || gerarFinalCp(repo, params, epoca)) return "gerou";
-    if (pendentes.length > 0) return "livre";
-    resumoEpoca = fecharEpoca(repo, dados, params, epoca);
+    if (generateCpFinalSemi(repo, data, params, season) || generateCpFinal(repo, params, season)) return "gerou";
+    if (pending.length > 0) return "free";
+    seasonSummary = closeSeason(repo, data, params, season);
     return "fechou";
   };
-  while (dias.length < limite) {
-    const etapa = etapaDeEpoca();
-    if (etapa === "fechou") break;
-    if (etapa === "gerou") continue;
-    const dados = dadosDaEpoca(repo, base);
-    const hoje = repo.meta("data.hoje") as Data;
-    const dele = clubeGamer ? repo.jogosDoDia(hoje).find((g) => (g.casa === clubeGamer || g.fora === clubeGamer) && !repo.jogo(g.id)) : undefined;
-    if (dele && !jogoConfirmado(repo, dele.id)) {
-      const nome = (id: string) => dados.clubes.find((c) => c.id === id)?.nome ?? id;
-      pausa = { emCurso: !!repo.meta(CHAVE_SESSAO), jogo: dele.id, data: hoje, competicao: dele.competicao, jornada: dele.jornada, casa: dele.casa, fora: dele.fora, casaNome: nome(dele.casa), foraNome: nome(dele.fora) };
+  while (days.length < limit) {
+    const stage = seasonStage();
+    if (stage === "fechou") break;
+    if (stage === "gerou") continue;
+    const data = seasonData(repo, base);
+    const today = repo.meta("data.hoje") as IsoDate;
+    const its = gamerClub ? repo.dayMatches(today).find((g) => (g.home === gamerClub || g.away === gamerClub) && !repo.match(g.id)) : undefined;
+    if (its && !confirmedMatch(repo, its.id)) {
+      const name = (id: string) => data.clubs.find((c) => c.id === id)?.name ?? id;
+      pause = { ongoing: !!repo.meta(SESSION_KEY), match: its.id, date: today, competition: its.competition, round: its.round, home: its.home, away: its.away, homeName: name(its.home), awayName: name(its.away) };
       break;
     }
     // o jogo do gamer pode já ter sido jogado ao vivo (RZ-170): conta na mesma como «dia de jogo»
-    const doGamerHoje = clubeGamer ? repo.jogosDoDia(hoje).filter((g) => g.casa === clubeGamer || g.fora === clubeGamer) : [];
+    const ofTodayGamer = gamerClub ? repo.dayMatches(today).filter((g) => g.home === gamerClub || g.away === gamerClub) : [];
     // se o jogo de hoje já foi jogado antes deste pedido (ao vivo), hoje não conta: o «próximo jogo» é o seguinte
-    const jaJogadoAntes = dias.length === 0 && doGamerHoje.length > 0 && doGamerHoje.every((g) => !!repo.jogo(g.id));
-    const d = avancarDia(repo, base, params, clubeGamer);
-    dias.push(d);
-    if (modo === "proximoJogo" && doGamerHoje.length > 0 && !jaJogadoAntes) break;
+    const alreadyBeforePlayed = days.length === 0 && ofTodayGamer.length > 0 && ofTodayGamer.every((g) => !!repo.match(g.id));
+    const d = advanceDay(repo, base, params, gamerClub);
+    days.push(d);
+    if (mode === "nextMatch" && ofTodayGamer.length > 0 && !alreadyBeforePlayed) break;
   }
   // A época fecha logo depois da última jornada, sem esperar por outro pedido.
-  if (!resumoEpoca && !pausa) for (let i = 0; i < 2 && !resumoEpoca; i++) if (etapaDeEpoca() !== "gerou") break;
-  const estado = estadoDoTempo(repo, base, params);
-  return { de: inicio.hoje, ate: estado.hoje, dias, fimDeEpoca: !!resumoEpoca, ...(resumoEpoca ? { resumoEpoca } : {}), estado, ...(pausa ? { pausa } : {}) };
+  if (!seasonSummary && !pause) for (let i = 0; i < 2 && !seasonSummary; i++) if (seasonStage() !== "gerou") break;
+  const state = timeState(repo, base, params);
+  return { de: start.today, until: state.today, days, seasonEnd: !!seasonSummary, ...(seasonSummary ? { seasonSummary } : {}), state, ...(pause ? { pause } : {}) };
 }

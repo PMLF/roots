@@ -1,58 +1,58 @@
 /** Formas das pessoas geradas (RZ-103). Todas de "verdade": a UI só as vê através da `Vista`. */
-import type { Escalao } from "../config/parametros";
-import type { PapelPessoa, Personalidade } from "../personalidade/gerar";
-import type { Data } from "../persistencia/tipos";
+import type { Tier } from "../config/parametros";
+import type { PersonRole, Personality } from "../personalidade/gerar";
+import type { IsoDate } from "../persistencia/tipos";
 
-export const POSICOES = ["GK", "RB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "ST"] as const;
-export type Posicao = (typeof POSICOES)[number];
+export const POSITIONS = ["GK", "RB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "ST"] as const;
+export type Position = (typeof POSITIONS)[number];
 
-export const ATRIBUTOS_TECNICOS = ["finalizacao", "remateLonge", "passe", "cruzamento", "drible", "controloBola", "cabeceamento", "desarme", "marcacao", "bolaParada", "penaltis", "tecnica", "lancamentos", "primeiroToque"] as const;
-export const ATRIBUTOS_MENTAIS = ["visao", "decisao", "compostura", "trabalhoEquipa", "posicionamento", "antecipacao", "concentracao", "determinacao", "lideranca", "agressividade", "criatividade", "desmarcacao", "sacrificio", "coragem"] as const;
-export const ATRIBUTOS_FISICOS = ["velocidade", "aceleracao", "resistencia", "forca", "agilidade", "salto", "equilibrio", "aptidaoFisica", "recuperacao"] as const;
-export const ATRIBUTOS_GR = ["reflexos", "jogoAereo", "jogoPes", "posicionamentoGR", "comunicacao", "manuseamento", "saidas", "pontapeBaliza"] as const;
-export const ATRIBUTOS = [...ATRIBUTOS_TECNICOS, ...ATRIBUTOS_MENTAIS, ...ATRIBUTOS_FISICOS, ...ATRIBUTOS_GR] as const;
-export type Atributo = (typeof ATRIBUTOS)[number];
-export type Atributos = Record<Atributo, number>;
+export const TECHNICAL_ATTRIBUTES = ["finishing", "remateLonge", "pass", "cruzamento", "dribble", "controloBola", "cabeceamento", "desarme", "marcacao", "bolaParada", "penalties", "technical", "lancamentos", "primeiroToque"] as const;
+export const MENTAL_ATTRIBUTES = ["visao", "decisao", "compostura", "trabalhoEquipa", "posicionamento", "antecipacao", "concentracao", "determinacao", "lideranca", "agressividade", "criatividade", "unmarking", "sacrificio", "coragem"] as const;
+export const PHYSICAL_ATTRIBUTES = ["speed", "aceleracao", "resistencia", "strength", "agilidade", "salto", "equilibrio", "physicalAptitude", "recuperacao"] as const;
+export const GK_ATTRIBUTES = ["reflexes", "jogoAereo", "jogoPes", "gkPositioning", "comunicacao", "handling", "outputs", "pontapeBaliza"] as const;
+export const ATTRIBUTES = [...TECHNICAL_ATTRIBUTES, ...MENTAL_ATTRIBUTES, ...PHYSICAL_ATTRIBUTES, ...GK_ATTRIBUTES] as const;
+export type Attribute = (typeof ATTRIBUTES)[number];
+export type Attributes = Record<Attribute, number>;
 
-export type PessoaNova = {
+export type NewPerson = {
   id: string;
-  nome: string;
-  nomeDesportivo: string;
-  nascimento: Data;
+  name: string;
+  sportingName: string;
+  birth: IsoDate;
   /** id do país (`data/paises.csv`). */
-  nacionalidade: string;
+  nationality: string;
   /** Concelho de naturalidade (portugueses nascidos cá). */
   naturalDe?: string;
-  papeis: PapelPessoa[];
-  personalidade: Personalidade;
-  arquetipo: string;
+  roles: PersonRole[];
+  personality: Personality;
+  archetype: string;
   /** 1 = detalhado … 3 = esboço (GERACAO_MUNDO). */
   lod: 1 | 2 | 3;
 };
 
-export type JogadorNovo = {
-  pessoa: string;
-  posicoes: { pos: Posicao; aptidao: number }[];
-  atributos: Atributos;
+export type NewPlayer = {
+  person: string;
+  positions: { pos: Position; aptitude: number }[];
+  attributes: Attributes;
   /** Verdade oculta; a `Vista` só devolve estimativas. */
-  potencial: number;
-  alturaCm: number;
-  pesoKg: number;
+  potential: number;
+  heightCm: number;
+  weightKg: number;
   pe: "D" | "E" | "A";
-  clube?: string;
-  estado: "ativo" | "livre";
+  club?: string;
+  state: "active" | "free";
 };
 
-export type ContratoNovo = { pessoa: string; clube: string; salarioMensal: number; inicio: Data; fim: Data };
+export type NewContract = { person: string; club: string; monthlyWage: number; start: IsoDate; end: IsoDate };
 
-export type FuncaoCargo = "presidente" | "autarca" | "treinador" | "adjunto" | "olheiro" | "medico" | "fisio" | "comunidade" | "empresario" | "dirigenteAdeptos" | "agente" | "arbitro" | "jornalista";
-export type CargoNovo = { pessoa: string; funcao: FuncaoCargo; clube?: string; cidade?: string; qualidade?: Record<string, number> };
+export type RoleFunction = "president" | "mayor" | "coach" | "adjunto" | "scout" | "medical" | "fisio" | "comunidade" | "businessperson" | "dirigenteAdeptos" | "agent" | "referee" | "journalist";
+export type NewRole = { person: string; fn: RoleFunction; club?: string; city?: string; quality?: Record<string, number> };
 
-export type LoteMundo = {
-  pessoas: PessoaNova[];
-  jogadores: JogadorNovo[];
-  contratos: ContratoNovo[];
-  cargos: CargoNovo[];
+export type WorldBatch = {
+  people: NewPerson[];
+  players: NewPlayer[];
+  contracts: NewContract[];
+  roles: NewRole[];
 };
 
-export type EscalaoClube = Escalao;
+export type ClubTier = Tier;

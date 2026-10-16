@@ -5,77 +5,77 @@
  * Estado no save (meta; texto vazio = sem valor): `clube.gamer`, `gamer.anterior`, `gamer.ofertas`.
  */
 import { Rng } from "../aleatorio/rng";
-import type { Parametros } from "../config/parametros";
-import type { DadosBase } from "../dados/tipos";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { Data } from "../persistencia/tipos";
-import { estaNaSegundaDistrital } from "./distritais";
-import { epocaAtual } from "./piramideEpoca";
-import { prepararEpoca } from "./preparar";
+import type { Params } from "../config/parametros";
+import type { BaseData } from "../dados/tipos";
+import type { Repository } from "../persistencia/repositorio";
+import type { IsoDate } from "../persistencia/tipos";
+import { isInSecondDistrict } from "./distritais";
+import { currentSeason } from "./piramideEpoca";
+import { prepareSeason } from "./preparar";
 
-export type Oferta = { clube: string; desde: Data };
+export type Offer = { club: string; since: IsoDate };
 
-export const ofertasDoGamer = (repo: Repositorio): Oferta[] => {
-  const bruto = repo.meta("gamer.ofertas");
-  return bruto ? (JSON.parse(bruto) as Oferta[]) : [];
+export const gamerOffers = (repo: Repository): Offer[] => {
+  const raw = repo.meta("gamer.ofertas");
+  return raw ? (JSON.parse(raw) as Offer[]) : [];
 };
 
-export const estaDesempregado = (repo: Repositorio): boolean => !repo.meta("clube.gamer") && !!repo.meta("gamer.anterior");
+export const isUnemployed = (repo: Repository): boolean => !repo.meta("clube.gamer") && !!repo.meta("gamer.anterior");
 
 /** Renova as ofertas (determinístico por save e data). `dados` já traz as ligas atuais. */
-export function atualizarOfertas(repo: Repositorio, dados: DadosBase, params: Parametros, hoje: Data): Oferta[] {
-  const anterior = repo.meta("gamer.anterior");
-  const ref = dados.clubes.find((c) => c.id === anterior)?.reputacao ?? 0;
-  const rng = new Rng(repo.meta("seed") ?? "?", `ofertas/${hoje}`);
-  const tirar = (pool: typeof dados.clubes, n: number) => {
+export function updateOffers(repo: Repository, data: BaseData, params: Params, today: IsoDate): Offer[] {
+  const previous = repo.meta("gamer.anterior");
+  const ref = data.clubs.find((c) => c.id === previous)?.reputation ?? 0;
+  const rng = new Rng(repo.meta("seed") ?? "?", `ofertas/${today}`);
+  const take = (pool: typeof data.clubs, n: number) => {
     const p = [...pool];
-    const out: typeof dados.clubes = [];
-    while (out.length < n && p.length > 0) out.push(p.splice(rng.inteiro(0, p.length - 1), 1)[0]!);
+    const out: typeof data.clubs = [];
+    while (out.length < n && p.length > 0) out.push(p.splice(rng.integer(0, p.length - 1), 1)[0]!);
     return out;
   };
-  const outros = dados.clubes.filter((c) => c.id !== anterior && !estaNaSegundaDistrital(c.liga));
-  const normais = tirar(outros.filter((c) => c.reputacao <= ref), params.treinador.ofertas);
-  const ids = new Set(normais.map((c) => c.id));
-  const surpresas = tirar(outros.filter((c) => !ids.has(c.id) && c.reputacao > ref && c.reputacao <= ref + params.treinador.margemSurpresa), params.treinador.surpresas);
-  const ofertas = [...normais, ...surpresas].map((c): Oferta => ({ clube: c.id, desde: hoje }));
-  repo.definirMeta("gamer.ofertas", JSON.stringify(ofertas));
-  return ofertas;
+  const others = data.clubs.filter((c) => c.id !== previous && !isInSecondDistrict(c.league));
+  const normal = take(others.filter((c) => c.reputation <= ref), params.coach.offers);
+  const ids = new Set(normal.map((c) => c.id));
+  const surprises = take(others.filter((c) => !ids.has(c.id) && c.reputation > ref && c.reputation <= ref + params.coach.surpriseMargin), params.coach.surprises);
+  const offers = [...normal, ...surprises].map((c): Offer => ({ club: c.id, since: today }));
+  repo.setMeta("gamer.ofertas", JSON.stringify(offers));
+  return offers;
 }
 
 /** O gamer demite-se do clube atual: fica sem clube e recebe as primeiras ofertas. */
-export function demitir(repo: Repositorio, dados: DadosBase, params: Parametros): { clube: string } {
-  const clube = repo.meta("clube.gamer");
-  if (!clube) throw new Error("Não tens clube de que te demitir");
-  const { hoje } = prepararEpoca(repo, dados, params);
-  repo.transacao(() => {
-    repo.acrescentarEvento({ tipo: "GAMER_DEMISSAO", data: hoje, epoca: epocaAtual(repo), vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: clube, papel: "deixado" }], dados: {} });
-    repo.definirMeta("gamer.anterior", clube);
-    repo.definirMeta("clube.gamer", "");
-    atualizarOfertas(repo, dados, params, hoje);
+export function resign(repo: Repository, data: BaseData, params: Params): { club: string } {
+  const club = repo.meta("clube.gamer");
+  if (!club) throw new Error("Não tens clube de que te demitir");
+  const { today } = prepareSeason(repo, data, params);
+  repo.transaction(() => {
+    repo.appendEvent({ type: "GAMER_DEMISSAO", date: today, season: currentSeason(repo), visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "deixado" }], data: {} });
+    repo.setMeta("gamer.anterior", club);
+    repo.setMeta("clube.gamer", "");
+    updateOffers(repo, data, params, today);
   });
-  return { clube };
+  return { club };
 }
 
 /** Aceita uma das ofertas em vigor. */
-export function aceitarOferta(repo: Repositorio, clube: string): void {
-  if (!estaDesempregado(repo)) throw new Error("Já tens clube");
-  if (!ofertasDoGamer(repo).some((o) => o.clube === clube)) throw new Error("Esse clube não te fez nenhuma oferta");
-  const hoje = (repo.meta("data.hoje") ?? "") as Data;
-  repo.transacao(() => {
-    repo.acrescentarEvento({ tipo: "GAMER_CONTRATADO", data: hoje, epoca: epocaAtual(repo), vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: clube, papel: "contratou" }], dados: { anterior: repo.meta("gamer.anterior") ?? "" } });
-    repo.definirMeta("clube.gamer", clube);
-    repo.definirMeta("gamer.anterior", "");
-    repo.definirMeta("gamer.ofertas", "");
+export function acceptOffer(repo: Repository, club: string): void {
+  if (!isUnemployed(repo)) throw new Error("Já tens clube");
+  if (!gamerOffers(repo).some((o) => o.club === club)) throw new Error("Esse clube não te fez nenhuma oferta");
+  const today = (repo.meta("data.hoje") ?? "") as IsoDate;
+  repo.transaction(() => {
+    repo.appendEvent({ type: "GAMER_CONTRATADO", date: today, season: currentSeason(repo), visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "contratou" }], data: { previous: repo.meta("gamer.anterior") ?? "" } });
+    repo.setMeta("clube.gamer", club);
+    repo.setMeta("gamer.anterior", "");
+    repo.setMeta("gamer.ofertas", "");
   });
 }
 
 /** O clube do gamer desceu à segunda distrital: despede-o automaticamente e deixa de ser jogável até voltar à pirâmide. */
-export function despedirPorDescida(repo: Repositorio, dados: DadosBase, params: Parametros, clube: string, data: Data, epoca: number): void {
-  if (repo.meta("clube.gamer") !== clube) return;
-  repo.transacao(() => {
-    repo.acrescentarEvento({ tipo: "GAMER_DEMISSAO", data, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: clube, papel: "deixado" }], dados: { motivo: "segundaDistrital" } });
-    repo.definirMeta("gamer.anterior", clube);
-    repo.definirMeta("clube.gamer", "");
-    atualizarOfertas(repo, dados, params, data);
+export function sackByRelegation(repo: Repository, data: BaseData, params: Params, club: string, date: IsoDate, season: number): void {
+  if (repo.meta("clube.gamer") !== club) return;
+  repo.transaction(() => {
+    repo.appendEvent({ type: "GAMER_DEMISSAO", date, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "deixado" }], data: { reason: "segundaDistrital" } });
+    repo.setMeta("gamer.anterior", club);
+    repo.setMeta("clube.gamer", "");
+    updateOffers(repo, data, params, date);
   });
 }

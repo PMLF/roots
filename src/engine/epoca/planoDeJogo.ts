@@ -3,94 +3,94 @@
  * a qualquer momento. Sem onze escolhido, joga-se com o automático. Quem estiver lesionado ou suspenso no dia do jogo é
  * trocado pelo melhor disponível para a mesma posição. O avanço pára antes do jogo do clube até o gamer o confirmar.
  */
-import type { Parametros } from "../config/parametros";
-import { suspensosDoClube } from "../disciplina/castigos";
-import { aptidaoNa, onzeAutomatico, type CandidatoOnze } from "../jogo/equipa";
-import { FORMACOES, TATICA_PADRAO, ESTILOS } from "../jogo/formacoes";
-import type { JogadorEmCampo, Tatica } from "../jogo/tipos";
-import { EVENTO_LESAO } from "../lesoes/estado";
-import type { Atributos, Posicao } from "../mundo/tipos";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { Data } from "../persistencia/tipos";
+import type { Params } from "../config/parametros";
+import { clubSuspended } from "../disciplina/castigos";
+import { aptitudeIn, automaticLineup, type LineupCandidate } from "../jogo/equipa";
+import { FORMATIONS, DEFAULT_TACTIC, STYLES } from "../jogo/formacoes";
+import type { OnPitchPlayer, Tactic } from "../jogo/tipos";
+import { INJURY_EVENT } from "../lesoes/estado";
+import type { Attributes, Position } from "../mundo/tipos";
+import type { Repository } from "../persistencia/repositorio";
+import type { IsoDate } from "../persistencia/tipos";
 
-export type Plano = { tatica: Tatica; /** Sem onze, usa-se o automático. */ onze?: { jogador: string; posicao: Posicao }[] };
+export type Plan = { tactic: Tactic; /** Sem onze, usa-se o automático. */ lineup?: { player: string; position: Position }[] };
 
-const chave = (clube: string) => `plano.${clube}`;
-const chaveConfirmacao = (jogo: string) => `confirmado.${jogo}`;
+const rowKey = (club: string) => `plano.${club}`;
+const confirmationKey = (match: string) => `confirmado.${match}`;
 
-export function lerPlano(repo: Repositorio, clube: string): Plano {
-  const bruto = repo.meta(chave(clube));
-  if (!bruto) return { tatica: { ...TATICA_PADRAO } };
+export function readPlan(repo: Repository, club: string): Plan {
+  const raw = repo.meta(rowKey(club));
+  if (!raw) return { tactic: { ...DEFAULT_TACTIC } };
   try {
-    const p = JSON.parse(bruto) as Plano;
-    return { tatica: { ...TATICA_PADRAO, ...p.tatica }, ...(p.onze ? { onze: p.onze } : {}) };
+    const p = JSON.parse(raw) as Plan;
+    return { tactic: { ...DEFAULT_TACTIC, ...p.tactic }, ...(p.lineup ? { lineup: p.lineup } : {}) };
   } catch {
-    return { tatica: { ...TATICA_PADRAO } };
+    return { tactic: { ...DEFAULT_TACTIC } };
   }
 }
 
-const nivelValido = (n: unknown) => Number.isInteger(n) && (n as number) >= 1 && (n as number) <= 5;
+const validLevel = (n: unknown) => Number.isInteger(n) && (n as number) >= 1 && (n as number) <= 5;
 
 /** Lança se a tática não fizer sentido. */
-export function validarTatica(t: Tatica): void {
-  if (!(t.formacao in FORMACOES)) throw new Error("Formação desconhecida");
-  if (!ESTILOS.includes(t.estilo)) throw new Error("Estilo desconhecido");
-  for (const k of ["intensidade", "linha", "ritmo", "fairPlay"] as const) if (!nivelValido(t[k])) throw new Error(`${k} deve ser de 1 a 5`);
+export function validateTactic(t: Tactic): void {
+  if (!(t.formation in FORMATIONS)) throw new Error("Formação desconhecida");
+  if (!STYLES.includes(t.style)) throw new Error("Estilo desconhecido");
+  for (const k of ["intensity", "line", "tempo", "fairPlay"] as const) if (!validLevel(t[k])) throw new Error(`${k} deve ser de 1 a 5`);
 }
 
 /** Valida e guarda. Lança se a tática ou o onze não fizerem sentido. */
-export function guardarPlano(repo: Repositorio, clube: string, plano: Plano): void {
-  const t = plano.tatica;
-  validarTatica(t);
-  if (plano.onze) {
-    const plantel = new Set(repo.jogadoresDoClube(clube).filter((j) => j.estado === "ativo").map((j) => j.pessoa));
-    if (plano.onze.length !== 11) throw new Error("O onze tem de ter 11 jogadores");
-    if (new Set(plano.onze.map((o) => o.jogador)).size !== 11) throw new Error("Jogador repetido no onze");
-    if (plano.onze.some((o) => !plantel.has(o.jogador))) throw new Error("Há jogadores que não são do plantel");
-    const esperado = [...FORMACOES[t.formacao]].sort().join(",");
-    if (plano.onze.map((o) => o.posicao).sort().join(",") !== esperado) throw new Error("As posições do onze não correspondem à formação");
+export function savePlan(repo: Repository, club: string, plan: Plan): void {
+  const t = plan.tactic;
+  validateTactic(t);
+  if (plan.lineup) {
+    const squad = new Set(repo.clubPlayers(club).filter((j) => j.state === "active").map((j) => j.person));
+    if (plan.lineup.length !== 11) throw new Error("O onze tem de ter 11 jogadores");
+    if (new Set(plan.lineup.map((o) => o.player)).size !== 11) throw new Error("Jogador repetido no onze");
+    if (plan.lineup.some((o) => !squad.has(o.player))) throw new Error("Há jogadores que não são do plantel");
+    const expected = [...FORMATIONS[t.formation]].sort().join(",");
+    if (plan.lineup.map((o) => o.position).sort().join(",") !== expected) throw new Error("As posições do onze não correspondem à formação");
   }
-  repo.definirMeta(chave(clube), JSON.stringify(plano));
+  repo.setMeta(rowKey(club), JSON.stringify(plan));
 }
 
-export const confirmarJogo = (repo: Repositorio, jogo: string) => repo.definirMeta(chaveConfirmacao(jogo), "1");
-export const jogoConfirmado = (repo: Repositorio, jogo: string) => repo.meta(chaveConfirmacao(jogo)) === "1";
+export const confirmMatch = (repo: Repository, match: string) => repo.setMeta(confirmationKey(match), "1");
+export const confirmedMatch = (repo: Repository, match: string) => repo.meta(confirmationKey(match)) === "1";
 
-export type Indisponivel = { jogador: string; motivo: "lesao" | "suspenso"; detalhe?: number };
+export type Unavailable = { player: string; reason: "injury" | "suspended"; detail?: number };
 
 /** Lesionados e suspensos de um clube para um jogo. */
-export function indisponiveis(repo: Repositorio, clube: string, jogadores: readonly string[], competicao: string, epoca: number, jornada: number, hoje: Data, seed: string, params: Parametros): Map<string, Indisponivel> {
-  const out = new Map<string, Indisponivel>();
-  for (const e of repo.eventosDe({ k: "clube", id: clube }, { tipo: EVENTO_LESAO })) {
-    const ate = (e.dados as { ate?: Data }).ate;
-    const j = e.entidades.find((x) => x.k === "pessoa" && x.papel === "lesionado");
-    if (j && ate && e.data <= hoje && ate > hoje) out.set(j.id, { jogador: j.id, motivo: "lesao" });
+export function unavailable(repo: Repository, club: string, players: readonly string[], competition: string, season: number, round: number, today: IsoDate, seed: string, params: Params): Map<string, Unavailable> {
+  const out = new Map<string, Unavailable>();
+  for (const e of repo.eventsOf({ k: "club", id: club }, { type: INJURY_EVENT })) {
+    const until = (e.data as { until?: IsoDate }).until;
+    const j = e.entities.find((x) => x.k === "person" && x.roleKind === "injured");
+    if (j && until && e.date <= today && until > today) out.set(j.id, { player: j.id, reason: "injury" });
   }
-  for (const s of suspensosDoClube(repo, clube, jogadores, competicao, epoca, jornada, seed, params)) out.set(s.jogador, { jogador: s.jogador, motivo: "suspenso", detalhe: s.jogosPorCumprir });
+  for (const s of clubSuspended(repo, club, players, competition, season, round, seed, params)) out.set(s.player, { player: s.player, reason: "suspended", detail: s.matchesPerMeet });
   return out;
 }
 
 /** Aplica o plano aos candidatos: o onze escolhido, com os indisponíveis trocados pelo melhor disponível na posição. */
-export function onzeDoPlano(plano: Plano, candidatos: readonly CandidatoOnze[], fora: ReadonlySet<string>, params?: Parametros): JogadorEmCampo[] {
-  const posicoes = FORMACOES[plano.tatica.formacao];
-  const livres = candidatos.filter((c) => !fora.has(c.pessoa));
-  const usar = livres.length >= 12 ? livres : [...candidatos]; // plantel desfalcado: joga quem houver
-  if (!plano.onze) return onzeAutomatico(usar, posicoes, params);
-  const porId = new Map(candidatos.map((c) => [c.pessoa, c] as const));
-  const onze: JogadorEmCampo[] = [];
-  const ocupados = new Set<string>();
-  const vagas: Posicao[] = [];
-  for (const o of plano.onze) {
-    const c = porId.get(o.jogador);
-    if (c && (!fora.has(o.jogador) || usar === candidatos)) {
-      onze.push({ id: c.pessoa, posicao: o.posicao, atributos: c.atributos as Atributos, alturaCm: c.alturaCm, forma: c.forma ?? 1, ...(params ? { aptidao: aptidaoNa(c.posicoes, o.posicao, params), posicoes: c.posicoes } : {}) });
-      ocupados.add(c.pessoa);
-    } else vagas.push(o.posicao);
+export function planLineup(plan: Plan, candidates: readonly LineupCandidate[], away: ReadonlySet<string>, params?: Params): OnPitchPlayer[] {
+  const positions = FORMATIONS[plan.tactic.formation];
+  const free = candidates.filter((c) => !away.has(c.person));
+  const use = free.length >= 12 ? free : [...candidates]; // plantel desfalcado: joga quem houver
+  if (!plan.lineup) return automaticLineup(use, positions, params);
+  const porId = new Map(candidates.map((c) => [c.person, c] as const));
+  const lineup: OnPitchPlayer[] = [];
+  const busy = new Set<string>();
+  const vacancies: Position[] = [];
+  for (const o of plan.lineup) {
+    const c = porId.get(o.player);
+    if (c && (!away.has(o.player) || use === candidates)) {
+      lineup.push({ id: c.person, position: o.position, attributes: c.attributes as Attributes, heightCm: c.heightCm, form: c.form ?? 1, ...(params ? { aptitude: aptitudeIn(c.positions, o.position, params), positions: c.positions } : {}) });
+      busy.add(c.person);
+    } else vacancies.push(o.position);
   }
-  if (vagas.length > 0) {
-    const restantes = usar.filter((c) => !ocupados.has(c.pessoa));
-    const extra = onzeAutomatico(restantes, vagas, params);
-    onze.push(...extra);
+  if (vacancies.length > 0) {
+    const remaining = use.filter((c) => !busy.has(c.person));
+    const extra = automaticLineup(remaining, vacancies, params);
+    lineup.push(...extra);
   }
-  return onze;
+  return lineup;
 }

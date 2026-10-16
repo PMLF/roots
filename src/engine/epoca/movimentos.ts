@@ -6,110 +6,110 @@
  * fora: os promovidos da Fase de Promoção entram como dado, e as distritais só perdem os promovidos e recebem os
  * despromovidos do CP.
  */
-import { derivados, type Parametros } from "../config/parametros";
-import type { ClubeId, DistritoId, SerieCP } from "../dados/tipos";
+import { derived, type Params } from "../config/parametros";
+import type { ClubId, DistrictId, CpSeries } from "../dados/tipos";
 
-export const SERIES: readonly SerieCP[] = ["A", "B", "C", "D"];
+export const SERIES: readonly CpSeries[] = ["A", "B", "C", "D"];
 
-export type Piramide = {
-  primeira: ClubeId[];
-  segunda: ClubeId[];
-  terceira: ClubeId[];
-  cp: Record<SerieCP, ClubeId[]>;
-  distritais: Record<DistritoId, ClubeId[]>;
+export type Pyramid = {
+  first: ClubId[];
+  second: ClubId[];
+  third: ClubId[];
+  cp: Record<CpSeries, ClubId[]>;
+  districtLeagues: Record<DistrictId, ClubId[]>;
 };
 
 /** Classificações finais, do 1.º ao último. As séries do CP e as distritais só têm de listar os clubes da competição. */
-export type ClassificacoesFinais = {
-  primeira: ClubeId[];
-  segunda: ClubeId[];
-  terceira: ClubeId[];
-  cp: Record<SerieCP, ClubeId[]>;
+export type FinalStandings = {
+  first: ClubId[];
+  second: ClubId[];
+  third: ClubId[];
+  cp: Record<CpSeries, ClubId[]>;
   /** Os promovidos da Fase de Promoção (2 por grupo), cada um com a série do CP para onde sobe. */
-  promovidosFasePromocao: { clube: ClubeId; serie: SerieCP }[];
+  promotionPhasePromoted: { club: ClubId; series: CpSeries }[];
 };
 
-export type Local = "primeira" | "segunda" | "terceira" | `cp-${SerieCP}` | `distrital-${DistritoId}`;
+export type Local = "first" | "second" | "third" | `cp-${CpSeries}` | `distrital-${DistrictId}`;
 
-export type Movimento = { clube: ClubeId; de: Local; para: Local; motivo: "subida" | "descida" | "promocao" };
+export type Movement = { club: ClubId; de: Local; para: Local; reason: "promotion" | "relegation" | "promotion" };
 
-export type ResultadoMovimentos = { piramide: Piramide; movimentos: Movimento[]; avisos: string[] };
+export type MovementsResult = { pyramid: Pyramid; movements: Movement[]; warnings: string[] };
 
 /** Onde cada clube joga: serve para saber a série do CP e o distrito de um clube que desce. */
-export type Contexto = { distritoDe: (c: ClubeId) => DistritoId; serieDoDistrito: (d: DistritoId) => SerieCP };
+export type Context = { districtOf: (c: ClubId) => DistrictId; districtSeries: (d: DistrictId) => CpSeries };
 
-export function aplicarMovimentos(atual: Piramide, finais: ClassificacoesFinais, params: Parametros, ctx: Contexto): ResultadoMovimentos {
-  const { primeiraLiga, segundaLiga, terceiraLiga, cp } = params.piramide;
-  const avisos: string[] = [];
-  const movimentos: Movimento[] = [];
-  const mover = (clube: ClubeId, de: Local, para: Local, motivo: Movimento["motivo"]) => movimentos.push({ clube, de, para, motivo });
-  const ultimos = (lista: readonly ClubeId[], n: number) => (n > 0 ? lista.slice(-n) : []);
-  const primeiros = (lista: readonly ClubeId[], n: number) => lista.slice(0, n);
+export function applyMovements(current: Pyramid, final: FinalStandings, params: Params, ctx: Context): MovementsResult {
+  const { firstLeague, secondLeague, thirdLeague, cp } = params.pyramid;
+  const warnings: string[] = [];
+  const movements: Movement[] = [];
+  const move = (club: ClubId, de: Local, para: Local, reason: Movement["reason"]) => movements.push({ club, de, para, reason });
+  const lastN = (list: readonly ClubId[], n: number) => (n > 0 ? list.slice(-n) : []);
+  const first = (list: readonly ClubId[], n: number) => list.slice(0, n);
 
-  const verifica = (nome: string, esperados: readonly ClubeId[], finalLista: readonly ClubeId[]) => {
-    const a = [...esperados].sort().join("|");
-    const b = [...finalLista].sort().join("|");
-    if (a !== b) avisos.push(`classificação final de ${nome} não coincide com os clubes da competição`);
+  const check = (name: string, expected: readonly ClubId[], listFinal: readonly ClubId[]) => {
+    const a = [...expected].sort().join("|");
+    const b = [...listFinal].sort().join("|");
+    if (a !== b) warnings.push(`classificação final de ${name} não coincide com os clubes da competição`);
   };
-  verifica("primeira", atual.primeira, finais.primeira);
-  verifica("segunda", atual.segunda, finais.segunda);
-  verifica("terceira", atual.terceira, finais.terceira);
-  for (const s of SERIES) verifica(`cp-${s}`, atual.cp[s], finais.cp[s]);
+  check("first", current.first, final.first);
+  check("second", current.second, final.second);
+  check("third", current.third, final.third);
+  for (const s of SERIES) check(`cp-${s}`, current.cp[s], final.cp[s]);
 
   // 1. Primeira ⇄ Segunda ⇄ Terceira
-  const desceP = ultimos(finais.primeira, primeiraLiga.descem);
-  const sobeS = primeiros(finais.segunda, segundaLiga.sobem);
-  const desceS = ultimos(finais.segunda.filter((c) => !sobeS.includes(c)), segundaLiga.descem);
-  const sobeT = primeiros(finais.terceira, terceiraLiga.sobem);
-  const desceT = ultimos(finais.terceira.filter((c) => !sobeT.includes(c)), terceiraLiga.descem);
-  for (const c of desceP) mover(c, "primeira", "segunda", "descida");
-  for (const c of sobeS) mover(c, "segunda", "primeira", "subida");
-  for (const c of desceS) mover(c, "segunda", "terceira", "descida");
-  for (const c of sobeT) mover(c, "terceira", "segunda", "subida");
+  const pDrops = lastN(final.first, firstLeague.drop);
+  const sRises = first(final.second, secondLeague.rise);
+  const sDrops = lastN(final.second.filter((c) => !sRises.includes(c)), secondLeague.drop);
+  const tRises = first(final.third, thirdLeague.rise);
+  const tDrops = lastN(final.third.filter((c) => !tRises.includes(c)), thirdLeague.drop);
+  for (const c of pDrops) move(c, "first", "second", "relegation");
+  for (const c of sRises) move(c, "second", "first", "promotion");
+  for (const c of sDrops) move(c, "second", "third", "relegation");
+  for (const c of tRises) move(c, "third", "second", "promotion");
 
   // 2. CP: o campeão de cada série sobe; descem `promovidos_da_série + descidos_da_Terceira_na_série − subida`
-  const serieDe = (c: ClubeId) => ctx.serieDoDistrito(ctx.distritoDe(c));
-  const campeoes: { clube: ClubeId; serie: SerieCP }[] = [];
-  const desceCp: { clube: ClubeId; serie: SerieCP }[] = [];
+  const seriesOf = (c: ClubId) => ctx.districtSeries(ctx.districtOf(c));
+  const champions: { club: ClubId; series: CpSeries }[] = [];
+  const cpDrops: { club: ClubId; series: CpSeries }[] = [];
   for (const s of SERIES) {
-    const tabela = finais.cp[s];
-    const sobem = primeiros(tabela, cp.sobemPorSerie);
-    for (const c of sobem) campeoes.push({ clube: c, serie: s });
-    const entradasPromo = finais.promovidosFasePromocao.filter((p) => p.serie === s).length;
-    const entradasTerceira = desceT.filter((c) => serieDe(c) === s).length;
-    const descem = Math.max(0, entradasPromo + entradasTerceira - sobem.length);
-    for (const c of ultimos(tabela.filter((x) => !sobem.includes(x)), descem)) desceCp.push({ clube: c, serie: s });
+    const table = final.cp[s];
+    const rise = first(table, cp.risePerSeries);
+    for (const c of rise) champions.push({ club: c, series: s });
+    const promoInputs = final.promotionPhasePromoted.filter((p) => p.series === s).length;
+    const thirdInputs = tDrops.filter((c) => seriesOf(c) === s).length;
+    const drop = Math.max(0, promoInputs + thirdInputs - rise.length);
+    for (const c of lastN(table.filter((x) => !rise.includes(x)), drop)) cpDrops.push({ club: c, series: s });
   }
-  for (const c of campeoes) mover(c.clube, `cp-${c.serie}`, "terceira", "subida");
-  for (const c of desceT) mover(c, "terceira", `cp-${serieDe(c)}`, "descida");
-  for (const c of desceCp) mover(c.clube, `cp-${c.serie}`, `distrital-${ctx.distritoDe(c.clube)}`, "descida");
-  for (const p of finais.promovidosFasePromocao) mover(p.clube, `distrital-${ctx.distritoDe(p.clube)}`, `cp-${p.serie}`, "promocao");
+  for (const c of champions) move(c.club, `cp-${c.series}`, "third", "promotion");
+  for (const c of tDrops) move(c, "third", `cp-${seriesOf(c)}`, "relegation");
+  for (const c of cpDrops) move(c.club, `cp-${c.series}`, `distrital-${ctx.districtOf(c.club)}`, "relegation");
+  for (const p of final.promotionPhasePromoted) move(p.club, `distrital-${ctx.districtOf(p.club)}`, `cp-${p.series}`, "promotion");
 
-  const esperadosPromo = derivados(params).promovidosAoCp;
-  if (finais.promovidosFasePromocao.length !== esperadosPromo) avisos.push(`a Fase de Promoção devia ter ${esperadosPromo} promovidos e tem ${finais.promovidosFasePromocao.length}`);
+  const promoExpected = derived(params).promotedAtCp;
+  if (final.promotionPhasePromoted.length !== promoExpected) warnings.push(`a Fase de Promoção devia ter ${promoExpected} promovidos e tem ${final.promotionPhasePromoted.length}`);
 
   // 3. Nova composição
-  const saem = new Map<Local, Set<ClubeId>>();
-  const entram = new Map<Local, ClubeId[]>();
-  for (const m of movimentos) {
-    (saem.get(m.de) ?? saem.set(m.de, new Set()).get(m.de)!).add(m.clube);
-    (entram.get(m.para) ?? entram.set(m.para, []).get(m.para)!).push(m.clube);
+  const leave = new Map<Local, Set<ClubId>>();
+  const enter = new Map<Local, ClubId[]>();
+  for (const m of movements) {
+    (leave.get(m.de) ?? leave.set(m.de, new Set()).get(m.de)!).add(m.club);
+    (enter.get(m.para) ?? enter.set(m.para, []).get(m.para)!).push(m.club);
   }
-  const compor = (local: Local, base: readonly ClubeId[]) => [...base.filter((c) => !saem.get(local)?.has(c)), ...(entram.get(local) ?? [])];
-  const nova: Piramide = {
-    primeira: compor("primeira", atual.primeira),
-    segunda: compor("segunda", atual.segunda),
-    terceira: compor("terceira", atual.terceira),
-    cp: Object.fromEntries(SERIES.map((s) => [s, compor(`cp-${s}`, atual.cp[s])])) as Record<SerieCP, ClubeId[]>,
-    distritais: Object.fromEntries(Object.entries(atual.distritais).map(([d, l]) => [d, compor(`distrital-${d}`, l)])),
+  const compose = (local: Local, base: readonly ClubId[]) => [...base.filter((c) => !leave.get(local)?.has(c)), ...(enter.get(local) ?? [])];
+  const fresh: Pyramid = {
+    first: compose("first", current.first),
+    second: compose("second", current.second),
+    third: compose("third", current.third),
+    cp: Object.fromEntries(SERIES.map((s) => [s, compose(`cp-${s}`, current.cp[s])])) as Record<CpSeries, ClubId[]>,
+    districtLeagues: Object.fromEntries(Object.entries(current.districtLeagues).map(([d, l]) => [d, compose(`distrital-${d}`, l)])),
   };
 
-  const tamanhos: [string, number, number][] = [
-    ["primeira", nova.primeira.length, primeiraLiga.clubes],
-    ["segunda", nova.segunda.length, segundaLiga.clubes],
-    ["terceira", nova.terceira.length, terceiraLiga.clubes],
-    ...SERIES.map((s): [string, number, number] => [`cp-${s}`, nova.cp[s].length, cp.clubesPorSerie]),
+  const sizes: [string, number, number][] = [
+    ["first", fresh.first.length, firstLeague.clubs],
+    ["second", fresh.second.length, secondLeague.clubs],
+    ["third", fresh.third.length, thirdLeague.clubs],
+    ...SERIES.map((s): [string, number, number] => [`cp-${s}`, fresh.cp[s].length, cp.clubsPerSeries]),
   ];
-  for (const [nome, n, esperado] of tamanhos) if (n !== esperado) avisos.push(`${nome} fica com ${n} clubes (esperado ${esperado})`);
-  return { piramide: nova, movimentos, avisos };
+  for (const [name, n, expected] of sizes) if (n !== expected) warnings.push(`${name} fica com ${n} clubes (esperado ${expected})`);
+  return { pyramid: fresh, movements, warnings };
 }

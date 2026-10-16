@@ -5,83 +5,83 @@
  * É a única parte do projeto que conhece o `@sqlite.org/sqlite-wasm`.
  */
 import type { Database, PreparedStatement, Sqlite3Static } from "@sqlite.org/sqlite-wasm";
-import type { DriverSql, LinhaSql, ValorSql } from "../persistencia/driver";
+import type { DriverSql, SqlLine, SqlValue } from "../persistencia/driver";
 
 // O Next substitui process.env.NEXT_PUBLIC_* no build; o worker não tem os tipos do Node.
 declare const process: { env: { NEXT_PUBLIC_BASE_PATH?: string } };
 
-export type BackendBd = "opfs" | "memoria";
-export type BdAberta = { driver: DriverSql; backend: BackendBd; versaoSqlite: string; motivoMemoria?: string };
+export type DbBackend = "opfs" | "memory";
+export type IsOpenDb = { driver: DriverSql; backend: DbBackend; sqliteVersion: string; memoryReason?: string };
 
-let modulo: Promise<Sqlite3Static> | undefined;
+let module: Promise<Sqlite3Static> | undefined;
 
 /** URL de public/sqlite/index.mjs, respeitando o basePath (tools/copiar-sqlite-wasm.mjs copia-o para lá). */
 export function urlSqlite(): string {
-  return urlPublica("sqlite/index.mjs");
+  return publicUrl("sqlite/index.mjs");
 }
 
 /** URL de um ficheiro de `public/`, respeitando o basePath. */
-export function urlPublica(caminho: string): string {
+export function publicUrl(path: string): string {
   const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-  return `${self.location.origin}${base}/${caminho}`;
+  return `${self.location.origin}${base}/${path}`;
 }
 
 const sqlite = () =>
-  (modulo ??= (async () => {
+  (module ??= (async () => {
     // Carregado por URL, fora do bundler (ver tools/copiar-sqlite-wasm.mjs).
     const m = (await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ urlSqlite())) as { default: () => Promise<Sqlite3Static> };
     return m.default();
   })());
 
-const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Instala o VFS no OPFS. Pode demorar uns instantes a obter o bloqueio se outro worker acabou de sair. */
-async function instalarOpfs(s: Sqlite3Static, nome: string) {
-  let ultimo: unknown;
+async function installOpfs(s: Sqlite3Static, name: string) {
+  let last: unknown;
   for (let i = 0; i < 8; i++) {
     try {
-      return await s.installOpfsSAHPoolVfs({ name: `raizes-${nome}`, initialCapacity: 12 });
+      return await s.installOpfsSAHPoolVfs({ name: `raizes-${name}`, initialCapacity: 12 });
     } catch (e) {
-      ultimo = e;
-      await espera(150 * (i + 1));
+      last = e;
+      await wait(150 * (i + 1));
     }
   }
-  throw ultimo;
+  throw last;
 }
 
 /** Exportado para testar o mesmo código em Node (sqlite-wasm em memória) com a bateria do Repositorio. */
-export function envolver(s: Sqlite3Static, db: Database): DriverSql {
+export function involve(s: Sqlite3Static, db: Database): DriverSql {
   const cache = new Map<string, PreparedStatement>();
-  const prep = (sql: string): PreparedStatement => {
+  const prepare = (sql: string): PreparedStatement => {
     let st = cache.get(sql);
     if (!st) cache.set(sql, (st = db.prepare(sql)));
     return st;
   };
   return {
-    executarScript: (sql) => void db.exec(sql),
-    executar(sql, params = []) {
-      const st = prep(sql);
+    runScript: (sql) => void db.exec(sql),
+    run(sql, params = []) {
+      const st = prepare(sql);
       try {
-        if (params.length > 0) st.bind(params as ValorSql[]);
+        if (params.length > 0) st.bind(params as SqlValue[]);
         st.step();
       } finally {
         st.reset(true);
       }
-      return { alteradas: db.changes(), ultimoId: Number(s.capi.sqlite3_last_insert_rowid(db)) };
+      return { changed: db.changes(), lastId: Number(s.capi.sqlite3_last_insert_rowid(db)) };
     },
-    todos(sql, params = []) {
-      const st = prep(sql);
-      const linhas: LinhaSql[] = [];
+    all(sql, params = []) {
+      const st = prepare(sql);
+      const lines: SqlLine[] = [];
       try {
-        if (params.length > 0) st.bind(params as ValorSql[]);
-        while (st.step()) linhas.push(st.get({}) as LinhaSql);
+        if (params.length > 0) st.bind(params as SqlValue[]);
+        while (st.step()) lines.push(st.get({}) as SqlLine);
       } finally {
         st.reset(true);
       }
-      return linhas;
+      return lines;
     },
-    exportar: () => new Uint8Array(s.capi.sqlite3_js_db_export(db)),
-    fechar() {
+    exported: () => new Uint8Array(s.capi.sqlite3_js_db_export(db)),
+    close() {
       for (const st of cache.values()) st.finalize();
       cache.clear();
       db.close();
@@ -90,28 +90,28 @@ export function envolver(s: Sqlite3Static, db: Database): DriverSql {
 }
 
 /** Abre (ou cria) o save `nome`. Com `bytes` importa um ficheiro .sqlite exportado antes. */
-export async function abrirWasm(nome: string, opcoes: { bytes?: Uint8Array; apenasMemoria?: boolean } = {}): Promise<BdAberta> {
+export async function openWasm(name: string, options: { bytes?: Uint8Array; memoryOnly?: boolean } = {}): Promise<IsOpenDb> {
   const s = await sqlite();
-  const versaoSqlite = s.version.libVersion;
-  let motivoMemoria: string | undefined;
-  if (!opcoes.apenasMemoria) {
+  const sqliteVersion = s.version.libVersion;
+  let memoryReason: string | undefined;
+  if (!options.memoryOnly) {
     try {
-      const pool = await instalarOpfs(s, "saves");
-      const ficheiro = `/${nome}.sqlite3`;
-      if (opcoes.bytes) await pool.importDb(ficheiro, opcoes.bytes);
-      const db = new pool.OpfsSAHPoolDb(ficheiro);
+      const pool = await installOpfs(s, "saves");
+      const file = `/${name}.sqlite3`;
+      if (options.bytes) await pool.importDb(file, options.bytes);
+      const db = new pool.OpfsSAHPoolDb(file);
       db.exec("PRAGMA foreign_keys = ON");
-      return { driver: envolver(s, db), backend: "opfs", versaoSqlite };
+      return { driver: involve(s, db), backend: "opfs", sqliteVersion };
     } catch (e) {
-      motivoMemoria = e instanceof Error ? e.message : String(e);
+      memoryReason = e instanceof Error ? e.message : String(e);
     }
   }
   const db = new s.oo1.DB(":memory:", "c");
-  if (opcoes.bytes) {
-    const p = s.wasm.allocFromTypedArray(opcoes.bytes);
-    const rc = s.capi.sqlite3_deserialize(db, "main", p, opcoes.bytes.byteLength, opcoes.bytes.byteLength, s.capi.SQLITE_DESERIALIZE_FREEONCLOSE | s.capi.SQLITE_DESERIALIZE_RESIZEABLE);
+  if (options.bytes) {
+    const p = s.wasm.allocFromTypedArray(options.bytes);
+    const rc = s.capi.sqlite3_deserialize(db, "main", p, options.bytes.byteLength, options.bytes.byteLength, s.capi.SQLITE_DESERIALIZE_FREEONCLOSE | s.capi.SQLITE_DESERIALIZE_RESIZEABLE);
     if (rc !== 0) throw new Error(`Não foi possível importar o save (código ${rc})`);
   }
   db.exec("PRAGMA foreign_keys = ON");
-  return { driver: envolver(s, db), backend: "memoria", versaoSqlite, ...(motivoMemoria !== undefined ? { motivoMemoria } : {}) };
+  return { driver: involve(s, db), backend: "memory", sqliteVersion, ...(memoryReason !== undefined ? { memoryReason } : {}) };
 }

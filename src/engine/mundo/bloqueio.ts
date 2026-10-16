@@ -3,10 +3,10 @@
  * Só serve para impedir que o gerador as produza por acaso; nunca aparece no jogo.
  * Comparação sem acentos, maiúsculas nem hífenes. Cresce com o conteúdo.
  */
-export const normalizarNome = (s: string): string =>
+export const normaliseName = (s: string): string =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[-'’.]/g, " ").replace(/\s+/g, " ").trim();
 
-const BLOQUEADOS = [
+const BLOCKED = [
   "luis figo", "joao felix", "bruno fernandes", "bernardo silva", "ruben dias", "diogo costa", "diogo jota", "joao cancelo",
   "ricardo quaresma", "rui patricio", "nuno mendes", "pedro neto", "jose mourinho", "antonio costa", "rafael leao", "goncalo ramos",
   "joao moutinho", "ruben amorim", "paulo bento", "fernando santos", "nuno santo", "vitor baia", "paulo futre", "rui costa",
@@ -24,6 +24,6 @@ const BLOQUEADOS = [
   "son heung min", "kim min jae", "marcelo rebelo", "luis montenegro", "pedro passos", "jose socrates", "anibal cavaco",
 ] as const;
 
-export const LISTA_BLOQUEIO: ReadonlySet<string> = new Set(BLOQUEADOS.map(normalizarNome));
+export const BLOCK_LIST: ReadonlySet<string> = new Set(BLOCKED.map(normaliseName));
 
-export const estaBloqueado = (nome: string, lista: ReadonlySet<string> = LISTA_BLOQUEIO): boolean => lista.has(normalizarNome(nome));
+export const isBlocked = (name: string, list: ReadonlySet<string> = BLOCK_LIST): boolean => list.has(normaliseName(name));

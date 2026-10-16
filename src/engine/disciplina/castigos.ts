@@ -9,30 +9,30 @@
  * - Castigos pendentes no fim da época passam para a seguinte (`pendenteInicial`): nada se apaga.
  */
 import { Rng } from "../aleatorio/rng";
-import type { Parametros } from "../config/parametros";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { RegistoCartao } from "../persistencia/tipos";
+import type { Params } from "../config/parametros";
+import type { Repository } from "../persistencia/repositorio";
+import type { CardRecord } from "../persistencia/tipos";
 
-export type MotivoCastigo = "acumulacao" | "segundo-amarelo" | "vermelho";
+export type SuspensionReason = "acumulacao" | "segundo-amarelo" | "red";
 
-export type EstadoDisciplinar = {
-  jogador: string;
+export type DisciplinaryState = {
+  player: string;
   /** Amarelos acumulados nesta competição e época (os que ainda contam para a próxima suspensão incluídos). */
-  amarelos: number;
+  yellows: number;
   /** Amarelos que faltam para o próximo jogo de suspensão. */
-  paraSuspensao: number;
-  suspenso: boolean;
+  forSuspension: number;
+  suspended: boolean;
   /** Jogos de castigo por cumprir, contando o próximo (0 se não está suspenso). */
-  jogosPorCumprir: number;
+  matchesPerMeet: number;
   /** Motivo do castigo mais recente ainda por cumprir. */
-  motivo?: MotivoCastigo;
+  reason?: SuspensionReason;
 };
 
 /** Duração (em jogos) de um vermelho direto, sorteada de forma estável por seed, jogo e jogador. */
-export function jogosVermelhoDireto(seed: string, jogo: string, jogador: string, p: Parametros["disciplina"]): number {
-  const r = new Rng(seed, `castigo/${jogo}/${jogador}`);
-  let n = p.vermelhoDireto.jogos;
-  while (n < p.vermelhoDireto.max && r.prob(p.vermelhoDireto.pMaisUm)) n++;
+export function directRedMatches(seed: string, match: string, player: string, p: Params["discipline"]): number {
+  const r = new Rng(seed, `castigo/${match}/${player}`);
+  let n = p.directRed.matches;
+  while (n < p.directRed.max && r.prob(p.directRed.morePA)) n++;
   return n;
 }
 
@@ -41,71 +41,71 @@ export function jogosVermelhoDireto(seed: string, jogo: string, jogador: string,
  * `cartoes`: os do jogador nesta competição e época; `jornadasClube`: jornadas em que o clube jogou (as anteriores à próxima
  * são as que contam para cumprir castigo); `pendenteInicial`: castigo vindo da época anterior.
  */
-export function estadoDisciplinar(
-  jogador: string,
-  cartoes: readonly RegistoCartao[],
-  jornadasClube: readonly number[],
-  proximaJornada: number,
+export function disciplinaryState(
+  player: string,
+  cards: readonly CardRecord[],
+  clubRounds: readonly number[],
+  nextRound: number,
   seed: string,
-  params: Parametros,
-  pendenteInicial = 0,
-): EstadoDisciplinar {
-  const p = params.disciplina;
-  const meus = cartoes.filter((c) => c.jogador === jogador);
-  let amarelos = 0;
-  let pendente = pendenteInicial;
-  let motivo: MotivoCastigo | undefined = pendenteInicial > 0 ? "vermelho" : undefined;
-  const jogadas = [...new Set(jornadasClube)].filter((j) => j < proximaJornada).sort((a, b) => a - b);
-  for (const jornada of jogadas) {
-    if (pendente > 0) {
-      pendente--; // cumpriu um jogo: não jogou, não há cartões dele neste jogo
+  params: Params,
+  initialPending = 0,
+): DisciplinaryState {
+  const p = params.discipline;
+  const ownSquad = cards.filter((c) => c.player === player);
+  let yellows = 0;
+  let pending = initialPending;
+  let reason: SuspensionReason | undefined = initialPending > 0 ? "red" : undefined;
+  const played = [...new Set(clubRounds)].filter((j) => j < nextRound).sort((a, b) => a - b);
+  for (const round of played) {
+    if (pending > 0) {
+      pending--; // cumpriu um jogo: não jogou, não há cartões dele neste jogo
       continue;
     }
-    for (const c of meus.filter((x) => x.jornada === jornada)) {
-      if (c.tipo === "CA") {
-        amarelos++;
-        if (amarelos % p.amarelosPorSuspensao === 0) {
-          pendente++;
-          motivo = "acumulacao";
+    for (const c of ownSquad.filter((x) => x.round === round)) {
+      if (c.type === "CA") {
+        yellows++;
+        if (yellows % p.yellowsPerSuspension === 0) {
+          pending++;
+          reason = "acumulacao";
         }
       } else if (c.extra.includes("2A")) {
-        pendente += p.segundoAmarelo.jogos;
-        motivo = "segundo-amarelo";
+        pending += p.secondYellow.matches;
+        reason = "segundo-amarelo";
       } else {
-        pendente += jogosVermelhoDireto(seed, c.jogo, jogador, p);
-        motivo = "vermelho";
+        pending += directRedMatches(seed, c.match, player, p);
+        reason = "red";
       }
     }
   }
   return {
-    jogador,
-    amarelos,
-    paraSuspensao: p.amarelosPorSuspensao - (amarelos % p.amarelosPorSuspensao),
-    suspenso: pendente > 0,
-    jogosPorCumprir: pendente,
-    ...(pendente > 0 && motivo ? { motivo } : {}),
+    player,
+    yellows,
+    forSuspension: p.yellowsPerSuspension - (yellows % p.yellowsPerSuspension),
+    suspended: pending > 0,
+    matchesPerMeet: pending,
+    ...(pending > 0 && reason ? { reason } : {}),
   };
 }
 
 /** Os suspensos de um clube para o jogo da jornada `proximaJornada`, lendo o historial do repositório. */
-export function suspensosDoClube(
-  repo: Repositorio,
-  clube: string,
-  jogadores: readonly string[],
-  competicao: string,
-  epoca: number,
-  proximaJornada: number,
+export function clubSuspended(
+  repo: Repository,
+  club: string,
+  players: readonly string[],
+  competition: string,
+  season: number,
+  nextRound: number,
   seed: string,
-  params: Parametros,
-  pendentes: ReadonlyMap<string, number> = new Map(),
-): EstadoDisciplinar[] {
-  const cartoes = repo.cartoes(competicao, epoca, jogadores);
-  const jornadas = repo.jornadasJogadas(clube, competicao, epoca);
-  return jogadores.map((j) => estadoDisciplinar(j, cartoes, jornadas, proximaJornada, seed, params, pendentes.get(j) ?? 0)).filter((e) => e.suspenso);
+  params: Params,
+  pending: ReadonlyMap<string, number> = new Map(),
+): DisciplinaryState[] {
+  const cards = repo.cards(competition, season, players);
+  const rounds = repo.playedRounds(club, competition, season);
+  return players.map((j) => disciplinaryState(j, cards, rounds, nextRound, seed, params, pending.get(j) ?? 0)).filter((e) => e.suspended);
 }
 
 /** Tira os suspensos dos candidatos a titular. */
-export function semSuspensos<T extends { pessoa: string }>(candidatos: readonly T[], suspensos: readonly EstadoDisciplinar[]): T[] {
-  const fora = new Set(suspensos.map((s) => s.jogador));
-  return candidatos.filter((c) => !fora.has(c.pessoa));
+export function withoutSuspended<T extends { person: string }>(candidates: readonly T[], suspended: readonly DisciplinaryState[]): T[] {
+  const away = new Set(suspended.map((s) => s.player));
+  return candidates.filter((c) => !away.has(c.person));
 }

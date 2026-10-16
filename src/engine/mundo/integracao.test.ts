@@ -1,78 +1,78 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { abrirBetterSqlite } from "../../node/driverBetterSqlite";
+import { openSqliteBetter } from "../../node/driverBetterSqlite";
 import { Rng } from "../aleatorio/rng";
-import { observarPlantelProprio } from "../conhecimento/observar";
-import { PARAMETROS_PADRAO as P } from "../config/parametros";
-import { importarDados } from "../dados/importar";
-import { RepositorioMemoria } from "../persistencia/repositorioMemoria";
-import { RepositorioSqlite } from "../persistencia/repositorioSqlite";
-import { Vista } from "../vista/vista";
-import { gerarMundo } from "./gerarMundo";
-import { importarPaises } from "./paises";
+import { observeOwnSquad } from "../conhecimento/observar";
+import { DEFAULT_PARAMETERS as P } from "../config/parametros";
+import { importData } from "../dados/importar";
+import { MemoryRepository } from "../persistencia/repositorioMemoria";
+import { SqliteRepository } from "../persistencia/repositorioSqlite";
+import { View } from "../vista/vista";
+import { generateWorld } from "./gerarMundo";
+import { importCountries } from "./paises";
 
-const ler = (f: string) => readFileSync(`data/${f}`, "utf8");
-const d = importarDados({ clubes: ler("clubes.csv"), cidades: ler("cidades.csv"), localidades: ler("localidades.csv"), rivalidades: ler("rivalidades.csv"), distritos: ler("distritos.csv") });
-const pr = importarPaises(ler("paises.csv"));
+const read = (f: string) => readFileSync(`data/${f}`, "utf8");
+const d = importData({ clubs: read("clubes.csv"), cities: read("cidades.csv"), localities: read("localidades.csv"), rivalries: read("rivalidades.csv"), districts: read("distritos.csv") });
+const pr = importCountries(read("paises.csv"));
 if (!d.ok || !pr.ok) throw new Error("dados inválidos");
-const dados = d.dados;
-const lote = gerarMundo({ seed: "integracao", dados, paises: pr.paises, params: P });
-const meu = dados.clubes.find((c) => c.escalao === "terceiraLiga")!.id;
-const outro = dados.clubes.find((c) => c.escalao === "segundaLiga")!.id;
+const data = d.data;
+const batch = generateWorld({ seed: "integracao", data, countries: pr.countries, params: P });
+const mine = data.clubs.find((c) => c.tier === "thirdLeague")!.id;
+const other = data.clubs.find((c) => c.tier === "secondLeague")!.id;
 
 describe.each([
-  ["memória", () => new RepositorioMemoria()],
-  ["SQLite", () => new RepositorioSqlite(abrirBetterSqlite())],
-])("mundo guardado e visto (%s)", (_n, criar) => {
-  const repo = criar();
-  const progresso: number[] = [];
-  repo.guardarMundo(lote, (f, t) => progresso.push(f / t));
-  const data = "2026-07-01";
-  const n = observarPlantelProprio(repo, meu, { data, epoca: 1 }, new Rng("obs"), P.conhecimento);
-  const vista = new Vista(repo, { observador: meu, participantes: new Set([`clube:${meu}`]), data, epoca: 1 }, P.conhecimento);
+  ["memória", () => new MemoryRepository()],
+  ["SQLite", () => new SqliteRepository(openSqliteBetter())],
+])("mundo guardado e visto (%s)", (_n, create) => {
+  const repo = create();
+  const progress: number[] = [];
+  repo.saveWorld(batch, (f, t) => progress.push(f / t));
+  const date = "2026-07-01";
+  const n = observeOwnSquad(repo, mine, { date, season: 1 }, new Rng("obs"), P.knowledge);
+  const view = new View(repo, { observer: mine, participants: new Set([`clube:${mine}`]), date, season: 1 }, P.knowledge);
 
   it("guarda tudo e reporta progresso até 100 %", () => {
-    expect(repo.totalPessoas()).toBe(lote.pessoas.length);
-    expect(progresso.at(-1)).toBe(1);
-    expect(n).toBe(P.mundo.plantel.terceiraLiga);
+    expect(repo.peopleTotal()).toBe(batch.people.length);
+    expect(progress.at(-1)).toBe(1);
+    expect(n).toBe(P.world.squad.thirdLeague);
   });
   it("o plantel próprio mostra estimativas com margem; o de outro clube só factos públicos", () => {
-    const meus = vista.plantel(meu);
-    expect(meus).toHaveLength(n);
-    const f = vista.ficha(meus[0]!.id)!;
-    expect(f.publico.idade).toBeGreaterThanOrEqual(16);
-    expect(Object.keys(f.atributos!.campos).length).toBe(45);
-    expect(f.potencial!.campos.potencial!.margem).toBeGreaterThan(0);
-    expect(f.personalidade!.rotulos.length).toBeLessThanOrEqual(3);
+    const ownSquad = view.squad(mine);
+    expect(ownSquad).toHaveLength(n);
+    const f = view.profile(ownSquad[0]!.id)!;
+    expect(f.exposed.age).toBeGreaterThanOrEqual(16);
+    expect(Object.keys(f.attributes!.fields).length).toBe(45);
+    expect(f.potential!.fields.potencial!.margin).toBeGreaterThan(0);
+    expect(f.personality!.labels.length).toBeLessThanOrEqual(3);
 
-    const alheio = vista.plantel(outro)[0]!;
-    const fa = vista.ficha(alheio.id)!;
-    expect(fa.publico.clube).toBe(outro);
-    expect(fa.atributos).toBeUndefined();
-    expect(fa.potencial).toBeUndefined();
-    expect(fa.personalidade).toBeUndefined();
+    const foreignClub = view.squad(other)[0]!;
+    const fa = view.profile(foreignClub.id)!;
+    expect(fa.exposed.club).toBe(other);
+    expect(fa.attributes).toBeUndefined();
+    expect(fa.potential).toBeUndefined();
+    expect(fa.personality).toBeUndefined();
   });
   it("a Vista não devolve nada da verdade nem por acidente", () => {
-    const txt = JSON.stringify(vista.ficha(vista.plantel(outro)[0]!.id));
-    for (const proibido of ["potencial", "atributos", "lealdade", "arquetipo", "salario"]) expect(txt).not.toContain(`"${proibido}"`);
+    const txt = JSON.stringify(view.profile(view.squad(other)[0]!.id));
+    for (const banned of ["potential", "attributes", "loyalty", "archetype", "wage"]) expect(txt).not.toContain(`"${banned}"`);
   });
   it("presidente e autarca são públicos pela Vista", () => {
-    expect(vista.cargos({ clube: meu }).map((c) => c.funcao)).toContain("presidente");
-    const cidade = dados.clubes.find((c) => c.id === meu)!.cidade;
-    expect(vista.cargos({ cidade }).map((c) => c.funcao)).toContain("autarca");
+    expect(view.roles({ club: mine }).map((c) => c.fn)).toContain("president");
+    const city = data.clubs.find((c) => c.id === mine)!.city;
+    expect(view.roles({ city }).map((c) => c.fn)).toContain("mayor");
   });
 });
 
 describe("os dois repositórios guardam o mesmo mundo", () => {
   it("ficha pública igual em memória e em SQLite", () => {
-    const a = new RepositorioMemoria();
-    const b = new RepositorioSqlite(abrirBetterSqlite());
-    a.guardarMundo(lote);
-    b.guardarMundo(lote);
-    for (const p of lote.pessoas.filter((_, i) => i % 997 === 0)) {
-      expect(b.pessoaPublica(p.id)).toEqual(a.pessoaPublica(p.id));
-      expect(b.pessoa(p.id)).toEqual(a.pessoa(p.id));
+    const a = new MemoryRepository();
+    const b = new SqliteRepository(openSqliteBetter());
+    a.saveWorld(batch);
+    b.saveWorld(batch);
+    for (const p of batch.people.filter((_, i) => i % 997 === 0)) {
+      expect(b.publicPerson(p.id)).toEqual(a.publicPerson(p.id));
+      expect(b.person(p.id)).toEqual(a.person(p.id));
     }
-    expect(b.plantelPublico(meu)).toEqual(a.plantelPublico(meu));
+    expect(b.publicSquad(mine)).toEqual(a.publicSquad(mine));
   });
 });

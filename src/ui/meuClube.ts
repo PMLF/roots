@@ -1,34 +1,34 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { useMotor } from "@/ui/MotorProvider";
+import { useEngine } from "@/ui/MotorProvider";
 
 /**
  * O clube do save (decidido a 15-10-2026): escolhe-se uma vez ao começar e só muda por demissão ou despedimento (RZ-157).
  * Vive no save (`clube.gamer`), não no browser. O seletor de developers pode forçar a troca para testar. Todas as páginas
  * do menu (Clube, Plantel, Jogos, Cidade, Hoje) falam sempre deste clube.
  */
-const EVENTO = "raizes:meuClube";
+const EVENT = "raizes:meuClube";
 
-export function useMeuClube(): [string | undefined, (id: string, forcar?: boolean) => Promise<void>, boolean] {
-  const motor = useMotor();
+export function useOwnClub(): [string | undefined, (id: string, force?: boolean) => Promise<void>, boolean] {
+  const engine = useEngine();
   const [id, setId] = useState<string | undefined>(undefined);
-  const [pronto, setPronto] = useState(false);
+  const [ready, setReady] = useState(false);
   useEffect(() => {
-    if (!motor) return;
-    let vivo = true;
-    const carregar = () => {
-      motor.chamar("estadoMundo", null).then((m) => (m ? motor.chamar("clubeDoGamer", null) : null)).then((r) => { if (vivo) { setId(r?.id); setPronto(true); } }).catch(() => vivo && setPronto(true));
+    if (!engine) return;
+    let live = true;
+    const load = () => {
+      engine.call("worldState", null).then((m) => (m ? engine.call("gamerClub", null) : null)).then((r) => { if (live) { setId(r?.id); setReady(true); } }).catch(() => live && setReady(true));
     };
-    carregar();
-    window.addEventListener(EVENTO, carregar);
-    window.addEventListener("raizes:mundo", carregar);
-    return () => { vivo = false; window.removeEventListener(EVENTO, carregar); window.removeEventListener("raizes:mundo", carregar); };
-  }, [motor]);
-  const definir = useCallback(async (novo: string, forcar = false) => {
-    if (!motor) return;
-    await motor.chamar("escolherClube", { id: novo, forcar });
-    window.dispatchEvent(new Event(EVENTO));
+    load();
+    window.addEventListener(EVENT, load);
+    window.addEventListener("raizes:mundo", load);
+    return () => { live = false; window.removeEventListener(EVENT, load); window.removeEventListener("raizes:mundo", load); };
+  }, [engine]);
+  const set = useCallback(async (fresh: string, force = false) => {
+    if (!engine) return;
+    await engine.call("chooseClub", { id: fresh, force });
+    window.dispatchEvent(new Event(EVENT));
     window.dispatchEvent(new Event("raizes:tempo"));
-  }, [motor]);
-  return [id, definir, pronto];
+  }, [engine]);
+  return [id, set, ready];
 }

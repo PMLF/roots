@@ -4,58 +4,58 @@
  * Funções puras; o motor não lê ficheiros (quem chama entrega o texto).
  */
 
-export function lerCsv(texto: string): string[][] {
-  const t = texto.charCodeAt(0) === 0xfeff ? texto.slice(1) : texto;
-  const linhas: string[][] = [];
-  let campo = "";
-  let linha: string[] = [];
-  let aspas = false;
+export function readCsv(text: string): string[][] {
+  const t = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+  const lines: string[][] = [];
+  let pitch = "";
+  let line: string[] = [];
+  let quotes = false;
   for (let i = 0; i < t.length; i++) {
     const c = t[i];
-    if (aspas) {
+    if (quotes) {
       if (c === '"') {
         if (t[i + 1] === '"') {
-          campo += '"';
+          pitch += '"';
           i++;
-        } else aspas = false;
-      } else campo += c;
-    } else if (c === '"') aspas = true;
+        } else quotes = false;
+      } else pitch += c;
+    } else if (c === '"') quotes = true;
     else if (c === ",") {
-      linha.push(campo);
-      campo = "";
+      line.push(pitch);
+      pitch = "";
     } else if (c === "\n" || c === "\r") {
       if (c === "\r" && t[i + 1] === "\n") i++;
-      linha.push(campo);
-      campo = "";
-      linhas.push(linha);
-      linha = [];
-    } else campo += c;
+      line.push(pitch);
+      pitch = "";
+      lines.push(line);
+      line = [];
+    } else pitch += c;
   }
-  if (campo !== "" || linha.length > 0) {
-    linha.push(campo);
-    linhas.push(linha);
+  if (pitch !== "" || line.length > 0) {
+    line.push(pitch);
+    lines.push(line);
   }
-  return linhas.filter((l) => !(l.length === 1 && l[0] === ""));
+  return lines.filter((l) => !(l.length === 1 && l[0] === ""));
 }
 
-export type LinhaCsv = { numero: number; valores: Record<string, string> };
+export type LineCsv = { number: number; values: Record<string, string> };
 
 /** Primeira linha = cabeçalho. `numero` é o número da linha no ficheiro (1 = cabeçalho). */
-export function lerTabela(texto: string): { colunas: string[]; linhas: LinhaCsv[]; erros: string[] } {
-  const bruto = lerCsv(texto);
-  const erros: string[] = [];
-  if (bruto.length === 0) return { colunas: [], linhas: [], erros: ["ficheiro vazio"] };
-  const colunas = (bruto[0] ?? []).map((c) => c.trim());
-  const linhas: LinhaCsv[] = [];
-  bruto.slice(1).forEach((l, i) => {
-    const numero = i + 2;
-    if (l.length !== colunas.length) {
-      erros.push(`linha ${numero}: ${l.length} campos (esperado ${colunas.length})`);
+export function readTable(text: string): { columns: string[]; lines: LineCsv[]; errors: string[] } {
+  const raw = readCsv(text);
+  const errors: string[] = [];
+  if (raw.length === 0) return { columns: [], lines: [], errors: ["ficheiro vazio"] };
+  const columns = (raw[0] ?? []).map((c) => c.trim());
+  const lines: LineCsv[] = [];
+  raw.slice(1).forEach((l, i) => {
+    const number = i + 2;
+    if (l.length !== columns.length) {
+      errors.push(`linha ${number}: ${l.length} campos (esperado ${columns.length})`);
       return;
     }
-    const valores: Record<string, string> = {};
-    colunas.forEach((c, j) => (valores[c] = (l[j] ?? "").trim()));
-    linhas.push({ numero, valores });
+    const values: Record<string, string> = {};
+    columns.forEach((c, j) => (values[c] = (l[j] ?? "").trim()));
+    lines.push({ number, values });
   });
-  return { colunas, linhas, erros };
+  return { columns, lines, errors };
 }

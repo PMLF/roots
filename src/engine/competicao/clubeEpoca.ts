@@ -2,47 +2,47 @@
  * Estatísticas da época atual de um clube (RZ-175): números de cada jogador do plantel e os tops do clube.
  * Tudo sai dos factos já guardados (jogos, minutos, golos, assistências, cartões, notas); o xG por jogador não se guarda.
  */
-import type { Parametros } from "../config/parametros";
-import type { DadosBase } from "../dados/tipos";
-import { nomeDaEpoca } from "../epoca/anoDoSave";
-import { epocaAtual } from "../epoca/piramideEpoca";
-import type { Repositorio } from "../persistencia/repositorio";
+import type { Params } from "../config/parametros";
+import type { BaseData } from "../dados/tipos";
+import { seasonName } from "../epoca/anoDoSave";
+import { currentSeason } from "../epoca/piramideEpoca";
+import type { Repository } from "../persistencia/repositorio";
 
-export type EstatJogadorEpoca = { games: number; minutes: number; goals: number; assists: number; yellow: number; red: number; rating?: number };
-export type TopClube = { player: string; name: string; value: number };
+export type SeasonPlayerStat = { games: number; minutes: number; goals: number; assists: number; yellow: number; red: number; rating?: number };
+export type ClubTop = { player: string; name: string; value: number };
 
-export type EpocaDoClube = {
+export type ClubSeason = {
   season: number;
   seasonLabel: string;
   league: string;
   /** Posição na tabela, jogos, vitórias, empates, derrotas, golos marcados e sofridos, pontos. */
   team: { position: number; played: number; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number; points: number } | undefined;
-  players: Record<string, EstatJogadorEpoca>;
-  tops: { scorer?: TopClube; assister?: TopClube; rating?: TopClube; minutes?: TopClube; games?: TopClube; yellow?: TopClube; red?: TopClube; goalsAndAssists?: TopClube };
+  players: Record<string, SeasonPlayerStat>;
+  tops: { scorer?: ClubTop; assist?: ClubTop; rating?: ClubTop; minutes?: ClubTop; games?: ClubTop; yellow?: ClubTop; red?: ClubTop; goalsAndAssists?: ClubTop };
 };
 
-export function epocaDoClube(repo: Repositorio, dados: DadosBase, params: Parametros, clube: string): EpocaDoClube | undefined {
-  const c = dados.clubes.find((x) => x.id === clube);
+export function clubSeason(repo: Repository, data: BaseData, params: Params, club: string): ClubSeason | undefined {
+  const c = data.clubs.find((x) => x.id === club);
   if (!c) return undefined;
-  const season = epocaAtual(repo);
-  const stats = repo.playerStatsForCompetition(c.liga, season).filter((s) => s.clube === clube);
+  const season = currentSeason(repo);
+  const stats = repo.playerStatsForCompetition(c.league, season).filter((s) => s.club === club);
   const minRated = params.competitionView.minRatedGames;
-  const players: Record<string, EstatJogadorEpoca> = {};
+  const players: Record<string, SeasonPlayerStat> = {};
   for (const s of stats) {
-    players[s.jogador] = { games: s.jogos, minutes: s.minutos, goals: s.golos, assists: s.assistencias, yellow: s.amarelos, red: s.vermelhos, ...(s.avgRating !== undefined && s.ratedGames >= minRated ? { rating: Math.round(s.avgRating * 100) / 100 } : {}) };
+    players[s.player] = { games: s.matches, minutes: s.minutes, goals: s.goals, assists: s.assists, yellow: s.yellows, red: s.reds, ...(s.avgRating !== undefined && s.ratedGames >= minRated ? { rating: Math.round(s.avgRating * 100) / 100 } : {}) };
   }
-  const nome = (id: string) => repo.pessoaPublica(id)?.nomeDesportivo ?? id;
-  const top = (valor: (id: string, e: EstatJogadorEpoca) => number): TopClube | undefined => {
-    let melhor: TopClube | undefined;
+  const name = (id: string) => repo.publicPerson(id)?.sportingName ?? id;
+  const top = (value: (id: string, e: SeasonPlayerStat) => number): ClubTop | undefined => {
+    let best: ClubTop | undefined;
     for (const [id, e] of Object.entries(players)) {
-      const v = valor(id, e);
-      if (v > 0 && (!melhor || v > melhor.value || (v === melhor.value && nome(id) < melhor.name))) melhor = { player: id, name: nome(id), value: v };
+      const v = value(id, e);
+      if (v > 0 && (!best || v > best.value || (v === best.value && name(id) < best.name))) best = { player: id, name: name(id), value: v };
     }
-    return melhor;
+    return best;
   };
-  const tabela = [...repo.classificacao(c.liga, season)].sort((x, y) => y.pontos - x.pontos || (y.golosMarcados - y.golosSofridos) - (x.golosMarcados - x.golosSofridos) || y.golosMarcados - x.golosMarcados);
-  const i = tabela.findIndex((l) => l.clube === clube);
-  const l = tabela[i];
+  const table = [...repo.standings(c.league, season)].sort((x, y) => y.points - x.points || (y.scoredGoals - y.concededGoals) - (x.scoredGoals - x.concededGoals) || y.scoredGoals - x.scoredGoals);
+  const i = table.findIndex((l) => l.club === club);
+  const l = table[i];
   const rating = top((_, e) => (e.rating !== undefined ? e.rating : 0));
   const sc = top((_, e) => e.goals);
   const as = top((_, e) => e.assists);
@@ -52,9 +52,9 @@ export function epocaDoClube(repo: Repositorio, dados: DadosBase, params: Parame
   const vm = top((_, e) => e.red);
   const ga = top((_, e) => e.goals + e.assists);
   return {
-    season, seasonLabel: nomeDaEpoca(season, params.calendario.anoInicial), league: c.liga,
-    team: l ? { position: i + 1, played: l.jogos, won: l.vitorias, drawn: l.empates, lost: l.derrotas, goalsFor: l.golosMarcados, goalsAgainst: l.golosSofridos, points: l.pontos } : undefined,
+    season, seasonLabel: seasonName(season, params.calendar.initialYear), league: c.league,
+    team: l ? { position: i + 1, played: l.matches, won: l.wins, drawn: l.draws, lost: l.losses, goalsFor: l.scoredGoals, goalsAgainst: l.concededGoals, points: l.points } : undefined,
     players,
-    tops: { ...(sc ? { scorer: sc } : {}), ...(as ? { assister: as } : {}), ...(ga ? { goalsAndAssists: ga } : {}), ...(rating ? { rating } : {}), ...(mm ? { minutes: mm } : {}), ...(jg ? { games: jg } : {}), ...(am ? { yellow: am } : {}), ...(vm ? { red: vm } : {}) },
+    tops: { ...(sc ? { scorer: sc } : {}), ...(as ? { assist: as } : {}), ...(ga ? { goalsAndAssists: ga } : {}), ...(rating ? { rating } : {}), ...(mm ? { minutes: mm } : {}), ...(jg ? { games: jg } : {}), ...(am ? { yellow: am } : {}), ...(vm ? { red: vm } : {}) },
   };
 }

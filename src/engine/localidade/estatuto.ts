@@ -4,47 +4,47 @@
  * quando a população passa a margem `histerese` do outro lado do limiar, para o estatuto não oscilar.
  * Puro: quem decide quando avaliar (anualmente, com RZ-309) é o motor de jogo.
  */
-import type { Parametros } from "../config/parametros";
+import type { Params } from "../config/parametros";
 
-export const ESTATUTOS = ["aldeia", "vila", "cidade"] as const;
-export type Estatuto = (typeof ESTATUTOS)[number];
+export const STATUSES = ["aldeia", "vila", "city"] as const;
+export type Status = (typeof STATUSES)[number];
 
-type ParamsLocalidade = Pick<Parametros, "localidade">;
+type LocalityParams = Pick<Params, "locality">;
 
 /** Limiares com as margens da histerese, em habitantes inteiros (evita erros de vírgula flutuante). */
-function limites(p: ParamsLocalidade) {
-  const { limiarVila: v, limiarCidade: c, histerese: h } = p.localidade;
-  return { vilaSobe: Math.round(v * (1 + h)), vilaDesce: Math.round(v * (1 - h)), cidadeSobe: Math.round(c * (1 + h)), cidadeDesce: Math.round(c * (1 - h)) };
+function limits(p: LocalityParams) {
+  const { townThreshold: v, cityThreshold: c, hysteresis: h } = p.locality;
+  return { risesTown: Math.round(v * (1 + h)), dropsTown: Math.round(v * (1 - h)), risesCity: Math.round(c * (1 + h)), dropsCity: Math.round(c * (1 - h)) };
 }
 
 /** Estatuto de arranque, sem memória: pela população e pelos limiares. */
-export function estatutoInicial(populacao: number, p: ParamsLocalidade): Estatuto {
-  const { limiarVila, limiarCidade } = p.localidade;
-  return populacao >= limiarCidade ? "cidade" : populacao >= limiarVila ? "vila" : "aldeia";
+export function initialStatus(population: number, p: LocalityParams): Status {
+  const { townThreshold, cityThreshold } = p.locality;
+  return population >= cityThreshold ? "city" : population >= townThreshold ? "vila" : "aldeia";
 }
 
 /** Intervalo de população em que o estatuto é estável (inclui as margens da histerese). */
-export function bandaDoEstatuto(estatuto: Estatuto, p: ParamsLocalidade): { min: number; max: number } {
-  const l = limites(p);
-  if (estatuto === "aldeia") return { min: 0, max: l.vilaSobe };
-  if (estatuto === "vila") return { min: l.vilaDesce, max: l.cidadeSobe };
-  return { min: l.cidadeDesce, max: Number.POSITIVE_INFINITY };
+export function statusBand(status: Status, p: LocalityParams): { min: number; max: number } {
+  const l = limits(p);
+  if (status === "aldeia") return { min: 0, max: l.risesTown };
+  if (status === "vila") return { min: l.dropsTown, max: l.risesCity };
+  return { min: l.dropsCity, max: Number.POSITIVE_INFINITY };
 }
 
-export function estatutoCoerente(populacao: number, estatuto: Estatuto, p: ParamsLocalidade): boolean {
-  const b = bandaDoEstatuto(estatuto, p);
-  return populacao >= b.min && populacao < b.max;
+export function coherentStatus(population: number, status: Status, p: LocalityParams): boolean {
+  const b = statusBand(status, p);
+  return population >= b.min && population < b.max;
 }
 
 /** Novo estatuto dado o atual e a população: sobe ou desce quantos degraus a população justificar. */
-export function avaliarEstatuto(populacao: number, atual: Estatuto, p: ParamsLocalidade): Estatuto {
-  const l = limites(p);
-  let e = atual;
-  for (let i = 0; i < ESTATUTOS.length; i++) {
-    if (e === "aldeia" && populacao >= l.vilaSobe) e = "vila";
-    else if (e === "vila" && populacao >= l.cidadeSobe) e = "cidade";
-    else if (e === "cidade" && populacao < l.cidadeDesce) e = "vila";
-    else if (e === "vila" && populacao < l.vilaDesce) e = "aldeia";
+export function evaluateStatus(population: number, current: Status, p: LocalityParams): Status {
+  const l = limits(p);
+  let e = current;
+  for (let i = 0; i < STATUSES.length; i++) {
+    if (e === "aldeia" && population >= l.risesTown) e = "vila";
+    else if (e === "vila" && population >= l.risesCity) e = "city";
+    else if (e === "city" && population < l.dropsCity) e = "vila";
+    else if (e === "vila" && population < l.dropsTown) e = "aldeia";
     else break;
   }
   return e;

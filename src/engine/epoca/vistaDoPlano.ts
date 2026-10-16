@@ -1,48 +1,48 @@
 /** O plano do clube do gamer como a página Tática o mostra (RZ-158): onze (escolhido ou proposto), plantel e disponibilidade. */
-import { lerSessao } from "./sessaoJogo";
-import type { PlanoVista } from "../api/contratos";
-import type { Parametros } from "../config/parametros";
-import type { DadosBase } from "../dados/tipos";
-import { FORMACAO_IDS, FORMACOES } from "../jogo/formacoes";
-import type { FormacaoId } from "../jogo/tipos";
-import type { Posicao } from "../mundo/tipos";
-import type { Repositorio } from "../persistencia/repositorio";
-import { somarDias } from "../calendario/datas";
-import { aptidaoNa, fatorAptidao } from "../jogo/equipa";
-import { candidatosDoClube, estadoDoTempo } from "./avancar";
-import { indisponiveis, jogoConfirmado, lerPlano, onzeDoPlano } from "./planoDeJogo";
+import { readSession } from "./sessaoJogo";
+import type { ViewPlan } from "../api/contratos";
+import type { Params } from "../config/parametros";
+import type { BaseData } from "../dados/tipos";
+import { FORMATION_IDS, FORMATIONS } from "../jogo/formacoes";
+import type { FormationId } from "../jogo/tipos";
+import type { Position } from "../mundo/tipos";
+import type { Repository } from "../persistencia/repositorio";
+import { addDays } from "../calendario/datas";
+import { aptitudeIn, aptitudeFactor } from "../jogo/equipa";
+import { clubCandidates, timeState } from "./avancar";
+import { unavailable, confirmedMatch, readPlan, planLineup } from "./planoDeJogo";
 
-export function vistaDoPlano(repo: Repositorio, dados: DadosBase, params: Parametros, clube: string): PlanoVista {
-  const { hoje, epoca } = estadoDoTempo(repo, dados, params);
+export function planView(repo: Repository, data: BaseData, params: Params, club: string): ViewPlan {
+  const { today, season } = timeState(repo, data, params);
   const seed = repo.meta("seed") ?? "?";
-  const plano = lerPlano(repo, clube);
-  const jogadores = repo.jogadoresDoClube(clube).filter((j) => j.estado === "ativo");
-  const nome = (id: string) => repo.pessoaPublica(id)?.nomeDesportivo ?? id;
+  const plan = readPlan(repo, club);
+  const players = repo.clubPlayers(club).filter((j) => j.state === "active");
+  const name = (id: string) => repo.publicPerson(id)?.sportingName ?? id;
   // um jogo de hoje que já foi jogado (ao vivo) deixa de ser «o próximo»
-  let proximo = repo.proximoJogo(clube, hoje);
-  if (proximo && repo.jogo(proximo.id)) proximo = repo.proximoJogo(clube, somarDias(hoje, 1));
-  const fora = proximo ? indisponiveis(repo, clube, jogadores.map((j) => j.pessoa), proximo.competicao, epoca, proximo.jornada, proximo.data, seed, params) : new Map();
-  const candidatos = candidatosDoClube(repo, clube, proximo?.data ?? hoje, params);
-  const forma = new Map(candidatos.map((c) => [c.pessoa, c.forma ?? 1] as const));
-  const onze = plano.onze ?? onzeDoPlano(plano, candidatos, new Set(fora.keys()), params).map((j) => ({ jogador: j.id, posicao: j.posicao }));
-  const adversario = proximo ? (proximo.casa === clube ? proximo.fora : proximo.casa) : undefined;
+  let next = repo.nextMatch(club, today);
+  if (next && repo.match(next.id)) next = repo.nextMatch(club, addDays(today, 1));
+  const away = next ? unavailable(repo, club, players.map((j) => j.person), next.competition, season, next.round, next.date, seed, params) : new Map();
+  const candidates = clubCandidates(repo, club, next?.date ?? today, params);
+  const form = new Map(candidates.map((c) => [c.person, c.form ?? 1] as const));
+  const lineup = plan.lineup ?? planLineup(plan, candidates, new Set(away.keys()), params).map((j) => ({ player: j.id, position: j.position }));
+  const opponent = next ? (next.home === club ? next.away : next.home) : undefined;
   return {
-    clubeNome: dados.clubes.find((c) => c.id === clube)?.nome ?? clube,
-    tatica: plano.tatica,
-    automatico: !plano.onze,
-    formacoes: FORMACAO_IDS,
-    posicoesDaFormacao: Object.fromEntries(FORMACAO_IDS.map((f) => [f, [...FORMACOES[f]]])) as Record<FormacaoId, Posicao[]>,
-    onze: onze.map((o) => {
-      const aptidao = aptidaoNa(candidatos.find((c) => c.pessoa === o.jogador)?.posicoes ?? [], o.posicao, params);
-      const rendimento = Math.round(fatorAptidao(aptidao, o.posicao, params) * 100) / 100;
-      return { jogador: o.jogador, nome: nome(o.jogador), posicao: o.posicao, aptidao, rendimento, foraDePosicao: rendimento < 0.95 };
+    clubName: data.clubs.find((c) => c.id === club)?.name ?? club,
+    tactic: plan.tactic,
+    automatic: !plan.lineup,
+    formations: FORMATION_IDS,
+    formationPositions: Object.fromEntries(FORMATION_IDS.map((f) => [f, [...FORMATIONS[f]]])) as Record<FormationId, Position[]>,
+    lineup: lineup.map((o) => {
+      const aptitude = aptitudeIn(candidates.find((c) => c.person === o.player)?.positions ?? [], o.position, params);
+      const performance = Math.round(aptitudeFactor(aptitude, o.position, params) * 100) / 100;
+      return { player: o.player, name: name(o.player), position: o.position, aptitude, performance, outOfPosition: performance < 0.95 };
     }),
-    plantel: jogadores
+    squad: players
       .map((j) => {
-        const f = fora.get(j.pessoa);
-        return { jogador: j.pessoa, nome: nome(j.pessoa), forma: Math.round((forma.get(j.pessoa) ?? 1) * 100) / 100, posicoes: j.posicoes as { pos: Posicao; aptidao: number }[], ...(f ? { indisponivel: f.motivo, ...(f.detalhe !== undefined ? { jogosPorCumprir: f.detalhe } : {}) } : {}) };
+        const f = away.get(j.person);
+        return { player: j.person, name: name(j.person), form: Math.round((form.get(j.person) ?? 1) * 100) / 100, positions: j.positions as { pos: Position; aptitude: number }[], ...(f ? { unavailable: f.motivo, ...(f.detalhe !== undefined ? { matchesPerMeet: f.detalhe } : {}) } : {}) };
       })
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt")),
-    ...(proximo && adversario ? { proximoJogo: { id: proximo.id, data: proximo.data, competicao: proximo.competicao, adversario: dados.clubes.find((c) => c.id === adversario)?.nome ?? adversario, emCasa: proximo.casa === clube, confirmado: jogoConfirmado(repo, proximo.id), emCurso: lerSessao(repo)?.jogo === proximo.id, adversarioId: adversario, adversarioCores: dados.clubes.find((c) => c.id === adversario)?.cores ?? "" } } : {}),
+      .sort((a, b) => a.name.localeCompare(b.name, "pt")),
+    ...(next && opponent ? { nextMatch: { id: next.id, date: next.date, competition: next.competition, opponent: data.clubs.find((c) => c.id === opponent)?.name ?? opponent, atHome: next.home === club, confirmed: confirmedMatch(repo, next.id), ongoing: readSession(repo)?.match === next.id, opponentId: opponent, opponentColours: data.clubs.find((c) => c.id === opponent)?.colours ?? "" } } : {}),
   };
 }

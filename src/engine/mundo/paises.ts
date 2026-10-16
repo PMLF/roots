@@ -1,67 +1,67 @@
 /** Tabela de países (RZ-132) e pesos de nascimento/migração (MODELO_DADOS §15, GERACAO_MUNDO §4). */
-import { lerTabela } from "../dados/csv";
-import type { Escalao, Parametros } from "../config/parametros";
-import { limitar } from "../aleatorio/rng";
+import { readTable } from "../dados/csv";
+import type { Tier, Params } from "../config/parametros";
+import { clamp } from "../aleatorio/rng";
 
-export type Pais = {
+export type Country = {
   id: string;
-  nome: string;
+  name: string;
   /** Milhões de habitantes. */
-  populacao: number;
+  population: number;
   /** 0-100 */
-  tradicao: number;
-  infraestrutura: number;
+  tradition: number;
+  infrastructure: number;
   /** 0-1: quão natural é um jogador deste país vir para Portugal. */
-  afinidadePortugal: number;
-  familiaNomes: string;
+  portugalAffinity: number;
+  familyNames: string;
   lusofono: boolean;
   /** (tradição + infraestrutura) / 2 */
-  indice: number;
+  index: number;
 };
 
-export function importarPaises(csv: string): { ok: true; paises: Pais[] } | { ok: false; erros: string[] } {
-  const t = lerTabela(csv);
-  const erros = [...t.erros];
-  const paises: Pais[] = [];
+export function importCountries(csv: string): { ok: true; countries: Country[] } | { ok: false; errors: string[] } {
+  const t = readTable(csv);
+  const errors = [...t.errors];
+  const countries: Country[] = [];
   const ids = new Set<string>();
-  for (const l of t.linhas) {
-    const v = l.valores;
+  for (const l of t.lines) {
+    const v = l.values;
     const n = (c: string) => Number(v[c]);
-    const p: Pais = {
+    const p: Country = {
       id: v.id ?? "",
-      nome: v.nome ?? "",
-      populacao: n("populacao_milhoes"),
-      tradicao: n("tradicao"),
-      infraestrutura: n("infraestrutura"),
-      afinidadePortugal: n("afinidade_pt"),
-      familiaNomes: v.familia_nomes ?? "",
+      name: v.nome ?? "",
+      population: n("populacao_milhoes"),
+      tradition: n("tradition"),
+      infrastructure: n("infrastructure"),
+      portugalAffinity: n("afinidade_pt"),
+      familyNames: v.familia_nomes ?? "",
       lusofono: v.lusofono === "1",
-      indice: 0,
+      index: 0,
     };
-    const onde = `paises linha ${l.numero}`;
-    if (!p.id || ids.has(p.id)) erros.push(`${onde}: id vazio ou repetido`);
+    const where = `paises linha ${l.number}`;
+    if (!p.id || ids.has(p.id)) errors.push(`${where}: id vazio ou repetido`);
     ids.add(p.id);
-    if (!p.nome || !p.familiaNomes) erros.push(`${onde}: nome e familia_nomes obrigatórios`);
-    if (!(p.populacao > 0)) erros.push(`${onde}: população > 0`);
-    for (const [c, x] of [["tradicao", p.tradicao], ["infraestrutura", p.infraestrutura]] as const) if (!(x >= 0 && x <= 100)) erros.push(`${onde}: ${c} entre 0 e 100`);
-    if (!(p.afinidadePortugal >= 0 && p.afinidadePortugal <= 1)) erros.push(`${onde}: afinidade_pt entre 0 e 1`);
-    p.indice = (p.tradicao + p.infraestrutura) / 2;
-    paises.push(p);
+    if (!p.name || !p.familyNames) errors.push(`${where}: nome e familia_nomes obrigatórios`);
+    if (!(p.population > 0)) errors.push(`${where}: população > 0`);
+    for (const [c, x] of [["tradition", p.tradition], ["infrastructure", p.infrastructure]] as const) if (!(x >= 0 && x <= 100)) errors.push(`${where}: ${c} entre 0 e 100`);
+    if (!(p.portugalAffinity >= 0 && p.portugalAffinity <= 1)) errors.push(`${where}: afinidade_pt entre 0 e 1`);
+    p.index = (p.tradition + p.infrastructure) / 2;
+    countries.push(p);
   }
-  if (!paises.some((p) => p.id === "pt")) erros.push("paises: falta Portugal (pt)");
-  return erros.length > 0 ? { ok: false, erros } : { ok: true, paises };
+  if (!countries.some((p) => p.id === "pt")) errors.push("paises: falta Portugal (pt)");
+  return errors.length > 0 ? { ok: false, errors } : { ok: true, countries };
 }
 
 /** Quantos jogadores um país produz (relativo): √população × (0,3 + índice/100). */
-export const pesoNascimento = (p: Pais): number => Math.sqrt(p.populacao) * (0.3 + p.indice / 100);
+export const birthWeight = (p: Country): number => Math.sqrt(p.population) * (0.3 + p.index / 100);
 
 /** Qualidade necessária (0-1) de um escalão: cresce com o nível. */
-export const qualidadeNecessaria = (esc: Escalao): number => ({ primeiraLiga: 1, segundaLiga: 0.75, terceiraLiga: 0.5, cp: 0.3, distrital: 0.1 })[esc];
+export const necessaryQuality = (tier: Tier): number => ({ firstLeague: 1, secondLeague: 0.75, thirdLeague: 0.5, cp: 0.3, district: 0.1 })[tier];
 
 /** w(país → Portugal) = peso de nascimento × afinidade × (0,5 + qualidade necessária). */
-export const pesoParaPortugal = (p: Pais, esc: Escalao): number => pesoNascimento(p) * p.afinidadePortugal * (0.5 + qualidadeNecessaria(esc));
+export const weightForPortugal = (p: Country, tier: Tier): number => birthWeight(p) * p.portugalAffinity * (0.5 + necessaryQuality(tier));
 
 /** Probabilidade de cauda do país: sobe com o índice, nunca é zero. */
-export function probCauda(p: Pais, m: Parametros["mundo"]["talento"]): number {
-  return m.epsIndice0 + (m.epsIndice100 - m.epsIndice0) * limitar(p.indice / 100, 0, 1);
+export function tailProb(p: Country, m: Params["world"]["talent"]): number {
+  return m.seasonsIndex0 + (m.seasonsIndex100 - m.seasonsIndex0) * clamp(p.index / 100, 0, 1);
 }

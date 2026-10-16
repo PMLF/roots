@@ -3,12 +3,12 @@
  * o motor não conhece bibliotecas nativas.
  */
 import Database from "better-sqlite3";
-import type { DriverSql, LinhaSql, ValorSql } from "../engine/persistencia/driver";
+import type { DriverSql, SqlLine, SqlValue } from "../engine/persistencia/driver";
 
-export function abrirBetterSqlite(caminho: string | Uint8Array = ":memory:"): DriverSql {
-  const db = typeof caminho === "string" ? new Database(caminho) : new Database(Buffer.from(caminho));
+export function openSqliteBetter(path: string | Uint8Array = ":memory:"): DriverSql {
+  const db = typeof path === "string" ? new Database(path) : new Database(Buffer.from(path));
   db.pragma("foreign_keys = ON");
-  if (typeof caminho === "string" && caminho !== ":memory:") db.pragma("journal_mode = WAL");
+  if (typeof path === "string" && path !== ":memory:") db.pragma("journal_mode = WAL");
   const cache = new Map<string, Database.Statement>();
   const stmt = (sql: string) => {
     let s = cache.get(sql);
@@ -16,15 +16,15 @@ export function abrirBetterSqlite(caminho: string | Uint8Array = ":memory:"): Dr
     return s;
   };
   return {
-    executarScript: (sql) => void db.exec(sql),
-    executar(sql, params = []) {
+    runScript: (sql) => void db.exec(sql),
+    run(sql, params = []) {
       const r = stmt(sql).run(...params);
-      return { alteradas: r.changes, ultimoId: Number(r.lastInsertRowid) };
+      return { changed: r.changes, lastId: Number(r.lastInsertRowid) };
     },
-    todos: (sql, params = []) => stmt(sql).all(...params) as LinhaSql[],
-    exportar: () => new Uint8Array(db.serialize()),
-    fechar: () => void db.close(),
+    all: (sql, params = []) => stmt(sql).all(...params) as SqlLine[],
+    exported: () => new Uint8Array(db.serialize()),
+    close: () => void db.close(),
   };
 }
 
-export type { ValorSql };
+export type { SqlValue };

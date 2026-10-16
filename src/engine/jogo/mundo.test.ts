@@ -1,65 +1,65 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { PARAMETROS_PADRAO as P } from "../config/parametros";
-import { importarDados } from "../dados/importar";
-import { gerarMundo } from "../mundo/gerarMundo";
-import { importarPaises } from "../mundo/paises";
-import { equipaDe, forcaEquipa, type CandidatoOnze } from "./equipa";
-import { simularJogo } from "./simulador";
-import type { EquipaJogo } from "./tipos";
+import { DEFAULT_PARAMETERS as P } from "../config/parametros";
+import { importData } from "../dados/importar";
+import { generateWorld } from "../mundo/gerarMundo";
+import { importCountries } from "../mundo/paises";
+import { teamOf, teamStrength, type LineupCandidate } from "./equipa";
+import { simulateMatch } from "./simulador";
+import type { MatchTeam } from "./tipos";
 
-const ler = (f: string) => readFileSync(`data/${f}`, "utf8");
-const d = importarDados({ clubes: ler("clubes.csv"), cidades: ler("cidades.csv"), localidades: ler("localidades.csv"), rivalidades: ler("rivalidades.csv"), distritos: ler("distritos.csv") });
-const pr = importarPaises(ler("paises.csv"));
+const read = (f: string) => readFileSync(`data/${f}`, "utf8");
+const d = importData({ clubs: read("clubes.csv"), cities: read("cidades.csv"), localities: read("localidades.csv"), rivalries: read("rivalidades.csv"), districts: read("distritos.csv") });
+const pr = importCountries(read("paises.csv"));
 if (!d.ok || !pr.ok) throw new Error("dados inválidos");
-const lote = gerarMundo({ seed: "jogo-mundo", dados: d.dados, paises: pr.paises, params: P });
+const batch = generateWorld({ seed: "jogo-mundo", data: d.data, countries: pr.countries, params: P });
 
-function equipaDoClube(clube: string): EquipaJogo {
-  const cs: CandidatoOnze[] = lote.jogadores
-    .filter((j) => j.clube === clube && j.estado === "ativo")
-    .map((j) => ({ pessoa: j.pessoa, posicoes: j.posicoes, atributos: j.atributos, alturaCm: j.alturaCm }));
-  return equipaDe(clube, cs);
+function clubTeam(club: string): MatchTeam {
+  const cs: LineupCandidate[] = batch.players
+    .filter((j) => j.club === club && j.state === "active")
+    .map((j) => ({ person: j.person, positions: j.positions, attributes: j.attributes, heightCm: j.heightCm }));
+  return teamOf(club, cs);
 }
-const primeiro = (esc: string, n = 1) => d.dados.clubes.filter((c) => c.escalao === esc).slice(0, n).map((c) => c.id);
+const first = (tier: string, n = 1) => d.data.clubs.filter((c) => c.tier === tier).slice(0, n).map((c) => c.id);
 
 describe("motor de jogo com o mundo gerado", () => {
   it("todos os clubes montam onze com 1 guarda-redes e a força cresce com o escalão", () => {
-    const media: Record<string, number[]> = {};
-    for (const c of d.dados.clubes) {
-      const eq = equipaDoClube(c.id);
-      expect(eq.onze).toHaveLength(11);
-      expect(eq.onze.filter((j) => j.posicao === "GK")).toHaveLength(1);
-      const f = forcaEquipa(eq.onze);
-      (media[c.escalao] ??= []).push((f.ataque + f.controlo + f.defesa) / 3);
+    const mean: Record<string, number[]> = {};
+    for (const c of d.data.clubs) {
+      const eq = clubTeam(c.id);
+      expect(eq.lineup).toHaveLength(11);
+      expect(eq.lineup.filter((j) => j.position === "GK")).toHaveLength(1);
+      const f = teamStrength(eq.lineup);
+      (mean[c.tier] ??= []).push((f.attack + f.control + f.defence) / 3);
     }
-    const m = (e: string) => (media[e] as number[]).reduce((a, b) => a + b, 0) / (media[e] as number[]).length;
-    expect(m("primeiraLiga")).toBeGreaterThan(m("segundaLiga"));
-    expect(m("segundaLiga")).toBeGreaterThan(m("terceiraLiga"));
-    expect(m("terceiraLiga")).toBeGreaterThan(m("cp"));
-    expect(m("cp")).toBeGreaterThan(m("distrital"));
+    const m = (e: string) => (mean[e] as number[]).reduce((a, b) => a + b, 0) / (mean[e] as number[]).length;
+    expect(m("firstLeague")).toBeGreaterThan(m("secondLeague"));
+    expect(m("secondLeague")).toBeGreaterThan(m("thirdLeague"));
+    expect(m("thirdLeague")).toBeGreaterThan(m("cp"));
+    expect(m("cp")).toBeGreaterThan(m("district"));
   });
 
   it("um clube da Primeira Liga ganha quase sempre a um distrital; e entre pares há equilíbrio", () => {
-    const [pl1, pl2] = primeiro("primeiraLiga", 2) as [string, string];
-    const [di] = primeiro("distrital") as [string];
-    const a = equipaDoClube(pl1);
-    const b = equipaDoClube(pl2);
-    const z = equipaDoClube(di);
-    let vitorias = 0;
-    let golosPares = 0;
-    let vitoriasA = 0;
+    const [pl1, pl2] = first("firstLeague", 2) as [string, string];
+    const [di] = first("district") as [string];
+    const a = clubTeam(pl1);
+    const b = clubTeam(pl2);
+    const z = clubTeam(di);
+    let wins = 0;
+    let pairsGoals = 0;
+    let aWins = 0;
     const N = 300;
     for (let i = 0; i < N; i++) {
-      const r1 = simularJogo({ seed: "w", id: `x${i}`, casa: a, fora: z }, P).resumo;
-      if (r1.casa.golos > r1.fora.golos) vitorias++;
-      const r2 = simularJogo({ seed: "w", id: `y${i}`, casa: a, fora: b }, P).resumo;
-      golosPares += r2.casa.golos + r2.fora.golos;
-      if (r2.casa.golos > r2.fora.golos) vitoriasA++;
+      const r1 = simulateMatch({ seed: "w", id: `x${i}`, home: a, away: z }, P).summary;
+      if (r1.home.goals > r1.away.goals) wins++;
+      const r2 = simulateMatch({ seed: "w", id: `y${i}`, home: a, away: b }, P).summary;
+      pairsGoals += r2.home.goals + r2.away.goals;
+      if (r2.home.goals > r2.away.goals) aWins++;
     }
-    expect(vitorias / N).toBeGreaterThan(0.75);
-    expect(golosPares / N).toBeGreaterThan(1.8);
-    expect(golosPares / N).toBeLessThan(3.6);
-    expect(vitoriasA / N).toBeGreaterThan(0.2);
-    expect(vitoriasA / N).toBeLessThan(0.8);
+    expect(wins / N).toBeGreaterThan(0.75);
+    expect(pairsGoals / N).toBeGreaterThan(1.8);
+    expect(pairsGoals / N).toBeLessThan(3.6);
+    expect(aWins / N).toBeGreaterThan(0.2);
+    expect(aWins / N).toBeLessThan(0.8);
   });
 });

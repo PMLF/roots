@@ -3,579 +3,579 @@
  * Cada adaptador chama `contratoRepositorio(nome, criar)` no seu ficheiro de testes.
  */
 import { describe, expect, it } from "vitest";
-import type { Repositorio } from "./repositorio";
-import type { EventoNovo, JogoFacto, JogoNovo, LocalidadeReg, LoteMundoReg, Participacao } from "./tipos";
+import type { Repository } from "./repositorio";
+import type { NewEvent, FactMatch, NewMatch, LocalityRecord, WorldBatchRecord, Appearance } from "./tipos";
 
-export const ev = (tipo: string, extra: Partial<EventoNovo> = {}): EventoNovo => ({
-  tipo,
-  data: "2026-08-15",
-  epoca: 1,
-  vis: "publico",
-  entidades: [],
-  dados: {},
+export const ev = (type: string, extra: Partial<NewEvent> = {}): NewEvent => ({
+  type,
+  date: "2026-08-15",
+  season: 1,
+  visibility: "exposed",
+  entities: [],
+  data: {},
   ...extra,
 });
 
-export type GolosEmJogo = { casa: string; fora: string; golosCasa: number; golosFora: number };
+export type InMatchGoals = { home: string; away: string; homeGoals: number; awayGoals: number };
 
 /** Um jogo coerente: golos distribuídos por marcadores fixos do plantel `<clube>-1..11`. */
-export function jogoSintetico(
+export function syntheticMatch(
   id: string,
-  g: GolosEmJogo & { competicao?: string; epoca?: number; jornada?: number; data?: string },
-  opcoes: { autoGolo?: boolean; cartoes?: boolean } = {},
-): { jogo: JogoNovo; factos: JogoFacto[]; part: Participacao[] } {
-  const factos: JogoFacto[] = [];
-  for (let i = 0; i < g.golosCasa; i++) factos.push({ minuto: 10 + i * 20, tipo: "G", jogador: `${g.casa}-${(i % 3) + 9}`, clube: g.casa });
-  for (let i = 0; i < g.golosFora; i++) factos.push({ minuto: 15 + i * 20, tipo: "G", jogador: `${g.fora}-${(i % 3) + 9}`, clube: g.fora });
-  if (g.golosCasa > 0) factos.push({ minuto: 10, tipo: "A", jogador: `${g.casa}-8`, clube: g.casa });
-  if (opcoes.autoGolo && g.golosFora > 0) {
-    const i = factos.findIndex((f) => f.tipo === "G" && f.clube === g.fora);
-    factos[i] = { minuto: 15, tipo: "G", jogador: `${g.casa}-3`, clube: g.fora, extra: "auto" };
+  g: InMatchGoals & { competition?: string; season?: number; round?: number; date?: string },
+  options: { goalAuto?: boolean; cards?: boolean } = {},
+): { match: NewMatch; facts: FactMatch[]; part: Appearance[] } {
+  const facts: FactMatch[] = [];
+  for (let i = 0; i < g.homeGoals; i++) facts.push({ minute: 10 + i * 20, type: "G", player: `${g.home}-${(i % 3) + 9}`, club: g.home });
+  for (let i = 0; i < g.awayGoals; i++) facts.push({ minute: 15 + i * 20, type: "G", player: `${g.away}-${(i % 3) + 9}`, club: g.away });
+  if (g.homeGoals > 0) facts.push({ minute: 10, type: "A", player: `${g.home}-8`, club: g.home });
+  if (options.goalAuto && g.awayGoals > 0) {
+    const i = facts.findIndex((f) => f.type === "G" && f.club === g.away);
+    facts[i] = { minute: 15, type: "G", player: `${g.home}-3`, club: g.away, extra: "auto" };
   }
-  if (opcoes.cartoes) {
-    factos.push({ minuto: 33, tipo: "CA", jogador: `${g.casa}-4`, clube: g.casa });
-    factos.push({ minuto: 70, tipo: "CV", jogador: `${g.fora}-5`, clube: g.fora });
+  if (options.cards) {
+    facts.push({ minute: 33, type: "CA", player: `${g.home}-4`, club: g.home });
+    facts.push({ minute: 70, type: "CV", player: `${g.away}-5`, club: g.away });
   }
-  const part: Participacao[] = [];
-  for (const c of [g.casa, g.fora]) for (let n = 1; n <= 11; n++) part.push({ jogador: `${c}-${n}`, clube: c, titular: true, minutos: n === 5 && c === g.fora && opcoes.cartoes ? 70 : 90 });
-  part.push({ jogador: `${g.casa}-12`, clube: g.casa, titular: false, minutos: 0 });
+  const part: Appearance[] = [];
+  for (const c of [g.home, g.away]) for (let n = 1; n <= 11; n++) part.push({ player: `${c}-${n}`, club: c, starter: true, minutes: n === 5 && c === g.away && options.cards ? 70 : 90 });
+  part.push({ player: `${g.home}-12`, club: g.home, starter: false, minutes: 0 });
   return {
-    jogo: {
-      id, competicao: g.competicao ?? "PL", epoca: g.epoca ?? 1, jornada: g.jornada ?? 1, data: g.data ?? "2026-08-16",
-      casa: g.casa, fora: g.fora, golosCasa: g.golosCasa, golosFora: g.golosFora,
+    match: {
+      id, competition: g.competition ?? "PL", season: g.season ?? 1, round: g.round ?? 1, date: g.date ?? "2026-08-16",
+      home: g.home, away: g.away, homeGoals: g.homeGoals, awayGoals: g.awayGoals,
     },
-    factos,
+    facts,
     part,
   };
 }
 
-export function contratoRepositorio(nome: string, criar: () => Repositorio): void {
-  describe(`Repositorio (${nome}): eventos`, () => {
+export function repositoryContract(name: string, create: () => Repository): void {
+  describe(`Repositorio (${name}): eventos`, () => {
     it("guarda e devolve um evento com entidades por ordem estável", () => {
-      const r = criar();
-      const id = r.acrescentarEvento(
+      const r = create();
+      const id = r.appendEvent(
         ev("TRANSFERENCIA", {
-          jornada: 3, v: 2, vis: "privado", origem: "gerado",
-          entidades: [{ k: "pessoa", id: "p1", papel: "jogador" }, { k: "clube", id: "c2", papel: "destino" }, { k: "clube", id: "c1" }],
-          dados: { valor: 120000, clausulas: ["bónus", { x: 1 }] },
+          round: 3, v: 2, visibility: "privado", origin: "gerado",
+          entities: [{ k: "person", id: "p1", roleKind: "player" }, { k: "club", id: "c2", roleKind: "destino" }, { k: "club", id: "c1" }],
+          data: { value: 120000, clauses: ["bónus", { x: 1 }] },
         }),
       );
       expect(id).toBe(1);
-      expect(r.evento(1)).toEqual({
-        id: 1, tipo: "TRANSFERENCIA", v: 2, data: "2026-08-15", epoca: 1, jornada: 3, vis: "privado", origem: "gerado",
-        entidades: [{ k: "clube", id: "c1" }, { k: "clube", id: "c2", papel: "destino" }, { k: "pessoa", id: "p1", papel: "jogador" }],
-        dados: { valor: 120000, clausulas: ["bónus", { x: 1 }] },
+      expect(r.event(1)).toEqual({
+        id: 1, type: "TRANSFERENCIA", v: 2, date: "2026-08-15", season: 1, round: 3, visibility: "privado", origin: "gerado",
+        entities: [{ k: "club", id: "c1" }, { k: "club", id: "c2", roleKind: "destino" }, { k: "person", id: "p1", roleKind: "player" }],
+        data: { value: 120000, clauses: ["bónus", { x: 1 }] },
       });
-      expect(r.evento(99)).toBeUndefined();
+      expect(r.event(99)).toBeUndefined();
     });
 
     it("ids sequenciais e eventosDe devolve os mais recentes primeiro, com filtros", () => {
-      const r = criar();
-      const c = { k: "clube" as const, id: "c1" };
-      r.acrescentarEvento(ev("SUBIDA", { epoca: 1, entidades: [c] }));
-      r.acrescentarEvento(ev("LESAO", { epoca: 2, vis: "privado", entidades: [c] }));
-      r.acrescentarEvento(ev("SUBIDA", { epoca: 3, entidades: [c] }));
-      r.acrescentarEvento(ev("SUBIDA", { epoca: 3, entidades: [{ k: "clube", id: "c9" }] }));
-      expect(r.eventosDe(c).map((e) => e.id)).toEqual([3, 2, 1]);
-      expect(r.eventosDe(c, { apenasPublicos: true }).map((e) => e.id)).toEqual([3, 1]);
-      expect(r.eventosDe(c, { vis: ["privado", "secreto"] }).map((e) => e.id)).toEqual([2]);
-      expect(r.eventosDe(c, { vis: [] })).toEqual([]);
-      expect(r.eventosDe(c, { tipo: "SUBIDA", limite: 1 }).map((e) => e.id)).toEqual([3]);
-      expect(r.eventosDe(c, { desdeEpoca: 2, ateEpoca: 2 }).map((e) => e.id)).toEqual([2]);
-      expect(r.eventosDe(c, { depoisDe: 1 }).map((e) => e.id)).toEqual([3, 2]);
-      expect(r.eventosDe(c, { antesDe: 3, limite: 1 }).map((e) => e.id)).toEqual([2]);
-      expect(r.eventosDe({ k: "clube", id: "ninguem" })).toEqual([]);
-      expect(r.totalEventos()).toBe(4);
+      const r = create();
+      const c = { k: "club" as const, id: "c1" };
+      r.appendEvent(ev("SUBIDA", { season: 1, entities: [c] }));
+      r.appendEvent(ev("LESAO", { season: 2, visibility: "privado", entities: [c] }));
+      r.appendEvent(ev("SUBIDA", { season: 3, entities: [c] }));
+      r.appendEvent(ev("SUBIDA", { season: 3, entities: [{ k: "club", id: "c9" }] }));
+      expect(r.eventsOf(c).map((e) => e.id)).toEqual([3, 2, 1]);
+      expect(r.eventsOf(c, { publicOnly: true }).map((e) => e.id)).toEqual([3, 1]);
+      expect(r.eventsOf(c, { visibility: ["privado", "secreto"] }).map((e) => e.id)).toEqual([2]);
+      expect(r.eventsOf(c, { visibility: [] })).toEqual([]);
+      expect(r.eventsOf(c, { type: "SUBIDA", limit: 1 }).map((e) => e.id)).toEqual([3]);
+      expect(r.eventsOf(c, { seasonSince: 2, untilSeason: 2 }).map((e) => e.id)).toEqual([2]);
+      expect(r.eventsOf(c, { afterOf: 1 }).map((e) => e.id)).toEqual([3, 2]);
+      expect(r.eventsOf(c, { beforeOf: 3, limit: 1 }).map((e) => e.id)).toEqual([2]);
+      expect(r.eventsOf({ k: "club", id: "ninguem" })).toEqual([]);
+      expect(r.eventsTotal()).toBe(4);
     });
 
     it("eventosRecentes: todo o mundo, mais recentes primeiro, com filtros e paginação", () => {
-      const r = criar();
-      const c = { k: "clube" as const, id: "c1" };
-      r.acrescentarEvento(ev("SUBIDA", { epoca: 1, entidades: [c] }));
-      r.acrescentarEvento(ev("LESAO", { epoca: 1, vis: "privado", entidades: [c] }));
-      r.acrescentarEvento(ev("GOLEADA", { epoca: 1, entidades: [{ k: "clube", id: "c9" }] }));
-      r.acrescentarEvento(ev("SUBIDA", { epoca: 2, entidades: [{ k: "clube", id: "c9" }] }));
-      expect(r.eventosRecentes().map((e) => e.id)).toEqual([4, 3, 2, 1]);
-      expect(r.eventosRecentes({ apenasPublicos: true }).map((e) => e.id)).toEqual([4, 3, 1]);
-      expect(r.eventosRecentes({ tipos: ["SUBIDA"] }).map((e) => e.id)).toEqual([4, 1]);
-      expect(r.eventosRecentes({ tipos: [] })).toEqual([]);
-      expect(r.eventosRecentes({ depoisDe: 2 }).map((e) => e.id)).toEqual([4, 3]);
-      expect(r.eventosRecentes({ antesDe: 3, limite: 1 }).map((e) => e.id)).toEqual([2]);
-      expect(r.eventosRecentes({ limite: 2 }).map((e) => e.id)).toEqual([4, 3]);
+      const r = create();
+      const c = { k: "club" as const, id: "c1" };
+      r.appendEvent(ev("SUBIDA", { season: 1, entities: [c] }));
+      r.appendEvent(ev("LESAO", { season: 1, visibility: "privado", entities: [c] }));
+      r.appendEvent(ev("GOLEADA", { season: 1, entities: [{ k: "club", id: "c9" }] }));
+      r.appendEvent(ev("SUBIDA", { season: 2, entities: [{ k: "club", id: "c9" }] }));
+      expect(r.recentEvents().map((e) => e.id)).toEqual([4, 3, 2, 1]);
+      expect(r.recentEvents({ publicOnly: true }).map((e) => e.id)).toEqual([4, 3, 1]);
+      expect(r.recentEvents({ types: ["SUBIDA"] }).map((e) => e.id)).toEqual([4, 1]);
+      expect(r.recentEvents({ types: [] })).toEqual([]);
+      expect(r.recentEvents({ afterOf: 2 }).map((e) => e.id)).toEqual([4, 3]);
+      expect(r.recentEvents({ beforeOf: 3, limit: 1 }).map((e) => e.id)).toEqual([2]);
+      expect(r.recentEvents({ limit: 2 }).map((e) => e.id)).toEqual([4, 3]);
     });
 
     it("contar, ultimo e ultimos", () => {
-      const r = criar();
-      const c = { k: "clube" as const, id: "c1" };
-      for (const epoca of [1, 4, 9]) r.acrescentarEvento(ev("SUBIDA", { epoca, entidades: [c] }));
-      r.acrescentarEvento(ev("SUBIDA", { epoca: 2, entidades: [{ k: "clube", id: "c2" }] }));
-      expect(r.contar("SUBIDA")).toBe(4);
-      expect(r.contar("SUBIDA", c)).toBe(3);
-      expect(r.contar("SUBIDA", c, { desdeEpoca: 2, ateEpoca: 8 })).toBe(1);
-      expect(r.contar("DESCIDA", c)).toBe(0);
-      expect(r.ultimo("SUBIDA", c)?.epoca).toBe(9);
-      expect(r.ultimos("SUBIDA", c, 2).map((e) => e.epoca)).toEqual([9, 4]);
-      expect(r.ultimo("DESCIDA", c)).toBeUndefined();
+      const r = create();
+      const c = { k: "club" as const, id: "c1" };
+      for (const season of [1, 4, 9]) r.appendEvent(ev("SUBIDA", { season, entities: [c] }));
+      r.appendEvent(ev("SUBIDA", { season: 2, entities: [{ k: "club", id: "c2" }] }));
+      expect(r.count("SUBIDA")).toBe(4);
+      expect(r.count("SUBIDA", c)).toBe(3);
+      expect(r.count("SUBIDA", c, { seasonSince: 2, untilSeason: 8 })).toBe(1);
+      expect(r.count("DESCIDA", c)).toBe(0);
+      expect(r.last("SUBIDA", c)?.season).toBe(9);
+      expect(r.lastN("SUBIDA", c, 2).map((e) => e.season)).toEqual([9, 4]);
+      expect(r.last("DESCIDA", c)).toBeUndefined();
     });
 
     it("cadeia devolve causas e efeitos por ordem", () => {
-      const r = criar();
-      const a = r.acrescentarEvento(ev("PROMESSA_FEITA"));
-      const b = r.acrescentarEvento(ev("PROMESSA_FALHADA", { causa: a }));
-      const x = r.acrescentarEvento(ev("OUTRO"));
-      const c = r.acrescentarEvento(ev("PEDIDO_SAIDA", { causa: b }));
-      const d = r.acrescentarEvento(ev("TRANSFERENCIA", { causa: c }));
-      const lateral = r.acrescentarEvento(ev("QUEIXA", { causa: a }));
-      expect(r.cadeia(c).map((e) => e.id)).toEqual([a, b, c, d]);
-      expect(r.cadeia(a).map((e) => e.id)).toEqual([a, b, c, d, lateral]);
-      expect(r.cadeia(x).map((e) => e.id)).toEqual([x]);
-      expect(r.cadeia(999)).toEqual([]);
+      const r = create();
+      const a = r.appendEvent(ev("PROMESSA_FEITA"));
+      const b = r.appendEvent(ev("PROMESSA_FALHADA", { cause: a }));
+      const x = r.appendEvent(ev("OUTRO"));
+      const c = r.appendEvent(ev("PEDIDO_SAIDA", { cause: b }));
+      const d = r.appendEvent(ev("TRANSFERENCIA", { cause: c }));
+      const fullback = r.appendEvent(ev("QUEIXA", { cause: a }));
+      expect(r.chain(c).map((e) => e.id)).toEqual([a, b, c, d]);
+      expect(r.chain(a).map((e) => e.id)).toEqual([a, b, c, d, fullback]);
+      expect(r.chain(x).map((e) => e.id)).toEqual([x]);
+      expect(r.chain(999)).toEqual([]);
     });
 
     it("rejeita eventos inválidos sem deixar rasto", () => {
-      const r = criar();
-      expect(() => r.acrescentarEvento(ev("X", { data: "15/08/2026" }))).toThrow(/data inválida/);
-      expect(() => r.acrescentarEvento(ev("X", { corrige: 1 }))).toThrow(/CORRECAO/);
-      expect(() => r.acrescentarEvento(ev("CORRECAO"))).toThrow(/exige/);
-      expect(() => r.acrescentarEvento(ev("X", { causa: 42 }))).toThrow();
-      expect(() => r.acrescentarEvento(ev("X", { entidades: [{ k: "clube", id: "a" }, { k: "clube", id: "a" }] }))).toThrow(/repetida/);
-      expect(r.contar("X")).toBe(0);
-      expect(r.acrescentarEvento(ev("OK"))).toBe(1); // nenhum id foi consumido
+      const r = create();
+      expect(() => r.appendEvent(ev("X", { date: "15/08/2026" }))).toThrow(/data inválida/);
+      expect(() => r.appendEvent(ev("X", { fixes: 1 }))).toThrow(/CORRECAO/);
+      expect(() => r.appendEvent(ev("CORRECAO"))).toThrow(/exige/);
+      expect(() => r.appendEvent(ev("X", { cause: 42 }))).toThrow();
+      expect(() => r.appendEvent(ev("X", { entities: [{ k: "club", id: "a" }, { k: "club", id: "a" }] }))).toThrow(/repetida/);
+      expect(r.count("X")).toBe(0);
+      expect(r.appendEvent(ev("OK"))).toBe(1); // nenhum id foi consumido
     });
 
     it("CORRECAO liga ao evento corrigido sem o alterar", () => {
-      const r = criar();
-      const a = r.acrescentarEvento(ev("RESULTADO", { dados: { golos: 2 } }));
-      const c = r.acrescentarEvento(ev("CORRECAO", { corrige: a, dados: { golos: 3 } }));
-      expect(r.evento(a)?.dados).toEqual({ golos: 2 });
-      expect(r.evento(c)?.corrige).toBe(a);
+      const r = create();
+      const a = r.appendEvent(ev("RESULTADO", { data: { goals: 2 } }));
+      const c = r.appendEvent(ev("CORRECAO", { fixes: a, data: { goals: 3 } }));
+      expect(r.event(a)?.data).toEqual({ goals: 2 });
+      expect(r.event(c)?.fixes).toBe(a);
     });
 
     it("exporta NDJSON, uma linha por evento, por ordem de id", () => {
-      const r = criar();
-      expect(r.exportarNdjson()).toBe("");
-      r.acrescentarEvento(ev("A", { entidades: [{ k: "clube", id: "c1" }], dados: { n: 1 } }));
-      r.acrescentarEvento(ev("B", { jornada: 2, causa: 1 }));
-      const linhas = r.exportarNdjson().trimEnd().split("\n");
-      expect(linhas).toHaveLength(2);
-      expect(JSON.parse(linhas[1] as string)).toMatchObject({ id: 2, tipo: "B", jornada: 2, causa: 1 });
+      const r = create();
+      expect(r.exportNdjson()).toBe("");
+      r.appendEvent(ev("A", { entities: [{ k: "club", id: "c1" }], data: { n: 1 } }));
+      r.appendEvent(ev("B", { round: 2, cause: 1 }));
+      const lines = r.exportNdjson().trimEnd().split("\n");
+      expect(lines).toHaveLength(2);
+      expect(JSON.parse(lines[1] as string)).toMatchObject({ id: 2, type: "B", round: 2, cause: 1 });
     });
   });
 
-  describe(`Repositorio (${nome}): transações e meta`, () => {
+  describe(`Repositorio (${name}): transações e meta`, () => {
     it("desfaz tudo quando a transação falha, incluindo transações internas", () => {
-      const r = criar();
-      r.acrescentarEvento(ev("ANTES"));
+      const r = create();
+      r.appendEvent(ev("ANTES"));
       expect(() =>
-        r.transacao(() => {
-          r.acrescentarEvento(ev("DENTRO", { entidades: [{ k: "clube", id: "c1" }] }));
-          r.transacao(() => r.acrescentarEvento(ev("INTERNA")));
-          r.definirMeta("x", "1");
+        r.transaction(() => {
+          r.appendEvent(ev("DENTRO", { entities: [{ k: "club", id: "c1" }] }));
+          r.transaction(() => r.appendEvent(ev("INTERNA")));
+          r.setMeta("x", "1");
           throw new Error("falhou");
         }),
       ).toThrow("falhou");
-      expect(r.contar("DENTRO")).toBe(0);
-      expect(r.contar("INTERNA")).toBe(0);
+      expect(r.count("DENTRO")).toBe(0);
+      expect(r.count("INTERNA")).toBe(0);
       expect(r.meta("x")).toBeUndefined();
-      expect(r.eventosDe({ k: "clube", id: "c1" })).toEqual([]);
-      expect(r.acrescentarEvento(ev("DEPOIS"))).toBe(2);
+      expect(r.eventsOf({ k: "club", id: "c1" })).toEqual([]);
+      expect(r.appendEvent(ev("DEPOIS"))).toBe(2);
     });
 
     it("uma transação interna que falha só desfaz o seu trabalho", () => {
-      const r = criar();
-      r.transacao(() => {
-        r.acrescentarEvento(ev("FORA"));
-        expect(() => r.transacao(() => (r.acrescentarEvento(ev("INTERNA")), (() => { throw new Error("x"); })()))).toThrow("x");
-        r.acrescentarEvento(ev("FORA2"));
+      const r = create();
+      r.transaction(() => {
+        r.appendEvent(ev("FORA"));
+        expect(() => r.transaction(() => (r.appendEvent(ev("INTERNA")), (() => { throw new Error("x"); })()))).toThrow("x");
+        r.appendEvent(ev("FORA2"));
       });
-      expect(r.contar("FORA")).toBe(1);
-      expect(r.contar("FORA2")).toBe(1);
-      expect(r.contar("INTERNA")).toBe(0);
+      expect(r.count("FORA")).toBe(1);
+      expect(r.count("FORA2")).toBe(1);
+      expect(r.count("INTERNA")).toBe(0);
     });
 
     it("meta guarda e substitui valores", () => {
-      const r = criar();
+      const r = create();
       expect(r.meta("seed")).toBeUndefined();
-      r.definirMeta("seed", "abc");
-      r.definirMeta("seed", "def");
+      r.setMeta("seed", "abc");
+      r.setMeta("seed", "def");
       expect(r.meta("seed")).toBe("def");
     });
   });
 
-  describe(`Repositorio (${nome}): jogos e derivadas`, () => {
+  describe(`Repositorio (${name}): jogos e derivadas`, () => {
     it("regista o jogo, o evento JOGO_JOGADO e atualiza classificação e estatísticas", () => {
-      const r = criar();
-      const j = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 2, golosFora: 1 }, { cartoes: true });
-      const { evento } = r.registarJogo(j.jogo, j.factos, j.part);
-      expect(r.evento(evento)).toMatchObject({ tipo: "JOGO_JOGADO", vis: "publico", jornada: 1, dados: { golosCasa: 2, golosFora: 1 } });
-      expect(r.eventosDe({ k: "clube", id: "B" }).map((e) => e.tipo)).toEqual(["JOGO_JOGADO"]);
-      expect(r.jogo("j1")).toMatchObject({ casa: "A", golosCasa: 2, evento });
-      expect(r.classificacao("PL", 1)).toEqual([
-        { clube: "A", jogos: 1, vitorias: 1, empates: 0, derrotas: 0, golosMarcados: 2, golosSofridos: 1, pontosJogos: 3, ajuste: 0, pontos: 3 },
-        { clube: "B", jogos: 1, vitorias: 0, empates: 0, derrotas: 1, golosMarcados: 1, golosSofridos: 2, pontosJogos: 0, ajuste: 0, pontos: 0 },
+      const r = create();
+      const j = syntheticMatch("j1", { home: "A", away: "B", homeGoals: 2, awayGoals: 1 }, { cards: true });
+      const { event } = r.recordMatch(j.match, j.facts, j.part);
+      expect(r.event(event)).toMatchObject({ type: "JOGO_JOGADO", visibility: "exposed", round: 1, data: { homeGoals: 2, awayGoals: 1 } });
+      expect(r.eventsOf({ k: "club", id: "B" }).map((e) => e.type)).toEqual(["JOGO_JOGADO"]);
+      expect(r.match("j1")).toMatchObject({ home: "A", homeGoals: 2, event });
+      expect(r.standings("PL", 1)).toEqual([
+        { club: "A", matches: 1, wins: 1, draws: 0, losses: 0, scoredGoals: 2, concededGoals: 1, matchesPoints: 3, adjustment: 0, points: 3 },
+        { club: "B", matches: 1, wins: 0, draws: 0, losses: 1, scoredGoals: 1, concededGoals: 2, matchesPoints: 0, adjustment: 0, points: 0 },
       ]);
-      expect(r.statsJogador("A-9")).toEqual([{ jogador: "A-9", epoca: 1, clube: "A", competicao: "PL", jogos: 1, minutos: 90, golos: 1, assistencias: 0, amarelos: 0, vermelhos: 0 }]);
-      expect(r.statsJogador("A-8")[0]).toMatchObject({ assistencias: 1 });
-      expect(r.statsJogador("A-4")[0]).toMatchObject({ amarelos: 1 });
-      expect(r.statsJogador("B-5")[0]).toMatchObject({ vermelhos: 1, minutos: 70 });
-      expect(r.statsJogador("A-12")[0]).toMatchObject({ jogos: 0, minutos: 0 }); // suplente não utilizado
+      expect(r.playerStats("A-9")).toEqual([{ player: "A-9", season: 1, club: "A", competition: "PL", matches: 1, minutes: 90, goals: 1, assists: 0, yellows: 0, reds: 0 }]);
+      expect(r.playerStats("A-8")[0]).toMatchObject({ assists: 1 });
+      expect(r.playerStats("A-4")[0]).toMatchObject({ yellows: 1 });
+      expect(r.playerStats("B-5")[0]).toMatchObject({ reds: 1, minutes: 70 });
+      expect(r.playerStats("A-12")[0]).toMatchObject({ matches: 0, minutes: 0 }); // suplente não utilizado
     });
 
     it("minutos jogados numa janela de datas (cansaço, RZ-177)", () => {
-      const r = criar();
-      const j1 = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 0, golosFora: 0, data: "2026-08-10" }, {});
-      const j2 = jogoSintetico("j2", { casa: "B", fora: "A", golosCasa: 0, golosFora: 0, jornada: 2, data: "2026-08-17" }, { cartoes: true });
-      r.registarJogo(j1.jogo, j1.factos, j1.part);
-      r.registarJogo(j2.jogo, j2.factos, j2.part);
-      const quem = ["A-1", "A-5", "A-12", "Z-1"];
-      expect(Object.fromEntries(r.minutosJogados(quem, "2026-08-10", "2026-08-18"))).toEqual({ "A-1": 180, "A-5": 160 });
-      expect(Object.fromEntries(r.minutosJogados(quem, "2026-08-11", "2026-08-18"))).toEqual({ "A-1": 90, "A-5": 70 });
-      expect(r.minutosJogados(quem, "2026-08-10", "2026-08-17").get("A-1")).toBe(90);
-      expect(r.minutosJogados([], "2026-08-01", "2026-09-01").size).toBe(0);
+      const r = create();
+      const j1 = syntheticMatch("j1", { home: "A", away: "B", homeGoals: 0, awayGoals: 0, date: "2026-08-10" }, {});
+      const j2 = syntheticMatch("j2", { home: "B", away: "A", homeGoals: 0, awayGoals: 0, round: 2, date: "2026-08-17" }, { cards: true });
+      r.recordMatch(j1.match, j1.facts, j1.part);
+      r.recordMatch(j2.match, j2.facts, j2.part);
+      const who = ["A-1", "A-5", "A-12", "Z-1"];
+      expect(Object.fromEntries(r.playedMinutes(who, "2026-08-10", "2026-08-18"))).toEqual({ "A-1": 180, "A-5": 160 });
+      expect(Object.fromEntries(r.playedMinutes(who, "2026-08-11", "2026-08-18"))).toEqual({ "A-1": 90, "A-5": 70 });
+      expect(r.playedMinutes(who, "2026-08-10", "2026-08-17").get("A-1")).toBe(90);
+      expect(r.playedMinutes([], "2026-08-01", "2026-09-01").size).toBe(0);
     });
 
     it("confrontos entre dois clubes: os mais recentes primeiro, em qualquer campo", () => {
-      const r = criar();
-      const j1 = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 2, golosFora: 1 }, {});
-      const j2 = jogoSintetico("j2", { casa: "B", fora: "A", golosCasa: 0, golosFora: 1, jornada: 2 }, {});
-      r.registarJogo(j1.jogo, j1.factos, j1.part);
-      r.registarJogo(j2.jogo, j2.factos, j2.part);
-      expect(r.confrontos("A", "B", 5).map((j) => j.id)).toEqual(["j2", "j1"]);
-      expect(r.confrontos("B", "A", 1).map((j) => j.id)).toEqual(["j2"]);
-      expect(r.confrontos("A", "Z", 5)).toEqual([]);
+      const r = create();
+      const j1 = syntheticMatch("j1", { home: "A", away: "B", homeGoals: 2, awayGoals: 1 }, {});
+      const j2 = syntheticMatch("j2", { home: "B", away: "A", homeGoals: 0, awayGoals: 1, round: 2 }, {});
+      r.recordMatch(j1.match, j1.facts, j1.part);
+      r.recordMatch(j2.match, j2.facts, j2.part);
+      expect(r.meetings("A", "B", 5).map((j) => j.id)).toEqual(["j2", "j1"]);
+      expect(r.meetings("B", "A", 1).map((j) => j.id)).toEqual(["j2"]);
+      expect(r.meetings("A", "Z", 5)).toEqual([]);
     });
 
     it("estatísticas de uma competição: golos, cartões e nota média por jogador", () => {
-      const r = criar();
-      const j1 = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 2, golosFora: 1 }, { cartoes: true });
-      r.registarJogo(j1.jogo, j1.factos, j1.part.map((p) => (p.jogador === "A-9" ? { ...p, nota: 8 } : p)));
-      const j2 = jogoSintetico("j2", { casa: "B", fora: "A", golosCasa: 0, golosFora: 1, jornada: 2 }, {});
-      r.registarJogo(j2.jogo, j2.factos, j2.part.map((p) => (p.jogador === "A-9" ? { ...p, nota: 6 } : p)));
-      const todos = r.playerStatsForCompetition("PL", 1);
-      const a9 = todos.find((x) => x.jogador === "A-9")!;
-      expect(a9).toMatchObject({ jogos: 2, ratedGames: 2, avgRating: 7 });
-      expect(a9.golos).toBeGreaterThanOrEqual(1);
-      expect(todos.find((x) => x.jogador === "B-5")).toMatchObject({ vermelhos: 1 });
-      expect(todos.find((x) => x.jogador === "A-4")?.avgRating).toBeUndefined();
+      const r = create();
+      const j1 = syntheticMatch("j1", { home: "A", away: "B", homeGoals: 2, awayGoals: 1 }, { cards: true });
+      r.recordMatch(j1.match, j1.facts, j1.part.map((p) => (p.player === "A-9" ? { ...p, rating: 8 } : p)));
+      const j2 = syntheticMatch("j2", { home: "B", away: "A", homeGoals: 0, awayGoals: 1, round: 2 }, {});
+      r.recordMatch(j2.match, j2.facts, j2.part.map((p) => (p.player === "A-9" ? { ...p, rating: 6 } : p)));
+      const all = r.playerStatsForCompetition("PL", 1);
+      const a9 = all.find((x) => x.player === "A-9")!;
+      expect(a9).toMatchObject({ matches: 2, ratedGames: 2, avgRating: 7 });
+      expect(a9.goals).toBeGreaterThanOrEqual(1);
+      expect(all.find((x) => x.player === "B-5")).toMatchObject({ reds: 1 });
+      expect(all.find((x) => x.player === "A-4")?.avgRating).toBeUndefined();
       expect(r.playerStatsForCompetition("PL", 2)).toEqual([]);
-      expect(r.playerStatsForCompetition("outra", 1)).toEqual([]);
+      expect(r.playerStatsForCompetition("other", 1)).toEqual([]);
     });
 
     it("auto-golo conta para o resultado mas não para o marcador", () => {
-      const r = criar();
-      const j = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 0, golosFora: 1 }, { autoGolo: true });
-      r.registarJogo(j.jogo, j.factos, j.part);
-      expect(r.classificacao("PL", 1)[0]?.clube).toBe("B");
-      expect(r.statsJogador("A-3")[0]?.golos).toBe(0);
-      expect(r.marcadores("PL", 1, 1)).toEqual([{ jogador: "A-3", clube: "B", minuto: 15, jogo: "j1" }]);
+      const r = create();
+      const j = syntheticMatch("j1", { home: "A", away: "B", homeGoals: 0, awayGoals: 1 }, { goalAuto: true });
+      r.recordMatch(j.match, j.facts, j.part);
+      expect(r.standings("PL", 1)[0]?.club).toBe("B");
+      expect(r.playerStats("A-3")[0]?.goals).toBe(0);
+      expect(r.scorers("PL", 1, 1)).toEqual([{ player: "A-3", club: "B", minute: 15, match: "j1" }]);
     });
 
     it("desempata a classificação por pontos, diferença e golos marcados", () => {
-      const r = criar();
-      const g = (id: string, casa: string, fora: string, a: number, b: number, jornada: number) => {
-        const j = jogoSintetico(id, { casa, fora, golosCasa: a, golosFora: b, jornada });
-        r.registarJogo(j.jogo, j.factos, j.part);
+      const r = create();
+      const g = (id: string, home: string, away: string, a: number, b: number, round: number) => {
+        const j = syntheticMatch(id, { home, away, homeGoals: a, awayGoals: b, round });
+        r.recordMatch(j.match, j.facts, j.part);
       };
       g("1", "A", "B", 1, 0, 1); // A: 3 pts, dif +1, 1 golo
       g("2", "C", "D", 3, 2, 1); // C: 3 pts, dif +1, 3 golos → à frente do A
       g("3", "B", "D", 1, 1, 2); // B e D: 1 pt, dif -1; D marcou mais golos
-      expect(r.classificacao("PL", 1).map((l) => l.clube)).toEqual(["C", "A", "D", "B"]);
+      expect(r.standings("PL", 1).map((l) => l.club)).toEqual(["C", "A", "D", "B"]);
     });
 
     it("marcadores de uma jornada por data, jogo e minuto", () => {
-      const r = criar();
-      const a = jogoSintetico("jb", { casa: "C", fora: "D", golosCasa: 1, golosFora: 1, data: "2026-08-17" });
-      const b = jogoSintetico("ja", { casa: "A", fora: "B", golosCasa: 2, golosFora: 0, data: "2026-08-16" });
-      r.registarJogo(a.jogo, a.factos, a.part);
-      r.registarJogo(b.jogo, b.factos, b.part);
-      expect(r.marcadores("PL", 1, 1).map((m) => `${m.jogo}:${m.minuto}`)).toEqual(["ja:10", "ja:30", "jb:10", "jb:15"]);
-      expect(r.marcadores("PL", 1, 2)).toEqual([]);
+      const r = create();
+      const a = syntheticMatch("jb", { home: "C", away: "D", homeGoals: 1, awayGoals: 1, date: "2026-08-17" });
+      const b = syntheticMatch("ja", { home: "A", away: "B", homeGoals: 2, awayGoals: 0, date: "2026-08-16" });
+      r.recordMatch(a.match, a.facts, a.part);
+      r.recordMatch(b.match, b.facts, b.part);
+      expect(r.scorers("PL", 1, 1).map((m) => `${m.match}:${m.minute}`)).toEqual(["ja:10", "ja:30", "jb:10", "jb:15"]);
+      expect(r.scorers("PL", 1, 2)).toEqual([]);
     });
 
     it("devolve cartões por jogador, competição e época, e as jornadas em que o clube jogou", () => {
-      const r = criar();
-      const g = (id: string, casa: string, fora: string, jornada: number, extra: { competicao?: string; epoca?: number } = {}) => {
-        const j = jogoSintetico(id, { casa, fora, golosCasa: 0, golosFora: 0, jornada, data: `2026-09-${10 + jornada}`, ...extra }, { cartoes: true });
-        r.registarJogo(j.jogo, j.factos, j.part);
+      const r = create();
+      const g = (id: string, home: string, away: string, round: number, extra: { competition?: string; season?: number } = {}) => {
+        const j = syntheticMatch(id, { home, away, homeGoals: 0, awayGoals: 0, round, date: `2026-09-${10 + round}`, ...extra }, { cards: true });
+        r.recordMatch(j.match, j.facts, j.part);
       };
       g("j2", "A", "B", 2);
       g("j1", "C", "A", 1);
-      g("j3", "A", "D", 3, { competicao: "TP" });
-      g("j4", "A", "B", 1, { epoca: 2 });
+      g("j3", "A", "D", 3, { competition: "TP" });
+      g("j4", "A", "B", 1, { season: 2 });
       // A-4 viu amarelo em casa (j2); B-5 viu vermelho fora (j2); C-5 não é de A
-      expect(r.cartoes("PL", 1, ["A-4", "B-5"])).toEqual([
-        { jogador: "A-4", jogo: "j2", jornada: 2, minuto: 33, tipo: "CA", extra: "" },
-        { jogador: "B-5", jogo: "j2", jornada: 2, minuto: 70, tipo: "CV", extra: "" },
+      expect(r.cards("PL", 1, ["A-4", "B-5"])).toEqual([
+        { player: "A-4", match: "j2", round: 2, minute: 33, type: "CA", extra: "" },
+        { player: "B-5", match: "j2", round: 2, minute: 70, type: "CV", extra: "" },
       ]);
-      expect(r.cartoes("PL", 1, ["A-5"])).toEqual([{ jogador: "A-5", jogo: "j1", jornada: 1, minuto: 70, tipo: "CV", extra: "" }]);
-      expect(r.cartoes("PL", 1, [])).toEqual([]);
-      expect(r.cartoes("TP", 1, ["A-4"])).toHaveLength(1);
-      expect(r.jornadasJogadas("A", "PL", 1)).toEqual([1, 2]);
-      expect(r.jornadasJogadas("A", "TP", 1)).toEqual([3]);
-      expect(r.jornadasJogadas("B", "PL", 2)).toEqual([1]);
-      expect(r.jornadasJogadas("Z", "PL", 1)).toEqual([]);
+      expect(r.cards("PL", 1, ["A-5"])).toEqual([{ player: "A-5", match: "j1", round: 1, minute: 70, type: "CV", extra: "" }]);
+      expect(r.cards("PL", 1, [])).toEqual([]);
+      expect(r.cards("TP", 1, ["A-4"])).toHaveLength(1);
+      expect(r.playedRounds("A", "PL", 1)).toEqual([1, 2]);
+      expect(r.playedRounds("A", "TP", 1)).toEqual([3]);
+      expect(r.playedRounds("B", "PL", 2)).toEqual([1]);
+      expect(r.playedRounds("Z", "PL", 1)).toEqual([]);
     });
 
     it("lista os jogos de uma competição e época por jornada, data e id", () => {
-      const r = criar();
-      const g = (id: string, casa: string, fora: string, jornada: number, extra: { competicao?: string; epoca?: number; data?: string } = {}) => {
-        const j = jogoSintetico(id, { casa, fora, golosCasa: 1, golosFora: 0, jornada, ...extra });
-        r.registarJogo(j.jogo, j.factos, j.part);
+      const r = create();
+      const g = (id: string, home: string, away: string, round: number, extra: { competition?: string; season?: number; date?: string } = {}) => {
+        const j = syntheticMatch(id, { home, away, homeGoals: 1, awayGoals: 0, round, ...extra });
+        r.recordMatch(j.match, j.facts, j.part);
       };
-      g("j3", "A", "B", 2, { data: "2026-09-20" });
-      g("j2", "C", "D", 1, { data: "2026-09-13" });
-      g("j1", "A", "D", 1, { data: "2026-09-12" });
-      g("j4", "A", "B", 1, { competicao: "TP" });
-      g("j5", "A", "B", 1, { epoca: 2 });
-      expect(r.jogosDaCompeticao("PL", 1).map((j) => j.id)).toEqual(["j1", "j2", "j3"]);
-      expect(r.jogosDaCompeticao("PL", 1)[0]).toMatchObject({ casa: "A", fora: "D", golosCasa: 1, golosFora: 0, jornada: 1 });
-      expect(r.jogosDaCompeticao("TP", 1)).toHaveLength(1);
-      expect(r.jogosDaCompeticao("PL", 3)).toEqual([]);
+      g("j3", "A", "B", 2, { date: "2026-09-20" });
+      g("j2", "C", "D", 1, { date: "2026-09-13" });
+      g("j1", "A", "D", 1, { date: "2026-09-12" });
+      g("j4", "A", "B", 1, { competition: "TP" });
+      g("j5", "A", "B", 1, { season: 2 });
+      expect(r.competitionMatches("PL", 1).map((j) => j.id)).toEqual(["j1", "j2", "j3"]);
+      expect(r.competitionMatches("PL", 1)[0]).toMatchObject({ home: "A", away: "D", homeGoals: 1, awayGoals: 0, round: 1 });
+      expect(r.competitionMatches("TP", 1)).toHaveLength(1);
+      expect(r.competitionMatches("PL", 3)).toEqual([]);
     });
 
     it("recusa jogos incoerentes ou repetidos sem deixar rasto", () => {
-      const r = criar();
-      const j = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 1, golosFora: 0 });
-      expect(() => r.registarJogo({ ...j.jogo, golosCasa: 2 }, j.factos, j.part)).toThrow(/não batem/);
-      expect(() => r.registarJogo(j.jogo, j.factos, [...j.part, j.part[0] as Participacao])).toThrow(/repetido/);
-      expect(r.jogo("j1")).toBeUndefined();
-      expect(r.contar("JOGO_JOGADO")).toBe(0);
-      r.registarJogo(j.jogo, j.factos, j.part);
-      expect(() => r.registarJogo(j.jogo, j.factos, j.part)).toThrow(/já existe/);
-      expect(r.contar("JOGO_JOGADO")).toBe(1);
-      expect(r.classificacao("PL", 1).find((l) => l.clube === "A")?.jogos).toBe(1);
+      const r = create();
+      const j = syntheticMatch("j1", { home: "A", away: "B", homeGoals: 1, awayGoals: 0 });
+      expect(() => r.recordMatch({ ...j.match, homeGoals: 2 }, j.facts, j.part)).toThrow(/não batem/);
+      expect(() => r.recordMatch(j.match, j.facts, [...j.part, j.part[0] as Appearance])).toThrow(/repetido/);
+      expect(r.match("j1")).toBeUndefined();
+      expect(r.count("JOGO_JOGADO")).toBe(0);
+      r.recordMatch(j.match, j.facts, j.part);
+      expect(() => r.recordMatch(j.match, j.facts, j.part)).toThrow(/já existe/);
+      expect(r.count("JOGO_JOGADO")).toBe(1);
+      expect(r.standings("PL", 1).find((l) => l.club === "A")?.matches).toBe(1);
     });
 
     it("sanção retroativa ajusta a classificação passada sem reescrever jogos nem eventos", () => {
-      const r = criar();
-      const j1 = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 1, golosFora: 0, epoca: 3 });
-      r.registarJogo(j1.jogo, j1.factos, j1.part);
-      const jogosAntes = JSON.stringify(r.jogo("j1"));
-      const eventosAntes = r.exportarNdjson();
-      const sancao = r.acrescentarEvento(ev("SANCAO_APLICADA", { epoca: 5, vis: "publico", entidades: [{ k: "clube", id: "A" }] }));
-      r.ajustarClassificacao({ competicao: "PL", epoca: 3, clube: "A", pontos: -6, evento: sancao });
-      r.ajustarClassificacao({ competicao: "PL", epoca: 3, clube: "Z", pontos: -1, evento: sancao }); // clube sem jogos
-      const t = r.classificacao("PL", 3);
-      expect(t.map((l) => [l.clube, l.pontosJogos, l.ajuste, l.pontos])).toEqual([["B", 0, 0, 0], ["Z", 0, -1, -1], ["A", 3, -6, -3]]);
-      expect(JSON.stringify(r.jogo("j1"))).toBe(jogosAntes);
-      expect(r.exportarNdjson().startsWith(eventosAntes)).toBe(true);
-      r.reconstruirDerivadas();
-      expect(r.classificacao("PL", 3)).toEqual(t);
-      expect(() => r.ajustarClassificacao({ competicao: "PL", epoca: 3, clube: "A", pontos: 1, evento: 999 })).toThrow();
+      const r = create();
+      const j1 = syntheticMatch("j1", { home: "A", away: "B", homeGoals: 1, awayGoals: 0, season: 3 });
+      r.recordMatch(j1.match, j1.facts, j1.part);
+      const beforeMatches = JSON.stringify(r.match("j1"));
+      const beforeEvents = r.exportNdjson();
+      const sanction = r.appendEvent(ev("SANCAO_APLICADA", { season: 5, visibility: "exposed", entities: [{ k: "club", id: "A" }] }));
+      r.adjustStandings({ competition: "PL", season: 3, club: "A", points: -6, event: sanction });
+      r.adjustStandings({ competition: "PL", season: 3, club: "Z", points: -1, event: sanction }); // clube sem jogos
+      const t = r.standings("PL", 3);
+      expect(t.map((l) => [l.club, l.matchesPoints, l.adjustment, l.points])).toEqual([["B", 0, 0, 0], ["Z", 0, -1, -1], ["A", 3, -6, -3]]);
+      expect(JSON.stringify(r.match("j1"))).toBe(beforeMatches);
+      expect(r.exportNdjson().startsWith(beforeEvents)).toBe(true);
+      r.rebuildDerived();
+      expect(r.standings("PL", 3)).toEqual(t);
+      expect(() => r.adjustStandings({ competition: "PL", season: 3, club: "A", points: 1, event: 999 })).toThrow();
     });
 
     it("reconstruir as derivadas dá exatamente o que o incremental calculou", () => {
-      const r = criar();
+      const r = create();
       let n = 0;
-      for (let epoca = 1; epoca <= 3; epoca++)
-        for (let jornada = 1; jornada <= 6; jornada++)
-          for (const [casa, fora] of [["A", "B"], ["C", "D"]] as const) {
+      for (let season = 1; season <= 3; season++)
+        for (let round = 1; round <= 6; round++)
+          for (const [home, away] of [["A", "B"], ["C", "D"]] as const) {
             n++;
-            const j = jogoSintetico(`j${n}`, { casa: jornada % 2 ? casa : fora, fora: jornada % 2 ? fora : casa, golosCasa: n % 4, golosFora: (n * 7) % 3, epoca, jornada, competicao: epoca === 2 ? "SL" : "PL" }, { cartoes: n % 2 === 0, autoGolo: n % 5 === 0 });
-            r.registarJogo(j.jogo, j.factos, j.part);
+            const j = syntheticMatch(`j${n}`, { home: round % 2 ? home : away, away: round % 2 ? away : home, homeGoals: n % 4, awayGoals: (n * 7) % 3, season, round, competition: season === 2 ? "SL" : "PL" }, { cards: n % 2 === 0, goalAuto: n % 5 === 0 });
+            r.recordMatch(j.match, j.facts, j.part);
           }
-      const antes = [1, 2, 3].flatMap((e) => [r.classificacao("PL", e), r.classificacao("SL", e)]).concat(
-        ["A", "B", "C", "D"].flatMap((c) => [1, 2, 3, 4, 5, 8, 9, 11, 12].map((p) => r.statsJogador(`${c}-${p}`))) as never,
+      const before = [1, 2, 3].flatMap((e) => [r.standings("PL", e), r.standings("SL", e)]).concat(
+        ["A", "B", "C", "D"].flatMap((c) => [1, 2, 3, 4, 5, 8, 9, 11, 12].map((p) => r.playerStats(`${c}-${p}`))) as never,
       );
-      r.reconstruirDerivadas();
-      const depois = [1, 2, 3].flatMap((e) => [r.classificacao("PL", e), r.classificacao("SL", e)]).concat(
-        ["A", "B", "C", "D"].flatMap((c) => [1, 2, 3, 4, 5, 8, 9, 11, 12].map((p) => r.statsJogador(`${c}-${p}`))) as never,
+      r.rebuildDerived();
+      const after = [1, 2, 3].flatMap((e) => [r.standings("PL", e), r.standings("SL", e)]).concat(
+        ["A", "B", "C", "D"].flatMap((c) => [1, 2, 3, 4, 5, 8, 9, 11, 12].map((p) => r.playerStats(`${c}-${p}`))) as never,
       );
-      expect(depois).toEqual(antes);
-      expect(antes.flat().length).toBeGreaterThan(50);
+      expect(after).toEqual(before);
+      expect(before.flat().length).toBeGreaterThan(50);
     });
 
     it("respeita os pontos por resultado configurados", () => {
       // o adaptador criado por `criar` usa 3/1; aqui só confirmamos o valor por omissão
-      const r = criar();
-      const j = jogoSintetico("e", { casa: "A", fora: "B", golosCasa: 0, golosFora: 0 });
-      r.registarJogo(j.jogo, j.factos, j.part);
-      expect(r.classificacao("PL", 1).map((l) => l.pontos)).toEqual([1, 1]);
+      const r = create();
+      const j = syntheticMatch("e", { home: "A", away: "B", homeGoals: 0, awayGoals: 0 });
+      r.recordMatch(j.match, j.facts, j.part);
+      expect(r.standings("PL", 1).map((l) => l.points)).toEqual([1, 1]);
     });
   });
 
-  describe(`Repositorio (${nome}): observações`, () => {
+  describe(`Repositorio (${name}): observações`, () => {
     it("guarda observações e devolve as mais recentes primeiro", () => {
-      const r = criar();
-      const base = { observador: "c1", alvoK: "pessoa" as const, alvoId: "p1", fonte: "olheiro", data: "2026-09-01", epoca: 1, qualidade: 0.6 };
-      r.acrescentarObservacao({ ...base, grupo: "atributos", valores: { finalizacao: [10, 14] } });
-      r.acrescentarObservacao({ ...base, grupo: "personalidade", valores: { rotulos: ["Leal"] } });
-      r.acrescentarObservacao({ ...base, grupo: "atributos", valores: { finalizacao: [12, 13] }, data: "2026-10-01" });
-      r.acrescentarObservacao({ ...base, observador: "c2", grupo: "atributos", valores: {} });
-      expect(r.observacoes("c1", { k: "pessoa", id: "p1" }).map((o) => o.id)).toEqual([3, 2, 1]);
-      expect(r.observacoes("c1", { k: "pessoa", id: "p1" }, "atributos")[0]?.valores).toEqual({ finalizacao: [12, 13] });
-      expect(r.observacoes("c3", { k: "pessoa", id: "p1" })).toEqual([]);
+      const r = create();
+      const base = { observer: "c1", targetK: "person" as const, targetId: "p1", source: "scout", date: "2026-09-01", season: 1, quality: 0.6 };
+      r.appendObservation({ ...base, group: "attributes", values: { finishing: [10, 14] } });
+      r.appendObservation({ ...base, group: "personality", values: { labels: ["Leal"] } });
+      r.appendObservation({ ...base, group: "attributes", values: { finishing: [12, 13] }, date: "2026-10-01" });
+      r.appendObservation({ ...base, observer: "c2", group: "attributes", values: {} });
+      expect(r.observations("c1", { k: "person", id: "p1" }).map((o) => o.id)).toEqual([3, 2, 1]);
+      expect(r.observations("c1", { k: "person", id: "p1" }, "attributes")[0]?.values).toEqual({ finishing: [12, 13] });
+      expect(r.observations("c3", { k: "person", id: "p1" })).toEqual([]);
     });
   });
 
-  describe(`Repositorio (${nome}): calendário`, () => {
-    const j = (id: string, jornada: number, data: string, casa: string, fora: string) => ({ id, competicao: "SL", epoca: 1, jornada, data, casa, fora });
-    const jogos = [j("a", 1, "2026-08-22", "X", "Y"), j("b", 1, "2026-08-23", "Z", "W"), j("c", 2, "2026-08-29", "Y", "Z")];
+  describe(`Repositorio (${name}): calendário`, () => {
+    const j = (id: string, round: number, date: string, home: string, away: string) => ({ id, competition: "SL", season: 1, round, date, home, away });
+    const matches = [j("a", 1, "2026-08-22", "X", "Y"), j("b", 1, "2026-08-23", "Z", "W"), j("c", 2, "2026-08-29", "Y", "Z")];
 
     it("guarda e consulta por liga, por clube e próximo jogo", () => {
-      const r = criar();
-      r.guardarCalendario(jogos, [{ competicao: "SL", epoca: 1, jornada: 2, clube: "X" }]);
-      const c = r.calendario("SL", 1);
-      expect(c.jogos.map((x) => x.id)).toEqual(["a", "b", "c"]);
-      expect(c.folgas).toEqual([{ competicao: "SL", epoca: 1, jornada: 2, clube: "X" }]);
-      expect(r.calendarioDoClube("Y", 1).map((x) => x.id)).toEqual(["a", "c"]);
-      expect(r.jogosDoDia("2026-08-24").map((x) => x.id)).toEqual(r.calendario("SL", 1).jogos.filter((x) => x.data === "2026-08-24").map((x) => x.id));
-      expect(r.jogosDoDia("2030-01-01")).toEqual([]);
-      expect(r.proximoJogo("Y", "2026-08-24")?.id).toBe("c");
-      expect(r.proximoJogo("Y", "2026-09-30")).toBeUndefined();
-      expect(r.calendario("SL", 2)).toEqual({ jogos: [], folgas: [] });
+      const r = create();
+      r.saveCalendar(matches, [{ competition: "SL", season: 1, round: 2, club: "X" }]);
+      const c = r.calendar("SL", 1);
+      expect(c.matches.map((x) => x.id)).toEqual(["a", "b", "c"]);
+      expect(c.byes).toEqual([{ competition: "SL", season: 1, round: 2, club: "X" }]);
+      expect(r.clubCalendar("Y", 1).map((x) => x.id)).toEqual(["a", "c"]);
+      expect(r.dayMatches("2026-08-24").map((x) => x.id)).toEqual(r.calendar("SL", 1).matches.filter((x) => x.date === "2026-08-24").map((x) => x.id));
+      expect(r.dayMatches("2030-01-01")).toEqual([]);
+      expect(r.nextMatch("Y", "2026-08-24")?.id).toBe("c");
+      expect(r.nextMatch("Y", "2026-09-30")).toBeUndefined();
+      expect(r.calendar("SL", 2)).toEqual({ matches: [], byes: [] });
     });
     it("recusa um segundo calendário da mesma liga e época, sem deixar lixo", () => {
-      const r = criar();
-      r.guardarCalendario(jogos, []);
-      expect(() => r.guardarCalendario([j("d", 1, "2026-08-22", "X", "Y")], [])).toThrow();
-      expect(r.calendario("SL", 1).jogos).toHaveLength(3);
+      const r = create();
+      r.saveCalendar(matches, []);
+      expect(() => r.saveCalendar([j("d", 1, "2026-08-22", "X", "Y")], [])).toThrow();
+      expect(r.calendar("SL", 1).matches).toHaveLength(3);
     });
     it("é atómico: um id repetido desfaz tudo", () => {
-      const r = criar();
-      expect(() => r.guardarCalendario([j("q", 1, "2026-08-22", "X", "Y"), j("q", 2, "2026-08-29", "Y", "X")], [])).toThrow();
-      expect(r.calendario("SL", 1).jogos).toEqual([]);
+      const r = create();
+      expect(() => r.saveCalendar([j("q", 1, "2026-08-22", "X", "Y"), j("q", 2, "2026-08-29", "Y", "X")], [])).toThrow();
+      expect(r.calendar("SL", 1).matches).toEqual([]);
     });
   });
 
-  describe(`Repositorio (${nome}): reiniciar`, () => {
+  describe(`Repositorio (${name}): reiniciar`, () => {
     it("deixa o save como novo e utilizável", () => {
-      const r = criar();
-      r.definirMeta("seed", "abc");
-      r.guardarLocalidades([{ id: "a@a", nome: "A", cidade: "a", populacao: 10, estatuto: "aldeia", desde: "2026-07-01" }]);
-      r.acrescentarEvento({ tipo: "T", data: "2026-07-01", epoca: 1, vis: "publico", entidades: [{ k: "clube", id: "X" }], dados: {} });
-      r.reiniciar();
+      const r = create();
+      r.setMeta("seed", "abc");
+      r.saveLocalities([{ id: "a@a", name: "A", city: "a", population: 10, status: "aldeia", since: "2026-07-01" }]);
+      r.appendEvent({ type: "T", date: "2026-07-01", season: 1, visibility: "exposed", entities: [{ k: "club", id: "X" }], data: {} });
+      r.restart();
       expect(r.meta("seed")).toBeUndefined();
-      expect(r.totalEventos()).toBe(0);
-      expect(r.localidades()).toEqual([]);
-      expect(r.totalPessoas()).toBe(0);
-      expect(r.eventosDe({ k: "clube", id: "X" })).toEqual([]);
+      expect(r.eventsTotal()).toBe(0);
+      expect(r.localities()).toEqual([]);
+      expect(r.peopleTotal()).toBe(0);
+      expect(r.eventsOf({ k: "club", id: "X" })).toEqual([]);
       // volta a aceitar o que só aceita uma vez
-      r.guardarLocalidades([{ id: "a@a", nome: "A", cidade: "a", populacao: 10, estatuto: "aldeia", desde: "2026-07-01" }]);
-      const id = r.acrescentarEvento({ tipo: "T", data: "2026-07-01", epoca: 1, vis: "publico", entidades: [], dados: {} });
+      r.saveLocalities([{ id: "a@a", name: "A", city: "a", population: 10, status: "aldeia", since: "2026-07-01" }]);
+      const id = r.appendEvent({ type: "T", date: "2026-07-01", season: 1, visibility: "exposed", entities: [], data: {} });
       expect(id).toBeGreaterThan(0);
     });
     it("recusa-se dentro de uma transação", () => {
-      const r = criar();
-      expect(() => r.transacao(() => r.reiniciar())).toThrow();
+      const r = create();
+      expect(() => r.transaction(() => r.restart())).toThrow();
     });
   });
 
-  describe(`Repositorio (${nome}): localidades`, () => {
-    const base = (): LocalidadeReg[] => [
-      { id: "matela@vimioso", nome: "Matela", cidade: "vimioso", populacao: 150, estatuto: "aldeia", desde: "2026-07-01" },
-      { id: "vimioso@vimioso", nome: "Vimioso", cidade: "vimioso", populacao: 2700, estatuto: "vila", desde: "2026-07-01" },
-      { id: "porto@porto", nome: "Porto", cidade: "porto", populacao: 200000, estatuto: "cidade", desde: "2026-07-01" },
+  describe(`Repositorio (${name}): localidades`, () => {
+    const base = (): LocalityRecord[] => [
+      { id: "matela@vimioso", name: "Matela", city: "vimioso", population: 150, status: "aldeia", since: "2026-07-01" },
+      { id: "vimioso@vimioso", name: "Vimioso", city: "vimioso", population: 2700, status: "vila", since: "2026-07-01" },
+      { id: "porto@porto", name: "Porto", city: "porto", population: 200000, status: "city", since: "2026-07-01" },
     ];
     it("guarda, lê e filtra por concelho", () => {
-      const r = criar();
-      r.guardarLocalidades(base());
-      expect(r.localidade("matela@vimioso")).toEqual(base()[0]);
-      expect(r.localidade("nada")).toBeUndefined();
-      expect(r.localidades().map((l) => l.id)).toEqual(["matela@vimioso", "porto@porto", "vimioso@vimioso"]);
-      expect(r.localidades({ cidade: "vimioso" }).map((l) => l.nome)).toEqual(["Matela", "Vimioso"]);
-      expect(() => r.guardarLocalidades(base())).toThrow();
+      const r = create();
+      r.saveLocalities(base());
+      expect(r.locality("matela@vimioso")).toEqual(base()[0]);
+      expect(r.locality("nada")).toBeUndefined();
+      expect(r.localities().map((l) => l.id)).toEqual(["matela@vimioso", "porto@porto", "vimioso@vimioso"]);
+      expect(r.localities({ city: "vimioso" }).map((l) => l.name)).toEqual(["Matela", "Vimioso"]);
+      expect(() => r.saveLocalities(base())).toThrow();
     });
     it("é atómico: um id repetido desfaz tudo", () => {
-      const r = criar();
+      const r = create();
       const [a] = base();
-      expect(() => r.guardarLocalidades([a!, { ...a! }])).toThrow();
-      expect(r.localidades()).toEqual([]);
+      expect(() => r.saveLocalities([a!, { ...a! }])).toThrow();
+      expect(r.localities()).toEqual([]);
     });
     it("mudar de população sem mudar de estatuto não acrescenta história", () => {
-      const r = criar();
-      r.guardarLocalidades(base());
-      const antes = r.totalEventos();
-      expect(r.atualizarLocalidade("matela@vimioso", { populacao: 160, estatuto: "aldeia", data: "2027-06-30", epoca: 1 })).toEqual({});
-      expect(r.localidade("matela@vimioso")).toMatchObject({ populacao: 160, estatuto: "aldeia", desde: "2026-07-01" });
-      expect(r.totalEventos()).toBe(antes);
+      const r = create();
+      r.saveLocalities(base());
+      const before = r.eventsTotal();
+      expect(r.updateLocality("matela@vimioso", { population: 160, status: "aldeia", date: "2027-06-30", season: 1 })).toEqual({});
+      expect(r.locality("matela@vimioso")).toMatchObject({ population: 160, status: "aldeia", since: "2026-07-01" });
+      expect(r.eventsTotal()).toBe(before);
     });
     it("mudar de estatuto regista um evento público e atualiza 'desde'", () => {
-      const r = criar();
-      r.guardarLocalidades(base());
-      const { evento } = r.atualizarLocalidade("matela@vimioso", { populacao: 1700, estatuto: "vila", data: "2031-06-30", epoca: 5 });
-      expect(evento).toBeDefined();
-      expect(r.localidade("matela@vimioso")).toMatchObject({ populacao: 1700, estatuto: "vila", desde: "2031-06-30" });
-      const e = r.evento(evento!)!;
-      expect(e).toMatchObject({ tipo: "LOCALIDADE_ESTATUTO", vis: "publico", epoca: 5, dados: { de: "aldeia", para: "vila", populacao: 1700 } });
-      expect(r.eventosDe({ k: "localidade", id: "matela@vimioso" }).map((x) => x.id)).toEqual([evento]);
-      expect(r.eventosDe({ k: "cidade", id: "vimioso" }, { apenasPublicos: true }).map((x) => x.id)).toEqual([evento]);
+      const r = create();
+      r.saveLocalities(base());
+      const { event } = r.updateLocality("matela@vimioso", { population: 1700, status: "vila", date: "2031-06-30", season: 5 });
+      expect(event).toBeDefined();
+      expect(r.locality("matela@vimioso")).toMatchObject({ population: 1700, status: "vila", since: "2031-06-30" });
+      const e = r.event(event!)!;
+      expect(e).toMatchObject({ type: "LOCALIDADE_ESTATUTO", visibility: "exposed", season: 5, data: { de: "aldeia", para: "vila", population: 1700 } });
+      expect(r.eventsOf({ k: "locality", id: "matela@vimioso" }).map((x) => x.id)).toEqual([event]);
+      expect(r.eventsOf({ k: "city", id: "vimioso" }, { publicOnly: true }).map((x) => x.id)).toEqual([event]);
     });
     it("recusa localidades inexistentes e desfaz o evento se a transação falhar", () => {
-      const r = criar();
-      r.guardarLocalidades(base());
-      expect(() => r.atualizarLocalidade("nada", { populacao: 1, estatuto: "aldeia", data: "2027-06-30", epoca: 1 })).toThrow();
-      expect(() => r.transacao(() => {
-        r.atualizarLocalidade("matela@vimioso", { populacao: 1700, estatuto: "vila", data: "2031-06-30", epoca: 5 });
+      const r = create();
+      r.saveLocalities(base());
+      expect(() => r.updateLocality("nada", { population: 1, status: "aldeia", date: "2027-06-30", season: 1 })).toThrow();
+      expect(() => r.transaction(() => {
+        r.updateLocality("matela@vimioso", { population: 1700, status: "vila", date: "2031-06-30", season: 5 });
         throw new Error("falha");
       })).toThrow("falha");
-      expect(r.localidade("matela@vimioso")?.estatuto).toBe("aldeia");
-      expect(r.totalEventos()).toBe(0);
+      expect(r.locality("matela@vimioso")?.status).toBe("aldeia");
+      expect(r.eventsTotal()).toBe(0);
     });
   });
 
-  describe(`Repositorio (${nome}): pessoas`, () => {
-    const lote = (): LoteMundoReg => ({
-      pessoas: [
-        { id: "p1", nome: "João Pedro Silva", nomeDesportivo: "João Silva", nascimento: "2000-03-01", nacionalidade: "pt", naturalDe: "porto", papeis: ["jogador"], personalidade: { lealdade: 15, ambicao: 9 }, arquetipo: "lider", lod: 1 },
-        { id: "p2", nome: "Ana Costa", nomeDesportivo: "Ana Costa", nascimento: "1975-05-05", nacionalidade: "pt", papeis: ["presidente"], personalidade: { lealdade: 10 }, arquetipo: "comum", lod: 2 },
-        { id: "p3", nome: "Luca Rossi", nomeDesportivo: "Luca Rossi", nascimento: "1998-01-01", nacionalidade: "it", papeis: ["jogador"], personalidade: { lealdade: 5 }, arquetipo: "mercenario", lod: 2 },
+  describe(`Repositorio (${name}): pessoas`, () => {
+    const batch = (): WorldBatchRecord => ({
+      people: [
+        { id: "p1", name: "João Pedro Silva", sportingName: "João Silva", birth: "2000-03-01", nationality: "pt", naturalDe: "porto", roles: ["player"], personality: { loyalty: 15, ambition: 9 }, archetype: "leader", lod: 1 },
+        { id: "p2", name: "Ana Costa", sportingName: "Ana Costa", birth: "1975-05-05", nationality: "pt", roles: ["president"], personality: { loyalty: 10 }, archetype: "common", lod: 2 },
+        { id: "p3", name: "Luca Rossi", sportingName: "Luca Rossi", birth: "1998-01-01", nationality: "it", roles: ["player"], personality: { loyalty: 5 }, archetype: "mercenary", lod: 2 },
       ],
-      jogadores: [
-        { pessoa: "p1", posicoes: [{ pos: "CM", aptidao: 20 }, { pos: "DM", aptidao: 12 }], atributos: { passe: 14 }, potencial: 15.5, alturaCm: 180, pesoKg: 75, pe: "D", clube: "X", estado: "ativo" },
-        { pessoa: "p3", posicoes: [{ pos: "PL", aptidao: 20 }], atributos: { finalizacao: 12 }, potencial: 12, alturaCm: 184, pesoKg: 80, pe: "E", estado: "livre" },
+      players: [
+        { person: "p1", positions: [{ pos: "CM", aptitude: 20 }, { pos: "DM", aptitude: 12 }], attributes: { pass: 14 }, potential: 15.5, heightCm: 180, weightKg: 75, pe: "D", club: "X", state: "active" },
+        { person: "p3", positions: [{ pos: "PL", aptitude: 20 }], attributes: { finishing: 12 }, potential: 12, heightCm: 184, weightKg: 80, pe: "E", state: "free" },
       ],
-      contratos: [{ pessoa: "p1", clube: "X", salarioMensal: 1200, inicio: "2025-07-01", fim: "2028-06-30" }],
-      cargos: [{ pessoa: "p2", funcao: "presidente", clube: "X", cidade: "porto" }],
+      contracts: [{ person: "p1", club: "X", monthlyWage: 1200, start: "2025-07-01", end: "2028-06-30" }],
+      roles: [{ person: "p2", fn: "president", club: "X", city: "porto" }],
     });
 
     it("guarda e devolve a verdade e os factos públicos", () => {
-      const r = criar();
-      r.guardarMundo(lote());
-      expect(r.totalPessoas()).toBe(3);
-      expect(r.pessoa("p1")?.personalidade).toEqual({ lealdade: 15, ambicao: 9 });
-      expect(r.jogador("p1")?.potencial).toBe(15.5);
-      expect(r.contrato("p1")?.salarioMensal).toBe(1200);
-      expect(r.cargo("p2")?.funcao).toBe("presidente");
-      expect(r.jogadoresDoClube("X").map((j) => j.pessoa)).toEqual(["p1"]);
-      expect(r.pessoa("nada")).toBeUndefined();
+      const r = create();
+      r.saveWorld(batch());
+      expect(r.peopleTotal()).toBe(3);
+      expect(r.person("p1")?.personality).toEqual({ loyalty: 15, ambition: 9 });
+      expect(r.player("p1")?.potential).toBe(15.5);
+      expect(r.contract("p1")?.monthlyWage).toBe(1200);
+      expect(r.role("p2")?.fn).toBe("president");
+      expect(r.clubPlayers("X").map((j) => j.person)).toEqual(["p1"]);
+      expect(r.person("nada")).toBeUndefined();
     });
     it("a ficha pública não contém atributos, potencial nem personalidade", () => {
-      const r = criar();
-      r.guardarMundo(lote());
-      const f = r.pessoaPublica("p1")!;
-      expect(f).toMatchObject({ nomeDesportivo: "João Silva", clube: "X", naturalDe: "porto", jogador: { posicao: "CM", alturaCm: 180, pe: "D", estado: "ativo" } });
-      const texto = JSON.stringify(f);
-      for (const proibido of ["potencial", "atributos", "personalidade", "lealdade", "aptidao", "arquetipo", "salario"]) expect(texto).not.toContain(proibido);
-      expect(r.pessoaPublica("p3")?.jogador?.estado).toBe("livre");
-      expect(r.pessoaPublica("p2")).toMatchObject({ funcao: "presidente", clube: "X" });
+      const r = create();
+      r.saveWorld(batch());
+      const f = r.publicPerson("p1")!;
+      expect(f).toMatchObject({ sportingName: "João Silva", club: "X", naturalDe: "porto", player: { position: "CM", heightCm: 180, pe: "D", state: "active" } });
+      const text = JSON.stringify(f);
+      for (const banned of ["potential", "attributes", "personality", "loyalty", "aptitude", "archetype", "wage"]) expect(text).not.toContain(banned);
+      expect(r.publicPerson("p3")?.player?.state).toBe("free");
+      expect(r.publicPerson("p2")).toMatchObject({ fn: "president", club: "X" });
     });
     it("índice de pesquisa só com factos públicos", () => {
-      const r = criar();
-      r.guardarMundo(lote());
-      expect(r.indicePessoas()).toEqual([
-        { id: "p1", nome: "João Pedro Silva", nomeDesportivo: "João Silva", clube: "X", posicao: "CM" },
-        { id: "p2", nome: "Ana Costa", nomeDesportivo: "Ana Costa", clube: "X", funcao: "presidente" },
-        { id: "p3", nome: "Luca Rossi", nomeDesportivo: "Luca Rossi", posicao: "PL" },
+      const r = create();
+      r.saveWorld(batch());
+      expect(r.peopleIndex()).toEqual([
+        { id: "p1", name: "João Pedro Silva", sportingName: "João Silva", club: "X", position: "CM" },
+        { id: "p2", name: "Ana Costa", sportingName: "Ana Costa", club: "X", fn: "president" },
+        { id: "p3", name: "Luca Rossi", sportingName: "Luca Rossi", position: "PL" },
       ]);
     });
     it("plantel e cargos públicos", () => {
-      const r = criar();
-      r.guardarMundo(lote());
-      expect(r.plantelPublico("X").map((p) => p.id)).toEqual(["p1"]);
-      expect(r.cargosPublicos({ clube: "X" }).map((p) => p.id)).toEqual(["p2"]);
-      expect(r.cargosPublicos({ cidade: "porto" }).map((p) => p.id)).toEqual(["p2"]);
-      expect(r.cargosPublicos({})).toEqual([]);
+      const r = create();
+      r.saveWorld(batch());
+      expect(r.publicSquad("X").map((p) => p.id)).toEqual(["p1"]);
+      expect(r.publicRoles({ club: "X" }).map((p) => p.id)).toEqual(["p2"]);
+      expect(r.publicRoles({ city: "porto" }).map((p) => p.id)).toEqual(["p2"]);
+      expect(r.publicRoles({})).toEqual([]);
     });
     it("recusa um segundo mundo e desfaz tudo se algo falhar", () => {
-      const r = criar();
-      r.guardarMundo(lote());
-      expect(() => r.guardarMundo(lote())).toThrow();
-      const r2 = criar();
-      const mau = lote();
-      mau.jogadores.push({ ...mau.jogadores[0]!, pessoa: "fantasma" });
-      expect(() => r2.guardarMundo(mau)).toThrow();
-      expect(r2.totalPessoas()).toBe(0);
+      const r = create();
+      r.saveWorld(batch());
+      expect(() => r.saveWorld(batch())).toThrow();
+      const r2 = create();
+      const bad = batch();
+      bad.players.push({ ...bad.players[0]!, person: "fantasma" });
+      expect(() => r2.saveWorld(bad)).toThrow();
+      expect(r2.peopleTotal()).toBe(0);
     });
   });
 }

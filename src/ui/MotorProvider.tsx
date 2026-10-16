@@ -1,22 +1,22 @@
 "use client";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { MotorCliente } from "@/ui/engineClient";
+import { ClientEngine } from "@/ui/engineClient";
 
-const MotorCtx = createContext<MotorCliente | null>(null);
+const CtxEngine = createContext<ClientEngine | null>(null);
 
 /** Um só motor (Web Worker) para a aplicação inteira: navegar entre páginas não o reabre. */
-export function MotorProvider({ children }: { children: ReactNode }) {
-  const [motor, setMotor] = useState<MotorCliente | null>(null);
+export function ProviderEngine({ children }: { children: ReactNode }) {
+  const [engine, setEngine] = useState<ClientEngine | null>(null);
   useEffect(() => {
-    const m = new MotorCliente();
-    setMotor(m);
+    const m = new ClientEngine();
+    setEngine(m);
     return () => {
-      m.terminar();
-      setMotor(null);
+      m.terminate();
+      setEngine(null);
     };
   }, []);
-  return <MotorCtx.Provider value={motor}>{children}</MotorCtx.Provider>;
+  return <CtxEngine.Provider value={engine}>{children}</CtxEngine.Provider>;
 }
 
 /** O motor, ou `null` enquanto o worker arranca. */
-export const useMotor = (): MotorCliente | null => useContext(MotorCtx);
+export const useEngine = (): ClientEngine | null => useContext(CtxEngine);

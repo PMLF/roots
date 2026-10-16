@@ -1,70 +1,70 @@
-import type { JogoVivo } from "@/engine/epoca/jogoAoVivo";
-import type { EstatLado, Lado } from "@/engine/jogo/tipos";
+import type { LiveMatch } from "@/engine/epoca/jogoAoVivo";
+import type { SideStat, Side } from "@/engine/jogo/tipos";
 
 /** Marcador de um jogo à passagem de um minuto. */
-export function marcadorAo(golos: { minuto: number; lado: Lado }[], minuto: number): [number, number] {
-  const v = golos.filter((g) => g.minuto <= minuto);
-  return [v.filter((g) => g.lado === "casa").length, v.filter((g) => g.lado === "fora").length];
+export function scorerAt(goals: { minute: number; side: Side }[], minute: number): [number, number] {
+  const v = goals.filter((g) => g.minute <= minute);
+  return [v.filter((g) => g.side === "home").length, v.filter((g) => g.side === "away").length];
 }
 
-export type LinhaTabela = { clube: string; nome: string; jogos: number; pontos: number; dg: number; gm: number; pos: number; antes: number; aJogar: boolean };
+export type TableLine = { club: string; name: string; matches: number; points: number; dg: number; gm: number; pos: number; before: number; playing: boolean };
 
 /** A tabela da competição com os resultados que estão a decorrer somados (provisória). */
-export function tabelaAoVivo(jogo: JogoVivo, minuto: number): LinhaTabela[] {
-  const golosDoJogo = jogo.linhas.filter((l) => l.tipo === "golo").map((l) => ({ minuto: l.minuto, lado: l.lado as Lado }));
-  const emCurso = [
-    { casa: jogo.casa.id, fora: jogo.fora.id, golos: golosDoJogo },
-    ...jogo.outros.map((o) => ({ casa: o.casa.id, fora: o.fora.id, golos: o.golos })),
+export function liveTable(match: LiveMatch, minute: number): TableLine[] {
+  const matchGoals = match.lines.filter((l) => l.type === "goal").map((l) => ({ minute: l.minute, side: l.side as Side }));
+  const ongoing = [
+    { home: match.home.id, away: match.away.id, goals: matchGoals },
+    ...match.others.map((o) => ({ home: o.home.id, away: o.away.id, goals: o.goals })),
   ];
-  const ordenar = <L extends { pontos: number; dg: number; gm: number; nome: string }>(l: L[]): L[] => l.sort((a, b) => b.pontos - a.pontos || b.dg - a.dg || b.gm - a.gm || a.nome.localeCompare(b.nome));
-  const base = jogo.tabela.map((l) => ({ clube: l.clube, nome: l.nome, jogos: l.jogos, pontos: l.pontos, dg: l.golosMarcados - l.golosSofridos, gm: l.golosMarcados, aJogar: false }));
-  const antes = new Map(ordenar([...base]).map((l, i) => [l.clube, i + 1] as const));
-  const linhas = new Map<string, (typeof base)[number]>(base.map((l) => [l.clube, { ...l }]));
-  for (const e of emCurso) {
-    const [gc, gf] = marcadorAo(e.golos, minuto);
-    for (const [clube, gm, gs] of [[e.casa, gc, gf], [e.fora, gf, gc]] as const) {
-      const l = linhas.get(clube);
+  const sort = <L extends { points: number; dg: number; gm: number; name: string }>(l: L[]): L[] => l.sort((a, b) => b.points - a.points || b.dg - a.dg || b.gm - a.gm || a.name.localeCompare(b.name));
+  const base = match.table.map((l) => ({ club: l.club, name: l.name, matches: l.matches, points: l.points, dg: l.scoredGoals - l.concededGoals, gm: l.scoredGoals, playing: false }));
+  const before = new Map(sort([...base]).map((l, i) => [l.club, i + 1] as const));
+  const lines = new Map<string, (typeof base)[number]>(base.map((l) => [l.club, { ...l }]));
+  for (const e of ongoing) {
+    const [gc, gf] = scorerAt(e.goals, minute);
+    for (const [club, gm, gs] of [[e.home, gc, gf], [e.away, gf, gc]] as const) {
+      const l = lines.get(club);
       if (!l) continue;
-      l.jogos += 1; l.gm += gm; l.dg += gm - gs; l.aJogar = true;
-      l.pontos += gm > gs ? jogo.pontosVitoria : gm === gs ? jogo.pontosEmpate : 0;
+      l.matches += 1; l.gm += gm; l.dg += gm - gs; l.playing = true;
+      l.points += gm > gs ? match.winPoints : gm === gs ? match.drawPoints : 0;
     }
   }
-  return ordenar([...linhas.values()]).map((l, i) => ({ ...l, pos: i + 1, antes: antes.get(l.clube) ?? i + 1 }));
+  return sort([...lines.values()]).map((l, i) => ({ ...l, pos: i + 1, before: before.get(l.club) ?? i + 1 }));
 }
 
-export type ChaveEstatistica = "xg" | "posse" | "oportunidades" | "remates" | "aBaliza" | "fora" | "bloqueados" | "precisao" | "defesas" | "cantos" | "faltas" | "amarelos" | "vermelhos" | "lesoes";
-export type LinhaEstatistica = { chave: ChaveEstatistica; casa: number; fora: number; /** Como mostrar os valores. */ formato: "inteiro" | "decimal" | "percentagem" };
+export type StatisticKey = "xg" | "possession" | "chances" | "shots" | "onTarget" | "away" | "blocked" | "accuracy" | "saves" | "corners" | "fouls" | "yellows" | "reds" | "injuries";
+export type StatisticLine = { rowKey: StatisticKey; home: number; away: number; /** Como mostrar os valores. */ format: "integer" | "decimal" | "percentagem" };
 
 /** As estatísticas do jogo, lado a lado (14 linhas), a partir do resumo do motor. A ordem é a de leitura: o que mais interessa primeiro. */
-export function estatisticasDoJogo(resumo: { casa: EstatLado; fora: EstatLado; posseCasa: number }): LinhaEstatistica[] {
-  const { casa, fora } = resumo;
-  const ao = (e: EstatLado) => e.remates - e.aBaliza - e.bloqueados;
-  const precisao = (e: EstatLado) => (e.remates > 0 ? e.aBaliza / e.remates : 0);
+export function matchStatistics(summary: { home: SideStat; away: SideStat; homePossession: number }): StatisticLine[] {
+  const { home, away } = summary;
+  const ao = (e: SideStat) => e.shots - e.onTarget - e.blocked;
+  const accuracy = (e: SideStat) => (e.shots > 0 ? e.onTarget / e.shots : 0);
   // defesas do guarda-redes de um lado: remates enquadrados do adversário que não foram golo
-  const defesas = (deles: EstatLado) => Math.max(0, deles.aBaliza - deles.golos);
+  const saves = (their: SideStat) => Math.max(0, their.onTarget - their.goals);
   return [
-    { chave: "xg", casa: casa.xg, fora: fora.xg, formato: "decimal" },
-    { chave: "posse", casa: resumo.posseCasa, fora: 1 - resumo.posseCasa, formato: "percentagem" },
-    { chave: "oportunidades", casa: casa.oportunidades, fora: fora.oportunidades, formato: "inteiro" },
-    { chave: "remates", casa: casa.remates, fora: fora.remates, formato: "inteiro" },
-    { chave: "aBaliza", casa: casa.aBaliza, fora: fora.aBaliza, formato: "inteiro" },
-    { chave: "fora", casa: ao(casa), fora: ao(fora), formato: "inteiro" },
-    { chave: "bloqueados", casa: casa.bloqueados, fora: fora.bloqueados, formato: "inteiro" },
-    { chave: "precisao", casa: precisao(casa), fora: precisao(fora), formato: "percentagem" },
-    { chave: "defesas", casa: defesas(fora), fora: defesas(casa), formato: "inteiro" },
-    { chave: "cantos", casa: casa.cantos, fora: fora.cantos, formato: "inteiro" },
-    { chave: "faltas", casa: casa.faltas, fora: fora.faltas, formato: "inteiro" },
-    { chave: "amarelos", casa: casa.amarelos, fora: fora.amarelos, formato: "inteiro" },
-    { chave: "vermelhos", casa: casa.vermelhos, fora: fora.vermelhos, formato: "inteiro" },
-    { chave: "lesoes", casa: casa.lesoes, fora: fora.lesoes, formato: "inteiro" },
+    { rowKey: "xg", home: home.xg, away: away.xg, format: "decimal" },
+    { rowKey: "possession", home: summary.homePossession, away: 1 - summary.homePossession, format: "percentagem" },
+    { rowKey: "chances", home: home.chances, away: away.chances, format: "integer" },
+    { rowKey: "shots", home: home.shots, away: away.shots, format: "integer" },
+    { rowKey: "onTarget", home: home.onTarget, away: away.onTarget, format: "integer" },
+    { rowKey: "away", home: ao(home), away: ao(away), format: "integer" },
+    { rowKey: "blocked", home: home.blocked, away: away.blocked, format: "integer" },
+    { rowKey: "accuracy", home: accuracy(home), away: accuracy(away), format: "percentagem" },
+    { rowKey: "saves", home: saves(away), away: saves(home), format: "integer" },
+    { rowKey: "corners", home: home.corners, away: away.corners, format: "integer" },
+    { rowKey: "fouls", home: home.fouls, away: away.fouls, format: "integer" },
+    { rowKey: "yellows", home: home.yellows, away: away.yellows, format: "integer" },
+    { rowKey: "reds", home: home.reds, away: away.reds, format: "integer" },
+    { rowKey: "injuries", home: home.injuries, away: away.injuries, format: "integer" },
   ];
 }
 
 /** Zona da tabela numa posição: campeão, subida ou descida (as mesmas regras das outras tabelas). */
-export function zonaDaPosicao(pos: number, total: number, zonas?: { promovidos: number; descidos: number }): "champion" | "promotion" | "relegation" | undefined {
-  if (!zonas) return pos === 1 ? "champion" : undefined;
+export function positionZone(pos: number, total: number, zones?: { promoted: number; relegated: number }): "champion" | "promotion" | "relegation" | undefined {
+  if (!zones) return pos === 1 ? "champion" : undefined;
   if (pos === 1) return "champion";
-  if (pos <= zonas.promovidos) return "promotion";
-  if (zonas.descidos > 0 && pos > total - zonas.descidos) return "relegation";
+  if (pos <= zones.promoted) return "promotion";
+  if (zones.relegated > 0 && pos > total - zones.relegated) return "relegation";
   return undefined;
 }

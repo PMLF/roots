@@ -4,84 +4,84 @@
  * adversário, e desce com aptidão física e staff médico. Staff médico bom também encurta a paragem.
  */
 import type { Rng } from "../aleatorio/rng";
-import { limitar } from "../aleatorio/rng";
-import type { Parametros } from "../config/parametros";
+import { clamp } from "../aleatorio/rng";
+import type { Params } from "../config/parametros";
 
-export const TIPOS_LESAO = ["pancada", "muscular", "entorse", "tendao", "ligamentos", "fratura"] as const;
-export type TipoLesao = (typeof TIPOS_LESAO)[number];
+export const INJURY_TYPES = ["knock", "muscular", "sprain", "tendon", "ligaments", "fracture"] as const;
+export type InjuryType = (typeof INJURY_TYPES)[number];
 /** 1 ligeira · 2 moderada · 3 grave · 4 muito grave · 5 gravíssima. */
-export type Gravidade = 1 | 2 | 3 | 4 | 5;
+export type Severity = 1 | 2 | 3 | 4 | 5;
 
-export type Lesao = { tipo: TipoLesao; gravidade: Gravidade; /** Dias de paragem. */ dias: number; recaida: boolean };
+export type Injury = { type: InjuryType; severity: Severity; /** Dias de paragem. */ days: number; relapse: boolean };
 
 /** Que lesões acontecem em cada gravidade (pesos relativos). */
-const TIPO_POR_GRAVIDADE: Record<Gravidade, Partial<Record<TipoLesao, number>>> = {
-  1: { pancada: 0.5, muscular: 0.4, entorse: 0.1 },
-  2: { muscular: 0.5, entorse: 0.35, tendao: 0.15 },
-  3: { muscular: 0.3, entorse: 0.25, tendao: 0.2, fratura: 0.15, ligamentos: 0.1 },
-  4: { ligamentos: 0.4, fratura: 0.35, tendao: 0.25 },
-  5: { ligamentos: 0.55, fratura: 0.45 },
+const TYPE_PER_SEVERITY: Record<Severity, Partial<Record<InjuryType, number>>> = {
+  1: { knock: 0.5, muscular: 0.4, sprain: 0.1 },
+  2: { muscular: 0.5, sprain: 0.35, tendon: 0.15 },
+  3: { muscular: 0.3, sprain: 0.25, tendon: 0.2, fracture: 0.15, ligaments: 0.1 },
+  4: { ligaments: 0.4, fracture: 0.35, tendon: 0.25 },
+  5: { ligaments: 0.55, fracture: 0.45 },
 };
 
-export type ContextoRisco = {
+export type RiskContext = {
   /** Forma do jogador (0,7-1,1; 1 = descansado). */
-  forma: number;
+  form: number;
   /** Atributo `aptidaoFisica` (1-20). */
-  aptidaoFisica: number;
+  physicalAptitude: number;
   /** Qualidade do relvado, 0 (péssimo) a 1 (perfeito). */
-  relvado?: number;
+  turf?: number;
   /** Qualidade do staff médico (1-20). */
-  medico?: number;
+  medical?: number;
   /** Fair play do adversário (1-5). */
-  fairPlayAdversario?: 1 | 2 | 3 | 4 | 5;
+  opponentPlayFair?: 1 | 2 | 3 | 4 | 5;
   /** Intensidade da própria equipa (1-5). */
-  intensidade?: number;
+  intensity?: number;
   /** Pontos de força perdidos por cansaço neste momento. */
-  fadiga?: number;
+  fatigue?: number;
   /** Regressou há pouco da mesma lesão. */
-  recaida?: boolean;
+  relapse?: boolean;
 };
 
 /** Probabilidade de o jogador se lesionar num jogo de 90 minutos nestas condições. */
-export function riscoPor90(c: ContextoRisco, params: Parametros): number {
-  const p = params.lesoes;
-  const r = p.risco;
+export function riskPer90(c: RiskContext, params: Params): number {
+  const p = params.injuries;
+  const r = p.risk;
   const m =
-    (1 + r.porForma * (1 - c.forma)) *
-    (1 + r.relvado * (0.5 - (c.relvado ?? 0.5))) *
-    (1 + r.porAptidaoFisica * (10 - c.aptidaoFisica)) *
-    (1 + r.porMedico * (10 - (c.medico ?? 10))) *
-    (r.fairPlayAdversario[(c.fairPlayAdversario ?? 3) - 1] as number) *
-    (1 + r.intensidade * ((c.intensidade ?? 3) - 3)) *
-    (1 + r.fadiga * (c.fadiga ?? 0)) *
-    (1 + (c.recaida ? r.recaida : 0));
-  return limitar(p.pPorJogadorJogo * Math.max(0, m), 0, 1);
+    (1 + r.byForm * (1 - c.form)) *
+    (1 + r.turf * (0.5 - (c.turf ?? 0.5))) *
+    (1 + r.byPhysicalAptitude * (10 - c.physicalAptitude)) *
+    (1 + r.byMedical * (10 - (c.medical ?? 10))) *
+    (r.opponentPlayFair[(c.opponentPlayFair ?? 3) - 1] as number) *
+    (1 + r.intensity * ((c.intensity ?? 3) - 3)) *
+    (1 + r.fatigue * (c.fatigue ?? 0)) *
+    (1 + (c.relapse ? r.relapse : 0));
+  return clamp(p.pPerMatchPlayer * Math.max(0, m), 0, 1);
 }
 
-function escolherPeso<T extends string>(r: Rng, pesos: Partial<Record<T, number>>): T {
-  const chaves = Object.keys(pesos) as T[];
-  let x = r.float() * chaves.reduce((s, k) => s + (pesos[k] as number), 0);
-  for (const k of chaves) {
-    x -= pesos[k] as number;
+function chooseWeight<T extends string>(r: Rng, weights: Partial<Record<T, number>>): T {
+  const keys = Object.keys(weights) as T[];
+  let x = r.float() * keys.reduce((s, k) => s + (weights[k] as number), 0);
+  for (const k of keys) {
+    x -= weights[k] as number;
     if (x < 0) return k;
   }
-  return chaves[chaves.length - 1] as T;
+  return keys[keys.length - 1] as T;
 }
 
 /** Sorteia uma lesão. Com `recaida`, é do mesmo tipo e dura mais. O staff médico encurta a paragem. */
-export function sortearLesao(r: Rng, params: Parametros, opcoes: { medico?: number; recaida?: TipoLesao } = {}): Lesao {
-  const p = params.lesoes;
+export function drawLotsInjury(r: Rng, params: Params, options: { medical?: number; relapse?: InjuryType } = {}): Injury {
+  const p = params.injuries;
   let x = r.float();
   let g = 0;
-  for (; g < p.gravidades.length - 1; g++) {
-    x -= (p.gravidades[g] as { peso: number }).peso;
+  for (; g < p.severities.length - 1; g++) {
+    x -= (p.severities[g] as { weight: number }).weight;
     if (x < 0) break;
   }
-  const gravidade = (g + 1) as Gravidade;
-  const [min, max] = (p.gravidades[g] as { dias: [number, number] }).dias;
-  const tipo = opcoes.recaida ?? escolherPeso<TipoLesao>(r, TIPO_POR_GRAVIDADE[gravidade]);
-  let dias = min + r.float() * (max - min);
-  dias *= limitar(1 - p.recuperacaoPorMedico * ((opcoes.medico ?? 10) - 10), 0.5, 1.5);
-  if (opcoes.recaida) dias *= p.duracaoRecaida;
-  return { tipo, gravidade, dias: Math.max(1, Math.round(dias)), recaida: !!opcoes.recaida };
+  const severity = (g + 1) as Severity;
+  const [min, max] = (p.severities[g] as { days: [number, number] }).days;
+  const type = options.relapse ?? chooseWeight<InjuryType>(r, TYPE_PER_SEVERITY[severity]);
+  let days = min + r.float() * (max - min);
+  days *= clamp(1 - p.recoveryPerMedical * ((options.medical ?? 10) - 10), 0.5, 1.5);
+  if (options.relapse) days *= p.relapseDuration;
+  return { type, severity, days: Math.max(1, Math.round(days)), relapse: !!options.relapse };
 }

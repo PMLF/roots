@@ -1,58 +1,58 @@
 /** Calendários e pendências de uma época (RZ-119, RZ-159): partilhado entre avançar no tempo e o fim de época. */
 import { Rng } from "../aleatorio/rng";
-import { criarData } from "../calendario/datas";
-import { gerarCalendariosDaEpoca, paraRepositorio, type DefinicaoLiga } from "../calendario/calendario";
-import type { Escalao, Parametros } from "../config/parametros";
-import type { DadosBase } from "../dados/tipos";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { Data, JogoAgendado } from "../persistencia/tipos";
-import { estaNaSegundaDistrital } from "./distritais";
-import { COMPETICOES_FASE_FINAL_CP } from "./faseFinalCp";
-import { parametrosDoSave } from "./anoDoSave";
-import { epocaAtual, guardarPiramide, piramideInicial } from "./piramideEpoca";
+import { createDate } from "../calendario/datas";
+import { generateSeasonCalendars, forRepository, type LeagueDefinition } from "../calendario/calendario";
+import type { Tier, Params } from "../config/parametros";
+import type { BaseData } from "../dados/tipos";
+import type { Repository } from "../persistencia/repositorio";
+import type { IsoDate, ScheduledMatch } from "../persistencia/tipos";
+import { isInSecondDistrict } from "./distritais";
+import { CP_FINAL_PHASE_COMPETITIONS } from "./faseFinalCp";
+import { saveParameters } from "./anoDoSave";
+import { currentSeason, savePyramid, initialPyramid } from "./piramideEpoca";
 
-export const nomeGrupoPromocao = (serie: string) => `Fase de Promoção ${serie}`;
+export const promotionGroupName = (series: string) => `Fase de Promoção ${series}`;
 
-export const ligasDoMundo = (dados: DadosBase): DefinicaoLiga[] => {
-  const m = new Map<string, DefinicaoLiga>();
-  for (const c of dados.clubes) if (!estaNaSegundaDistrital(c.liga)) (m.get(c.liga) ?? m.set(c.liga, { competicao: c.liga, escalao: c.escalao as Escalao, clubes: [] }).get(c.liga)!).clubes.push(c.id);
+export const worldLeagues = (data: BaseData): LeagueDefinition[] => {
+  const m = new Map<string, LeagueDefinition>();
+  for (const c of data.clubs) if (!isInSecondDistrict(c.league)) (m.get(c.league) ?? m.set(c.league, { competition: c.league, tier: c.tier as Tier, clubs: [] }).get(c.league)!).clubs.push(c.id);
   return [...m.values()];
 };
 
 /** Garante que a época tem a pirâmide e os calendários gravados e que o save tem data. Idempotente. `dados` já traz as ligas da época. */
-export function prepararEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Parametros): { hoje: Data; epoca: number } {
-  const params = parametrosDoSave(repo, paramsBase);
-  const epoca = epocaAtual(repo);
-  if (repo.meta(`piramide.${epoca}`) === undefined) guardarPiramide(repo, epoca, piramideInicial(dados));
-  const ligas = ligasDoMundo(dados).filter((l) => l.clubes.length >= 2);
-  const primeira = ligas[0];
-  if (primeira && repo.calendario(primeira.competicao, epoca).jogos.length === 0) {
+export function prepareSeason(repo: Repository, data: BaseData, paramsBase: Params): { today: IsoDate; season: number } {
+  const params = saveParameters(repo, paramsBase);
+  const season = currentSeason(repo);
+  if (repo.meta(`piramide.${season}`) === undefined) savePyramid(repo, season, initialPyramid(data));
+  const leagues = worldLeagues(data).filter((l) => l.clubs.length >= 2);
+  const first = leagues[0];
+  if (first && repo.calendar(first.competition, season).matches.length === 0) {
     const seed = repo.meta("seed") ?? "?";
-    repo.transacao(() => {
-      for (const cal of gerarCalendariosDaEpoca(ligas, epoca, params.calendario, new Rng(`${seed}|cal`))) {
-        const { jogos, folgas } = paraRepositorio(cal);
-        repo.guardarCalendario(jogos, folgas);
+    repo.transaction(() => {
+      for (const cal of generateSeasonCalendars(leagues, season, params.calendar, new Rng(`${seed}|cal`))) {
+        const { matches, byes } = forRepository(cal);
+        repo.saveCalendar(matches, byes);
       }
     });
   }
-  if (repo.meta("data.hoje") === undefined) repo.definirMeta("data.hoje", criarData(params.calendario.anoInicial + epoca - 1, params.calendario.mesInicioEpoca, 1));
-  repo.definirMeta("epoca", String(epoca));
-  return { hoje: repo.meta("data.hoje") as Data, epoca };
+  if (repo.meta("data.hoje") === undefined) repo.setMeta("data.hoje", createDate(params.calendar.initialYear + season - 1, params.calendar.seasonStartMonth, 1));
+  repo.setMeta("season", String(season));
+  return { today: repo.meta("data.hoje") as IsoDate, season };
 }
 
 /** Os grupos da Fase de Promoção desta época, se já foram gerados. */
-export function gruposDaPromocao(repo: Repositorio, epoca: number): { serie: "A" | "B" | "C" | "D"; clubes: string[] }[] | undefined {
-  const bruto = repo.meta(`promocao.${epoca}`);
-  return bruto ? (JSON.parse(bruto) as { serie: "A" | "B" | "C" | "D"; clubes: string[] }[]) : undefined;
+export function promotionGroups(repo: Repository, season: number): { series: "A" | "B" | "C" | "D"; clubs: string[] }[] | undefined {
+  const raw = repo.meta(`promocao.${season}`);
+  return raw ? (JSON.parse(raw) as { series: "A" | "B" | "C" | "D"; clubs: string[] }[]) : undefined;
 }
 
 /** Todos os jogos marcados e por jogar na época (ligas e Fase de Promoção). */
-export function jogosPorJogar(repo: Repositorio, dados: DadosBase, epoca: number): JogoAgendado[] {
-  const competicoes = [...ligasDoMundo(dados).filter((l) => l.clubes.length >= 2).map((l) => l.competicao), ...COMPETICOES_FASE_FINAL_CP, ...(gruposDaPromocao(repo, epoca) ?? []).map((g) => nomeGrupoPromocao(g.serie))];
-  const out: JogoAgendado[] = [];
-  for (const c of competicoes) {
-    const jogados = new Set(repo.jogosDaCompeticao(c, epoca).map((j) => j.id));
-    for (const j of repo.calendario(c, epoca).jogos) if (!jogados.has(j.id)) out.push(j);
+export function matchesPerPlay(repo: Repository, data: BaseData, season: number): ScheduledMatch[] {
+  const competitions = [...worldLeagues(data).filter((l) => l.clubs.length >= 2).map((l) => l.competition), ...CP_FINAL_PHASE_COMPETITIONS, ...(promotionGroups(repo, season) ?? []).map((g) => promotionGroupName(g.series))];
+  const out: ScheduledMatch[] = [];
+  for (const c of competitions) {
+    const played = new Set(repo.competitionMatches(c, season).map((j) => j.id));
+    for (const j of repo.calendar(c, season).matches) if (!played.has(j.id)) out.push(j);
   }
   return out;
 }

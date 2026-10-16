@@ -1,16 +1,16 @@
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { Servicos } from "../api/handler";
-import { RepositorioMemoria } from "../persistencia/repositorioMemoria";
+import { MemoryRepository } from "../persistencia/repositorioMemoria";
 import { evaluateCalibration, formatReport, runSeasons } from "./seasonCalibration";
 
 const read = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
 const services = (): Servicos => {
-  const repositorio = new RepositorioMemoria();
+  const repository = new MemoryRepository();
   return {
-    agora: () => new Date(2026, 9, 15),
-    abrirRepositorio: async () => ({ repositorio, backend: "memoria" as const, versaoSqlite: "teste" }),
-    carregarDados: async () => ({ clubes: read("clubes"), cidades: read("cidades"), localidades: read("localidades"), rivalidades: read("rivalidades"), distritos: read("distritos"), paises: read("paises") }),
+    now: () => new Date(2026, 9, 15),
+    openRepository: async () => ({ repository, backend: "memory" as const, sqliteVersion: "teste" }),
+    loadData: async () => ({ clubs: read("clubs"), cities: read("cities"), localities: read("localities"), rivalries: read("rivalries"), districts: read("districts"), countries: read("countries") }),
   };
 };
 
@@ -26,7 +26,7 @@ describe("calibration harness (RZ-123)", () => {
     expect(r.seasons).toHaveLength(N > 0 ? N : 2);
     for (const s of r.seasons) {
       expect(s.games).toBeGreaterThan(1000);
-      expect(s.goalsPerGame.primeiraLiga).toBeGreaterThan(0);
+      expect(s.goalsPerGame.firstLeague).toBeGreaterThan(0);
     }
     if (N >= 5) expect(evaluateCalibration(r)).toEqual([]);
   }, 3_600_000);

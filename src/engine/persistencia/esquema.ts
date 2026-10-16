@@ -160,10 +160,10 @@ UPDATE jogador SET posicoes = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(RE
 
 /** A posição no array + 1 é o número da versão do esquema. */
 export const MIGRACOES: readonly string[] = [V1, V2, V3, V4, V5];
-export const VERSAO_ESQUEMA = MIGRACOES.length;
+export const SCHEMA_VERSION = MIGRACOES.length;
 
-export function versaoDoFicheiro(d: DriverSql): number {
-  return Number(d.todos("PRAGMA user_version")[0]?.user_version ?? 0);
+export function fileVersion(d: DriverSql): number {
+  return Number(d.all("PRAGMA user_version")[0]?.user_version ?? 0);
 }
 
 /**
@@ -171,17 +171,17 @@ export function versaoDoFicheiro(d: DriverSql): number {
  * Recusa ficheiros de uma versão mais recente do que o motor conhece.
  */
 export function migrar(d: DriverSql, migracoes: readonly string[] = MIGRACOES): { de: number; para: number } {
-  d.executarScript("PRAGMA foreign_keys = ON");
-  const de = versaoDoFicheiro(d);
+  d.runScript("PRAGMA foreign_keys = ON");
+  const de = fileVersion(d);
   if (de > migracoes.length) throw new Error(`Save da versão ${de}, mais recente do que este motor (${migracoes.length}).`);
   for (let v = de; v < migracoes.length; v++) {
-    d.executarScript("BEGIN");
+    d.runScript("BEGIN");
     try {
-      d.executarScript(migracoes[v] as string);
-      d.executarScript(`PRAGMA user_version = ${v + 1}`);
-      d.executarScript("COMMIT");
+      d.runScript(migracoes[v] as string);
+      d.runScript(`PRAGMA user_version = ${v + 1}`);
+      d.runScript("COMMIT");
     } catch (e) {
-      d.executarScript("ROLLBACK");
+      d.runScript("ROLLBACK");
       throw new Error(`Migração para a versão ${v + 1} falhou: ${e instanceof Error ? e.message : String(e)}`);
     }
   }

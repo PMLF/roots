@@ -2,53 +2,53 @@
  * Tipos do que a interface pode ver (RZ-129). Nada aqui referencia a "verdade" oculta:
  * só factos públicos e estimativas com margem vindas de observações.
  */
-import type { Data, PessoaPublica, TipoEntidade } from "../persistencia/tipos";
+import type { IsoDate, PublicPerson, EntityType } from "../persistencia/tipos";
 
-export type Alvo = { k: TipoEntidade; id: string };
+export type Target = { k: EntityType; id: string };
 
 /** Formato guardado em `observacao.valores` (versão 1). Guarda o desvio (σ); a margem calcula-se com `z`. */
-export type ValoresObservados = {
+export type ObservedValues = {
   v: 1;
-  escala?: [number, number];
-  campos?: Record<string, { est: number; sigma: number }>;
-  rotulos?: Rotulo[];
+  scale?: [number, number];
+  fields?: Record<string, { est: number; sigma: number }>;
+  labels?: Label[];
 };
 
-export type Rotulo = { traco: string; faixa: "baixa" | "alta" };
+export type Label = { trait: string; strip: "low" | "high" };
 
-export type Estimativa = {
+export type Estimate = {
   /** Melhor estimativa (arredondada a 1 casa decimal). */
-  valor: number;
-  margem: number;
+  value: number;
+  margin: number;
   /** [valor − margem, valor + margem], dentro da escala. */
-  intervalo: [number, number];
+  halfTime: [number, number];
 };
 
-export type Frescura = {
+export type Freshness = {
   /** Data da observação mais recente que contribuiu. */
-  vistoEm: Data;
+  seenIn: IsoDate;
   /** Épocas decorridas desde essa observação ("visto há 2 épocas"). */
-  epocasDesde: number;
-  desatualizado: boolean;
+  sinceSeasons: number;
+  outdated: boolean;
 };
 
-export type Conhecimento = Frescura & {
-  observacoes: number;
-  campos: Record<string, Estimativa & Frescura>;
-  rotulos: Rotulo[];
+export type Knowledge = Freshness & {
+  observations: number;
+  fields: Record<string, Estimate & Freshness>;
+  labels: Label[];
 };
 
 /** Factos públicos de uma pessoa, com a idade à data da Vista. */
-export type PessoaVista = PessoaPublica & { idade: number };
+export type ViewPerson = PublicPerson & { age: number };
 
 /**
  * Ficha de uma pessoa tal como o gamer a conhece (RZ-129 + RZ-103): factos públicos sempre;
  * atributos, potencial e personalidade só se alguém os observou (e com margem de erro).
  */
-export type FichaPessoa = {
-  publico: PessoaVista;
-  atributos?: Conhecimento;
-  potencial?: Conhecimento;
+export type PersonProfile = {
+  exposed: ViewPerson;
+  attributes?: Knowledge;
+  potential?: Knowledge;
   /** Rótulos de traços extremos (`conhecimento.rotulos`), nunca números. */
-  personalidade?: Conhecimento;
+  personality?: Knowledge;
 };

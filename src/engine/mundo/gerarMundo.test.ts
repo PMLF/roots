@@ -1,26 +1,26 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { PARAMETROS_PADRAO as P } from "../config/parametros";
-import { importarDados } from "../dados/importar";
-import type { DadosBase } from "../dados/tipos";
-import { distribuirPosicoes, gerarMundo } from "./gerarMundo";
-import { importarPaises, type Pais } from "./paises";
-import { qualidadeAtual } from "./jogador";
-import { validarMundo } from "./validar";
+import { DEFAULT_PARAMETERS as P } from "../config/parametros";
+import { importData } from "../dados/importar";
+import type { BaseData } from "../dados/tipos";
+import { distributePositions, generateWorld } from "./gerarMundo";
+import { importCountries, type Country } from "./paises";
+import { currentQuality } from "./jogador";
+import { validateWorld } from "./validar";
 
-const ler = (f: string) => readFileSync(`data/${f}`, "utf8");
-const d = importarDados({ clubes: ler("clubes.csv"), cidades: ler("cidades.csv"), localidades: ler("localidades.csv"), rivalidades: ler("rivalidades.csv"), distritos: ler("distritos.csv") });
-if (!d.ok) throw new Error(d.erros.join("\n"));
-const dados: DadosBase = d.dados;
-const pr = importarPaises(ler("paises.csv"));
-if (!pr.ok) throw new Error(pr.erros.join("\n"));
-const paises: Pais[] = pr.paises;
+const read = (f: string) => readFileSync(`data/${f}`, "utf8");
+const d = importData({ clubs: read("clubes.csv"), cities: read("cidades.csv"), localities: read("localidades.csv"), rivalries: read("rivalidades.csv"), districts: read("distritos.csv") });
+if (!d.ok) throw new Error(d.errors.join("\n"));
+const data: BaseData = d.data;
+const pr = importCountries(read("paises.csv"));
+if (!pr.ok) throw new Error(pr.errors.join("\n"));
+const countries: Country[] = pr.countries;
 
-const mundo = (seed: string, p = P) => gerarMundo({ seed, dados, paises, params: p });
+const world = (seed: string, p = P) => generateWorld({ seed, data, countries, params: p });
 
 describe("distribuir posições", () => {
   it.each([20, 23, 25, 26, 28])("plantel de %i: soma certa, 2+ GR, todas as posições", (n) => {
-    const xs = distribuirPosicoes(n, P.mundo.lugaresPorPosicao);
+    const xs = distributePositions(n, P.world.placesByPosition);
     expect(xs).toHaveLength(n);
     expect(xs.filter((x) => x === "GK").length).toBeGreaterThanOrEqual(2);
     expect(new Set(xs).size).toBe(10);
@@ -29,65 +29,65 @@ describe("distribuir posições", () => {
 
 describe("gerarMundo (300 clubes)", () => {
   const t0 = Date.now();
-  const lote = mundo("teste-1");
+  const batch = world("teste-1");
   const ms = Date.now() - t0;
-  const v = validarMundo(lote, dados, paises, P);
+  const v = validateWorld(batch, data, countries, P);
 
   it("é válido e tem a escala prevista", () => {
-    expect(v.erros).toEqual([]);
-    expect(v.resumo.pessoas).toBeGreaterThan(12000);
-    expect(v.resumo.pessoas).toBeLessThan(25000);
+    expect(v.errors).toEqual([]);
+    expect(v.summary.people).toBeGreaterThan(12000);
+    expect(v.summary.people).toBeLessThan(25000);
     expect(ms).toBeLessThan(15000);
   });
   it("qualidade desce com o escalão e o mix de estrangeiros bate certo", () => {
-    const e = v.resumo.porEscalao;
-    const q = (k: string) => e[k]!.qualidadeMedia;
-    expect(q("primeiraLiga")).toBeGreaterThan(q("segundaLiga"));
-    expect(q("segundaLiga")).toBeGreaterThan(q("terceiraLiga"));
-    expect(q("terceiraLiga")).toBeGreaterThan(q("cp"));
-    expect(q("cp")).toBeGreaterThan(q("distrital"));
-    for (const [esc, alvo] of Object.entries(P.estrangeiros)) expect(Math.abs(e[esc]!.estrangeiros - alvo)).toBeLessThan(0.06);
-    expect(v.avisos).toEqual([]);
+    const e = v.summary.byTier;
+    const q = (k: string) => e[k]!.meanQuality;
+    expect(q("firstLeague")).toBeGreaterThan(q("secondLeague"));
+    expect(q("secondLeague")).toBeGreaterThan(q("thirdLeague"));
+    expect(q("thirdLeague")).toBeGreaterThan(q("cp"));
+    expect(q("cp")).toBeGreaterThan(q("district"));
+    for (const [tier, target] of Object.entries(P.foreigners)) expect(Math.abs(e[tier]!.foreigners - target)).toBeLessThan(0.06);
+    expect(v.warnings).toEqual([]);
   });
   it("a qualidade medida nos atributos-chave segue a qualidade-alvo", () => {
-    const js = lote.jogadores.filter((j) => j.clube);
-    const media = js.reduce((s, j) => s + qualidadeAtual(j.atributos, j.posicoes[0]!.pos), 0) / js.length;
-    expect(media).toBeGreaterThan(7);
-    expect(media).toBeLessThan(12);
+    const js = batch.players.filter((j) => j.club);
+    const mean = js.reduce((s, j) => s + currentQuality(j.attributes, j.positions[0]!.pos), 0) / js.length;
+    expect(mean).toBeGreaterThan(7);
+    expect(mean).toBeLessThan(12);
   });
   it("o potencial nunca fica abaixo da qualidade atual, e os jovens têm margem", () => {
-    const novos = lote.jogadores.filter((j) => j.clube).slice(0, 4000);
-    let comMargem = 0;
-    for (const j of novos) {
-      const q = qualidadeAtual(j.atributos, j.posicoes[0]!.pos);
-      expect(j.potencial).toBeGreaterThanOrEqual(Math.round(q * 10) / 10 - 0.05);
-      if (j.potencial > q + 1) comMargem++;
+    const fresh = batch.players.filter((j) => j.club).slice(0, 4000);
+    let withMargin = 0;
+    for (const j of fresh) {
+      const q = currentQuality(j.attributes, j.positions[0]!.pos);
+      expect(j.potential).toBeGreaterThanOrEqual(Math.round(q * 10) / 10 - 0.05);
+      if (j.potential > q + 1) withMargin++;
     }
-    expect(comMargem).toBeGreaterThan(100);
+    expect(withMargin).toBeGreaterThan(100);
   });
   it("os autarcas trazem os traços do CSV (×2)", () => {
-    const cd = dados.cidades[0]!;
-    const cargo = lote.cargos.find((c) => c.funcao === "autarca" && c.cidade === cd.id)!;
-    const pessoa = lote.pessoas.find((p) => p.id === cargo.pessoa)!;
-    expect(pessoa.personalidade.ambicao).toBe(cd.autarca.tracos.ambicao);
-    expect(pessoa.personalidade.integridade).toBe(cd.autarca.tracos.integridade);
+    const cd = data.cities[0]!;
+    const role = batch.roles.find((c) => c.fn === "mayor" && c.city === cd.id)!;
+    const person = batch.people.find((p) => p.id === role.person)!;
+    expect(person.personality.ambition).toBe(cd.mayor.traits.ambition);
+    expect(person.personality.integrity).toBe(cd.mayor.traits.integrity);
   });
   it("todos os clubes têm presidente e treinador", () => {
-    for (const cl of dados.clubes.slice(0, 40)) {
-      const fs = lote.cargos.filter((c) => c.clube === cl.id).map((c) => c.funcao);
-      expect(fs).toContain("presidente");
-      expect(fs).toContain("treinador");
+    for (const cl of data.clubs.slice(0, 40)) {
+      const fs = batch.roles.filter((c) => c.club === cl.id).map((c) => c.fn);
+      expect(fs).toContain("president");
+      expect(fs).toContain("coach");
     }
   });
   it("jogadores naturais da cidade do clube são mais leais (+3)", () => {
-    const naturalDe = new Map(lote.pessoas.map((p) => [p.id, p] as const));
-    const cidadeDe = new Map(dados.clubes.map((c) => [c.id, c.cidade] as const));
+    const naturalDe = new Map(batch.people.map((p) => [p.id, p] as const));
+    const cityOf = new Map(data.clubs.map((c) => [c.id, c.city] as const));
     const a: number[] = [];
     const b: number[] = [];
-    for (const j of lote.jogadores) {
-      if (!j.clube) continue;
-      const p = naturalDe.get(j.pessoa)!;
-      (p.naturalDe === cidadeDe.get(j.clube) ? a : b).push(p.personalidade.lealdade);
+    for (const j of batch.players) {
+      if (!j.club) continue;
+      const p = naturalDe.get(j.person)!;
+      (p.naturalDe === cityOf.get(j.club) ? a : b).push(p.personality.loyalty);
     }
     const m = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
     expect(m(a)).toBeGreaterThan(m(b) + 1.5);
@@ -96,19 +96,19 @@ describe("gerarMundo (300 clubes)", () => {
 
 describe("determinismo e independência", () => {
   it("mesma seed → mesmo mundo; seed diferente → pessoas diferentes", () => {
-    const a = mundo("s1");
-    expect(a).toEqual(mundo("s1"));
-    const b = mundo("s2");
-    expect(b.pessoas.map((p) => p.nome)).not.toEqual(a.pessoas.map((p) => p.nome));
-    expect(b.pessoas.length).toBe(a.pessoas.length);
+    const a = world("s1");
+    expect(a).toEqual(world("s1"));
+    const b = world("s2");
+    expect(b.people.map((p) => p.name)).not.toEqual(a.people.map((p) => p.name));
+    expect(b.people.length).toBe(a.people.length);
   });
   it("acrescentar um clube não muda os plantéis dos clubes de outros escalões", () => {
-    const base = mundo("s3");
-    const retirado = dados.clubes.find((c) => c.escalao === "distrital")!;
-    const menos = gerarMundo({ seed: "s3", dados: { ...dados, clubes: dados.clubes.filter((c) => c.id !== retirado.id) }, paises, params: P });
-    const alvo = dados.clubes.find((c) => c.escalao === "segundaLiga")!.id;
-    const nomes = (l: typeof base) => l.jogadores.filter((j) => j.clube === alvo).map((j) => l.pessoas.find((p) => p.id === j.pessoa)!.nome);
-    expect(nomes(menos)).toEqual(nomes(base));
+    const base = world("s3");
+    const withdrawn = data.clubs.find((c) => c.tier === "district")!;
+    const less = generateWorld({ seed: "s3", data: { ...data, clubs: data.clubs.filter((c) => c.id !== withdrawn.id) }, countries, params: P });
+    const target = data.clubs.find((c) => c.tier === "secondLeague")!.id;
+    const names = (l: typeof base) => l.players.filter((j) => j.club === target).map((j) => l.people.find((p) => p.id === j.person)!.name);
+    expect(names(less)).toEqual(names(base));
   });
 
 });

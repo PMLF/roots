@@ -1,274 +1,274 @@
-import type { Parametros } from "../config/parametros";
-import type { ResultadoPesquisa } from "../pesquisa/pesquisar";
+import type { Params } from "../config/parametros";
+import type { SearchResult } from "../pesquisa/pesquisar";
 import type { CompetitionPage } from "../competicao/ficha";
-import type { CompeticaoResumo, JogoLab, LigaLab } from "../laboratorio/laboratorio";
-import type { EpocaDoClube } from "../competicao/clubeEpoca";
-import type { FormacaoId, Tatica } from "../jogo/tipos";
-import type { EscopoNoticias, Mensagem as MensagemCaixa, Noticia } from "../noticias/noticias";
-import type { JogoVivo } from "../epoca/jogoAoVivo";
-import type { EstadoTempo, Modo, ResultadoAvanco } from "../epoca/avancar";
-import type { Plano } from "../epoca/planoDeJogo";
-import type { Posicao } from "../mundo/tipos";
-import type { Escalao, NivelReputacao } from "../config/parametros";
-import type { LinhaStatJogador } from "../persistencia/tipos";
-import type { FichaPessoa, PessoaVista } from "../vista/tipos";
+import type { SummaryCompetition, LabMatch, LabLeague } from "../laboratorio/laboratorio";
+import type { ClubSeason } from "../competicao/clubeEpoca";
+import type { FormationId, Tactic } from "../jogo/tipos";
+import type { NewsScope, Message as InboxMessage, NewsItem } from "../noticias/noticias";
+import type { LiveMatch } from "../epoca/jogoAoVivo";
+import type { TimeState, Mode, AdvanceResult } from "../epoca/avancar";
+import type { Plan } from "../epoca/planoDeJogo";
+import type { Position } from "../mundo/tipos";
+import type { Tier, LevelReputation } from "../config/parametros";
+import type { PlayerStatLine } from "../persistencia/tipos";
+import type { PersonProfile, ViewPerson } from "../vista/tipos";
 
 /** Resultado do autodiagnóstico da base de dados (RZ-128): escreve um evento e lê-o de volta. */
-export type DiagnosticoBd = {
-  backend: "opfs" | "memoria";
+export type DbDiagnostics = {
+  backend: "opfs" | "memory";
   /** Verdadeiro se os dados sobrevivem a recarregar a página. */
-  persistente: boolean;
-  motivoMemoria?: string;
+  persistent: boolean;
+  memoryReason?: string;
   sqlite: string;
-  esquema: number;
+  schema: number;
   /** Total de eventos DIAGNOSTICO guardados neste save (sobe a cada abertura se for persistente). */
-  aberturas: number;
+  openings: number;
   /** Eventos totais no save. */
-  eventos: number;
+  events: number;
 };
 
-export type ProgressoMundo = { fase: string; feito: number; total: number };
+export type WorldProgress = { phase: string; done: number; total: number };
 
-export type ResumoMundoCriado = {
+export type CreatedWorldSummary = {
   seed: string;
-  clubes: number;
-  pessoas: number;
-  jogadores: number;
+  clubs: number;
+  people: number;
+  players: number;
   /** Tempo de geração + gravação neste pedido (0 se o mundo já existia). */
   ms: number;
   /** Avisos de calibração da validação (não bloqueiam). */
-  avisos: string[];
+  warnings: string[];
   /** O save já tinha mundo (não se gera outra vez). */
-  jaExistia: boolean;
+  alreadyExisted: boolean;
 };
 
 /** Referência a uma entidade para ligações (`Ligacao`): tipo, id e nome a mostrar. */
-export type RefEntidade = { k: "clube" | "cidade" | "localidade" | "pessoa" | "competicao"; id: string; nome: string };
+export type EntityRef = { k: "club" | "city" | "locality" | "person" | "competition"; id: string; name: string };
 
 /** Nível geral (1-20): estimado (com margem) a partir do que se sabe dos atributos; exato no modo developer. */
-export type NivelEstimado = { valor: number; margem: number; exato: boolean };
+export type EstimatedLevel = { value: number; margin: number; exact: boolean };
 
 /** A verdade oculta, só devolvida no modo developer («ver tudo»). */
-export type VerdadePessoa = {
-  atributos?: Record<string, number>;
-  potencial?: number;
-  posicoes?: { pos: string; aptidao: number }[];
-  personalidade: Record<string, number>;
-  arquetipo: string;
+export type PersonTruth = {
+  attributes?: Record<string, number>;
+  potential?: number;
+  positions?: { pos: string; aptitude: number }[];
+  personality: Record<string, number>;
+  archetype: string;
   lod: number;
-  salarioMensal?: number;
-  qualidade?: Record<string, number>;
+  monthlyWage?: number;
+  quality?: Record<string, number>;
 };
 
-export type OfertaDeClube = { id: string; nome: string; liga: string; escalao: Escalao; nivelReputacao: NivelReputacao; desde: string };
+export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string };
 
-export type FichaPessoaDados = {
-  ficha: FichaPessoa;
-  clube?: RefEntidade;
-  naturalDe?: RefEntidade;
+export type PersonProfileData = {
+  profile: PersonProfile;
+  club?: EntityRef;
+  naturalDe?: EntityRef;
   /** Factos de jogo por época e competição (públicos). */
-  stats: LinhaStatJogador[];
+  stats: PlayerStatLine[];
   /** Ano em que começa a época 1 do save (2026 → «2026/27»). */
-  anoInicial: number;
+  initialYear: number;
   /** Contrato atual: as datas são públicas, o salário não. */
-  contrato?: { inicio: string; fim: string };
-  nivel?: NivelEstimado;
-  verdade?: VerdadePessoa;
+  contract?: { start: string; end: string };
+  level?: EstimatedLevel;
+  truth?: PersonTruth;
 };
 
 /** Finanças do clube na ficha (RZ-114): uma palavra para todos; o clube do gamer vê também o saldo e o último fecho mensal. */
-export type FinancasClube = {
-  estado: "beiraFalencia" | "emRisco" | "apertado" | "poderoso" | "muitoRico" | "rico" | "folgado" | "remediado" | "estavel" | "modesto" | "pobre";
+export type ClubFinances = {
+  state: "beiraFalencia" | "emRisco" | "tight" | "poderoso" | "muitoRico" | "rico" | "comfortable" | "remediado" | "stable" | "modest" | "pobre";
   /** Sem erro de estimativa (o próprio clube). */
-  exato: boolean;
-  saldo?: number;
+  exact: boolean;
+  balance?: number;
   /** Só o teu clube: massa salarial máxima e verba de transferências (euros), e quanto já se gasta em salários por ano. */
-  orcamento?: { massaSalarialMax: number; transferencias: number; massaAtual: number; acima: boolean };
-  ultimoFecho?: { data: string; receitas: number; despesas: number; porCategoria: Record<string, number> };
+  budget?: { wageBillMax: number; transfers: number; currentBill: number; above: boolean };
+  lastClose?: { date: string; revenues: number; expenses: number; byCategory: Record<string, number> };
 };
 
-export type FichaClubeDados = {
+export type ClubProfileData = {
   id: string;
-  nome: string;
-  liga: string;
-  localidade: RefEntidade & { estatuto: EstatutoLocalidade };
-  cidade: RefEntidade;
-  distrito: string;
-  cores: string;
-  alcunha: string;
-  mascote: string;
-  rival?: RefEntidade;
-  reputacao: number;
-  estadio: { nome: string; capacidade: number };
-  plantel: PessoaVista[];
-  cargos: PessoaVista[];
-  escalao: Escalao;
-  financas: FinancasClube;
-  nivelReputacao: NivelReputacao;
-  estadioDetalhe: { propriedade: string; zona: string; distanciaCentroKm: number; transportes: number; acessoRodoviario: number; estacionamento: number; terrenoExpansao: number };
+  name: string;
+  league: string;
+  locality: EntityRef & { status: LocalityStatus };
+  city: EntityRef;
+  district: string;
+  colours: string;
+  nickname: string;
+  mascot: string;
+  rival?: EntityRef;
+  reputation: number;
+  stadium: { name: string; capacity: number };
+  squad: ViewPerson[];
+  roles: ViewPerson[];
+  tier: Tier;
+  finances: ClubFinances;
+  levelReputation: LevelReputation;
+  detailStadium: { ownership: string; zone: string; centreDistanceKm: number; transport: number; roadAccess: number; parking: number; expansionTerrain: number };
   /** Divisão em que o clube esteve, por época (a história de subidas e descidas). */
-  historicoDivisoes: { epoca: number; label: string; escalao: Escalao; liga: string }[];
+  divisionsHistory: { season: number; label: string; tier: Tier; league: string }[];
   /** Por jogador do plantel: fim de contrato e nível geral. */
-  plantelExtra: Record<string, { contratoFim?: string; nivel?: NivelEstimado }>;
+  extraSquad: Record<string, { endContract?: string; level?: EstimatedLevel }>;
   /** Estatísticas da época atual (jogadores do plantel e tops do clube). */
-  epoca?: EpocaDoClube;
+  season?: ClubSeason;
   /** Por membro da equipa técnica: desde quando está no clube (contrato). */
-  verdade?: { reputacao: number; financas: number; qualidadeStaff: Record<string, Record<string, number>>; plantelNivel: number };
+  truth?: { reputation: number; finances: number; staffQuality: Record<string, Record<string, number>>; squadLevel: number };
 };
 
-export type EstatutoLocalidade = "aldeia" | "vila" | "cidade";
+export type LocalityStatus = "aldeia" | "vila" | "city";
 
-export type FichaLocalidadeDados = {
+export type LocalityProfileData = {
   id: string;
-  nome: string;
-  estatuto: EstatutoLocalidade;
-  populacao: number;
+  name: string;
+  status: LocalityStatus;
+  population: number;
   /** Desde quando tem o estatuto atual. */
-  desde: string;
-  sede: boolean;
-  cidade: RefEntidade;
-  distrito: string;
-  clubes: (RefEntidade & { liga: string })[];
+  since: string;
+  host: boolean;
+  city: EntityRef;
+  district: string;
+  clubs: (EntityRef & { league: string })[];
   /** Mudanças de estatuto, da mais recente para a mais antiga. */
-  historico: { data: string; de: EstatutoLocalidade; para: EstatutoLocalidade; populacao: number }[];
+  history: { date: string; de: LocalityStatus; para: LocalityStatus; population: number }[];
 };
 
 /** Ficha de uma cidade (concelho; RZ-133): só o que qualquer pessoa pode saber. Os números verdadeiros ficam no motor; aqui vão níveis em palavras e tendências. */
-export type NivelCidadeVista = 1 | 2 | 3 | 4 | 5;
-export type FichaCidadeDados = {
+export type ViewCityLevel = 1 | 2 | 3 | 4 | 5;
+export type CityProfileData = {
   id: string;
-  nome: string;
-  distrito: string;
-  polo: string;
-  ilha: boolean;
-  setor: string;
-  setorSecundario: string;
+  name: string;
+  district: string;
+  hub: string;
+  island: boolean;
+  sector: string;
+  secondarySector: string;
   /** Habitantes (dado público). */
-  populacao: number;
-  populacaoHistorico: { epoca: number; label: string; populacao: number }[];
-  indicadores: {
-    id: "economia" | "emprego" | "turismo" | "orgulho" | "notoriedade" | "culturaFutebol";
-    nivel: NivelCidadeVista;
-    tendencia: "sobe" | "estavel" | "desce";
-    historico: { epoca: number; label: string; nivel: NivelCidadeVista }[];
+  population: number;
+  historyPopulation: { season: number; label: string; population: number }[];
+  indicators: {
+    id: "economy" | "employment" | "tourism" | "pride" | "notoriety" | "footballCulture";
+    level: ViewCityLevel;
+    trend: "rises" | "stable" | "drops";
+    history: { season: number; label: string; level: ViewCityLevel }[];
   }[];
   /** Orçamento municipal por habitante, em relação às outras cidades. */
-  orcamento: NivelCidadeVista;
-  autarca?: {
-    pessoa: RefEntidade;
-    mandatoDesde: number;
-    mandatoAte: number;
-    apoioDesporto: NivelCidadeVista;
+  budget: ViewCityLevel;
+  mayor?: {
+    person: EntityRef;
+    sinceTerm: number;
+    untilTerm: number;
+    sportSupport: ViewCityLevel;
     /** Reputação pública: só o que se diz dele na cidade. */
-    perfil: ("vaidoso" | "discreto" | "ambicioso")[];
+    profile: ("vaidoso" | "discreto" | "ambicioso")[];
   };
-  localidades: { ref: RefEntidade; estatuto: EstatutoLocalidade; populacao: number }[];
-  clubes: { ref: RefEntidade; liga: string; escalao: string; estadio: { nome: string; capacidade: number; propriedade: "clube" | "municipal" | "partilhada" } }[];
+  localities: { ref: EntityRef; status: LocalityStatus; population: number }[];
+  clubs: { ref: EntityRef; league: string; tier: string; stadium: { name: string; capacity: number; ownership: "club" | "municipal" | "partilhada" } }[];
   /** Acontecimentos que marcaram a cidade, do mais recente para o mais antigo. */
-  acontecimentos: { data: string; epoca: number; label: string; tipo: string; regional: boolean; polo?: string }[];
+  incidents: { date: string; season: number; label: string; type: string; regional: boolean; hub?: string }[];
 };
 
-export type { ResultadoPesquisa, CompeticaoResumo, JogoLab, LigaLab, CompetitionPage };
+export type { SearchResult, SummaryCompetition, LabMatch, LabLeague, CompetitionPage };
 
 /** O plano de jogo do clube do gamer, pronto para a página Tática. */
-export type PlanoVista = {
+export type ViewPlan = {
   /** Nome do clube do gamer. */
-  clubeNome: string;
-  tatica: Tatica;
+  clubName: string;
+  tactic: Tactic;
   /** `true` enquanto o gamer não escolheu o onze: o que se mostra é a proposta automática. */
-  automatico: boolean;
-  formacoes: FormacaoId[];
-  posicoesDaFormacao: Record<FormacaoId, Posicao[]>;
+  automatic: boolean;
+  formations: FormationId[];
+  formationPositions: Record<FormationId, Position[]>;
   /** `rendimento` (0-1): quanto rende o jogador na posição em que está (1 = posição natural); `foraDePosicao` avisa na interface (RZ-177). */
-  onze: { jogador: string; nome: string; posicao: Posicao; aptidao: number; rendimento: number; foraDePosicao: boolean }[];
+  lineup: { player: string; name: string; position: Position; aptitude: number; performance: number; outOfPosition: boolean }[];
   /** `forma` (0,85-1): cansaço por jogos recentes; 1 = descansado ou carga normal. */
-  plantel: { jogador: string; nome: string; forma: number; posicoes: { pos: Posicao; aptidao: number }[]; indisponivel?: "lesao" | "suspenso"; jogosPorCumprir?: number }[];
-  proximoJogo?: { id: string; data: string; competicao: string; adversario: string; emCasa: boolean; confirmado: boolean; /** O jogo já começou e está a decorrer. */ emCurso: boolean; adversarioId: string; adversarioCores: string };
+  squad: { player: string; name: string; form: number; positions: { pos: Position; aptitude: number }[]; unavailable?: "injury" | "suspended"; matchesPerMeet?: number }[];
+  nextMatch?: { id: string; date: string; competition: string; opponent: string; atHome: boolean; confirmed: boolean; /** O jogo já começou e está a decorrer. */ ongoing: boolean; opponentId: string; opponentColours: string };
 };
 
-export type ClubeResumo = { id: string; nome: string; liga: string; cores: string };
+export type SummaryClub = { id: string; name: string; league: string; colours: string };
 
 /** Contrato entre a interface e o motor (que corre num Web Worker). Só dados serializáveis. */
-export type PedidosMotor = {
-  ping: { entrada: { eco: string }; saida: { eco: string; relogioMs: number } };
-  versao: { entrada: null; saida: { motor: string; esquema: number } };
-  parametros: { entrada: null; saida: Parametros };
-  bd: { entrada: null; saida: DiagnosticoBd };
+export type EngineRequests = {
+  ping: { input: { echo: string }; output: { echo: string; clockMs: number } };
+  version: { input: null; output: { engine: string; schema: number } };
+  parameters: { input: null; output: Params };
+  db: { input: null; output: DbDiagnostics };
   /** Cria o mundo do save (RZ-103). Emite progresso; se o save já tem mundo, devolve o resumo sem gerar. */
-  criarMundo: { entrada: { seed: string }; saida: ResumoMundoCriado };
+  createWorld: { input: { seed: string }; output: CreatedWorldSummary };
   /** O mundo do save, se já foi criado (não gera nada). */
-  estadoMundo: { entrada: null; saida: ResumoMundoCriado | null };
-  clubes: { entrada: null; saida: ClubeResumo[] };
-  paises: { entrada: null; saida: { id: string; nome: string }[] };
+  worldState: { input: null; output: CreatedWorldSummary | null };
+  clubs: { input: null; output: SummaryClub[] };
+  countries: { input: null; output: { id: string; name: string }[] };
   /** Pesquisa global por nome (clubes, cidades, pessoas). */
-  pesquisar: { entrada: { q: string; limite?: number }; saida: ResultadoPesquisa[] };
-  fichaPessoa: { entrada: { id: string; verTudo?: boolean }; saida: FichaPessoaDados | null };
-  fichaClube: { entrada: { id: string; verTudo?: boolean }; saida: FichaClubeDados | null };
-  fichaLocalidade: { entrada: { id: string }; saida: FichaLocalidadeDados | null };
+  find: { input: { q: string; limit?: number }; output: SearchResult[] };
+  personProfile: { input: { id: string; seeAll?: boolean }; output: PersonProfileData | null };
+  clubProfile: { input: { id: string; seeAll?: boolean }; output: ClubProfileData | null };
+  localityProfile: { input: { id: string }; output: LocalityProfileData | null };
   /** Ficha de uma cidade (concelho): variáveis em palavras, autarca, clubes e acontecimentos (RZ-133). */
-  fichaCidade: { entrada: { id: string }; saida: FichaCidadeDados | null };
+  cityProfile: { input: { id: string }; output: CityProfileData | null };
   /** Apaga o save atual e gera um mundo novo com esta seed (RZ-137). Emite progresso como `criarMundo`. */
-  reiniciarMundo: { entrada: { seed: string }; saida: ResumoMundoCriado };
+  restartWorld: { input: { seed: string }; output: CreatedWorldSummary };
   /** Laboratório (RZ-139): as ligas e séries do mundo. */
-  competicoes: { entrada: null; saida: CompeticaoResumo[] };
+  competitions: { input: null; output: SummaryCompetition[] };
   /** Página de uma liga ou série (RZ-145): classificação com zonas, jornadas, destaques e clubes (prévia do calendário se a época ainda não começou). */
-  competitionPage: { entrada: { league: string; season?: number }; saida: CompetitionPage | null };
+  competitionPage: { input: { league: string; season?: number }; output: CompetitionPage | null };
   /** Laboratório: simula um jogo entre dois clubes sem gravar nada no save. */
-  laboratorioJogo: { entrada: { casa: string; fora: string; seed: string; taticaCasa?: Partial<Tatica>; taticaFora?: Partial<Tatica> }; saida: JogoLab };
+  matchLab: { input: { home: string; away: string; seed: string; homeTactic?: Partial<Tactic>; awayTactic?: Partial<Tactic> }; output: LabMatch };
   /** Laboratório: simula uma liga inteira (uma época) sem gravar nada no save. */
   /** O clube do gamer neste save (`null` enquanto não escolheu). */
-  clubeDoGamer: { entrada: null; saida: { id: string } | null };
+  gamerClub: { input: null; output: { id: string } | null };
   /**
    * Escolhe o clube do save. Só se pode escolher uma vez: depois, só mudando de clube por demissão ou despedimento
    * (RZ-157). `forcar` é a troca dos developers (seletor da barra lateral, só no modo dev).
    */
   /** O gamer demite-se do clube (RZ-157). Fica sem clube e recebe ofertas. */
   /** Linha do tempo do jogo do clube do gamer, para o ver minuto a minuto (RZ-130). Sem `id`, o último. */
-  jogoAoVivo: { entrada: { id?: string }; saida: JogoVivo | null };
+  liveMatch: { input: { id?: string }; output: LiveMatch | null };
   /** Notícias do clube do gamer, da liga dele ou do mundo (RZ-118), mais recentes primeiro. */
-  noticias: { entrada: { escopo: EscopoNoticias; limite?: number; antesDe?: number }; saida: Noticia[] };
+  news: { input: { scope: NewsScope; limit?: number; beforeOf?: number }; output: NewsItem[] };
   /** Caixa de entrada do gamer: o que se passa com o clube e com ele. */
-  caixa: { entrada: { limite?: number; antesDe?: number }; saida: { mensagens: MensagemCaixa[]; naoLidas: number } };
-  marcarCaixaLida: { entrada: null; saida: null };
+  inbox: { input: { limit?: number; beforeOf?: number }; output: { messages: InboxMessage[]; unread: number } };
+  markInboxRead: { input: null; output: null };
   /** Começa o jogo do gamer (RZ-170): nada fica no histórico até ao apito final. */
-  iniciarJogo: { entrada: { jogo: string }; saida: JogoVivo };
+  startMatch: { input: { match: string }; output: LiveMatch };
   /** Avança `minutos` minutos do jogo a decorrer; no fim regista-o. */
-  passoJogo: { entrada: { minutos: number }; saida: JogoVivo };
+  matchStep: { input: { minutes: number }; output: LiveMatch };
   /** Muda a tática do gamer durante o jogo, a partir do minuto seguinte. */
-  definirOrcamento: { entrada: { massaSalarialMax: number; transferencias: number }; saida: FinancasClube };
-  taticaNoJogo: { entrada: { tatica: Tatica }; saida: JogoVivo };
+  setBudget: { input: { wageBillMax: number; transfers: number }; output: ClubFinances };
+  tacticInMatch: { input: { tactic: Tactic }; output: LiveMatch };
   /** Substituições do gamer (todas as de uma paragem): sai quem está em campo, entra quem está no banco. */
-  substituicoesNoJogo: { entrada: { trocas: { sai: string; entra: string }[] }; saida: JogoVivo };
+  substitutionsInMatch: { input: { substitutions: { playerOut: string; playerIn: string }[] }; output: LiveMatch };
   /** Marca uma mensagem como lida ou por ler. */
-  marcarMensagem: { entrada: { id: number; lida: boolean }; saida: null };
-  demitir: { entrada: null; saida: { clube: string } };
+  markMessage: { input: { id: number; isRead: boolean }; output: null };
+  resign: { input: null; output: { club: string } };
   /** Ofertas de clubes quando o gamer está sem clube. */
-  ofertas: { entrada: null; saida: { desempregado: boolean; anterior?: string; ofertas: OfertaDeClube[] } };
-  aceitarOferta: { entrada: { id: string }; saida: { id: string } };
-  escolherClube: { entrada: { id: string; forcar?: boolean }; saida: { id: string } };
+  offers: { input: null; output: { unemployed: boolean; previous?: string; offers: ClubOffer[] } };
+  acceptOffer: { input: { id: string }; output: { id: string } };
+  chooseClub: { input: { id: string; force?: boolean }; output: { id: string } };
   /** O plano de jogo (tática e onze) do clube do gamer. */
-  plano: { entrada: null; saida: PlanoVista | null };
+  plan: { input: null; output: ViewPlan | null };
   /** Guarda tática e onze (`onze: null` volta ao onze automático). Pode fazer-se a qualquer momento. */
-  guardarPlano: { entrada: { tatica: Tatica; onze: Plano["onze"] | null }; saida: PlanoVista };
+  savePlan: { input: { tactic: Tactic; lineup: Plan["lineup"] | null }; output: ViewPlan };
   /** Confirma onze e tática para o próximo jogo do clube: o avanço deixa de parar antes dele. */
-  confirmarJogo: { entrada: { jogo: string }; saida: { jogo: string } };
+  confirmMatch: { input: { match: string }; output: { match: string } };
   /** A data do save, a época e quantos jogos faltam (prepara o calendário da época na primeira vez). */
-  estadoTempo: { entrada: null; saida: EstadoTempo };
+  timeState: { input: null; output: TimeState };
   /** Avança no tempo e joga os jogos desses dias (RZ-119). Com `clube`, o jogo desse clube guarda todo o detalhe e pára o avanço (`proximoJogo`). */
-  avancar: { entrada: { modo: Modo; clube?: string }; saida: ResultadoAvanco };
-  laboratorioLiga: { entrada: { liga: string; seed: string; formacao?: FormacaoId }; saida: LigaLab };
+  advance: { input: { mode: Mode; club?: string }; output: AdvanceResult };
+  leagueLab: { input: { league: string; seed: string; formation?: FormationId }; output: LabLeague };
   /** Plantel público de um clube, lido através da `Vista` (sem atributos, potencial nem personalidade). */
-  plantel: { entrada: { clube: string }; saida: PessoaVista[] };
+  squad: { input: { club: string }; output: ViewPerson[] };
 };
 
-export type TipoPedido = keyof PedidosMotor;
+export type RequestType = keyof EngineRequests;
 
-export type Mensagem<K extends TipoPedido = TipoPedido> = {
-  [T in K]: { id: number; tipo: T; entrada: PedidosMotor[T]["entrada"] };
+export type Message<K extends RequestType = RequestType> = {
+  [T in K]: { id: number; type: T; input: EngineRequests[T]["input"] };
 }[K];
 
-export type RespostaMotor =
-  | { id: number; ok: true; saida: unknown }
-  | { id: number; ok: false; erro: string }
+export type EngineResponse =
+  | { id: number; ok: true; output: unknown }
+  | { id: number; ok: false; error: string }
   /** Progresso de um pedido demorado; o resultado final chega depois como `ok`. */
-  | { id: number; progresso: ProgressoMundo };
+  | { id: number; progress: WorldProgress };

@@ -1,91 +1,91 @@
 "use client";
-import { Icone } from "@/ui/components/Icone";
+import { Icon } from "@/ui/components/Icone";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import type { ResultadoPesquisa } from "@/engine/api/contratos";
-import type { Chave } from "@/ui/i18n";
+import type { SearchResult } from "@/engine/api/contratos";
+import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { hrefFicha } from "@/ui/ligacoes";
-import { useMotor } from "@/ui/MotorProvider";
+import { profileHref } from "@/ui/ligacoes";
+import { useEngine } from "@/ui/MotorProvider";
 
 /** Pesquisa global (TOM_E_UX §3.4): "/" ou Ctrl/⌘+K em qualquer página; setas e Enter. */
-export function Pesquisa() {
+export function Search() {
   const { t } = useT();
-  const motor = useMotor();
+  const engine = useEngine();
   const router = useRouter();
-  const [aberta, setAberta] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const [q, setQ] = useState("");
-  const [resultados, setResultados] = useState<ResultadoPesquisa[]>([]);
+  const [results, setResults] = useState<SearchResult[]>([]);
   const [i, setI] = useState(0);
-  const entrada = useRef<HTMLInputElement>(null);
+  const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const aoTeclar = (e: KeyboardEvent) => {
-      const alvo = e.target as HTMLElement | null;
-      const aEscrever = alvo && (alvo.tagName === "INPUT" || alvo.tagName === "TEXTAREA" || alvo.tagName === "SELECT" || alvo.isContentEditable);
-      if ((e.key === "k" && (e.metaKey || e.ctrlKey)) || (e.key === "/" && !aEscrever)) {
+    const onPress = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const writing = target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable);
+      if ((e.key === "k" && (e.metaKey || e.ctrlKey)) || (e.key === "/" && !writing)) {
         e.preventDefault();
-        setAberta(true);
-      } else if (e.key === "Escape") setAberta(false);
+        setIsOpen(true);
+      } else if (e.key === "Escape") setIsOpen(false);
     };
-    window.addEventListener("keydown", aoTeclar);
-    return () => window.removeEventListener("keydown", aoTeclar);
+    window.addEventListener("keydown", onPress);
+    return () => window.removeEventListener("keydown", onPress);
   }, []);
 
   useEffect(() => {
-    if (aberta) entrada.current?.focus();
+    if (isOpen) input.current?.focus();
     else {
       setQ("");
-      setResultados([]);
+      setResults([]);
     }
-  }, [aberta]);
+  }, [isOpen]);
 
   useEffect(() => {
-    if (!aberta || !motor || q.trim().length < 2) {
-      setResultados([]);
+    if (!isOpen || !engine || q.trim().length < 2) {
+      setResults([]);
       return;
     }
-    let vivo = true;
-    const espera = setTimeout(() => {
-      motor.chamar("pesquisar", { q }).then((r) => {
-        if (!vivo) return;
-        setResultados(r);
+    let live = true;
+    const wait = setTimeout(() => {
+      engine.call("find", { q }).then((r) => {
+        if (!live) return;
+        setResults(r);
         setI(0);
-      }).catch(() => vivo && setResultados([]));
+      }).catch(() => live && setResults([]));
     }, 120);
-    return () => { vivo = false; clearTimeout(espera); };
-  }, [q, aberta, motor]);
+    return () => { live = false; clearTimeout(wait); };
+  }, [q, isOpen, engine]);
 
-  const abrir = (r: ResultadoPesquisa) => {
-    setAberta(false);
-    router.push(hrefFicha(r.k, r.id));
+  const open = (r: SearchResult) => {
+    setIsOpen(false);
+    router.push(profileHref(r.k, r.id));
   };
 
-  const teclas = (e: React.KeyboardEvent) => {
-    if (e.key === "ArrowDown") { e.preventDefault(); setI((x) => Math.min(resultados.length - 1, x + 1)); }
+  const hotkeys = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowDown") { e.preventDefault(); setI((x) => Math.min(results.length - 1, x + 1)); }
     else if (e.key === "ArrowUp") { e.preventDefault(); setI((x) => Math.max(0, x - 1)); }
-    else if (e.key === "Enter" && resultados[i]) abrir(resultados[i]);
+    else if (e.key === "Enter" && results[i]) open(results[i]);
   };
 
   return (
     <>
-      <button type="button" className="pesquisa-botao" onClick={() => setAberta(true)} data-testid="pesquisa-abrir">
-        <Icone nome="pesquisa" />
+      <button type="button" className="pesquisa-botao" onClick={() => setIsOpen(true)} data-testid="pesquisa-abrir">
+        <Icon name="search" />
         {t("pesquisa.abrir")} <kbd>/</kbd>
       </button>
-      {aberta && (
-        <div className="pesquisa-fundo" onMouseDown={() => setAberta(false)}>
-          <div className="pesquisa" role="dialog" aria-modal="true" aria-label={t("pesquisa.titulo")} onMouseDown={(e) => e.stopPropagation()} onKeyDown={teclas}>
-            <input ref={entrada} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("pesquisa.placeholder")} aria-label={t("pesquisa.titulo")} role="combobox" aria-expanded={resultados.length > 0} aria-controls="pesquisa-lista" data-testid="pesquisa-entrada" />
+      {isOpen && (
+        <div className="pesquisa-fundo" onMouseDown={() => setIsOpen(false)}>
+          <div className="pesquisa" role="dialog" aria-modal="true" aria-label={t("pesquisa.titulo")} onMouseDown={(e) => e.stopPropagation()} onKeyDown={hotkeys}>
+            <input ref={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("pesquisa.placeholder")} aria-label={t("pesquisa.titulo")} role="combobox" aria-expanded={results.length > 0} aria-controls="pesquisa-lista" data-testid="pesquisa-entrada" />
             <ul id="pesquisa-lista" role="listbox">
-              {resultados.map((r, n) => (
-                <li key={`${r.k}:${r.id}`} role="option" aria-selected={n === i} className={n === i ? "ativo" : undefined} onMouseEnter={() => setI(n)} onClick={() => abrir(r)}>
-                  <span className="pesquisa-tipo">{t(`entidade.${r.k}` as Chave)}</span>
-                  <strong>{r.titulo}</strong>
-                  <span className="suave">{r.subtitulo}</span>
+              {results.map((r, n) => (
+                <li key={`${r.k}:${r.id}`} role="option" aria-selected={n === i} className={n === i ? "active" : undefined} onMouseEnter={() => setI(n)} onClick={() => open(r)}>
+                  <span className="pesquisa-tipo">{t(`entidade.${r.k}` as Key)}</span>
+                  <strong>{r.title}</strong>
+                  <span className="suave">{r.subtitle}</span>
                 </li>
               ))}
-              {q.trim().length >= 2 && resultados.length === 0 && <li className="vazio">{t("pesquisa.nada")}</li>}
+              {q.trim().length >= 2 && results.length === 0 && <li className="vazio">{t("pesquisa.nada")}</li>}
             </ul>
           </div>
         </div>

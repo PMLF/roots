@@ -1,79 +1,79 @@
 import { describe, expect, it } from "vitest";
-import { PARAMETROS_PADRAO } from "../config/parametros";
-import { formaDosJogadores, formaNoRegresso, formaPorCarga } from "../epoca/formaFisica";
-import { eventoLesao } from "../lesoes/estado";
-import { RepositorioMemoria } from "../persistencia/repositorioMemoria";
-import { aptidaoNa, fatorAptidao, forcaEquipa, onzeAutomatico, type CandidatoOnze } from "./equipa";
-import { simularJogo } from "./simulador";
-import { equipaSintetica } from "./teste-util";
-import type { EquipaJogo } from "./tipos";
+import { DEFAULT_PARAMETERS } from "../config/parametros";
+import { playersForm, formInReturn, formPerWorkload } from "../epoca/formaFisica";
+import { injuryEvent } from "../lesoes/estado";
+import { MemoryRepository } from "../persistencia/repositorioMemoria";
+import { aptitudeIn, aptitudeFactor, teamStrength, automaticLineup, type LineupCandidate } from "./equipa";
+import { simulateMatch } from "./simulador";
+import { syntheticTeam } from "./teste-util";
+import type { MatchTeam } from "./tipos";
 
-const p = PARAMETROS_PADRAO;
+const p = DEFAULT_PARAMETERS;
 
 describe("aptidão na posição (RZ-177)", () => {
   it("1 na posição natural, 0,82 numa secundária de 12, 0,62 sem registo; o guarda-redes fora do lugar é um desastre", () => {
-    expect(fatorAptidao(20, "CB", p)).toBe(1);
-    expect(fatorAptidao(undefined, "CB", p)).toBe(1);
-    expect(fatorAptidao(12, "CB", p)).toBeCloseTo(0.82, 2);
-    expect(fatorAptidao(aptidaoNa([], "CB", p), "CB", p)).toBeCloseTo(0.6175, 3);
-    expect(fatorAptidao(aptidaoNa([], "GK", p), "GK", p)).toBeLessThan(0.25);
-    expect(aptidaoNa([{ pos: "RB", aptidao: 14 }], "RB", p)).toBe(14);
+    expect(aptitudeFactor(20, "CB", p)).toBe(1);
+    expect(aptitudeFactor(undefined, "CB", p)).toBe(1);
+    expect(aptitudeFactor(12, "CB", p)).toBeCloseTo(0.82, 2);
+    expect(aptitudeFactor(aptitudeIn([], "CB", p), "CB", p)).toBeCloseTo(0.6175, 3);
+    expect(aptitudeFactor(aptitudeIn([], "GK", p), "GK", p)).toBeLessThan(0.25);
+    expect(aptitudeIn([{ pos: "RB", aptitude: 14 }], "RB", p)).toBe(14);
   });
   it("a mesma equipa rende menos com jogadores fora de posição; sem parâmetros nada muda", () => {
-    const base = equipaSintetica("A", 12);
-    const fora: EquipaJogo = { ...base, onze: base.onze.map((j, i) => (i >= 1 && i <= 4 ? { ...j, aptidao: 3 } : { ...j, aptidao: 20 })) };
-    const semParams = forcaEquipa(fora.onze);
-    expect(semParams).toEqual(forcaEquipa(base.onze));
-    const a = forcaEquipa(base.onze, undefined, p);
-    const b = forcaEquipa(fora.onze, undefined, p);
-    expect(b.defesa).toBeLessThan(a.defesa);
-    expect(b.guardaRedes).toBe(a.guardaRedes);
+    const base = syntheticTeam("A", 12);
+    const away: MatchTeam = { ...base, lineup: base.lineup.map((j, i) => (i >= 1 && i <= 4 ? { ...j, aptitude: 3 } : { ...j, aptitude: 20 })) };
+    const withoutParams = teamStrength(away.lineup);
+    expect(withoutParams).toEqual(teamStrength(base.lineup));
+    const a = teamStrength(base.lineup, undefined, p);
+    const b = teamStrength(away.lineup, undefined, p);
+    expect(b.defence).toBeLessThan(a.defence);
+    expect(b.goalkeeper).toBe(a.goalkeeper);
   });
   it("o onze automático regista a aptidão de cada um na posição que ocupa", () => {
-    const cand = (pessoa: string, pos: string, apt = 20): CandidatoOnze => ({ pessoa, posicoes: [{ pos, aptidao: apt }], atributos: Object.fromEntries(Object.keys(equipaSintetica("x", 10).onze[0]!.atributos).map((k) => [k, 10])), alturaCm: 180 });
-    const plantel = [cand("gk", "GK"), ...["RB", "CB", "CB", "LB", "DM", "CM", "AM", "RW", "ST", "LW"].map((pos, i) => cand(`p${i}`, pos)), cand("extra", "CM", 20)];
-    const onze = onzeAutomatico(plantel, undefined, p);
-    expect(onze.every((j) => j.aptidao === 20)).toBe(true);
+    const cand = (person: string, pos: string, apt = 20): LineupCandidate => ({ person, positions: [{ pos, aptitude: apt }], attributes: Object.fromEntries(Object.keys(syntheticTeam("x", 10).lineup[0]!.attributes).map((k) => [k, 10])), heightCm: 180 });
+    const squad = [cand("gk", "GK"), ...["RB", "CB", "CB", "LB", "DM", "CM", "AM", "RW", "ST", "LW"].map((pos, i) => cand(`p${i}`, pos)), cand("extra", "CM", 20)];
+    const lineup = automaticLineup(squad, undefined, p);
+    expect(lineup.every((j) => j.aptitude === 20)).toBe(true);
   });
   it("jogar com quatro jogadores sem registo da posição custa pontos a sério (≥ 0,2 pontos por jogo)", () => {
-    const pontos = (casa: EquipaJogo, fora: EquipaJogo, n: number) => {
+    const points = (home: MatchTeam, away: MatchTeam, n: number) => {
       let pts = 0;
       for (let i = 0; i < n; i++) {
-        const { resumo } = simularJogo({ seed: `apt-${i}`, id: `j${i}`, casa, fora }, p);
-        pts += resumo.casa.golos > resumo.fora.golos ? 3 : resumo.casa.golos === resumo.fora.golos ? 1 : 0;
+        const { summary } = simulateMatch({ seed: `apt-${i}`, id: `j${i}`, home, away }, p);
+        pts += summary.home.goals > summary.away.goals ? 3 : summary.home.goals === summary.away.goals ? 1 : 0;
       }
       return pts / n;
     };
-    const b = equipaSintetica("B", 12);
-    const natural = equipaSintetica("A", 12);
-    const improvisada: EquipaJogo = { ...natural, onze: natural.onze.map((j, i) => (i === 0 || i >= 8 ? { ...j, aptidao: 20 } : i % 2 === 0 ? { ...j, aptidao: 3 } : { ...j, aptidao: 20 })) };
-    const a = pontos({ ...natural, onze: natural.onze.map((j) => ({ ...j, aptidao: 20 })) }, b, 500);
-    const c = pontos(improvisada, b, 500);
+    const b = syntheticTeam("B", 12);
+    const natural = syntheticTeam("A", 12);
+    const improvised: MatchTeam = { ...natural, lineup: natural.lineup.map((j, i) => (i === 0 || i >= 8 ? { ...j, aptitude: 20 } : i % 2 === 0 ? { ...j, aptitude: 3 } : { ...j, aptitude: 20 })) };
+    const a = points({ ...natural, lineup: natural.lineup.map((j) => ({ ...j, aptitude: 20 })) }, b, 500);
+    const c = points(improvised, b, 500);
     expect(a - c).toBeGreaterThan(0.2);
   }, 120000);
 });
 
 describe("forma por cansaço (RZ-177)", () => {
   it("um jogo por semana é normal; dois e três na semana cansam; nunca passa de 1 nem desce do mínimo", () => {
-    expect(formaPorCarga(0, p)).toBe(1);
-    expect(formaPorCarga(90, p)).toBe(1);
-    expect(formaPorCarga(180, p)).toBeCloseTo(0.97, 5);
-    expect(formaPorCarga(270, p)).toBeCloseTo(0.94, 5);
-    expect(formaPorCarga(5000, p)).toBe(p.jogo.forma.minimo);
+    expect(formPerWorkload(0, p)).toBe(1);
+    expect(formPerWorkload(90, p)).toBe(1);
+    expect(formPerWorkload(180, p)).toBeCloseTo(0.97, 5);
+    expect(formPerWorkload(270, p)).toBeCloseTo(0.94, 5);
+    expect(formPerWorkload(5000, p)).toBe(p.match.form.min);
   });
 });
 
 describe("regresso de lesão: perda de ritmo (RZ-177)", () => {
   it("volta com forma baixa e recupera dia a dia até 1", () => {
-    expect(formaNoRegresso("2026-10-15", "2026-10-15", p)).toBeCloseTo(p.jogo.forma.regresso.inicial, 6);
-    expect(formaNoRegresso("2026-10-20", "2026-10-15", p)).toBeCloseTo(p.jogo.forma.regresso.inicial + 5 * p.jogo.forma.regresso.ganhoPorDia, 6);
-    expect(formaNoRegresso("2026-12-01", "2026-10-15", p)).toBe(1);
+    expect(formInReturn("2026-10-15", "2026-10-15", p)).toBeCloseTo(p.match.form.ret.initial, 6);
+    expect(formInReturn("2026-10-20", "2026-10-15", p)).toBeCloseTo(p.match.form.ret.initial + 5 * p.match.form.ret.gainByDay, 6);
+    expect(formInReturn("2026-12-01", "2026-10-15", p)).toBe(1);
   });
   it("só afeta quem regressou há pouco; lesionado ou sem lesão fica com a forma por carga", () => {
-    const r = new RepositorioMemoria();
-    r.acrescentarEvento(eventoLesao({ jogador: "p1", clube: "A", data: "2026-10-01", epoca: 1, lesao: { tipo: "muscular", gravidade: 2, dias: 14, recaida: false } }));
-    const f = (hoje: string) => formaDosJogadores(r, ["p1", "p2"], hoje, p);
-    expect(f("2026-10-15").get("p1")).toBeCloseTo(p.jogo.forma.regresso.inicial, 6);
+    const r = new MemoryRepository();
+    r.appendEvent(injuryEvent({ player: "p1", club: "A", date: "2026-10-01", season: 1, injury: { type: "muscular", severity: 2, days: 14, relapse: false } }));
+    const f = (today: string) => playersForm(r, ["p1", "p2"], today, p);
+    expect(f("2026-10-15").get("p1")).toBeCloseTo(p.match.form.ret.initial, 6);
     expect(f("2026-10-15").get("p2")).toBe(1);
     expect(f("2026-10-18").get("p1")!).toBeGreaterThan(f("2026-10-15").get("p1")!);
     expect(f("2026-11-30").get("p1")).toBe(1);

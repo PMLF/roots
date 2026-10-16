@@ -1,191 +1,191 @@
 "use client";
-import type { FichaPessoaDados } from "@/engine/api/contratos";
-import { ATRIBUTOS_FISICOS, ATRIBUTOS_GR, ATRIBUTOS_MENTAIS, ATRIBUTOS_TECNICOS } from "@/engine/mundo/tipos";
-import { Atributos, Chip, type GrupoAtributos, type LinhaAtributo } from "@/ui/components/Atributos";
-import { Cartao, Dados, Topo } from "@/ui/components/Cartao";
-import { Ficha } from "@/ui/components/Ficha";
-import { Ligacao } from "@/ui/components/Ligacao";
-import { nomeDaEpoca } from "@/engine/calendario/nomeEpoca";
-import { Valor } from "@/ui/components/Valor";
-import type { Chave } from "@/ui/i18n";
+import type { PersonProfileData } from "@/engine/api/contratos";
+import { PHYSICAL_ATTRIBUTES, GK_ATTRIBUTES, MENTAL_ATTRIBUTES, TECHNICAL_ATTRIBUTES } from "@/engine/mundo/tipos";
+import { Attributes, Chip, type AttributesGroup, type AttributeLine } from "@/ui/components/Atributos";
+import { Card, Data, Top } from "@/ui/components/Cartao";
+import { Profile } from "@/ui/components/Ficha";
+import { EntityLink } from "@/ui/components/Ligacao";
+import { seasonName } from "@/engine/calendario/nomeEpoca";
+import { Value } from "@/ui/components/Valor";
+import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { nomePosicao, siglaPosicao } from "@/ui/i18n/posicao";
-import { usePaises } from "@/ui/usePaises";
-import { mostrarEstimativa } from "@/ui/valor";
+import { namePosition, abbreviationPosition } from "@/ui/i18n/posicao";
+import { useCountries } from "@/ui/usePaises";
+import { showEstimate } from "@/ui/valor";
 
 const eur = (locale: string, n: number) => new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
 /** Ficha de uma pessoa: dados de identidade ao lado do nome; no corpo, o que o gamer sabe (ou «?»), conforme o papel. */
-export function FichaPessoa({ d, verTudo }: { d: FichaPessoaDados; verTudo: boolean }) {
+export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boolean }) {
   const { t, locale } = useT();
-  const pais = usePaises();
-  const { publico: p, atributos, potencial, personalidade } = d.ficha;
-  const j = p.jogador;
-  const verdade = verTudo ? d.verdade : undefined;
-  const desconhecido = <span className="valor-estimado" title={t("pessoa.desconhecido")}>?</span>;
+  const country = useCountries();
+  const { exposed: p, attributes, potential, personality } = d.profile;
+  const j = p.player;
+  const truth = seeAll ? d.truth : undefined;
+  const unknown = <span className="valor-estimado" title={t("pessoa.desconhecido")}>?</span>;
 
   // ---- atributos de 1 a 20
-  const linha = (id: string): LinhaAtributo => {
-    const nome = t(`atributo.${id}` as Chave);
-    const exato = verdade?.atributos?.[id];
-    if (exato !== undefined) return { id, nome, texto: String(exato), numero: exato, estado: "exato" };
-    const est = atributos?.campos[id];
-    if (!est) return { id, nome, texto: "?", estado: "desconhecido", dica: t("pessoa.desconhecido") };
-    const v = mostrarEstimativa(est, est);
-    return { id, nome, texto: v.texto.replace("≈ ", ""), numero: est.valor, estado: v.estado, dica: v.estado === "desatualizado" ? t("valor.vistoHa", { epocas: est.epocasDesde }) : t("valor.estimado") };
+  const line = (id: string): AttributeLine => {
+    const name = t(`atributo.${id}` as Key);
+    const exact = truth?.attributes?.[id];
+    if (exact !== undefined) return { id, name, text: String(exact), number: exact, state: "exact" };
+    const est = attributes?.fields[id];
+    if (!est) return { id, name, text: "?", state: "unknown", hint: t("pessoa.desconhecido") };
+    const v = showEstimate(est, est);
+    return { id, name, text: v.text.replace("≈ ", ""), number: est.value, state: v.state, hint: v.state === "outdated" ? t("valor.vistoHa", { seasons: est.sinceSeasons }) : t("valor.estimado") };
   };
-  const grupo = (id: string, ids: readonly string[]): GrupoAtributos => ({ id, titulo: t(`grupo.${id}` as Chave), linhas: ids.map(linha) });
-  const grupos: GrupoAtributos[] = j
-    ? [grupo("tecnicos", ATRIBUTOS_TECNICOS), grupo("mentais", ATRIBUTOS_MENTAIS), grupo("fisicos", ATRIBUTOS_FISICOS), ...(j.posicao === "GK" ? [grupo("guardaRedes", ATRIBUTOS_GR)] : [])]
+  const group = (id: string, ids: readonly string[]): AttributesGroup => ({ id, title: t(`grupo.${id}` as Key), lines: ids.map(line) });
+  const groups: AttributesGroup[] = j
+    ? [group("tecnicos", TECHNICAL_ATTRIBUTES), group("mentais", MENTAL_ATTRIBUTES), group("fisicos", PHYSICAL_ATTRIBUTES), ...(j.position === "GK" ? [group("goalkeeper", GK_ATTRIBUTES)] : [])]
     : [];
 
-  const nivel = d.nivel ? (d.nivel.exato ? <b>{d.nivel.valor}</b> : <Valor v={mostrarEstimativa({ valor: d.nivel.valor, margem: d.nivel.margem, intervalo: [d.nivel.valor - d.nivel.margem, d.nivel.valor + d.nivel.margem] })} />) : desconhecido;
-  const pot = verdade?.potencial !== undefined ? <b>{verdade.potencial}</b> : potencial?.campos.potencial ? <Valor v={mostrarEstimativa(potencial.campos.potencial, potencial.campos.potencial)} /> : desconhecido;
+  const level = d.level ? (d.level.exact ? <b>{d.level.value}</b> : <Value v={showEstimate({ value: d.level.value, margin: d.level.margin, halfTime: [d.level.value - d.level.margin, d.level.value + d.level.margin] })} />) : unknown;
+  const potentialValue = truth?.potential !== undefined ? <b>{truth.potential}</b> : potential?.fields.potencial ? <Value v={showEstimate(potential.fields.potencial, potential.fields.potencial)} /> : unknown;
 
   // ---- identidade ao lado do nome
-  const dados = [
-    { rotulo: t("pessoa.nascimento"), valor: `${p.nascimento} (${t("pessoa.anos", { n: p.idade })})` },
-    { rotulo: t("coluna.pais"), valor: pais(p.nacionalidade) },
-    ...(d.naturalDe ? [{ rotulo: t("pessoa.naturalDe"), valor: <Ligacao k="cidade" id={d.naturalDe.id}>{d.naturalDe.nome}</Ligacao> }] : []),
+  const data = [
+    { label: t("pessoa.nascimento"), value: `${p.birth} (${t("pessoa.anos", { n: p.age })})` },
+    { label: t("coluna.pais"), value: country(p.nationality) },
+    ...(d.naturalDe ? [{ label: t("pessoa.naturalDe"), value: <EntityLink k="city" id={d.naturalDe.id}>{d.naturalDe.name}</EntityLink> }] : []),
     ...(j ? [
-      { rotulo: t("pessoa.corpo"), valor: `${j.alturaCm} cm · ${j.pesoKg} kg` },
-      { rotulo: t("coluna.pe"), valor: t(`pe.${j.pe}` as Chave) },
+      { label: t("pessoa.corpo"), value: `${j.heightCm} cm · ${j.weightKg} kg` },
+      { label: t("coluna.pe"), value: t(`pe.${j.pe}` as Key) },
     ] : []),
-    ...(d.clube ? [{ rotulo: t("entidade.clube"), valor: <Ligacao k="clube" id={d.clube.id}>{d.clube.nome}</Ligacao> }] : []),
-    ...(d.contrato ? [{ rotulo: t("pessoa.contratoAte"), valor: d.contrato.fim }] : []),
-    ...(j ? [{ rotulo: t("pessoa.estado"), valor: t(`estado.${j.estado}` as Chave) }] : []),
+    ...(d.club ? [{ label: t("entidade.clube"), value: <EntityLink k="club" id={d.club.id}>{d.club.name}</EntityLink> }] : []),
+    ...(d.contract ? [{ label: t("pessoa.contratoAte"), value: d.contract.end }] : []),
+    ...(j ? [{ label: t("pessoa.estado"), value: t(`estado.${j.state}` as Key) }] : []),
   ];
-  const etiquetas = (
+  const labels = (
     <>
-      {j && <Chip tom="destaque">{nomePosicao(t, j.posicao)}</Chip>}
-      {!j && p.funcao && <Chip tom="destaque">{t(`funcao.${p.funcao}` as Chave)}</Chip>}
-      {d.clube && <Chip><Ligacao k="clube" id={d.clube.id}>{d.clube.nome}</Ligacao></Chip>}
-      {!d.clube && j?.estado === "livre" && <Chip tom="suave">{t("estado.livre")}</Chip>}
+      {j && <Chip tone="destaque">{namePosition(t, j.position)}</Chip>}
+      {!j && p.fn && <Chip tone="destaque">{t(`funcao.${p.fn}` as Key)}</Chip>}
+      {d.club && <Chip><EntityLink k="club" id={d.club.id}>{d.club.name}</EntityLink></Chip>}
+      {!d.club && j?.state === "free" && <Chip tone="suave">{t("estado.livre")}</Chip>}
     </>
   );
 
   // ---- estatísticas de jogo (factos públicos)
   const stats = d.stats;
-  const soma = (k: "jogos" | "minutos" | "golos" | "assistencias" | "amarelos" | "vermelhos") => stats.reduce((s, x) => s + x[k], 0);
-  const estatisticas = (
-    <Cartao titulo={t("cartao.stats")} larga>
+  const sum = (k: "matches" | "minutes" | "goals" | "assists" | "yellows" | "reds") => stats.reduce((s, x) => s + x[k], 0);
+  const statistics = (
+    <Card title={t("cartao.stats")} wide>
       {stats.length === 0 ? (
         <>
           <p className="vazio">{t("pessoa.semStats")}</p>
-          <Dados linhas={[{ rotulo: t("stat.jogos"), valor: "—" }, { rotulo: t("stat.golos"), valor: "—" }, { rotulo: t("stat.assistencias"), valor: "—" }, { rotulo: t("stat.nota"), valor: desconhecido }]} />
+          <Data lines={[{ label: t("stat.jogos"), value: "—" }, { label: t("stat.golos"), value: "—" }, { label: t("stat.assistencias"), value: "—" }, { label: t("stat.nota"), value: unknown }]} />
         </>
       ) : (
         <table className="tabela">
-          <thead><tr>{(["epoca", "competicao", "jogos", "minutos", "golos", "assistencias", "amarelos", "vermelhos"] as const).map((c) => <th key={c} className={c === "epoca" || c === "competicao" ? undefined : "num"}>{t(`stat.${c}` as Chave)}</th>)}</tr></thead>
+          <thead><tr>{(["season", "competition", "matches", "minutes", "goals", "assists", "yellows", "reds"] as const).map((c) => <th key={c} className={c === "season" || c === "competition" ? undefined : "within"}>{t(`stat.${c}` as Key)}</th>)}</tr></thead>
           <tbody>
             {stats.map((s) => (
-              <tr key={`${s.epoca}-${s.competicao}-${s.clube}`}>
-                <td>{nomeDaEpoca(s.epoca, d.anoInicial)}</td><td>{s.competicao}</td>
-                <td className="num">{s.jogos}</td><td className="num">{s.minutos}</td><td className="num">{s.golos}</td><td className="num">{s.assistencias}</td><td className="num">{s.amarelos}</td><td className="num">{s.vermelhos}</td>
+              <tr key={`${s.season}-${s.competition}-${s.club}`}>
+                <td>{seasonName(s.season, d.initialYear)}</td><td>{s.competition}</td>
+                <td className="num">{s.matches}</td><td className="num">{s.minutes}</td><td className="num">{s.goals}</td><td className="num">{s.assists}</td><td className="num">{s.yellows}</td><td className="num">{s.reds}</td>
               </tr>
             ))}
             {stats.length > 1 && (
-              <tr className="total"><td colSpan={2}>{t("stat.total")}</td>{(["jogos", "minutos", "golos", "assistencias", "amarelos", "vermelhos"] as const).map((k) => <td key={k} className="num">{soma(k)}</td>)}</tr>
+              <tr className="total"><td colSpan={2}>{t("stat.total")}</td>{(["matches", "minutes", "goals", "assists", "yellows", "reds"] as const).map((k) => <td key={k} className="num">{sum(k)}</td>)}</tr>
             )}
           </tbody>
         </table>
       )}
-    </Cartao>
+    </Card>
   );
 
-  const contrato = (
-    <Cartao titulo={t("cartao.contrato")}>
-      <Dados
-        linhas={[
-          { rotulo: t("pessoa.contratoAte"), valor: d.contrato?.fim ?? desconhecido },
-          { rotulo: t("pessoa.noClubeDesde"), valor: d.contrato?.inicio ?? desconhecido },
-          { rotulo: t("pessoa.salario"), valor: verdade?.salarioMensal !== undefined ? `${eur(locale, verdade.salarioMensal)}/${t("pessoa.mes")}` : desconhecido },
-          { rotulo: t("pessoa.valorMercado"), valor: desconhecido },
-          { rotulo: t("pessoa.clausula"), valor: desconhecido },
+  const contract = (
+    <Card title={t("cartao.contrato")}>
+      <Data
+        lines={[
+          { label: t("pessoa.contratoAte"), value: d.contract?.end ?? unknown },
+          { label: t("pessoa.noClubeDesde"), value: d.contract?.start ?? unknown },
+          { label: t("pessoa.salario"), value: truth?.monthlyWage !== undefined ? `${eur(locale, truth.monthlyWage)}/${t("pessoa.mes")}` : unknown },
+          { label: t("pessoa.valorMercado"), value: unknown },
+          { label: t("pessoa.clausula"), value: unknown },
         ]}
       />
-    </Cartao>
+    </Card>
   );
 
-  const personalidadeCartao = (
-    <Cartao titulo={t("pessoa.personalidade")}>
-      {verdade ? (
-        <Dados linhas={Object.entries(verdade.personalidade).map(([k, v]) => ({ rotulo: t(`traco.${k}` as Chave), valor: <b className="attr attr-exato" data-banda={v <= 6 ? 1 : v <= 10 ? 2 : v <= 13 ? 3 : v <= 16 ? 4 : 5}>{v}</b> }))} />
-      ) : personalidade ? (
+  const cardPersonality = (
+    <Card title={t("pessoa.personalidade")}>
+      {truth ? (
+        <Data lines={Object.entries(truth.personality).map(([k, v]) => ({ label: t(`traco.${k}` as Key), value: <b className="attr attr-exato" data-banda={v <= 6 ? 1 : v <= 10 ? 2 : v <= 13 ? 3 : v <= 16 ? 4 : 5}>{v}</b> }))} />
+      ) : personality ? (
         <p>
-          {personalidade.rotulos.length > 0 ? personalidade.rotulos.map((r) => t(`traco.${r.traco}.${r.faixa}` as Chave)).join(" · ") : t("pessoa.semTracosMarcados")}
-          {personalidade.desatualizado && <small className="valor-nota"> · {t("valor.vistoHa", { epocas: personalidade.epocasDesde })}</small>}
+          {personality.labels.length > 0 ? personality.labels.map((r) => t(`traco.${r.trait}.${r.strip}` as Key)).join(" · ") : t("pessoa.semTracosMarcados")}
+          {personality.outdated && <small className="valor-nota"> · {t("valor.vistoHa", { seasons: personality.sinceSeasons })}</small>}
         </p>
       ) : (
         <p className="vazio">{t("pessoa.personalidadeDesconhecida")}</p>
       )}
-    </Cartao>
+    </Card>
   );
 
-  const devCartao = verdade && (
-    <Cartao titulo={t("dev.cartao")} larga dev>
-      <Dados
-        linhas={[
-          { rotulo: t("dev.arquetipo"), valor: verdade.arquetipo },
-          { rotulo: t("dev.lod"), valor: verdade.lod },
-          ...(verdade.posicoes ? [{ rotulo: t("pessoa.posicoes"), valor: verdade.posicoes.map((x) => `${siglaPosicao(t, x.pos)} ${x.aptidao}`).join(" · ") }] : []),
-          ...(verdade.qualidade ? [{ rotulo: t("cargo.qualidades"), valor: Object.entries(verdade.qualidade).map(([k, v]) => `${t(`qualidade.${k}` as Chave)} ${v}`).join(" · ") }] : []),
+  const cardDev = truth && (
+    <Card title={t("dev.cartao")} wide dev>
+      <Data
+        lines={[
+          { label: t("dev.arquetipo"), value: truth.archetype },
+          { label: t("dev.lod"), value: truth.lod },
+          ...(truth.positions ? [{ label: t("pessoa.posicoes"), value: truth.positions.map((x) => `${abbreviationPosition(t, x.pos)} ${x.aptitude}`).join(" · ") }] : []),
+          ...(truth.quality ? [{ label: t("cargo.qualidades"), value: Object.entries(truth.quality).map(([k, v]) => `${t(`qualidade.${k}` as Key)} ${v}`).join(" · ") }] : []),
         ]}
       />
-    </Cartao>
+    </Card>
   );
 
-  const resumo = j ? (
+  const summary = j ? (
     <div className="cartoes">
-      <Cartao titulo={t("cartao.atributos")} larga>
-        {!atributos && !verdade && <p className="suave">{t("pessoa.naoObservadoCurto")}</p>}
-        <Atributos grupos={grupos} />
-      </Cartao>
-      <Cartao titulo={t("cartao.nivel")}>
-        <Dados
-          linhas={[
-            { rotulo: t("pessoa.nivel"), valor: nivel },
-            { rotulo: t("pessoa.potencial"), valor: pot },
-            { rotulo: t("pessoa.forma"), valor: desconhecido },
-            { rotulo: t("pessoa.condicao"), valor: desconhecido },
-            { rotulo: t("pessoa.moral"), valor: desconhecido },
+      <Card title={t("cartao.atributos")} wide>
+        {!attributes && !truth && <p className="suave">{t("pessoa.naoObservadoCurto")}</p>}
+        <Attributes groups={groups} />
+      </Card>
+      <Card title={t("cartao.nivel")}>
+        <Data
+          lines={[
+            { label: t("pessoa.nivel"), value: level },
+            { label: t("pessoa.potencial"), value: potentialValue },
+            { label: t("pessoa.forma"), value: unknown },
+            { label: t("pessoa.condicao"), value: unknown },
+            { label: t("pessoa.moral"), value: unknown },
           ]}
         />
-      </Cartao>
-      {contrato}
-      {personalidadeCartao}
-      {estatisticas}
-      {devCartao}
+      </Card>
+      {contract}
+      {cardPersonality}
+      {statistics}
+      {cardDev}
     </div>
   ) : (
     <div className="cartoes">
-      <Cartao titulo={t("cartao.cargo")}>
-        <Dados
-          linhas={[
-            { rotulo: t("coluna.funcao"), valor: p.funcao ? t(`funcao.${p.funcao}` as Chave) : desconhecido },
-            ...(d.clube ? [{ rotulo: t("pessoa.ondeTrabalha"), valor: <Ligacao k="clube" id={d.clube.id}>{d.clube.nome}</Ligacao> }] : []),
-            ...(d.contrato ? [{ rotulo: t("pessoa.noClubeDesde"), valor: d.contrato.inicio }] : []),
+      <Card title={t("cartao.cargo")}>
+        <Data
+          lines={[
+            { label: t("coluna.funcao"), value: p.fn ? t(`funcao.${p.fn}` as Key) : unknown },
+            ...(d.club ? [{ label: t("pessoa.ondeTrabalha"), value: <EntityLink k="club" id={d.club.id}>{d.club.name}</EntityLink> }] : []),
+            ...(d.contract ? [{ label: t("pessoa.noClubeDesde"), value: d.contract.start }] : []),
           ]}
         />
-      </Cartao>
-      <Cartao titulo={t("cargo.qualidades")}>
-        {verdade?.qualidade ? (
-          <Dados linhas={Object.entries(verdade.qualidade).map(([k, v]) => ({ rotulo: t(`qualidade.${k}` as Chave), valor: <b className="attr attr-exato" data-banda={v <= 6 ? 1 : v <= 10 ? 2 : v <= 13 ? 3 : v <= 16 ? 4 : 5}>{v}</b> }))} />
+      </Card>
+      <Card title={t("cargo.qualidades")}>
+        {truth?.quality ? (
+          <Data lines={Object.entries(truth.quality).map(([k, v]) => ({ label: t(`qualidade.${k}` as Key), value: <b className="attr attr-exato" data-banda={v <= 6 ? 1 : v <= 10 ? 2 : v <= 13 ? 3 : v <= 16 ? 4 : 5}>{v}</b> }))} />
         ) : (
           <p className="vazio">{t("cargo.qualidadesDesconhecidas")}</p>
         )}
-      </Cartao>
-      {personalidadeCartao}
-      {devCartao}
+      </Card>
+      {cardPersonality}
+      {cardDev}
     </div>
   );
 
   return (
-    <Ficha
-      tipo="pessoa"
-      titulo={p.nomeDesportivo}
-      topo={<Topo titulo={p.nomeDesportivo} etiquetas={etiquetas} cartao={<Dados linhas={dados} />} />}
-      separadores={{ resumo }}
+    <Profile
+      type="person"
+      title={p.sportingName}
+      top={<Top title={p.sportingName} labels={labels} card={<Data lines={data} />} />}
+      tabs={{ summary }}
     />
   );
 }

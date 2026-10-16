@@ -1,60 +1,60 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import type { EstadoTempo, Modo, ResultadoAvanco } from "@/engine/epoca/avancar";
-import { useMeuClube } from "@/ui/meuClube";
-import { useMotor } from "@/ui/MotorProvider";
+import type { TimeState, Mode, AdvanceResult } from "@/engine/epoca/avancar";
+import { useOwnClub } from "@/ui/meuClube";
+import { useEngine } from "@/ui/MotorProvider";
 
 /** O tempo do save (data, época, jogos por jogar) e o botão Avançar. Todas as páginas partilham o mesmo estado. */
-const EVENTO = "raizes:tempo";
-let ultimo: ResultadoAvanco | undefined;
-let aAvancar = false;
+const EVENT = "raizes:tempo";
+let last: AdvanceResult | undefined;
+let advancing = false;
 
-export function useTempo() {
-  const motor = useMotor();
-  const [clube] = useMeuClube();
-  const [estado, setEstado] = useState<EstadoTempo | null | undefined>(undefined);
-  const [, forcar] = useState(0);
-  const [erro, setErro] = useState<string | undefined>(undefined);
-  const [pausa, setPausa] = useState<{ jogo: string; adversario: string; emCasa: boolean; emCurso: boolean } | undefined>(undefined);
-  const [proximoJogo, setProximoJogo] = useState<{ id: string; data: string; competicao: string; adversario: string; emCasa: boolean; confirmado: boolean; emCurso: boolean; adversarioId: string; adversarioCores: string } | undefined>(undefined);
+export function useTime() {
+  const engine = useEngine();
+  const [club] = useOwnClub();
+  const [state, setState] = useState<TimeState | null | undefined>(undefined);
+  const [, force] = useState(0);
+  const [error, setError] = useState<string | undefined>(undefined);
+  const [pause, setPause] = useState<{ match: string; opponent: string; atHome: boolean; ongoing: boolean } | undefined>(undefined);
+  const [nextMatch, setNextMatch] = useState<{ id: string; date: string; competition: string; opponent: string; atHome: boolean; confirmed: boolean; ongoing: boolean; opponentId: string; opponentColours: string } | undefined>(undefined);
 
   useEffect(() => {
-    if (!motor) return;
-    let vivo = true;
-    const carregar = () => {
-      motor.chamar("estadoMundo", null).then((m) => (m ? motor.chamar("estadoTempo", null) : null)).then(async (e) => {
-        if (!vivo) return;
-        setEstado(e);
+    if (!engine) return;
+    let live = true;
+    const load = () => {
+      engine.call("worldState", null).then((m) => (m ? engine.call("timeState", null) : null)).then(async (e) => {
+        if (!live) return;
+        setState(e);
         // há jogo do teu clube hoje, por confirmar?
-        const p = e ? await motor.chamar("plano", null) : null;
-        const j = p?.proximoJogo;
-        if (vivo) setProximoJogo(e ? j : undefined);
-        if (vivo) setPausa(e && j && j.data === e.hoje && !j.confirmado ? { jogo: j.id, adversario: j.adversario, emCasa: j.emCasa, emCurso: j.emCurso } : undefined);
-      }).catch(() => vivo && setEstado(null));
+        const p = e ? await engine.call("plan", null) : null;
+        const j = p?.nextMatch;
+        if (live) setNextMatch(e ? j : undefined);
+        if (live) setPause(e && j && j.date === e.today && !j.confirmed ? { match: j.id, opponent: j.opponent, atHome: j.atHome, ongoing: j.ongoing } : undefined);
+      }).catch(() => live && setState(null));
     };
-    const aoMudar = () => { forcar((n) => n + 1); carregar(); };
-    carregar();
-    window.addEventListener(EVENTO, aoMudar);
-    window.addEventListener("raizes:mundo", aoMudar);
-    return () => { vivo = false; window.removeEventListener(EVENTO, aoMudar); window.removeEventListener("raizes:mundo", aoMudar); };
-  }, [motor]);
+    const onChange = () => { force((n) => n + 1); load(); };
+    load();
+    window.addEventListener(EVENT, onChange);
+    window.addEventListener("raizes:mundo", onChange);
+    return () => { live = false; window.removeEventListener(EVENT, onChange); window.removeEventListener("raizes:mundo", onChange); };
+  }, [engine]);
 
-  const avancar = useCallback(async (modo: Modo): Promise<ResultadoAvanco | undefined> => {
-    if (!motor || aAvancar) return undefined;
-    aAvancar = true;
-    window.dispatchEvent(new Event(EVENTO));
+  const advance = useCallback(async (mode: Mode): Promise<AdvanceResult | undefined> => {
+    if (!engine || advancing) return undefined;
+    advancing = true;
+    window.dispatchEvent(new Event(EVENT));
     try {
-      ultimo = await motor.chamar("avancar", { modo, ...(clube ? { clube } : {}) });
-      setErro(undefined);
-      return ultimo;
+      last = await engine.call("advance", { mode, ...(club ? { club } : {}) });
+      setError(undefined);
+      return last;
     } catch (e) {
-      setErro(e instanceof Error ? e.message : String(e));
+      setError(e instanceof Error ? e.message : String(e));
       return undefined;
     } finally {
-      aAvancar = false;
-      window.dispatchEvent(new Event(EVENTO));
+      advancing = false;
+      window.dispatchEvent(new Event(EVENT));
     }
-  }, [motor, clube]);
+  }, [engine, club]);
 
-  return { estado, ultimo, aAvancar, avancar, erro, pausa, proximoJogo };
+  return { state, last, advancing, advance, error, pause, nextMatch };
 }

@@ -4,844 +4,844 @@
  * PERSONALIDADE §4 e CIDADE. Tudo isto é para calibrar no harness (RZ-123).
  */
 
-export type Criterio = "pontos" | "confrontoDireto" | "diferenca" | "golosMarcados" | "vitorias" | "reputacaoMenor" | "sorteio";
-export type NivelReputacao = "mundial" | "continental" | "nacional" | "regional" | "local" | "obscuro";
-export const NIVEIS_REPUTACAO: readonly NivelReputacao[] = ["mundial", "continental", "nacional", "regional", "local", "obscuro"];
-export const CRITERIOS: readonly Criterio[] = ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "vitorias", "reputacaoMenor", "sorteio"];
+export type Criterion = "points" | "confrontoDireto" | "difference" | "scoredGoals" | "wins" | "smallerReputation" | "lottery";
+export type LevelReputation = "mundial" | "continental" | "nacional" | "regional" | "local" | "obscuro";
+export const LEVELS_REPUTATION: readonly LevelReputation[] = ["mundial", "continental", "nacional", "regional", "local", "obscuro"];
+export const CRITERIA: readonly Criterion[] = ["points", "confrontoDireto", "difference", "scoredGoals", "wins", "smallerReputation", "lottery"];
 
-export type Escalao = "primeiraLiga" | "segundaLiga" | "terceiraLiga" | "cp" | "distrital";
+export type Tier = "firstLeague" | "secondLeague" | "thirdLeague" | "cp" | "district";
 
 
 /** Acontecimentos que mexem com uma cidade (ou com todas as de um polo) ao fim de cada época. */
-export type TipoEventoCidade =
-  | "fabrica_fecha" | "fabrica_abre" | "fundos_europeus" | "autoestrada" | "festival"
-  | "mau_ano_agricola" | "crise_regional" | "incendio" | "universidade" | "hotel_novo";
-export const TIPOS_EVENTO_CIDADE: readonly TipoEventoCidade[] = [
-  "fabrica_fecha", "fabrica_abre", "fundos_europeus", "autoestrada", "festival",
-  "mau_ano_agricola", "crise_regional", "incendio", "universidade", "hotel_novo",
+export type CityEventType =
+  | "fabrica_fecha" | "fabrica_abre" | "fundos_europeus" | "motorway" | "festival"
+  | "mau_ano_agricola" | "crise_regional" | "fire" | "university" | "hotel_novo";
+export const CITY_EVENT_TYPES: readonly CityEventType[] = [
+  "fabrica_fecha", "fabrica_abre", "fundos_europeus", "motorway", "festival",
+  "mau_ano_agricola", "crise_regional", "fire", "university", "hotel_novo",
 ];
-export type EfeitosCidade = { emprego?: number; economia?: number; turismo?: number; orgulho?: number; notoriedade?: number; populacaoPct?: number };
-export type EventoCidadeCfg = {
+export type CityEffects = { employment?: number; economy?: number; tourism?: number; pride?: number; notoriety?: number; populationPct?: number };
+export type CfgCityEvent = {
   /** Atinge todos os concelhos do polo (e não só um). */
   regional: boolean;
   /** Peso por setor (principal a 100 %, secundário a 50 %); `*` é o peso por omissão. */
-  peso: Record<string, number>;
-  efeitos: EfeitosCidade;
+  weight: Record<string, number>;
+  effects: CityEffects;
 };
-export type ParametrosCidade = {
-  eleicoesAutarquicasAnos: number;
+export type CityParameters = {
+  yearsMunicipalElections: number;
   /** Ano das últimas autárquicas antes do arranque: o mandato em curso conta a partir daqui. */
-  mandatoDesde: number;
+  sinceTerm: number;
   /** Cortes (0-100) entre os cinco níveis em palavras: muito baixo … muito alto. */
-  niveis: [number, number, number, number];
+  levels: [number, number, number, number];
   /** Variação mínima (pontos) entre épocas para dizer que sobe ou desce. */
-  limiarTendencia: number;
+  trendThreshold: number;
   /** Desvio de cada setor ao valor médio (50); o setor principal conta a 100 %, o secundário a 50 %. */
-  setores: Record<string, EfeitosCidade>;
-  inicial: {
-    base: number; ruido: number;
+  sectors: Record<string, CityEffects>;
+  initial: {
+    base: number; noise: number;
     /** Pontos de economia/emprego por cada dez vezes mais população (acima de 15 000 habitantes). */
-    porDecadaEconomia: number; porDecadaEmprego: number;
-    orgulho: { base: number; porReputacao: number; ruido: number };
-    notoriedade: { base: number; porReputacao: number; porDecada: number; ruido: number };
+    byEconomyDecade: number; byEmploymentDecade: number;
+    pride: { base: number; byReputation: number; noise: number };
+    notoriety: { base: number; byReputation: number; byDecade: number; noise: number };
     /** Reputação máxima da escala dos clubes (para normalizar). */
-    reputacaoMax: number;
+    reputationMax: number;
   };
-  evolucao: {
+  evolution: {
     /** Fração do desvio ao alvo que se corrige em cada época. */
-    regressao: number; ruido: number;
-    orgulho: { campeao: number; subida: number; descida: number };
-    notoriedade: { regressao: number; porOrgulho: number };
-    cultura: { porOrgulho: number; campeao: number; subida: number };
-    populacao: { porEconomia: number; porOrgulho: number; ruidoPct: number; maxPct: number };
+    regression: number; noise: number;
+    pride: { champion: number; promotion: number; relegation: number };
+    notoriety: { regression: number; byPride: number };
+    culture: { byPride: number; champion: number; promotion: number };
+    population: { byEconomy: number; byPride: number; noisePct: number; maxPct: number };
   };
-  eventos: {
+  events: {
     /** Probabilidade anual de acontecer um acontecimento local numa cidade / regional num polo. */
-    probCidade: number; probPolo: number;
-    tipos: Record<TipoEventoCidade, EventoCidadeCfg>;
+    cityProb: number; hubProb: number;
+    types: Record<CityEventType, CfgCityEvent>;
   };
 };
 
 /** Valores por escalão do livro de finanças do clube (RZ-114) e da assistência simples (RZ-115). */
-export type ModeloFinancas = {
+export type FinancesModel = {
   /** Reputação de referência de cada escalão: acima dela o clube vale mais (patrocínio, comercial, ocupação). */
-  reputacaoRef: Record<Escalao, number>;
+  refReputation: Record<Tier, number>;
   /** Expoente da razão reputação / referência nas receitas. */
-  expoenteReputacao: number;
+  exponentReputation: number;
   /** Limites da razão reputação / referência. */
-  razaoReputacao: { min: number; max: number };
+  ratioReputation: { min: number; max: number };
   /** Preço médio do bilhete. */
-  precoBilhete: Record<Escalao, number>;
+  ticketPrice: Record<Tier, number>;
   /** Ocupação média do estádio num jogo normal (0-1), antes dos multiplicadores. */
-  ocupacao: Record<Escalao, number>;
+  occupancy: Record<Tier, number>;
   /** Quanto a cultura de futebol da cidade (0-100) move a ocupação: ocupação × (1 − k + 2k × cultura/100). */
-  ocupacaoCultura: number;
+  cultureOccupancy: number;
   /** Patrocínios por ano. */
-  patrocinioAnual: Record<Escalao, number>;
+  annualSponsorship: Record<Tier, number>;
   /** Receitas comerciais e de sócios por ano (provisório até às transmissões, RZ-218, e às empresas, RZ-219). */
-  comercialAnual: Record<Escalao, number>;
+  annualCommercial: Record<Tier, number>;
   /** Custos do staff, da administração e da operação por mês. */
-  staffMensal: Record<Escalao, number>;
-  fixoMensal: Record<Escalao, number>;
+  monthlyStaff: Record<Tier, number>;
+  monthlyFixed: Record<Tier, number>;
   /** Custo de manter cada lugar do estádio por ano. */
-  estadioPorLugarAno: Record<Escalao, number>;
+  stadiumPerPlaceYear: Record<Tier, number>;
 };
 
-export type Parametros = {
-  versao: 1;
-  premios: {
+export type Params = {
+  version: 1;
+  prizes: {
     /** Prémio do Estado ao melhor classificado de cada distrito (uso livre). */
-    clube: number;
+    club: number;
     /** Prémio ao concelho (Câmara) do clube premiado. */
-    cidade: number;
+    city: number;
     /** Prémio ao vencedor de cada competição (RZ-216), em euros. As distritais e a Fase de Promoção são valores médios, escalados pelo distrito. */
-    competicoes: {
-      primeiraLiga: number; segundaLiga: number; terceiraLiga: number;
-      serieCp: number; vencedorCp: number;
-      distrital: number; fasePromocao: number;
-      tacaPortugal: number; supertaca: number; tacaDistrital: number;
+    competitions: {
+      firstLeague: number; secondLeague: number; thirdLeague: number;
+      cpSeries: number; cpWinner: number;
+      district: number; promotionPhase: number;
+      portugalCup: number; superCup: number; districtCup: number;
     };
     /** Fração do prémio do vencedor que recebe o finalista vencido (taças). */
-    finalistaVencido: number;
+    beatenFinalist: number;
     /** Prémio de passar cada ronda da Taça de Portugal (RZ-216/RZ-140): `meias` nas meias-finais, o fator por ronda para trás, com mínimo. */
-    tacaPortugalPorRonda: { meias: number; fator: number; minimo: number };
+    portugalCupPerRound: { semi: number; factor: number; min: number };
     /** Limites do fator de riqueza de um distrito (autarcas e orçamento municipal) sobre os prémios distritais. */
-    fatorDistrito: { min: number; max: number };
+    districtFactor: { min: number; max: number };
   };
-  piramide: {
-    primeiraLiga: { clubes: number; descem: number };
-    segundaLiga: { clubes: number; sobem: number; descem: number };
-    terceiraLiga: { clubes: number; sobem: number; descem: number };
-    cp: { series: number; clubesPorSerie: number; sobemPorSerie: number };
-    promocao: { grupos: number; campeoesPorGrupo: number; promovidosPorGrupo: number; voltas: 1 | 2 };
-    distritos: number;
+  pyramid: {
+    firstLeague: { clubs: number; drop: number };
+    secondLeague: { clubs: number; rise: number; drop: number };
+    thirdLeague: { clubs: number; rise: number; drop: number };
+    cp: { series: number; clubsPerSeries: number; risePerSeries: number };
+    promotion: { groups: number; championsPerGroup: number; promotedPerGroup: number; legs: 1 | 2 };
+    districts: number;
   };
-  distritais: { alvo: number; min: number; max: number; minimoDuro: number };
+  districtLeagues: { target: number; min: number; max: number; hardMin: number };
   /** Pontos por resultado nas classificações de liga. */
-  classificacao: { pontosVitoria: number; pontosEmpate: number };
+  standings: { winPoints: number; drawPoints: number };
   /**
    * Critérios de desempate por ordem (RZ-110; docs/DESIGN_REGRAS.md §1): `pontos`, `confrontoDireto` (pontos, diferença e golos
    * entre os empatados), `diferenca`, `golosMarcados`, `vitorias`, `reputacaoMenor` (favorece o underdog) e `sorteio`
    * (estável por seed, competição e época). Os dois últimos desempatam sempre.
    */
-  desempate: { liga: Criterio[]; promocao: Criterio[] };
+  tiebreak: { league: Criterion[]; promotion: Criterion[] };
   /**
    * Reputação dos clubes (0-10 000) em palavras, da mais alta para a mais baixa: um clube é do primeiro nível cujo `min`
    * não ultrapassa a sua reputação. O último tem `min` 0. A interface mostra a palavra, nunca o número.
    */
-  reputacao: { niveis: { nivel: NivelReputacao; min: number }[] };
+  reputation: { levels: { level: LevelReputation; min: number }[] };
   /** Página de uma competição: quantos jogadores nas listas de destaques e quantos jogos com nota para entrar na lista de melhores. */
   competitionView: { topN: number; minRatedGames: number };
-  calendario: {
-    mesInicioEpoca: number;
-    mesFimEpoca: number;
-    janelas: { abre: { mes: number; dia: number }; fecha: { mes: number; dia: number } }[];
-    diasPorAvanco: number;
+  calendar: {
+    seasonStartMonth: number;
+    seasonEndMonth: number;
+    windows: { opens: { month: number; day: number }; closes: { month: number; day: number } }[];
+    daysPerAdvance: number;
     /** Ano em que começa a época 1 (2026 → 2026/27). É só o valor por omissão: cada save guarda o seu (`ano.inicial`), calculado a partir da data real em que foi criado. As épocas mudam a 1 de julho (`mesInicioEpoca`). */
-    anoInicial: number;
+    initialYear: number;
     /** Dia a partir do qual se procura o primeiro sábado de jornada. */
-    primeiraJornada: { mes: number; dia: number };
+    firstRound: { month: number; day: number };
     /** Último dia em que pode haver jornadas das ligas (a Fase de Promoção joga-se depois). */
-    ultimaJornadaAte: { mes: number; dia: number };
+    lastRoundUntil: { month: number; day: number };
     /** Escalões que acabam mais cedo que `ultimaJornadaAte` (as distritais, para dar tempo à Fase de Promoção até maio). */
-    ultimaJornadaPorEscalao: Partial<Record<Escalao, { mes: number; dia: number }>>;
+    lastRoundPerTier: Partial<Record<Tier, { month: number; day: number }>>;
     /** Fins de semana sem jogos (inclusivo). `de` em agosto-dezembro é do ano em que a época começa; em janeiro-julho, do seguinte. */
-    pausas: { motivo: string; de: { mes: number; dia: number }; ate: { mes: number; dia: number } }[];
+    pauses: { reason: string; de: { month: number; day: number }; until: { month: number; day: number } }[];
     /** Dias da semana de jogo por escalão (0 = domingo … 6 = sábado); os jogos de uma jornada repartem-se por eles. */
-    diasDeJogo: Record<Escalao, number[]>;
+    matchDays: Record<Tier, number[]>;
     /** As últimas N jornadas jogam-se todas no mesmo dia. */
-    jornadasFinaisSimultaneas: number;
+    simultaneousFinalRounds: number;
     /** Fase final do CP (meias-finais e final entre os campeões das séries; domingos): dias depois da última jornada das séries e entre rondas. Tem de acabar em maio. */
-    faseFinalCp: { diasAposSeries: number; diasEntreRondas: number };
+    cpFinalPhase: { seriesAfterDays: number; roundsBetweenDays: number };
   };
-  saves: { autosaveDias: number; autosavesRotativos: number; guardarNoInicioDeEpoca: boolean };
-  fairPlay: { niveis: number; padrao: number };
+  saves: { daysAutosave: number; rotatingAutosaves: number; saveAtSeasonStart: boolean };
+  fairPlay: { levels: number; fallback: number };
   /** Jogos a eliminar: se acabam empatados, decide-se nos penáltis (série inicial de `iniciais` cobranças por equipa, depois morte súbita). */
-  eliminatorias: { penaltis: { iniciais: number; probGolo: number } };
+  knockoutRounds: { penalties: { initial: number; goalProb: number } };
   /** Mercado de treinadores (RZ-157): ofertas que o gamer recebe sem clube, renovadas todas as segundas-feiras. */
-  treinador: {
+  coach: {
     /** Ofertas de clubes de reputação igual ou inferior à do clube que deixou. */
-    ofertas: number;
+    offers: number;
     /** Ofertas extra de clubes um pouco acima (a surpresa boa). */
-    surpresas: number;
+    surprises: number;
     /** Até quantos pontos de reputação acima do clube anterior pode vir uma surpresa. */
-    margemSurpresa: number;
+    surpriseMargin: number;
   };
   /** Percentagem média de estrangeiros nos plantéis, por escalão (GERACAO_MUNDO §4). */
-  estrangeiros: Record<Escalao, number>;
-  assistencia: {
-    multFinal: number;
-    multDecisaoSubidaDescida: number;
-    derbi: number;
-    derbiMutuo: number;
-    derbiRegionalVisitantes: number;
-    grandeVisitanteCoef: number;
+  foreigners: Record<Tier, number>;
+  attendance: {
+    finalMult: number;
+    relegationPromotionDecisionMult: number;
+    derby: number;
+    mutualDerby: number;
+    awayRegionalDerby: number;
+    bigCoefAway: number;
   };
-  financas: {
+  finances: {
     /** Meses de folga: abaixo de `risco` = "Em risco", abaixo de `apertado` = "Apertado". */
-    folgaMesesRisco: number;
-    folgaMesesApertado: number;
-    dividaSobreReceitaFalencia: number;
-    mesesSalariosAtrasoFalencia: number;
+    riskMonthsBye: number;
+    tightMonthsBye: number;
+    bankruptcyRevenueAboutDebt: number;
+    bankruptcyDelayWagesMonths: number;
     /** Percentis (do mais alto ao mais baixo) que separam as 5 bandas de riqueza. */
-    percentisRiqueza: [number, number, number, number];
-    probErroEstimativaRival: number;
+    wealthPercentiles: [number, number, number, number];
+    rivalEstimateErrorProb: number;
     /** Receitas, custos e bilheteira por escalão (RZ-114/RZ-115), em euros. */
-    modelo: ModeloFinancas;
+    model: FinancesModel;
     /** Orçamento anual por defeito (RZ-114): peso da massa salarial nas receitas, meses de reserva e fração da folga para transferências. */
-    orcamento: { massaSobreReceita: number; reservaMeses: number; folgaTransferencias: number };
+    budget: { revenueAboutBill: number; monthsReserve: number; transfersBye: number };
   };
-  personalidade: {
-    tracoMin: number;
-    tracoMax: number;
-    memoria: { meiaVidaPositivaMeses: number; negativaBaseMeses: number; negativaPorPaciencia: number; maxPorPessoa: number };
+  personality: {
+    traitMin: number;
+    traitMax: number;
+    memory: { positiveHalfLifeMonths: number; monthsBaseNegative: number; negativePerPatience: number; maxPerPerson: number };
   };
   /**
    * Que resultados do teu clube vão para a caixa de entrada (RZ-174): só os de rivais geográficos (mútuos, do mesmo concelho
    * ou o rival principal) e os de rivais diretos na tabela (a poucos pontos ou a poucos lugares, depois de `minJogos`).
    */
-  caixa: { rivalPontos: number; rivalLugares: number; rivalMinJogos: number };
+  inbox: { pointsRival: number; placesRival: number; matchesMinRival: number };
   /** A cidade (concelho) e a sua evolução anual (RZ-133; docs/CIDADE.md §2, §11). */
-  cidade: ParametrosCidade;
+  city: CityParameters;
   /** Estatuto das localidades (RZ-136; docs/CIDADE.md §6b): limiares de população com histerese. */
-  localidade: { limiarVila: number; limiarCidade: number; histerese: number };
+  locality: { townThreshold: number; cityThreshold: number; hysteresis: number };
   /** Motor de jogo por oportunidades (RZ-104; docs/MOTOR_JOGO.md). Escalas de atributos: 1-20. */
-  jogo: {
+  match: {
     /**
      * Jogar fora da posição natural (RZ-177): o jogador rende `minimo + (1 − minimo) × aptidão / 20` do que renderia; sem a
      * posição registada vale `semRegisto` de aptidão. O guarda-redes tem a sua escala, muito mais dura.
      */
-    aptidao: { minimo: number; semRegisto: number; minimoGR: number; semRegistoGR: number };
+    aptitude: { min: number; unrecorded: number; gkMin: number; gkUnrecorded: number };
     /**
      * Cansaço por jogos (RZ-177): a forma cai com os minutos jogados nos últimos `janelaDias` dias acima de `cargaNormal`
      * (um jogo por semana é normal): perde `perdaPor90` por cada 90 minutos a mais, até `minimo`. Nunca passa de 1.
      */
-    forma: { janelaDias: number; cargaNormal: number; perdaPor90: number; minimo: number; /** Perda de ritmo ao regressar de lesão: forma no 1.º dia e ganho por dia até 1. */ regresso: { inicial: number; ganhoPorDia: number } };
+    form: { daysWindow: number; normalWorkload: number; lossPer90: number; min: number; /** Perda de ritmo ao regressar de lesão: forma no 1.º dia e ganho por dia até 1. */ ret: { initial: number; gainByDay: number } };
     /** Substituições do treinador (RZ-215): máximo por jogo e de pausas para as fazer (o intervalo não conta como pausa). */
-    substituicoes: { max: number; pausas: number };
+    substitutions: { max: number; pauses: number };
     /** Minutos regulares e acréscimos (total, sorteado por jogo). */
-    duracao: number;
-    acrescimos: { min: number; max: number };
+    duration: number;
+    stoppage: { min: number; max: number };
     /** Oportunidades por equipa num jogo equilibrado (o total do jogo é o dobro). */
-    oportunidadesPorEquipa: number;
+    chancesPerTeam: number;
     /** Vantagem de jogar em casa, em pontos de "controlo" (1-20). */
-    vantagemCasa: number;
+    homeAdvantage: number;
     /** Pontos de diferença de controlo que dão ~73 % das oportunidades ao mais forte. */
-    escalaControlo: number;
+    controlScale: number;
     /** Quanto a diferença ataque-defesa (em pontos de atributo) pesa no remate e no xG. */
-    sensibilidade: { remate: number; xg: number };
-    pRemateBase: number;
+    sensitivity: { shot: number; xg: number };
+    baseShotP: number;
     /** xG de uma oportunidade: base + amplitude · u^expoente, com u uniforme. Média ≈ base + amplitude/(expoente+1). */
-    xg: { base: number; amplitude: number; expoente: number; min: number; max: number };
-    penalti: { xg: number; pPorFalta: number };
+    xg: { base: number; amplitude: number; exponent: number; min: number; max: number };
+    penalty: { xg: number; pPerFoul: number };
     /** Peso do finalizador e do guarda-redes na probabilidade de golo (em unidades de logit por 10 pontos de atributo). */
-    peso: { finalizacao: number; guardaRedes: number };
-    pBloqueado: number;
-    aBaliza: { base: number; porXg: number; max: number };
-    cantos: { pSeBloqueado: number; pSeDefendido: number; pRemate: number; fatorXg: number };
-    faltas: { porEquipa: number; pLivreRemate: number };
+    weight: { finishing: number; goalkeeper: number };
+    blockedP: number;
+    onTarget: { base: number; porXg: number; max: number };
+    corners: { pIfBlocked: number; pIfSaved: number; shotP: number; xgFactor: number };
+    fouls: { byTeam: number; shotFreeP: number };
     /** Cartões (RZ-106). Probabilidades por falta, antes dos multiplicadores de fair play e agressividade do infrator. */
-    cartoes: {
-      pAmarelo: number;
+    cards: {
+      yellowP: number;
       /** Falta que dá penálti. */
-      pAmareloPenalti: number;
-      pVermelhoDireto: number;
-      pVermelhoPenalti: number;
+      penaltyYellowP: number;
+      directRedP: number;
+      penaltyRedP: number;
       /** Quem já tem amarelo joga com mais cuidado: fator no peso para cometer a falta e na probabilidade de novo cartão. */
-      jaAmarelo: { falta: number; cartao: number };
+      alreadyYellow: { foul: number; card: number };
       /** Pontos de ataque, controlo e defesa que a equipa perde por cada jogador expulso. */
-      penalizacaoExpulso: { ataque: number; controlo: number; defesa: number };
+      sentOffPenalty: { attack: number; control: number; defence: number };
     };
-    pAssistido: number;
+    assistedP: number;
     /** Peso de cada posição a rematar, a assistir e a cabecear (cantos). */
-    pesoRemate: Record<string, number>;
-    pesoAssistencia: Record<string, number>;
-    pesoCabeceamento: Record<string, number>;
+    shotWeight: Record<string, number>;
+    attendanceWeight: Record<string, number>;
+    headingWeight: Record<string, number>;
     /** Notas dos jogadores (RZ-105), escala 1-10. Valores somados à nota base. */
-    notas: {
+    ratings: {
       base: number;
       min: number;
       max: number;
       /** Variação aleatória estável (±) por jogador e jogo. */
-      ruido: number;
-      golo: number;
-      assistencia: number;
+      noise: number;
+      goal: number;
+      attendance: number;
       /** Remate à baliza que não é golo (defendido). */
-      remateABaliza: number;
+      onTargetShot: number;
       /** Grande ocasião falhada (xG ≥ momentos.xgGrande). */
-      ocasiaoFalhada: number;
-      penaltiFalhado: number;
-      falta: number;
-      penaltiConcedido: number;
+      missedChance: number;
+      missedPenalty: number;
+      foul: number;
+      grantedPenalty: number;
       /** Por defesa do guarda-redes. */
-      defesa: number;
+      defence: number;
       /** Por golo sofrido, para defesas e guarda-redes (GR, DD, DC, DE; MDC a metade). */
-      golosSofridos: number;
-      amarelo: number;
-      vermelho: number;
+      concededGoals: number;
+      yellow: number;
+      red: number;
       /** Baliza a zero: bónus para GR, DD, DC, DE (MDC a metade). */
-      balizaZero: number;
+      zeroGoalmouth: number;
       /** Bónus de vitória e penalização de derrota para todos os onze. */
-      resultado: number;
+      outcome: number;
     };
     /** Momentos-chave do jogo (RZ-105). */
-    momentos: { xgGrande: number };
+    moments: { bigXg: number };
   };
   /** O que é notícia num jogo (RZ-109). */
-  historias: {
+  stories: {
     /** Golos de um jogador no mesmo jogo para haver hat-trick. */
     hattrick: number;
     /** Diferença de golos para uma goleada. */
-    goleada: number;
+    rout: number;
     /** Um golo nos últimos N minutos que decide ou salva o resultado é notável. */
-    descontos: number;
+    discounts: number;
     /** Reviravolta: o vencedor chegou a perder por tantos golos. */
-    reviravolta: number;
+    turnaround: number;
     /** Lesões desta gravidade ou mais são notícia própria. */
-    lesaoGrave: number;
+    seriousInjury: number;
   };
   /** Lesões e forma (RZ-107; docs/MOTOR_JOGO.md §9). */
-  lesoes: {
+  injuries: {
     /** Probabilidade base de um jogador se lesionar num jogo de 90 minutos (equipa e adversário normais, relvado médio). */
-    pPorJogadorJogo: number;
+    pPerMatchPlayer: number;
     /** Multiplicadores do risco. */
-    risco: {
+    risk: {
       /** Por ponto de «forma» abaixo de 1 (fadiga, calendário apertado). */
-      porForma: number;
+      byForm: number;
       /** Relvado 0 (péssimo) … 1 (perfeito): risco ×(1 + (0,5 − relvado) · `relvado`). */
-      relvado: number;
+      turf: number;
       /** Por ponto de aptidão física abaixo de 10 (acima de 10 baixa o risco). */
-      porAptidaoFisica: number;
+      byPhysicalAptitude: number;
       /** Por ponto de qualidade médica abaixo de 10 (staff médico melhor, menos lesões). */
-      porMedico: number;
+      byMedical: number;
       /** Fair play do adversário (1 cavalheiro … 5 agressivo). */
-      fairPlayAdversario: number[];
+      opponentPlayFair: number[];
       /** Por nível de intensidade da própria equipa acima de 3. */
-      intensidade: number;
+      intensity: number;
       /** Acrescento ao risco de quem regressou há pouco da mesma lesão (recaída). */
-      recaida: number;
+      relapse: number;
       /** Quanto o cansaço (pontos de força perdidos) soma ao risco, por ponto. */
-      fadiga: number;
+      fatigue: number;
     };
     /** Distribuição das gravidades (1 ligeira … 5 gravíssima), somam 1, e dias de paragem [mín, máx] de cada uma. */
-    gravidades: { peso: number; dias: [number, number] }[];
+    severities: { weight: number; days: [number, number] }[];
     /** Por ponto de qualidade médica acima de 10, encurta a paragem (e alonga abaixo). */
-    recuperacaoPorMedico: number;
+    recoveryPerMedical: number;
     /** Uma recaída dura mais. */
-    duracaoRecaida: number;
+    relapseDuration: number;
     /** Dias após o regresso em que ainda se está em risco de recaída. */
-    janelaRecaida: number;
+    relapseWindow: number;
     /** Probabilidade diária de lesão em treino (jogador com forma 1, relvado/staff normais). */
-    pTreinoPorDia: number;
+    trainingPByDay: number;
     /** Forma (0,7-1,1): calendário e descanso. */
-    forma: {
+    form: {
       /** Valor de um jogador descansado. */
       base: number;
       /** Perda por jogo nos últimos `janela` dias (além do primeiro). */
-      porJogoRecente: number;
-      janela: number;
+      byRecentMatch: number;
+      window: number;
       /** Perda por cada 90 minutos jogados nos últimos `janela` dias. */
       por90: number;
       /** Ganho por dia de descanso desde o último jogo, até `base`. */
-      recuperacaoPorDia: number;
+      recoveryByDay: number;
       /** Forma de quem regressa de lesão, a crescer `recuperacaoPorDia` por dia. */
-      aoRegressar: number;
+      onReturn: number;
       min: number;
       max: number;
     };
   };
   /** Castigos disciplinares (RZ-106; docs/MOTOR_JOGO.md §8). Contam por competição e época. */
-  disciplina: {
+  discipline: {
     /** Amarelos acumulados que dão um jogo de suspensão (de 5 em 5). */
-    amarelosPorSuspensao: number;
+    yellowsPerSuspension: number;
     /** Vermelho direto: `jogos` de base; com probabilidade `pMaisUm` mais um jogo, repetido até ao máximo `max`. */
-    vermelhoDireto: { jogos: number; pMaisUm: number; max: number };
+    directRed: { matches: number; morePA: number; max: number };
     /** Vermelho por segundo amarelo: jogos de suspensão. */
-    segundoAmarelo: { jogos: number };
+    secondYellow: { matches: number };
   };
   /** Táticas (RZ-108; docs/MOTOR_JOGO.md §7). Efeitos em pontos da escala 1-20 de força, ou multiplicadores. */
-  tatica: {
+  tactic: {
     /** Pontos por unidade de «linha» a mais que o 4-3-3 (atacantes = PL + metade de extremos e MO; meio = MC, MDC + metade de extremos e MO). */
-    formacao: { ataque: number; controlo: number; defesa: number };
-    estilos: Record<"bonito" | "equilibrado" | "direto" | "contraAtaque", { controlo: number; ataque: number; defesa: number; faltas: number; cantoRemate: number }>;
+    formation: { attack: number; control: number; defence: number };
+    styles: Record<"beautiful" | "balanced" | "direct" | "counterAttack", { control: number; attack: number; defence: number; fouls: number; shotCorner: number }>;
     /** Efeito de cada nível acima (+) ou abaixo (−) do 3 (normal). */
-    intensidade: { controlo: number; defesa: number; faltas: number; fadiga: number };
-    linha: { controlo: number; ataque: number; defesa: number };
-    ritmo: { oportunidades: number; fadiga: number };
+    intensity: { control: number; defence: number; fouls: number; fatigue: number };
+    line: { control: number; attack: number; defence: number };
+    tempo: { chances: number; fatigue: number };
     /** Multiplicador das faltas e pontos de defesa por nível de fair play (1 = cavalheiro … 5 = agressivo). */
-    fairPlay: { faltas: number[]; defesa: number[]; /** Multiplicador da probabilidade de cartão. */ cartoes: number[] };
-    bonito: { base: number; escala: number; max: number };
-    diretoAtaquePorLinha: number;
+    fairPlay: { fouls: number[]; defence: number[]; /** Multiplicador da probabilidade de cartão. */ cards: number[] };
+    beautiful: { base: number; scale: number; max: number };
+    attackDirectPerLine: number;
     /** Contra-ataque: por cada ponto de controlo que o adversário tem a mais (até `max`), ganha ataque e defesa. */
-    contraAtaque: { ataquePorPonto: number; defesaPorPonto: number; max: number };
+    counterAttack: { attackPerPoint: number; defencePerPoint: number; max: number };
     /** Cansaço: pontos de força perdidos no fim do jogo por uma equipa com intensidade e ritmo máximos; começa a contar a partir do minuto `inicio`. */
-    fadiga: { max: number; inicio: number };
+    fatigue: { max: number; start: number };
     /** Treinador (RZ-108): quanto uma formação favorita vale, em pontos de qualidade média do onze, para um treinador totalmente teimoso. */
-    treinador: { bonusPreferencia: number; favoritas: number };
+    coach: { preferenceBonus: number; favourite: number };
   };
   /** Geração do mundo e das pessoas (GERACAO_MUNDO, MODELO_DADOS §15). */
-  mundo: {
-    talento: {
+  world: {
+    talent: {
       /** Qualidade média (1-20) de um país de índice 0 e de índice 100. */
-      muIndice0: number;
-      muIndice100: number;
+      muIndex0: number;
+      muIndex100: number;
       sigma: number;
       /** Probabilidade de cauda (talento improvável) para índice 0 e 100; nunca zero. */
-      epsIndice0: number;
-      epsIndice100: number;
+      seasonsIndex0: number;
+      seasonsIndex100: number;
       /** Expoente da cauda de Pareto e escala (pontos de qualidade somados = escala × (pareto − 1)). */
-      paretoAlfa: number;
-      paretoEscala: number;
+      alphaPareto: number;
+      scalePareto: number;
     };
     /** Qualidade-alvo atual (1-20) do plantel por escalão. */
-    qualidadeAlvo: Record<Escalao, { media: number; desvio: number }>;
+    targetQuality: Record<Tier, { mean: number; deviation: number }>;
     /** Quanto a reputação do clube (0-10000) desloca a qualidade-alvo dentro do escalão, em pontos de qualidade para ±metade da amplitude. */
-    qualidadePorReputacao: number;
+    qualityByReputation: number;
     /** Variação relativa (±) do % de estrangeiros com a reputação do clube dentro do escalão (0,35 → de −35 % a +35 % da média do escalão). */
-    estrangeirosVariacaoReputacao: number;
+    variationForeignersReputation: number;
     /** Tamanho do plantel por escalão. */
-    plantel: Record<Escalao, number>;
+    squad: Record<Tier, number>;
     /** Lugares por posição num plantel-base de 25 (escala-se para o tamanho do plantel). */
-    lugaresPorPosicao: Record<"GK" | "RB" | "CB" | "LB" | "DM" | "CM" | "AM" | "RW" | "LW" | "ST", number>;
+    placesByPosition: Record<"GK" | "RB" | "CB" | "LB" | "DM" | "CM" | "AM" | "RW" | "LW" | "ST", number>;
     /** Jogadores sem clube e pessoas fora do plantel. */
-    livres: number;
-    staffPorClube: number;
+    free: number;
+    staffPerClub: number;
     /** Pessoas fora dos plantéis (GERACAO_MUNDO §1). */
-    outros: { empresarios: number; dirigentesAdeptos: number; agentes: number; arbitros: number; jornalistas: number; staffLivres: number };
+    others: { businesspeople: number; fansOfficials: number; agents: number; referees: number; journalists: number; freeStaff: number };
     /** Salário mensal (€) de um jogador médio do escalão e elasticidade por ponto de qualidade (exp). */
-    salario: { medio: Record<Escalao, number>; elasticidade: number; contratoAnosMin: number; contratoAnosMax: number };
-    idade: { min: number; max: number; media: number; desvio: number };
+    wage: { average: Record<Tier, number>; elasticity: number; yearsContractMin: number; yearsContractMax: number };
+    age: { min: number; max: number; mean: number; deviation: number };
     /** Idade a partir da qual o potencial deixa de crescer (potencial = atual aos X anos). */
-    idadePico: number;
+    peakAge: number;
     /** Aptidão (1-20) nas posições alternativas relativamente à principal. */
-    aptidaoSecundaria: number;
+    secondaryAptitude: number;
   };
   /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
-  conhecimento: {
+  knowledge: {
     /** Épocas sem nova observação a partir das quais a ficha mostra "desatualizado". */
-    desatualizadoAposEpocas: number;
+    seasonsAfterOutdated: number;
     /** A incerteza (desvio) de uma observação cresce `1 + k × épocas` com o tempo. */
-    crescimentoIncertezaPorEpoca: number;
+    uncertaintyGrowthPerSeason: number;
     /** Desvio do erro de uma observação de qualidade 0 e de qualidade 1 (escala 1-20). */
-    sigmaPiorQualidade: number;
-    sigmaMelhorQualidade: number;
+    worstSigmaQuality: number;
+    bestSigmaQuality: number;
     /** Multiplicador da margem (1.28 ≈ intervalo a 80 %). */
     z: number;
     /** Qualidade (0-1) por omissão de cada fonte de observação. */
-    qualidadePorFonte: Record<"proprioClube" | "olheiro" | "agente" | "jogoContra" | "imprensa", number>;
-    personalidade: {
-      maxRotulos: number;
+    qualityPerSource: Record<"clubOwn" | "scout" | "agent" | "againstMatch" | "press", number>;
+    personality: {
+      labelsMax: number;
       /** Faixas do traço: ≤ baixo é "baixo", ≥ alto é "alto" (PERSONALIDADE §7). */
-      limiarBaixo: number;
-      limiarAlto: number;
+      lowThreshold: number;
+      highThreshold: number;
       /** Probabilidade de o rótulo vir com a faixa trocada, para qualidade 0 (desce até 0 com qualidade 1). */
-      probTrocaPiorQualidade: number;
+      worstSubstitutionProbQuality: number;
     };
   };
 };
 
-export const PARAMETROS_PADRAO: Parametros = {
-  versao: 1,
-  premios: {
-    clube: 2_000_000, cidade: 1_000_000,
-    competicoes: { primeiraLiga: 10_000_000, segundaLiga: 2_000_000, terceiraLiga: 500_000, serieCp: 100_000, vencedorCp: 100_000, distrital: 5_000, fasePromocao: 10_000, tacaPortugal: 2_000_000, supertaca: 500_000, tacaDistrital: 5_000 },
-    finalistaVencido: 0.25,
-    tacaPortugalPorRonda: { meias: 500_000, fator: 0.5, minimo: 5_000 },
-    fatorDistrito: { min: 0.4, max: 2.5 },
+export const DEFAULT_PARAMETERS: Params = {
+  version: 1,
+  prizes: {
+    club: 2_000_000, city: 1_000_000,
+    competitions: { firstLeague: 10_000_000, secondLeague: 2_000_000, thirdLeague: 500_000, cpSeries: 100_000, cpWinner: 100_000, district: 5_000, promotionPhase: 10_000, portugalCup: 2_000_000, superCup: 500_000, districtCup: 5_000 },
+    beatenFinalist: 0.25,
+    portugalCupPerRound: { semi: 500_000, factor: 0.5, min: 5_000 },
+    districtFactor: { min: 0.4, max: 2.5 },
   },
-  piramide: {
-    primeiraLiga: { clubes: 20, descem: 3 },
-    segundaLiga: { clubes: 20, sobem: 3, descem: 3 },
-    terceiraLiga: { clubes: 20, sobem: 3, descem: 4 },
-    cp: { series: 4, clubesPorSerie: 10, sobemPorSerie: 1 },
-    promocao: { grupos: 4, campeoesPorGrupo: 5, promovidosPorGrupo: 2, voltas: 1 },
-    distritos: 20,
+  pyramid: {
+    firstLeague: { clubs: 20, drop: 3 },
+    secondLeague: { clubs: 20, rise: 3, drop: 3 },
+    thirdLeague: { clubs: 20, rise: 3, drop: 4 },
+    cp: { series: 4, clubsPerSeries: 10, risePerSeries: 1 },
+    promotion: { groups: 4, championsPerGroup: 5, promotedPerGroup: 2, legs: 1 },
+    districts: 20,
   },
-  distritais: { alvo: 10, min: 8, max: 14, minimoDuro: 6 },
-  classificacao: { pontosVitoria: 3, pontosEmpate: 1 },
-  desempate: {
-    liga: ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "vitorias", "sorteio"],
-    promocao: ["pontos", "confrontoDireto", "diferenca", "golosMarcados", "reputacaoMenor", "sorteio"],
+  districtLeagues: { target: 10, min: 8, max: 14, hardMin: 6 },
+  standings: { winPoints: 3, drawPoints: 1 },
+  tiebreak: {
+    league: ["points", "confrontoDireto", "difference", "scoredGoals", "wins", "lottery"],
+    promotion: ["points", "confrontoDireto", "difference", "scoredGoals", "smallerReputation", "lottery"],
   },
   competitionView: { topN: 10, minRatedGames: 3 },
-  reputacao: {
-    niveis: [
-      { nivel: "mundial", min: 9000 },
-      { nivel: "continental", min: 6500 },
-      { nivel: "nacional", min: 3500 },
-      { nivel: "regional", min: 2000 },
-      { nivel: "local", min: 1000 },
-      { nivel: "obscuro", min: 0 },
+  reputation: {
+    levels: [
+      { level: "mundial", min: 9000 },
+      { level: "continental", min: 6500 },
+      { level: "nacional", min: 3500 },
+      { level: "regional", min: 2000 },
+      { level: "local", min: 1000 },
+      { level: "obscuro", min: 0 },
     ],
   },
-  calendario: {
-    mesInicioEpoca: 7,
-    mesFimEpoca: 6,
-    janelas: [
-      { abre: { mes: 7, dia: 1 }, fecha: { mes: 8, dia: 31 } },
-      { abre: { mes: 1, dia: 1 }, fecha: { mes: 1, dia: 31 } },
+  calendar: {
+    seasonStartMonth: 7,
+    seasonEndMonth: 6,
+    windows: [
+      { opens: { month: 7, day: 1 }, closes: { month: 8, day: 31 } },
+      { opens: { month: 1, day: 1 }, closes: { month: 1, day: 31 } },
     ],
-    diasPorAvanco: 1,
-    anoInicial: 2026,
-    primeiraJornada: { mes: 8, dia: 15 },
-    ultimaJornadaAte: { mes: 5, dia: 18 },
-    ultimaJornadaPorEscalao: { distrital: { mes: 4, dia: 5 }, cp: { mes: 4, dia: 25 } },
-    pausas: [
-      { motivo: "seleções (setembro)", de: { mes: 9, dia: 4 }, ate: { mes: 9, dia: 10 } },
-      { motivo: "seleções (outubro)", de: { mes: 10, dia: 9 }, ate: { mes: 10, dia: 15 } },
-      { motivo: "seleções (novembro)", de: { mes: 11, dia: 13 }, ate: { mes: 11, dia: 19 } },
-      { motivo: "Natal", de: { mes: 12, dia: 22 }, ate: { mes: 1, dia: 2 } },
-      { motivo: "seleções (março)", de: { mes: 3, dia: 20 }, ate: { mes: 3, dia: 26 } },
+    daysPerAdvance: 1,
+    initialYear: 2026,
+    firstRound: { month: 8, day: 15 },
+    lastRoundUntil: { month: 5, day: 18 },
+    lastRoundPerTier: { district: { month: 4, day: 5 }, cp: { month: 4, day: 25 } },
+    pauses: [
+      { reason: "seleções (setembro)", de: { month: 9, day: 4 }, until: { month: 9, day: 10 } },
+      { reason: "seleções (outubro)", de: { month: 10, day: 9 }, until: { month: 10, day: 15 } },
+      { reason: "seleções (novembro)", de: { month: 11, day: 13 }, until: { month: 11, day: 19 } },
+      { reason: "Natal", de: { month: 12, day: 22 }, until: { month: 1, day: 2 } },
+      { reason: "seleções (março)", de: { month: 3, day: 20 }, until: { month: 3, day: 26 } },
     ],
-    diasDeJogo: { primeiraLiga: [6, 0], segundaLiga: [6, 0], terceiraLiga: [6, 0], cp: [0], distrital: [0] },
-    jornadasFinaisSimultaneas: 1,
-    faseFinalCp: { diasAposSeries: 7, diasEntreRondas: 7 },
+    matchDays: { firstLeague: [6, 0], secondLeague: [6, 0], thirdLeague: [6, 0], cp: [0], district: [0] },
+    simultaneousFinalRounds: 1,
+    cpFinalPhase: { seriesAfterDays: 7, roundsBetweenDays: 7 },
   },
-  saves: { autosaveDias: 7, autosavesRotativos: 3, guardarNoInicioDeEpoca: true },
-  fairPlay: { niveis: 5, padrao: 3 },
-  eliminatorias: { penaltis: { iniciais: 5, probGolo: 0.76 } },
-  treinador: { ofertas: 3, surpresas: 1, margemSurpresa: 600 },
-  estrangeiros: { primeiraLiga: 0.55, segundaLiga: 0.3, terceiraLiga: 0.15, cp: 0.08, distrital: 0.03 },
-  assistencia: {
-    multFinal: 2.5,
-    multDecisaoSubidaDescida: 1.8,
-    derbi: 1.3,
-    derbiMutuo: 1.6,
-    derbiRegionalVisitantes: 0.2,
-    grandeVisitanteCoef: 0.3,
+  saves: { daysAutosave: 7, rotatingAutosaves: 3, saveAtSeasonStart: true },
+  fairPlay: { levels: 5, fallback: 3 },
+  knockoutRounds: { penalties: { initial: 5, goalProb: 0.76 } },
+  coach: { offers: 3, surprises: 1, surpriseMargin: 600 },
+  foreigners: { firstLeague: 0.55, secondLeague: 0.3, thirdLeague: 0.15, cp: 0.08, district: 0.03 },
+  attendance: {
+    finalMult: 2.5,
+    relegationPromotionDecisionMult: 1.8,
+    derby: 1.3,
+    mutualDerby: 1.6,
+    awayRegionalDerby: 0.2,
+    bigCoefAway: 0.3,
   },
-  financas: {
-    folgaMesesRisco: 1,
-    folgaMesesApertado: 3,
-    dividaSobreReceitaFalencia: 0.5,
-    mesesSalariosAtrasoFalencia: 3,
-    percentisRiqueza: [90, 70, 40, 15],
-    probErroEstimativaRival: 0.25,
-    orcamento: { massaSobreReceita: 0.7, reservaMeses: 3, folgaTransferencias: 0.35 },
-    modelo: {
-      reputacaoRef: { primeiraLiga: 5300, segundaLiga: 4650, terceiraLiga: 3000, cp: 2590, distrital: 1295 },
-      expoenteReputacao: 1.2,
-      razaoReputacao: { min: 0.5, max: 3 },
-      precoBilhete: { primeiraLiga: 9, segundaLiga: 8, terceiraLiga: 7, cp: 6, distrital: 4.5 },
-      ocupacao: { primeiraLiga: 0.55, segundaLiga: 0.45, terceiraLiga: 0.4, cp: 0.35, distrital: 0.3 },
-      ocupacaoCultura: 0.3,
-      patrocinioAnual: { primeiraLiga: 1_400_000, segundaLiga: 550_000, terceiraLiga: 250_000, cp: 118_000, distrital: 34_000 },
-      comercialAnual: { primeiraLiga: 600_000, segundaLiga: 300_000, terceiraLiga: 110_000, cp: 62_000, distrital: 21_000 },
-      staffMensal: { primeiraLiga: 40_000, segundaLiga: 12_000, terceiraLiga: 4_500, cp: 1_200, distrital: 250 },
-      fixoMensal: { primeiraLiga: 35_000, segundaLiga: 12_000, terceiraLiga: 5_000, cp: 1_200, distrital: 300 },
-      estadioPorLugarAno: { primeiraLiga: 40, segundaLiga: 25, terceiraLiga: 15, cp: 10, distrital: 4 },
+  finances: {
+    riskMonthsBye: 1,
+    tightMonthsBye: 3,
+    bankruptcyRevenueAboutDebt: 0.5,
+    bankruptcyDelayWagesMonths: 3,
+    wealthPercentiles: [90, 70, 40, 15],
+    rivalEstimateErrorProb: 0.25,
+    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35 },
+    model: {
+      refReputation: { firstLeague: 5300, secondLeague: 4650, thirdLeague: 3000, cp: 2590, district: 1295 },
+      exponentReputation: 1.2,
+      ratioReputation: { min: 0.5, max: 3 },
+      ticketPrice: { firstLeague: 9, secondLeague: 8, thirdLeague: 7, cp: 6, district: 4.5 },
+      occupancy: { firstLeague: 0.55, secondLeague: 0.45, thirdLeague: 0.4, cp: 0.35, district: 0.3 },
+      cultureOccupancy: 0.3,
+      annualSponsorship: { firstLeague: 1_400_000, secondLeague: 550_000, thirdLeague: 250_000, cp: 118_000, district: 34_000 },
+      annualCommercial: { firstLeague: 600_000, secondLeague: 300_000, thirdLeague: 110_000, cp: 62_000, district: 21_000 },
+      monthlyStaff: { firstLeague: 40_000, secondLeague: 12_000, thirdLeague: 4_500, cp: 1_200, district: 250 },
+      monthlyFixed: { firstLeague: 35_000, secondLeague: 12_000, thirdLeague: 5_000, cp: 1_200, district: 300 },
+      stadiumPerPlaceYear: { firstLeague: 40, secondLeague: 25, thirdLeague: 15, cp: 10, district: 4 },
     },
   },
-  personalidade: {
-    tracoMin: 1,
-    tracoMax: 20,
-    memoria: { meiaVidaPositivaMeses: 12, negativaBaseMeses: 6, negativaPorPaciencia: 0.6, maxPorPessoa: 40 },
+  personality: {
+    traitMin: 1,
+    traitMax: 20,
+    memory: { positiveHalfLifeMonths: 12, monthsBaseNegative: 6, negativePerPatience: 0.6, maxPerPerson: 40 },
   },
-  caixa: { rivalPontos: 3, rivalLugares: 3, rivalMinJogos: 3 },
-  cidade: {
-    eleicoesAutarquicasAnos: 4,
-    mandatoDesde: 2025,
-    niveis: [20, 40, 60, 80],
-    limiarTendencia: 4,
-    setores: {
-      TUR: { emprego: 4, economia: 6, turismo: 30, populacaoPct: 0.2 },
-      MAR: { turismo: 12, populacaoPct: -0.2 },
-      IND: { emprego: 8, economia: 8, turismo: -8, populacaoPct: 0.2 },
-      AGR: { emprego: -4, economia: -6, turismo: -6, populacaoPct: -0.4 },
-      UNI: { emprego: 5, economia: 6, turismo: 4, populacaoPct: 0.6 },
-      LOG: { emprego: 6, economia: 6, populacaoPct: 0.3 },
-      PAT: { turismo: 20 },
-      INT: { emprego: -8, economia: -10, turismo: -4, populacaoPct: -0.8 },
-      FRO: { emprego: -2, economia: -2, populacaoPct: -0.3 },
-      TER: { turismo: 14 },
-      EMI: { emprego: -2, economia: 2, turismo: 4, populacaoPct: -0.3 },
-      DOR: { emprego: 2, turismo: -10, populacaoPct: 0.9 },
-      ENE: { emprego: 4, economia: 14, populacaoPct: 0.2 },
-      SER: { emprego: 8, economia: 10, turismo: 2, populacaoPct: 0.4 },
-      MUL: { populacaoPct: 0.8 },
-      ILH: { emprego: -2, economia: -2, turismo: 10 },
+  inbox: { pointsRival: 3, placesRival: 3, matchesMinRival: 3 },
+  city: {
+    yearsMunicipalElections: 4,
+    sinceTerm: 2025,
+    levels: [20, 40, 60, 80],
+    trendThreshold: 4,
+    sectors: {
+      TUR: { employment: 4, economy: 6, tourism: 30, populationPct: 0.2 },
+      MAR: { tourism: 12, populationPct: -0.2 },
+      IND: { employment: 8, economy: 8, tourism: -8, populationPct: 0.2 },
+      AGR: { employment: -4, economy: -6, tourism: -6, populationPct: -0.4 },
+      UNI: { employment: 5, economy: 6, tourism: 4, populationPct: 0.6 },
+      LOG: { employment: 6, economy: 6, populationPct: 0.3 },
+      PAT: { tourism: 20 },
+      INT: { employment: -8, economy: -10, tourism: -4, populationPct: -0.8 },
+      FRO: { employment: -2, economy: -2, populationPct: -0.3 },
+      Have: { tourism: 14 },
+      EMI: { employment: -2, economy: 2, tourism: 4, populationPct: -0.3 },
+      DOR: { employment: 2, tourism: -10, populationPct: 0.9 },
+      ENE: { employment: 4, economy: 14, populationPct: 0.2 },
+      Be: { employment: 8, economy: 10, tourism: 2, populationPct: 0.4 },
+      MUL: { populationPct: 0.8 },
+      ILH: { employment: -2, economy: -2, tourism: 10 },
     },
-    inicial: {
-      base: 50, ruido: 6, porDecadaEconomia: 8, porDecadaEmprego: 3,
-      orgulho: { base: 35, porReputacao: 40, ruido: 5 },
-      notoriedade: { base: 15, porReputacao: 55, porDecada: 8, ruido: 4 },
-      reputacaoMax: 10000,
+    initial: {
+      base: 50, noise: 6, byEconomyDecade: 8, byEmploymentDecade: 3,
+      pride: { base: 35, byReputation: 40, noise: 5 },
+      notoriety: { base: 15, byReputation: 55, byDecade: 8, noise: 4 },
+      reputationMax: 10000,
     },
-    evolucao: {
-      regressao: 0.2, ruido: 3,
-      orgulho: { campeao: 8, subida: 6, descida: -6 },
-      notoriedade: { regressao: 0.25, porOrgulho: 0.05 },
-      cultura: { porOrgulho: 0.03, campeao: 0.8, subida: 0.5 },
-      populacao: { porEconomia: 0.012, porOrgulho: 0.004, ruidoPct: 0.15, maxPct: 3 },
+    evolution: {
+      regression: 0.2, noise: 3,
+      pride: { champion: 8, promotion: 6, relegation: -6 },
+      notoriety: { regression: 0.25, byPride: 0.05 },
+      culture: { byPride: 0.03, champion: 0.8, promotion: 0.5 },
+      population: { byEconomy: 0.012, byPride: 0.004, noisePct: 0.15, maxPct: 3 },
     },
-    eventos: {
-      probCidade: 0.12,
-      probPolo: 0.1,
-      tipos: {
-        fabrica_fecha: { regional: false, peso: { "*": 0.4, IND: 3, LOG: 1, MAR: 1 }, efeitos: { emprego: -12, economia: -8, orgulho: -3, populacaoPct: -1.2 } },
-        fabrica_abre: { regional: false, peso: { "*": 0.4, IND: 2, LOG: 2, ENE: 2, SER: 1.5, UNI: 1 }, efeitos: { emprego: 10, economia: 7, populacaoPct: 1 } },
-        fundos_europeus: { regional: true, peso: { "*": 1, INT: 2, AGR: 1.5, FRO: 1.5 }, efeitos: { emprego: 3, economia: 6, turismo: 3 } },
-        autoestrada: { regional: true, peso: { "*": 0.5, INT: 2, FRO: 1.5 }, efeitos: { economia: 4, turismo: 5, populacaoPct: 0.5 } },
-        festival: { regional: false, peso: { "*": 0.3, TUR: 2, PAT: 2, MAR: 1.5, EMI: 1 }, efeitos: { turismo: 8, notoriedade: 4, orgulho: 2 } },
-        mau_ano_agricola: { regional: false, peso: { "*": 0, AGR: 3, TER: 1 }, efeitos: { economia: -7, emprego: -4 } },
-        crise_regional: { regional: true, peso: { "*": 1 }, efeitos: { economia: -6, emprego: -5 } },
-        incendio: { regional: false, peso: { "*": 0.1, INT: 2, AGR: 1.5, FRO: 1 }, efeitos: { turismo: -6, economia: -4, orgulho: -2, populacaoPct: -0.5 } },
-        universidade: { regional: false, peso: { "*": 0, UNI: 3 }, efeitos: { economia: 4, populacaoPct: 1.5, notoriedade: 2 } },
-        hotel_novo: { regional: false, peso: { "*": 0.2, TUR: 3, PAT: 1.5, TER: 1.5, MAR: 1 }, efeitos: { turismo: 6, emprego: 3 } },
+    events: {
+      cityProb: 0.12,
+      hubProb: 0.1,
+      types: {
+        fabrica_fecha: { regional: false, weight: { "*": 0.4, IND: 3, LOG: 1, MAR: 1 }, effects: { employment: -12, economy: -8, pride: -3, populationPct: -1.2 } },
+        fabrica_abre: { regional: false, weight: { "*": 0.4, IND: 2, LOG: 2, ENE: 2, Be: 1.5, UNI: 1 }, effects: { employment: 10, economy: 7, populationPct: 1 } },
+        fundos_europeus: { regional: true, weight: { "*": 1, INT: 2, AGR: 1.5, FRO: 1.5 }, effects: { employment: 3, economy: 6, tourism: 3 } },
+        motorway: { regional: true, weight: { "*": 0.5, INT: 2, FRO: 1.5 }, effects: { economy: 4, tourism: 5, populationPct: 0.5 } },
+        festival: { regional: false, weight: { "*": 0.3, TUR: 2, PAT: 2, MAR: 1.5, EMI: 1 }, effects: { tourism: 8, notoriety: 4, pride: 2 } },
+        mau_ano_agricola: { regional: false, weight: { "*": 0, AGR: 3, Have: 1 }, effects: { economy: -7, employment: -4 } },
+        crise_regional: { regional: true, weight: { "*": 1 }, effects: { economy: -6, employment: -5 } },
+        fire: { regional: false, weight: { "*": 0.1, INT: 2, AGR: 1.5, FRO: 1 }, effects: { tourism: -6, economy: -4, pride: -2, populationPct: -0.5 } },
+        university: { regional: false, weight: { "*": 0, UNI: 3 }, effects: { economy: 4, populationPct: 1.5, notoriety: 2 } },
+        hotel_novo: { regional: false, weight: { "*": 0.2, TUR: 3, PAT: 1.5, Have: 1.5, MAR: 1 }, effects: { tourism: 6, employment: 3 } },
       },
     },
   },
-  localidade: { limiarVila: 1500, limiarCidade: 8000, histerese: 0.1 },
-  jogo: {
-    aptidao: { minimo: 0.55, semRegisto: 3, minimoGR: 0.15, semRegistoGR: 1 },
-    forma: { janelaDias: 7, cargaNormal: 90, perdaPor90: 0.03, minimo: 0.85, regresso: { inicial: 0.88, ganhoPorDia: 0.01 } },
-    substituicoes: { max: 5, pausas: 3 },
-    duracao: 90,
-    acrescimos: { min: 3, max: 8 },
-    oportunidadesPorEquipa: 24,
-    vantagemCasa: 0.9,
-    escalaControlo: 4,
-    sensibilidade: { remate: 0.3, xg: 0.2 },
-    pRemateBase: 0.42,
-    xg: { base: 0.02, amplitude: 0.42, expoente: 4, min: 0.01, max: 0.85 },
-    penalti: { xg: 0.76, pPorFalta: 0.012 },
-    peso: { finalizacao: 0.9, guardaRedes: 0.9 },
-    pBloqueado: 0.2,
-    aBaliza: { base: 0.28, porXg: 1.4, max: 0.95 },
-    cantos: { pSeBloqueado: 0.25, pSeDefendido: 0.2, pRemate: 0.35, fatorXg: 0.65 },
-    faltas: { porEquipa: 12, pLivreRemate: 0.06 },
-    cartoes: { pAmarelo: 0.17, pAmareloPenalti: 0.5, pVermelhoDireto: 0.003, pVermelhoPenalti: 0.06, jaAmarelo: { falta: 0.4, cartao: 0.55 }, penalizacaoExpulso: { ataque: 1.6, controlo: 1.8, defesa: 1.4 } },
-    pAssistido: 0.72,
-    pesoRemate: { GK: 0, RB: 0.4, CB: 0.5, LB: 0.4, DM: 0.5, CM: 1.4, AM: 3, RW: 3, LW: 3, ST: 5 },
-    pesoAssistencia: { GK: 0.05, RB: 1.5, CB: 0.4, LB: 1.5, DM: 1, CM: 3, AM: 3, RW: 2.5, LW: 2.5, ST: 1.2 },
-    pesoCabeceamento: { GK: 0, RB: 0.4, CB: 3, LB: 0.4, DM: 1, CM: 0.6, AM: 0.4, RW: 0.4, LW: 0.4, ST: 2.5 },
-    notas: { base: 6, min: 3, max: 10, ruido: 0.25, golo: 0.9, assistencia: 0.5, remateABaliza: 0.1, ocasiaoFalhada: -0.2, penaltiFalhado: -0.7, falta: -0.08, penaltiConcedido: -0.5, defesa: 0.2, golosSofridos: -0.25, amarelo: -0.15, vermelho: -1.2, balizaZero: 0.5, resultado: 0.3 },
-    momentos: { xgGrande: 0.3 },
+  locality: { townThreshold: 1500, cityThreshold: 8000, hysteresis: 0.1 },
+  match: {
+    aptitude: { min: 0.55, unrecorded: 3, gkMin: 0.15, gkUnrecorded: 1 },
+    form: { daysWindow: 7, normalWorkload: 90, lossPer90: 0.03, min: 0.85, ret: { initial: 0.88, gainByDay: 0.01 } },
+    substitutions: { max: 5, pauses: 3 },
+    duration: 90,
+    stoppage: { min: 3, max: 8 },
+    chancesPerTeam: 24,
+    homeAdvantage: 0.9,
+    controlScale: 4,
+    sensitivity: { shot: 0.3, xg: 0.2 },
+    baseShotP: 0.42,
+    xg: { base: 0.02, amplitude: 0.42, exponent: 4, min: 0.01, max: 0.85 },
+    penalty: { xg: 0.76, pPerFoul: 0.012 },
+    weight: { finishing: 0.9, goalkeeper: 0.9 },
+    blockedP: 0.2,
+    onTarget: { base: 0.28, porXg: 1.4, max: 0.95 },
+    corners: { pIfBlocked: 0.25, pIfSaved: 0.2, shotP: 0.35, xgFactor: 0.65 },
+    fouls: { byTeam: 12, shotFreeP: 0.06 },
+    cards: { yellowP: 0.17, penaltyYellowP: 0.5, directRedP: 0.003, penaltyRedP: 0.06, alreadyYellow: { foul: 0.4, card: 0.55 }, sentOffPenalty: { attack: 1.6, control: 1.8, defence: 1.4 } },
+    assistedP: 0.72,
+    shotWeight: { GK: 0, RB: 0.4, CB: 0.5, LB: 0.4, DM: 0.5, CM: 1.4, AM: 3, RW: 3, LW: 3, ST: 5 },
+    attendanceWeight: { GK: 0.05, RB: 1.5, CB: 0.4, LB: 1.5, DM: 1, CM: 3, AM: 3, RW: 2.5, LW: 2.5, ST: 1.2 },
+    headingWeight: { GK: 0, RB: 0.4, CB: 3, LB: 0.4, DM: 1, CM: 0.6, AM: 0.4, RW: 0.4, LW: 0.4, ST: 2.5 },
+    ratings: { base: 6, min: 3, max: 10, noise: 0.25, goal: 0.9, attendance: 0.5, onTargetShot: 0.1, missedChance: -0.2, missedPenalty: -0.7, foul: -0.08, grantedPenalty: -0.5, defence: 0.2, concededGoals: -0.25, yellow: -0.15, red: -1.2, zeroGoalmouth: 0.5, outcome: 0.3 },
+    moments: { bigXg: 0.3 },
   },
-  historias: { hattrick: 3, goleada: 4, descontos: 3, reviravolta: 2, lesaoGrave: 4 },
-  lesoes: {
-    pPorJogadorJogo: 0.016,
-    risco: { porForma: 2, relvado: 0.9, porAptidaoFisica: 0.03, porMedico: 0.015, fairPlayAdversario: [0.75, 0.88, 1, 1.25, 1.5], intensidade: 0.07, recaida: 1.2, fadiga: 0.25 },
-    gravidades: [
-      { peso: 0.4, dias: [3, 10] },
-      { peso: 0.33, dias: [10, 28] },
-      { peso: 0.18, dias: [28, 70] },
-      { peso: 0.07, dias: [70, 180] },
-      { peso: 0.02, dias: [180, 300] },
+  stories: { hattrick: 3, rout: 4, discounts: 3, turnaround: 2, seriousInjury: 4 },
+  injuries: {
+    pPerMatchPlayer: 0.016,
+    risk: { byForm: 2, turf: 0.9, byPhysicalAptitude: 0.03, byMedical: 0.015, opponentPlayFair: [0.75, 0.88, 1, 1.25, 1.5], intensity: 0.07, relapse: 1.2, fatigue: 0.25 },
+    severities: [
+      { weight: 0.4, days: [3, 10] },
+      { weight: 0.33, days: [10, 28] },
+      { weight: 0.18, days: [28, 70] },
+      { weight: 0.07, days: [70, 180] },
+      { weight: 0.02, days: [180, 300] },
     ],
-    recuperacaoPorMedico: 0.02,
-    duracaoRecaida: 1.35,
-    janelaRecaida: 28,
-    pTreinoPorDia: 0.0009,
-    forma: { base: 1, porJogoRecente: 0.025, janela: 14, por90: 0.015, recuperacaoPorDia: 0.02, aoRegressar: 0.8, min: 0.7, max: 1.1 },
+    recoveryPerMedical: 0.02,
+    relapseDuration: 1.35,
+    relapseWindow: 28,
+    trainingPByDay: 0.0009,
+    form: { base: 1, byRecentMatch: 0.025, window: 14, por90: 0.015, recoveryByDay: 0.02, onReturn: 0.8, min: 0.7, max: 1.1 },
   },
-  disciplina: {
-    amarelosPorSuspensao: 5,
-    vermelhoDireto: { jogos: 1, pMaisUm: 0.35, max: 4 },
-    segundoAmarelo: { jogos: 1 },
+  discipline: {
+    yellowsPerSuspension: 5,
+    directRed: { matches: 1, morePA: 0.35, max: 4 },
+    secondYellow: { matches: 1 },
   },
-  tatica: {
-    formacao: { ataque: 0.7, controlo: 0.5, defesa: 0.6 },
-    estilos: {
-      bonito: { controlo: 0.8, ataque: 0.1, defesa: -0.4, faltas: 0.95, cantoRemate: 0.9 },
-      equilibrado: { controlo: 0, ataque: 0, defesa: 0, faltas: 1, cantoRemate: 1 },
-      direto: { controlo: -0.5, ataque: 0.45, defesa: 0.15, faltas: 1.12, cantoRemate: 1.25 },
-      contraAtaque: { controlo: -0.6, ataque: 0.1, defesa: 0.2, faltas: 1.05, cantoRemate: 1 },
+  tactic: {
+    formation: { attack: 0.7, control: 0.5, defence: 0.6 },
+    styles: {
+      beautiful: { control: 0.8, attack: 0.1, defence: -0.4, fouls: 0.95, shotCorner: 0.9 },
+      balanced: { control: 0, attack: 0, defence: 0, fouls: 1, shotCorner: 1 },
+      direct: { control: -0.5, attack: 0.45, defence: 0.15, fouls: 1.12, shotCorner: 1.25 },
+      counterAttack: { control: -0.6, attack: 0.1, defence: 0.2, fouls: 1.05, shotCorner: 1 },
     },
-    intensidade: { controlo: 0.2, defesa: 0.15, faltas: 0.1, fadiga: 1 },
-    linha: { controlo: 0.2, ataque: 0.2, defesa: -0.5 },
-    ritmo: { oportunidades: 0.06, fadiga: 0.6 },
-    fairPlay: { faltas: [0.7, 0.85, 1, 1.2, 1.45], defesa: [-0.6, -0.3, 0, 0.3, 0.6], cartoes: [0.5, 0.75, 1, 1.35, 1.8] },
-    contraAtaque: { ataquePorPonto: 1.2, defesaPorPonto: 0.4, max: 4 },
+    intensity: { control: 0.2, defence: 0.15, fouls: 0.1, fatigue: 1 },
+    line: { control: 0.2, attack: 0.2, defence: -0.5 },
+    tempo: { chances: 0.06, fatigue: 0.6 },
+    fairPlay: { fouls: [0.7, 0.85, 1, 1.2, 1.45], defence: [-0.6, -0.3, 0, 0.3, 0.6], cards: [0.5, 0.75, 1, 1.35, 1.8] },
+    counterAttack: { attackPerPoint: 1.2, defencePerPoint: 0.4, max: 4 },
     /** Jogo direto: por cada nível de linha defensiva que o adversário tem acima de 3 (bolas nas costas), ganha ataque. */
-    diretoAtaquePorLinha: 0.5,
+    attackDirectPerLine: 0.5,
     /** Jogo bonito só rende com técnica: o bónus de controlo e ataque escala com (controlo da equipa − `base`)/`escala`, entre 0 e `max`. */
-    bonito: { base: 7, escala: 3, max: 1.5 },
-    fadiga: { max: 3.2, inicio: 30 },
-    treinador: { bonusPreferencia: 2, favoritas: 3 },
+    beautiful: { base: 7, scale: 3, max: 1.5 },
+    fatigue: { max: 3.2, start: 30 },
+    coach: { preferenceBonus: 2, favourite: 3 },
   },
-  mundo: {
-    talento: { muIndice0: 6.5, muIndice100: 10.5, sigma: 2.4, epsIndice0: 0.004, epsIndice100: 0.02, paretoAlfa: 2.4, paretoEscala: 3 },
-    qualidadeAlvo: {
-      primeiraLiga: { media: 13, desvio: 1.8 },
-      segundaLiga: { media: 11, desvio: 1.8 },
-      terceiraLiga: { media: 9.5, desvio: 1.8 },
-      cp: { media: 8, desvio: 1.8 },
-      distrital: { media: 6.5, desvio: 1.8 },
+  world: {
+    talent: { muIndex0: 6.5, muIndex100: 10.5, sigma: 2.4, seasonsIndex0: 0.004, seasonsIndex100: 0.02, alphaPareto: 2.4, scalePareto: 3 },
+    targetQuality: {
+      firstLeague: { mean: 13, deviation: 1.8 },
+      secondLeague: { mean: 11, deviation: 1.8 },
+      thirdLeague: { mean: 9.5, deviation: 1.8 },
+      cp: { mean: 8, deviation: 1.8 },
+      district: { mean: 6.5, deviation: 1.8 },
     },
-    qualidadePorReputacao: 2,
-    estrangeirosVariacaoReputacao: 0.35,
-    plantel: { primeiraLiga: 28, segundaLiga: 26, terceiraLiga: 25, cp: 23, distrital: 20 },
-    lugaresPorPosicao: { GK: 3, RB: 2, CB: 4, LB: 2, DM: 2, CM: 3, AM: 2, RW: 2, LW: 2, ST: 3 },
-    livres: 3000,
-    staffPorClube: 6,
-    outros: { empresarios: 500, dirigentesAdeptos: 400, agentes: 150, arbitros: 250, jornalistas: 200, staffLivres: 500 },
-    salario: { medio: { primeiraLiga: 9000, segundaLiga: 3500, terceiraLiga: 1400, cp: 700, distrital: 250 }, elasticidade: 0.22, contratoAnosMin: 1, contratoAnosMax: 4 },
-    idade: { min: 16, max: 38, media: 26, desvio: 4.5 },
-    idadePico: 27,
-    aptidaoSecundaria: 0.6,
+    qualityByReputation: 2,
+    variationForeignersReputation: 0.35,
+    squad: { firstLeague: 28, secondLeague: 26, thirdLeague: 25, cp: 23, district: 20 },
+    placesByPosition: { GK: 3, RB: 2, CB: 4, LB: 2, DM: 2, CM: 3, AM: 2, RW: 2, LW: 2, ST: 3 },
+    free: 3000,
+    staffPerClub: 6,
+    others: { businesspeople: 500, fansOfficials: 400, agents: 150, referees: 250, journalists: 200, freeStaff: 500 },
+    wage: { average: { firstLeague: 9000, secondLeague: 3500, thirdLeague: 1400, cp: 700, district: 250 }, elasticity: 0.22, yearsContractMin: 1, yearsContractMax: 4 },
+    age: { min: 16, max: 38, mean: 26, deviation: 4.5 },
+    peakAge: 27,
+    secondaryAptitude: 0.6,
   },
-  conhecimento: {
-    desatualizadoAposEpocas: 2,
-    crescimentoIncertezaPorEpoca: 0.25,
-    sigmaPiorQualidade: 4,
-    sigmaMelhorQualidade: 0.4,
+  knowledge: {
+    seasonsAfterOutdated: 2,
+    uncertaintyGrowthPerSeason: 0.25,
+    worstSigmaQuality: 4,
+    bestSigmaQuality: 0.4,
     z: 1.28,
-    qualidadePorFonte: { proprioClube: 0.9, olheiro: 0.6, agente: 0.4, jogoContra: 0.35, imprensa: 0.15 },
-    personalidade: { maxRotulos: 3, limiarBaixo: 5, limiarAlto: 15, probTrocaPiorQualidade: 0.35 },
+    qualityPerSource: { clubOwn: 0.9, scout: 0.6, agent: 0.4, againstMatch: 0.35, press: 0.15 },
+    personality: { labelsMax: 3, lowThreshold: 5, highThreshold: 15, worstSubstitutionProbQuality: 0.35 },
   },
 };
 
 /** Valores derivados das regras da pirâmide (DESIGN_REGRAS §1). */
-export function derivados(p: Parametros) {
-  const { cp, promocao, terceiraLiga } = p.piramide;
-  const promovidosAoCp = promocao.grupos * promocao.promovidosPorGrupo;
-  const sobemDoCp = cp.series * cp.sobemPorSerie;
-  const totalCp = cp.series * cp.clubesPorSerie;
+export function derived(p: Params) {
+  const { cp, promotion, thirdLeague } = p.pyramid;
+  const promotedAtCp = promotion.groups * promotion.promotedPerGroup;
+  const cpRise = cp.series * cp.risePerSeries;
+  const totalCp = cp.series * cp.clubsPerSeries;
   return {
-    promovidosAoCp,
+    promotedAtCp,
     /** Para o CP manter o tamanho: descem tantos quantos entram (promovidos + descidos da Terceira Liga − os que sobem). */
-    descemDoCp: promovidosAoCp + terceiraLiga.descem - sobemDoCp,
+    cpDrop: promotedAtCp + thirdLeague.drop - cpRise,
     totalCp,
-    percentagemSaidaCp: (sobemDoCp + (promovidosAoCp + terceiraLiga.descem - sobemDoCp)) / totalCp,
-    descemPorSerieMedia: (promovidosAoCp + terceiraLiga.descem - sobemDoCp) / cp.series,
+    cpOutputPercentage: (cpRise + (promotedAtCp + thirdLeague.drop - cpRise)) / totalCp,
+    dropPerMeanSeries: (promotedAtCp + thirdLeague.drop - cpRise) / cp.series,
   };
 }
 
 /** Devolve a lista de problemas (vazia se os parâmetros forem coerentes). */
-export function validarParametros(p: Parametros): string[] {
-  const erros: string[] = [];
-  const ap = p.jogo.aptidao;
-  if (!(ap.minimo > 0 && ap.minimo <= 1 && ap.minimoGR > 0 && ap.minimoGR <= 1)) erros.push("jogo.aptidao.minimo e minimoGR devem estar em (0, 1]");
-  if (!(ap.semRegisto >= 1 && ap.semRegisto <= 20 && ap.semRegistoGR >= 1 && ap.semRegistoGR <= 20)) erros.push("jogo.aptidao.semRegisto deve estar entre 1 e 20");
-  const fm = p.jogo.forma;
-  if (!(Number.isInteger(p.jogo.substituicoes.max) && p.jogo.substituicoes.max >= 0 && Number.isInteger(p.jogo.substituicoes.pausas) && p.jogo.substituicoes.pausas >= 0)) erros.push("jogo.substituicoes inválidas");
-  if (!(fm.janelaDias >= 1 && fm.cargaNormal >= 0 && fm.perdaPor90 >= 0 && fm.minimo > 0 && fm.minimo <= 1)) erros.push("jogo.forma inválida");
-  if (!(fm.regresso.inicial > 0 && fm.regresso.inicial <= 1 && fm.regresso.ganhoPorDia >= 0)) erros.push("jogo.forma.regresso inválido");
-  const pos = (nome: string, v: number) => { if (!(v > 0)) erros.push(`${nome} deve ser > 0 (é ${v})`); };
-  pos("premios.clube", p.premios.clube);
-  pos("premios.cidade", p.premios.cidade);
-  for (const [k, v] of Object.entries(p.premios.competicoes)) pos(`premios.competicoes.${k}`, v);
-  if (!(p.premios.tacaPortugalPorRonda.fator > 0 && p.premios.tacaPortugalPorRonda.fator <= 1)) erros.push("premios.tacaPortugalPorRonda.fator deve estar em (0, 1]");
-  if (!(p.premios.finalistaVencido >= 0 && p.premios.finalistaVencido <= 1)) erros.push("premios.finalistaVencido deve estar em [0, 1]");
-  if (!(p.premios.fatorDistrito.min > 0 && p.premios.fatorDistrito.min <= 1 && p.premios.fatorDistrito.max >= 1)) erros.push("premios.fatorDistrito deve ter min em (0, 1] e max >= 1");
+export function validateParameters(p: Params): string[] {
+  const errors: string[] = [];
+  const ap = p.match.aptitude;
+  if (!(ap.min > 0 && ap.min <= 1 && ap.gkMin > 0 && ap.gkMin <= 1)) errors.push("jogo.aptidao.minimo e minimoGR devem estar em (0, 1]");
+  if (!(ap.unrecorded >= 1 && ap.unrecorded <= 20 && ap.gkUnrecorded >= 1 && ap.gkUnrecorded <= 20)) errors.push("jogo.aptidao.semRegisto deve estar entre 1 e 20");
+  const fm = p.match.form;
+  if (!(Number.isInteger(p.match.substitutions.max) && p.match.substitutions.max >= 0 && Number.isInteger(p.match.substitutions.pauses) && p.match.substitutions.pauses >= 0)) errors.push("jogo.substituicoes inválidas");
+  if (!(fm.daysWindow >= 1 && fm.normalWorkload >= 0 && fm.lossPer90 >= 0 && fm.min > 0 && fm.min <= 1)) errors.push("jogo.forma inválida");
+  if (!(fm.ret.initial > 0 && fm.ret.initial <= 1 && fm.ret.gainByDay >= 0)) errors.push("jogo.forma.regresso inválido");
+  const pos = (name: string, v: number) => { if (!(v > 0)) errors.push(`${name} deve ser > 0 (é ${v})`); };
+  pos("premios.clube", p.prizes.club);
+  pos("premios.cidade", p.prizes.city);
+  for (const [k, v] of Object.entries(p.prizes.competitions)) pos(`premios.competicoes.${k}`, v);
+  if (!(p.prizes.portugalCupPerRound.factor > 0 && p.prizes.portugalCupPerRound.factor <= 1)) errors.push("premios.tacaPortugalPorRonda.fator deve estar em (0, 1]");
+  if (!(p.prizes.beatenFinalist >= 0 && p.prizes.beatenFinalist <= 1)) errors.push("premios.finalistaVencido deve estar em [0, 1]");
+  if (!(p.prizes.districtFactor.min > 0 && p.prizes.districtFactor.min <= 1 && p.prizes.districtFactor.max >= 1)) errors.push("premios.fatorDistrito deve ter min em (0, 1] e max >= 1");
 
-  const { piramide: pi, distritais: d } = p;
-  if (pi.promocao.grupos !== pi.cp.series) erros.push("promocao.grupos deve ser igual a cp.series (cada grupo promove para a sua série)");
-  if (pi.promocao.grupos * pi.promocao.campeoesPorGrupo !== pi.distritos) erros.push("grupos × campeoesPorGrupo deve ser igual ao número de distritos");
-  if (pi.promocao.promovidosPorGrupo >= pi.promocao.campeoesPorGrupo) erros.push("promovidosPorGrupo deve ser menor do que campeoesPorGrupo");
-  if (pi.primeiraLiga.descem !== pi.segundaLiga.sobem) erros.push("primeiraLiga.descem deve ser igual a segundaLiga.sobem");
-  if (pi.segundaLiga.descem !== pi.terceiraLiga.sobem) erros.push("segundaLiga.descem deve ser igual a terceiraLiga.sobem");
-  if (pi.terceiraLiga.descem !== pi.cp.series * pi.cp.sobemPorSerie) erros.push("terceiraLiga.descem deve ser igual aos que sobem do CP (cp.series × sobemPorSerie)");
-  if (!(d.minimoDuro <= d.min && d.min <= d.alvo && d.alvo <= d.max)) erros.push("distritais: minimoDuro ≤ min ≤ alvo ≤ max");
+  const { pyramid: pi, districtLeagues: d } = p;
+  if (pi.promotion.groups !== pi.cp.series) errors.push("promocao.grupos deve ser igual a cp.series (cada grupo promove para a sua série)");
+  if (pi.promotion.groups * pi.promotion.championsPerGroup !== pi.districts) errors.push("grupos × campeoesPorGrupo deve ser igual ao número de distritos");
+  if (pi.promotion.promotedPerGroup >= pi.promotion.championsPerGroup) errors.push("promovidosPorGrupo deve ser menor do que campeoesPorGrupo");
+  if (pi.firstLeague.drop !== pi.secondLeague.rise) errors.push("primeiraLiga.descem deve ser igual a segundaLiga.sobem");
+  if (pi.secondLeague.drop !== pi.thirdLeague.rise) errors.push("segundaLiga.descem deve ser igual a terceiraLiga.sobem");
+  if (pi.thirdLeague.drop !== pi.cp.series * pi.cp.risePerSeries) errors.push("terceiraLiga.descem deve ser igual aos que sobem do CP (cp.series × sobemPorSerie)");
+  if (!(d.hardMin <= d.min && d.min <= d.target && d.target <= d.max)) errors.push("distritais: minimoDuro ≤ min ≤ alvo ≤ max");
 
-  const dv = derivados(p);
-  if (dv.descemDoCp < 0 || !Number.isInteger(dv.descemDoCp)) erros.push("descemDoCp deve ser um inteiro ≥ 0");
-  if (!Number.isInteger(dv.descemPorSerieMedia)) erros.push("descemPorSerieMedia deve ser inteiro para manter as séries com o mesmo tamanho");
+  const dv = derived(p);
+  if (dv.cpDrop < 0 || !Number.isInteger(dv.cpDrop)) errors.push("descemDoCp deve ser um inteiro ≥ 0");
+  if (!Number.isInteger(dv.dropPerMeanSeries)) errors.push("descemPorSerieMedia deve ser inteiro para manter as séries com o mesmo tamanho");
 
-  if (!(p.classificacao.pontosVitoria > p.classificacao.pontosEmpate && p.classificacao.pontosEmpate >= 0))
-    erros.push("classificacao: pontosVitoria > pontosEmpate ≥ 0");
+  if (!(p.standings.winPoints > p.standings.drawPoints && p.standings.drawPoints >= 0))
+    errors.push("classificacao: pontosVitoria > pontosEmpate ≥ 0");
 
-  const c = p.calendario;
-  const dataOk = (d: { mes: number; dia: number }) => d.mes >= 1 && d.mes <= 12 && d.dia >= 1 && d.dia <= 31;
-  for (const d of [c.primeiraJornada, c.ultimaJornadaAte, ...Object.values(c.ultimaJornadaPorEscalao), ...c.pausas.flatMap((x) => [x.de, x.ate])]) if (!dataOk(d)) erros.push("calendario: datas com mês 1-12 e dia 1-31");
-  for (const [esc, dias] of Object.entries(c.diasDeJogo))
-    if (dias.length === 0 || dias.some((x) => x < 0 || x > 6)) erros.push(`calendario.diasDeJogo.${esc}: dias entre 0 e 6, pelo menos um`);
-  if (c.faseFinalCp.diasAposSeries < 1 || c.faseFinalCp.diasEntreRondas < 1) erros.push("calendario: faseFinalCp com intervalos ≥ 1 dia");
-  if (!(p.eliminatorias.penaltis.iniciais >= 1 && p.eliminatorias.penaltis.probGolo > 0 && p.eliminatorias.penaltis.probGolo < 1)) erros.push("eliminatorias.penaltis: iniciais ≥ 1 e probGolo entre 0 e 1");
-  if (c.jornadasFinaisSimultaneas < 0) erros.push("calendario: jornadasFinaisSimultaneas ≥ 0");
-  for (const m of [c.mesInicioEpoca, c.mesFimEpoca]) if (m < 1 || m > 12) erros.push("calendario: meses entre 1 e 12");
-  if (c.janelas.length === 0) erros.push("calendario: tem de existir pelo menos uma janela de transferências");
-  if (p.saves.autosaveDias < 1 || p.saves.autosavesRotativos < 1) erros.push("saves: autosaveDias e autosavesRotativos ≥ 1");
-  if (p.treinador.ofertas < 1 || p.treinador.surpresas < 0 || p.treinador.margemSurpresa < 0) erros.push("treinador: pelo menos 1 oferta, surpresas e margem >= 0");
-  if (p.fairPlay.niveis < 2 || p.fairPlay.padrao < 1 || p.fairPlay.padrao > p.fairPlay.niveis) erros.push("fairPlay: padrao dentro dos níveis");
+  const c = p.calendar;
+  const okDate = (d: { month: number; day: number }) => d.month >= 1 && d.month <= 12 && d.day >= 1 && d.day <= 31;
+  for (const d of [c.firstRound, c.lastRoundUntil, ...Object.values(c.lastRoundPerTier), ...c.pauses.flatMap((x) => [x.de, x.until])]) if (!okDate(d)) errors.push("calendario: datas com mês 1-12 e dia 1-31");
+  for (const [tier, days] of Object.entries(c.matchDays))
+    if (days.length === 0 || days.some((x) => x < 0 || x > 6)) errors.push(`calendario.diasDeJogo.${tier}: dias entre 0 e 6, pelo menos um`);
+  if (c.cpFinalPhase.seriesAfterDays < 1 || c.cpFinalPhase.roundsBetweenDays < 1) errors.push("calendario: faseFinalCp com intervalos ≥ 1 dia");
+  if (!(p.knockoutRounds.penalties.initial >= 1 && p.knockoutRounds.penalties.goalProb > 0 && p.knockoutRounds.penalties.goalProb < 1)) errors.push("eliminatorias.penaltis: iniciais ≥ 1 e probGolo entre 0 e 1");
+  if (c.simultaneousFinalRounds < 0) errors.push("calendario: jornadasFinaisSimultaneas ≥ 0");
+  for (const m of [c.seasonStartMonth, c.seasonEndMonth]) if (m < 1 || m > 12) errors.push("calendario: meses entre 1 e 12");
+  if (c.windows.length === 0) errors.push("calendario: tem de existir pelo menos uma janela de transferências");
+  if (p.saves.daysAutosave < 1 || p.saves.rotatingAutosaves < 1) errors.push("saves: autosaveDias e autosavesRotativos ≥ 1");
+  if (p.coach.offers < 1 || p.coach.surprises < 0 || p.coach.surpriseMargin < 0) errors.push("treinador: pelo menos 1 oferta, surpresas e margem >= 0");
+  if (p.fairPlay.levels < 2 || p.fairPlay.fallback < 1 || p.fairPlay.fallback > p.fairPlay.levels) errors.push("fairPlay: padrao dentro dos níveis");
 
-  for (const [esc, v] of Object.entries(p.estrangeiros)) if (v < 0 || v > 1) erros.push(`estrangeiros.${esc} entre 0 e 1`);
-  const f = p.financas;
-  if (!(f.folgaMesesRisco < f.folgaMesesApertado)) erros.push("financas: folgaMesesRisco < folgaMesesApertado");
-  const pr = f.percentisRiqueza;
-  if (!(pr[0] > pr[1] && pr[1] > pr[2] && pr[2] > pr[3] && pr[3] > 0 && pr[0] < 100)) erros.push("financas.percentisRiqueza deve ser estritamente decrescente entre 0 e 100");
-  if (f.probErroEstimativaRival < 0 || f.probErroEstimativaRival > 1) erros.push("financas.probErroEstimativaRival entre 0 e 1");
-  const k = p.conhecimento;
-  if (k.desatualizadoAposEpocas < 1) erros.push("conhecimento: desatualizadoAposEpocas ≥ 1");
-  if (k.crescimentoIncertezaPorEpoca < 0) erros.push("conhecimento: crescimentoIncertezaPorEpoca ≥ 0");
-  if (!(k.sigmaMelhorQualidade > 0 && k.sigmaMelhorQualidade < k.sigmaPiorQualidade)) erros.push("conhecimento: 0 < sigmaMelhorQualidade < sigmaPiorQualidade");
-  if (!(k.z > 0)) erros.push("conhecimento: z > 0");
-  for (const [f, q] of Object.entries(k.qualidadePorFonte)) if (q < 0 || q > 1) erros.push(`conhecimento.qualidadePorFonte.${f} entre 0 e 1`);
-  if (!(k.personalidade.limiarBaixo < k.personalidade.limiarAlto)) erros.push("conhecimento.personalidade: limiarBaixo < limiarAlto");
-  if (k.personalidade.maxRotulos < 1) erros.push("conhecimento.personalidade: maxRotulos ≥ 1");
-  if (k.personalidade.probTrocaPiorQualidade < 0 || k.personalidade.probTrocaPiorQualidade > 1) erros.push("conhecimento.personalidade: probTrocaPiorQualidade entre 0 e 1");
-  for (const [nome, cs] of Object.entries(p.desempate)) {
-    if (cs[0] !== "pontos" || new Set(cs).size !== cs.length || !cs.every((c) => CRITERIOS.includes(c)) || !["reputacaoMenor", "sorteio"].includes(cs.at(-1) as string))
-      erros.push(`desempate.${nome}: começa em «pontos», sem repetidos, critérios válidos e acaba em «reputacaoMenor» ou «sorteio»`);
+  for (const [tier, v] of Object.entries(p.foreigners)) if (v < 0 || v > 1) errors.push(`estrangeiros.${tier} entre 0 e 1`);
+  const f = p.finances;
+  if (!(f.riskMonthsBye < f.tightMonthsBye)) errors.push("financas: folgaMesesRisco < folgaMesesApertado");
+  const pr = f.wealthPercentiles;
+  if (!(pr[0] > pr[1] && pr[1] > pr[2] && pr[2] > pr[3] && pr[3] > 0 && pr[0] < 100)) errors.push("financas.percentisRiqueza deve ser estritamente decrescente entre 0 e 100");
+  if (f.rivalEstimateErrorProb < 0 || f.rivalEstimateErrorProb > 1) errors.push("financas.probErroEstimativaRival entre 0 e 1");
+  const k = p.knowledge;
+  if (k.seasonsAfterOutdated < 1) errors.push("conhecimento: desatualizadoAposEpocas ≥ 1");
+  if (k.uncertaintyGrowthPerSeason < 0) errors.push("conhecimento: crescimentoIncertezaPorEpoca ≥ 0");
+  if (!(k.bestSigmaQuality > 0 && k.bestSigmaQuality < k.worstSigmaQuality)) errors.push("conhecimento: 0 < sigmaMelhorQualidade < sigmaPiorQualidade");
+  if (!(k.z > 0)) errors.push("conhecimento: z > 0");
+  for (const [f, q] of Object.entries(k.qualityPerSource)) if (q < 0 || q > 1) errors.push(`conhecimento.qualidadePorFonte.${f} entre 0 e 1`);
+  if (!(k.personality.lowThreshold < k.personality.highThreshold)) errors.push("conhecimento.personalidade: limiarBaixo < limiarAlto");
+  if (k.personality.labelsMax < 1) errors.push("conhecimento.personalidade: maxRotulos ≥ 1");
+  if (k.personality.worstSubstitutionProbQuality < 0 || k.personality.worstSubstitutionProbQuality > 1) errors.push("conhecimento.personalidade: probTrocaPiorQualidade entre 0 e 1");
+  for (const [name, cs] of Object.entries(p.tiebreak)) {
+    if (cs[0] !== "points" || new Set(cs).size !== cs.length || !cs.every((c) => CRITERIA.includes(c)) || !["smallerReputation", "lottery"].includes(cs.at(-1) as string))
+      errors.push(`desempate.${name}: começa em «pontos», sem repetidos, critérios válidos e acaba em «reputacaoMenor» ou «sorteio»`);
   }
-  const nv = p.reputacao.niveis;
-  if (nv.map((n) => n.nivel).join() !== NIVEIS_REPUTACAO.join() || nv.at(-1)?.min !== 0 || nv.some((n, i) => i > 0 && n.min >= (nv[i - 1] as { min: number }).min))
-    erros.push("reputacao.niveis: mundial → obscuro, `min` estritamente decrescente e o último a 0");
-  const hi = p.historias;
-  if (!(hi.hattrick >= 2 && hi.goleada >= 2 && hi.descontos >= 1 && hi.reviravolta >= 1 && hi.lesaoGrave >= 1 && hi.lesaoGrave <= 5)) erros.push("historias: hattrick ≥ 2, goleada ≥ 2, descontos ≥ 1, reviravolta ≥ 1, lesaoGrave entre 1 e 5");
-  const le = p.lesoes;
-  if (!(le.pPorJogadorJogo >= 0 && le.pPorJogadorJogo <= 1 && le.pTreinoPorDia >= 0 && le.pTreinoPorDia <= 1)) erros.push("lesoes: probabilidades entre 0 e 1");
-  if (le.gravidades.length !== 5 || Math.abs(le.gravidades.reduce((a, g) => a + g.peso, 0) - 1) > 1e-9 || !le.gravidades.every((g) => g.dias[0] >= 1 && g.dias[1] >= g.dias[0])) erros.push("lesoes.gravidades: 5 níveis, pesos a somar 1 e dias [mín ≥ 1, máx ≥ mín]");
-  if (le.risco.fairPlayAdversario.length !== 5) erros.push("lesoes.risco.fairPlayAdversario: 5 níveis");
-  if (!(le.forma.min < le.forma.max && le.forma.min <= le.forma.aoRegressar && le.forma.aoRegressar <= le.forma.max && le.forma.base >= le.forma.min && le.forma.base <= le.forma.max)) erros.push("lesoes.forma: min < max e base/aoRegressar dentro dos limites");
-  const dis = p.disciplina;
-  if (!(Number.isInteger(dis.amarelosPorSuspensao) && dis.amarelosPorSuspensao >= 1 && dis.vermelhoDireto.jogos >= 1 && dis.vermelhoDireto.max >= dis.vermelhoDireto.jogos && dis.vermelhoDireto.pMaisUm >= 0 && dis.vermelhoDireto.pMaisUm < 1 && dis.segundoAmarelo.jogos >= 1)) erros.push("disciplina: amarelosPorSuspensao inteiro ≥ 1, vermelhoDireto.jogos ≥ 1 ≤ max, 0 ≤ pMaisUm < 1, segundoAmarelo.jogos ≥ 1");
-  const t = p.tatica;
-  if (t.fairPlay.cartoes.length !== 5 || !t.fairPlay.cartoes.every((x) => x > 0)) erros.push("tatica.fairPlay.cartoes: 5 níveis, multiplicadores > 0");
-  if (!(t.fairPlay.faltas.length === 5 && t.fairPlay.defesa.length === 5 && t.fairPlay.faltas.every((x) => x > 0))) erros.push("tatica.fairPlay: 5 níveis, multiplicadores de faltas > 0");
-  if (!(t.fadiga.max >= 0 && t.fadiga.inicio >= 0 && t.treinador.bonusPreferencia >= 0 && t.treinador.favoritas >= 1)) erros.push("tatica: fadiga.max ≥ 0, fadiga.inicio ≥ 0, treinador.bonusPreferencia ≥ 0 e favoritas ≥ 1");
-  const j = p.jogo;
-  for (const [n, x] of Object.entries({ pAmarelo: j.cartoes.pAmarelo, pAmareloPenalti: j.cartoes.pAmareloPenalti, pVermelhoDireto: j.cartoes.pVermelhoDireto, pVermelhoPenalti: j.cartoes.pVermelhoPenalti })) if (!(x >= 0 && x <= 1)) erros.push(`jogo.cartoes.${n} entre 0 e 1`);
-  if (!(j.notas.min < j.notas.base && j.notas.base < j.notas.max && j.notas.ruido >= 0)) erros.push("jogo.notas: min < base < max e ruido ≥ 0");
-  if (!(j.momentos.xgGrande > 0 && j.momentos.xgGrande < 1)) erros.push("jogo.momentos.xgGrande entre 0 e 1");
-  if (!(j.duracao > 0 && j.acrescimos.min >= 0 && j.acrescimos.min <= j.acrescimos.max)) erros.push("jogo: duracao > 0 e 0 ≤ acrescimos.min ≤ max");
-  if (!(j.oportunidadesPorEquipa > 0 && j.escalaControlo > 0)) erros.push("jogo: oportunidadesPorEquipa e escalaControlo > 0");
-  for (const [n, x] of [["pRemateBase", j.pRemateBase], ["pBloqueado", j.pBloqueado], ["pAssistido", j.pAssistido], ["penalti.xg", j.penalti.xg], ["penalti.pPorFalta", j.penalti.pPorFalta], ["faltas.pLivreRemate", j.faltas.pLivreRemate], ["cantos.pSeBloqueado", j.cantos.pSeBloqueado], ["cantos.pSeDefendido", j.cantos.pSeDefendido], ["cantos.pRemate", j.cantos.pRemate], ["aBaliza.max", j.aBaliza.max]] as const)
-    if (!(x >= 0 && x <= 1)) erros.push(`jogo.${n} entre 0 e 1`);
-  if (!(j.xg.min > 0 && j.xg.min < j.xg.max && j.xg.max < 1 && j.xg.base >= 0 && j.xg.amplitude > 0 && j.xg.expoente > 0)) erros.push("jogo.xg: 0 < min < max < 1, base ≥ 0, amplitude e expoente > 0");
-  for (const t of [j.pesoRemate, j.pesoAssistencia, j.pesoCabeceamento])
-    for (const pos of ["GK", "RB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "ST"]) if (!(((t[pos] as number | undefined) ?? -1) >= 0)) erros.push(`jogo: peso em falta ou negativo para ${pos}`);
-  const lo = p.localidade;
-  if (!(lo.limiarVila > 0 && lo.limiarVila < lo.limiarCidade)) erros.push("localidade: 0 < limiarVila < limiarCidade");
-  if (!(lo.histerese >= 0 && lo.histerese < 0.5)) erros.push("localidade.histerese entre 0 e 0.5");
-  if (!(p.caixa.rivalPontos >= 0 && p.caixa.rivalLugares >= 0 && p.caixa.rivalMinJogos >= 0)) erros.push("caixa: rivalPontos, rivalLugares e rivalMinJogos ≥ 0");
-  const ci = p.cidade;
-  if (!(ci.eleicoesAutarquicasAnos >= 1 && ci.mandatoDesde > 1900)) erros.push("cidade: eleicoesAutarquicasAnos ≥ 1 e mandatoDesde válido");
-  if (!ci.niveis.every((x, i) => x > (ci.niveis[i - 1] ?? 0) && x < 100)) erros.push("cidade.niveis: quatro cortes crescentes entre 0 e 100");
-  if (!(ci.evolucao.regressao > 0 && ci.evolucao.regressao <= 1)) erros.push("cidade.evolucao.regressao entre 0 e 1");
-  if (!(ci.evolucao.populacao.maxPct > 0)) erros.push("cidade.evolucao.populacao.maxPct > 0");
-  if (!(ci.eventos.probCidade >= 0 && ci.eventos.probCidade <= 1 && ci.eventos.probPolo >= 0 && ci.eventos.probPolo <= 1)) erros.push("cidade.eventos: probabilidades entre 0 e 1");
-  for (const t of TIPOS_EVENTO_CIDADE) if (!ci.eventos.tipos[t]) erros.push(`cidade.eventos.tipos.${t} em falta`);
-  for (const [t, e] of Object.entries(ci.eventos.tipos)) if (Object.values(e.peso).some((x) => x < 0)) erros.push(`cidade.eventos.tipos.${t}: pesos ≥ 0`);
-  const m = p.mundo;
-  if (!(m.talento.muIndice0 < m.talento.muIndice100 && m.talento.sigma > 0)) erros.push("mundo.talento: muIndice0 < muIndice100 e sigma > 0");
-  if (!(m.talento.epsIndice0 > 0 && m.talento.epsIndice0 <= m.talento.epsIndice100 && m.talento.epsIndice100 < 1)) erros.push("mundo.talento: 0 < epsIndice0 ≤ epsIndice100 < 1 (a cauda nunca é zero)");
-  if (!(m.talento.paretoAlfa > 0 && m.talento.paretoEscala > 0)) erros.push("mundo.talento: paretoAlfa e paretoEscala > 0");
-  for (const [esc, q] of Object.entries(m.qualidadeAlvo)) if (!(q.media >= 1 && q.media <= 20 && q.desvio > 0)) erros.push(`mundo.qualidadeAlvo.${esc} inválida`);
-  for (const [esc, n] of Object.entries(m.plantel)) if (n < 16) erros.push(`mundo.plantel.${esc} ≥ 16`);
-  if (Object.values(m.lugaresPorPosicao).some((n) => n < 1)) erros.push("mundo.lugaresPorPosicao: pelo menos 1 por posição");
-  if (Object.values(m.salario.medio).some((x) => !(x > 0)) || m.salario.contratoAnosMin < 1 || m.salario.contratoAnosMax < m.salario.contratoAnosMin) erros.push("mundo.salario inválido");
-  if (!(m.idade.min < m.idade.max && m.idade.min >= 15)) erros.push("mundo.idade: 15 ≤ min < max");
-  if (p.personalidade.tracoMin >= p.personalidade.tracoMax) erros.push("personalidade: tracoMin < tracoMax");
-  return erros;
+  const nv = p.reputation.levels;
+  if (nv.map((n) => n.level).join() !== LEVELS_REPUTATION.join() || nv.at(-1)?.min !== 0 || nv.some((n, i) => i > 0 && n.min >= (nv[i - 1] as { min: number }).min))
+    errors.push("reputacao.niveis: mundial → obscuro, `min` estritamente decrescente e o último a 0");
+  const hi = p.stories;
+  if (!(hi.hattrick >= 2 && hi.rout >= 2 && hi.discounts >= 1 && hi.turnaround >= 1 && hi.seriousInjury >= 1 && hi.seriousInjury <= 5)) errors.push("historias: hattrick ≥ 2, goleada ≥ 2, descontos ≥ 1, reviravolta ≥ 1, lesaoGrave entre 1 e 5");
+  const le = p.injuries;
+  if (!(le.pPerMatchPlayer >= 0 && le.pPerMatchPlayer <= 1 && le.trainingPByDay >= 0 && le.trainingPByDay <= 1)) errors.push("lesoes: probabilidades entre 0 e 1");
+  if (le.severities.length !== 5 || Math.abs(le.severities.reduce((a, g) => a + g.weight, 0) - 1) > 1e-9 || !le.severities.every((g) => g.days[0] >= 1 && g.days[1] >= g.days[0])) errors.push("lesoes.gravidades: 5 níveis, pesos a somar 1 e dias [mín ≥ 1, máx ≥ mín]");
+  if (le.risk.opponentPlayFair.length !== 5) errors.push("lesoes.risco.fairPlayAdversario: 5 níveis");
+  if (!(le.form.min < le.form.max && le.form.min <= le.form.onReturn && le.form.onReturn <= le.form.max && le.form.base >= le.form.min && le.form.base <= le.form.max)) errors.push("lesoes.forma: min < max e base/aoRegressar dentro dos limites");
+  const dis = p.discipline;
+  if (!(Number.isInteger(dis.yellowsPerSuspension) && dis.yellowsPerSuspension >= 1 && dis.directRed.matches >= 1 && dis.directRed.max >= dis.directRed.matches && dis.directRed.morePA >= 0 && dis.directRed.morePA < 1 && dis.secondYellow.matches >= 1)) errors.push("disciplina: amarelosPorSuspensao inteiro ≥ 1, vermelhoDireto.jogos ≥ 1 ≤ max, 0 ≤ pMaisUm < 1, segundoAmarelo.jogos ≥ 1");
+  const t = p.tactic;
+  if (t.fairPlay.cards.length !== 5 || !t.fairPlay.cards.every((x) => x > 0)) errors.push("tatica.fairPlay.cartoes: 5 níveis, multiplicadores > 0");
+  if (!(t.fairPlay.fouls.length === 5 && t.fairPlay.defence.length === 5 && t.fairPlay.fouls.every((x) => x > 0))) errors.push("tatica.fairPlay: 5 níveis, multiplicadores de faltas > 0");
+  if (!(t.fatigue.max >= 0 && t.fatigue.start >= 0 && t.coach.preferenceBonus >= 0 && t.coach.favourite >= 1)) errors.push("tatica: fadiga.max ≥ 0, fadiga.inicio ≥ 0, treinador.bonusPreferencia ≥ 0 e favoritas ≥ 1");
+  const j = p.match;
+  for (const [n, x] of Object.entries({ yellowP: j.cards.yellowP, penaltyYellowP: j.cards.penaltyYellowP, directRedP: j.cards.directRedP, penaltyRedP: j.cards.penaltyRedP })) if (!(x >= 0 && x <= 1)) errors.push(`jogo.cartoes.${n} entre 0 e 1`);
+  if (!(j.ratings.min < j.ratings.base && j.ratings.base < j.ratings.max && j.ratings.noise >= 0)) errors.push("jogo.notas: min < base < max e ruido ≥ 0");
+  if (!(j.moments.bigXg > 0 && j.moments.bigXg < 1)) errors.push("jogo.momentos.xgGrande entre 0 e 1");
+  if (!(j.duration > 0 && j.stoppage.min >= 0 && j.stoppage.min <= j.stoppage.max)) errors.push("jogo: duracao > 0 e 0 ≤ acrescimos.min ≤ max");
+  if (!(j.chancesPerTeam > 0 && j.controlScale > 0)) errors.push("jogo: oportunidadesPorEquipa e escalaControlo > 0");
+  for (const [n, x] of [["baseShotP", j.baseShotP], ["blockedP", j.blockedP], ["assistedP", j.assistedP], ["penalti.xg", j.penalty.xg], ["penalti.pPorFalta", j.penalty.pPerFoul], ["faltas.pLivreRemate", j.fouls.shotFreeP], ["cantos.pSeBloqueado", j.corners.pIfBlocked], ["cantos.pSeDefendido", j.corners.pIfSaved], ["cantos.pRemate", j.corners.shotP], ["aBaliza.max", j.onTarget.max]] as const)
+    if (!(x >= 0 && x <= 1)) errors.push(`jogo.${n} entre 0 e 1`);
+  if (!(j.xg.min > 0 && j.xg.min < j.xg.max && j.xg.max < 1 && j.xg.base >= 0 && j.xg.amplitude > 0 && j.xg.exponent > 0)) errors.push("jogo.xg: 0 < min < max < 1, base ≥ 0, amplitude e expoente > 0");
+  for (const t of [j.shotWeight, j.attendanceWeight, j.headingWeight])
+    for (const pos of ["GK", "RB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "ST"]) if (!(((t[pos] as number | undefined) ?? -1) >= 0)) errors.push(`jogo: peso em falta ou negativo para ${pos}`);
+  const lo = p.locality;
+  if (!(lo.townThreshold > 0 && lo.townThreshold < lo.cityThreshold)) errors.push("localidade: 0 < limiarVila < limiarCidade");
+  if (!(lo.hysteresis >= 0 && lo.hysteresis < 0.5)) errors.push("localidade.histerese entre 0 e 0.5");
+  if (!(p.inbox.pointsRival >= 0 && p.inbox.placesRival >= 0 && p.inbox.matchesMinRival >= 0)) errors.push("caixa: rivalPontos, rivalLugares e rivalMinJogos ≥ 0");
+  const ci = p.city;
+  if (!(ci.yearsMunicipalElections >= 1 && ci.sinceTerm > 1900)) errors.push("cidade: eleicoesAutarquicasAnos ≥ 1 e mandatoDesde válido");
+  if (!ci.levels.every((x, i) => x > (ci.levels[i - 1] ?? 0) && x < 100)) errors.push("cidade.niveis: quatro cortes crescentes entre 0 e 100");
+  if (!(ci.evolution.regression > 0 && ci.evolution.regression <= 1)) errors.push("cidade.evolucao.regressao entre 0 e 1");
+  if (!(ci.evolution.population.maxPct > 0)) errors.push("cidade.evolucao.populacao.maxPct > 0");
+  if (!(ci.events.cityProb >= 0 && ci.events.cityProb <= 1 && ci.events.hubProb >= 0 && ci.events.hubProb <= 1)) errors.push("cidade.eventos: probabilidades entre 0 e 1");
+  for (const t of CITY_EVENT_TYPES) if (!ci.events.types[t]) errors.push(`cidade.eventos.tipos.${t} em falta`);
+  for (const [t, e] of Object.entries(ci.events.types)) if (Object.values(e.weight).some((x) => x < 0)) errors.push(`cidade.eventos.tipos.${t}: pesos ≥ 0`);
+  const m = p.world;
+  if (!(m.talent.muIndex0 < m.talent.muIndex100 && m.talent.sigma > 0)) errors.push("mundo.talento: muIndice0 < muIndice100 e sigma > 0");
+  if (!(m.talent.seasonsIndex0 > 0 && m.talent.seasonsIndex0 <= m.talent.seasonsIndex100 && m.talent.seasonsIndex100 < 1)) errors.push("mundo.talento: 0 < epsIndice0 ≤ epsIndice100 < 1 (a cauda nunca é zero)");
+  if (!(m.talent.alphaPareto > 0 && m.talent.scalePareto > 0)) errors.push("mundo.talento: paretoAlfa e paretoEscala > 0");
+  for (const [tier, q] of Object.entries(m.targetQuality)) if (!(q.mean >= 1 && q.mean <= 20 && q.deviation > 0)) errors.push(`mundo.qualidadeAlvo.${tier} inválida`);
+  for (const [tier, n] of Object.entries(m.squad)) if (n < 16) errors.push(`mundo.plantel.${tier} ≥ 16`);
+  if (Object.values(m.placesByPosition).some((n) => n < 1)) errors.push("mundo.lugaresPorPosicao: pelo menos 1 por posição");
+  if (Object.values(m.wage.average).some((x) => !(x > 0)) || m.wage.yearsContractMin < 1 || m.wage.yearsContractMax < m.wage.yearsContractMin) errors.push("mundo.salario inválido");
+  if (!(m.age.min < m.age.max && m.age.min >= 15)) errors.push("mundo.idade: 15 ≤ min < max");
+  if (p.personality.traitMin >= p.personality.traitMax) errors.push("personalidade: tracoMin < tracoMax");
+  return errors;
 }
 
-type Parcial<T> = { [K in keyof T]?: T[K] extends readonly unknown[] ? T[K] : T[K] extends object ? Parcial<T[K]> : T[K] };
+type DeepPartial<T> = { [K in keyof T]?: T[K] extends readonly unknown[] ? T[K] : T[K] extends object ? DeepPartial<T[K]> : T[K] };
 
-function fundir<T>(base: T, extra: Parcial<T> | undefined): T {
+function merge<T>(base: T, extra: DeepPartial<T> | undefined): T {
   if (extra === undefined || typeof base !== "object" || base === null || Array.isArray(base)) return (extra as T | undefined) ?? base;
   const out: Record<string, unknown> = { ...(base as Record<string, unknown>) };
   for (const [k, v] of Object.entries(extra as Record<string, unknown>)) {
-    out[k] = v !== null && typeof v === "object" && !Array.isArray(v) ? fundir(out[k], v as never) : v;
+    out[k] = v !== null && typeof v === "object" && !Array.isArray(v) ? merge(out[k], v as never) : v;
   }
   return out as T;
 }
 
 /** Cria parâmetros a partir dos padrões com alterações (p. ex. cenários, testes, modos de dificuldade). Lança erro se forem incoerentes. */
-export function criarParametros(alteracoes?: Parcial<Parametros>): Parametros {
-  const p = fundir(PARAMETROS_PADRAO, alteracoes);
-  const erros = validarParametros(p);
-  if (erros.length > 0) throw new Error("Parâmetros inválidos:\n - " + erros.join("\n - "));
+export function createParams(changes?: DeepPartial<Params>): Params {
+  const p = merge(DEFAULT_PARAMETERS, changes);
+  const errors = validateParameters(p);
+  if (errors.length > 0) throw new Error("Parâmetros inválidos:\n - " + errors.join("\n - "));
   return p;
 }

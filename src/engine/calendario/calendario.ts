@@ -5,143 +5,143 @@
  * Primeira Liga) e últimas jornadas em simultâneo. Tudo determinístico (seed) e dirigido por parâmetros.
  */
 import type { Rng } from "../aleatorio/rng";
-import type { Escalao, Parametros } from "../config/parametros";
-import type { Data, FolgaAgendada, JogoAgendado } from "../persistencia/tipos";
-import { comparar, criarData, diaDaSemana, proximoDiaDaSemana, somarDias } from "./datas";
-import { todosContraTodos } from "./todosContraTodos";
+import type { Tier, Params } from "../config/parametros";
+import type { IsoDate, ScheduledBye, ScheduledMatch } from "../persistencia/tipos";
+import { compare, createDate, weekDay, nextWeekday, addDays } from "./datas";
+import { allAgainstAll } from "./todosContraTodos";
 
-export type { JogoAgendado };
-export type Jornada = { numero: number; data: Data; jogos: JogoAgendado[]; folga?: string };
-export type CalendarioLiga = { competicao: string; epoca: number; escalao: Escalao; voltas: 1 | 2; clubes: string[]; jornadas: Jornada[] };
+export type { ScheduledMatch };
+export type Round = { number: number; date: IsoDate; matches: ScheduledMatch[]; bye?: string };
+export type LeagueCalendar = { competition: string; season: number; tier: Tier; legs: 1 | 2; clubs: string[]; rounds: Round[] };
 
-export type DefinicaoLiga = { competicao: string; escalao: Escalao; clubes: string[]; voltas?: 1 | 2 };
+export type LeagueDefinition = { competition: string; tier: Tier; clubs: string[]; legs?: 1 | 2 };
 
-type Calend = Parametros["calendario"];
+type Schedule = Params["calendar"];
 
 const slug = (s: string) =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 
 /** O ano civil de uma data (mês/dia) da época `epoca`: do mês de início da época a dezembro no ano em que começa, de janeiro ao mês anterior no seguinte. */
-const anoDe = (epoca: number, mes: number, c: Calend) => (mes >= c.mesInicioEpoca ? c.anoInicial + epoca - 1 : c.anoInicial + epoca);
-const dataDaEpoca = (epoca: number, d: { mes: number; dia: number }, c: Calend): Data => criarData(anoDe(epoca, d.mes, c), d.mes, d.dia);
+const yearOf = (season: number, month: number, c: Schedule) => (month >= c.seasonStartMonth ? c.initialYear + season - 1 : c.initialYear + season);
+const seasonDate = (season: number, d: { month: number; day: number }, c: Schedule): IsoDate => createDate(yearOf(season, d.month, c), d.month, d.day);
 
-type Slot = { data: Data; fimDeSemana: boolean };
+type Slot = { date: IsoDate; weekend: boolean };
 
 /** Sábados disponíveis na época (sem pausas e com o domingo ainda dentro do limite). */
-export function fimsDeSemanaDaEpoca(epoca: number, c: Calend, escalao?: Escalao): Data[] {
-  const inicio = proximoDiaDaSemana(dataDaEpoca(epoca, c.primeiraJornada, c), 6);
-  const fim = dataDaEpoca(epoca, (escalao && c.ultimaJornadaPorEscalao[escalao]) || c.ultimaJornadaAte, c);
-  const pausas = c.pausas.map((p) => ({ de: dataDaEpoca(epoca, p.de, c), ate: dataDaEpoca(epoca, p.ate, c) }));
-  const naPausa = (d: Data) => pausas.some((p) => comparar(d, p.de) >= 0 && comparar(d, p.ate) <= 0);
-  const out: Data[] = [];
-  for (let s = inicio; comparar(somarDias(s, 1), fim) <= 0; s = somarDias(s, 7)) if (!naPausa(s) && !naPausa(somarDias(s, 1))) out.push(s);
+export function seasonDaWeekEnds(season: number, c: Schedule, tier?: Tier): IsoDate[] {
+  const start = nextWeekday(seasonDate(season, c.firstRound, c), 6);
+  const end = seasonDate(season, (tier && c.lastRoundPerTier[tier]) || c.lastRoundUntil, c);
+  const pauses = c.pauses.map((p) => ({ de: seasonDate(season, p.de, c), until: seasonDate(season, p.until, c) }));
+  const inPause = (d: IsoDate) => pauses.some((p) => compare(d, p.de) >= 0 && compare(d, p.until) <= 0);
+  const out: IsoDate[] = [];
+  for (let s = start; compare(addDays(s, 1), end) <= 0; s = addDays(s, 7)) if (!inPause(s) && !inPause(addDays(s, 1))) out.push(s);
   return out;
 }
 
 /** `m` índices entre 0 e `total−1`, igualmente espaçados e crescentes. */
-function repartir(total: number, m: number): number[] {
+function split(total: number, m: number): number[] {
   if (m <= 0) return [];
   if (m === 1) return [0];
   return Array.from({ length: m }, (_, i) => Math.round((i * (total - 1)) / (m - 1)));
 }
 
 /** As `rondas` datas-base de uma liga: fins de semana espaçados e, se faltarem, quartas-feiras antes de um fim de semana. */
-export function ranhurasDaLiga(rondas: number, epoca: number, c: Calend, escalao?: Escalao): Slot[] {
-  const W = fimsDeSemanaDaEpoca(epoca, c, escalao);
-  if (rondas <= W.length) return repartir(W.length, rondas).map((i) => ({ data: W[i] as Data, fimDeSemana: true }));
-  const pausas = c.pausas.map((p) => ({ de: dataDaEpoca(epoca, p.de, c), ate: dataDaEpoca(epoca, p.ate, c) }));
-  const livre = (d: Data) => !pausas.some((p) => comparar(d, p.de) >= 0 && comparar(d, p.ate) <= 0);
-  const candidatas = W.map((s, i) => ({ i, quarta: somarDias(s, -3) })).filter(({ i, quarta }) => i > 0 && i < W.length - 1 && livre(quarta));
-  const extra = rondas - W.length;
-  if (extra > candidatas.length) throw new Error(`Calendário impossível: ${rondas} jornadas, só cabem ${W.length + candidatas.length}`);
-  const meios = repartir(candidatas.length, extra).map((k) => (candidatas[k] as { quarta: Data }).quarta);
-  return [...W.map((data) => ({ data, fimDeSemana: true })), ...meios.map((data) => ({ data, fimDeSemana: false }))].sort((a, b) => comparar(a.data, b.data));
+export function leagueSlots(pairings: number, season: number, c: Schedule, tier?: Tier): Slot[] {
+  const W = seasonDaWeekEnds(season, c, tier);
+  if (pairings <= W.length) return split(W.length, pairings).map((i) => ({ date: W[i] as IsoDate, weekend: true }));
+  const pauses = c.pauses.map((p) => ({ de: seasonDate(season, p.de, c), until: seasonDate(season, p.until, c) }));
+  const free = (d: IsoDate) => !pauses.some((p) => compare(d, p.de) >= 0 && compare(d, p.until) <= 0);
+  const candidate = W.map((s, i) => ({ i, wednesday: addDays(s, -3) })).filter(({ i, wednesday }) => i > 0 && i < W.length - 1 && free(wednesday));
+  const extra = pairings - W.length;
+  if (extra > candidate.length) throw new Error(`Calendário impossível: ${pairings} jornadas, só cabem ${W.length + candidate.length}`);
+  const means = split(candidate.length, extra).map((k) => (candidate[k] as { wednesday: IsoDate }).wednesday);
+  return [...W.map((date) => ({ date, weekend: true })), ...means.map((date) => ({ date, weekend: false }))].sort((a, b) => compare(a.date, b.date));
 }
 
 /** Data de um jogo dentro de uma ranhura, repartindo os jogos pelos dias de jogo do escalão. */
-function dataDoJogo(slot: Slot, indice: number, dias: number[], simultanea: boolean): Data {
-  if (!slot.fimDeSemana) return slot.data;
-  const deslocamento = (d: number) => (d === 6 ? 0 : d === 0 ? 1 : d === 5 ? -1 : d === 1 ? 2 : d === 4 ? -2 : d === 3 ? -3 : -4);
-  const ordenados = [...dias].sort((a, b) => deslocamento(a) - deslocamento(b));
-  const dia = simultanea ? (ordenados[ordenados.length - 1] as number) : (ordenados[indice % ordenados.length] as number);
-  return somarDias(slot.data, deslocamento(dia));
+function matchDate(slot: Slot, index: number, days: number[], simultaneous: boolean): IsoDate {
+  if (!slot.weekend) return slot.date;
+  const offset = (d: number) => (d === 6 ? 0 : d === 0 ? 1 : d === 5 ? -1 : d === 1 ? 2 : d === 4 ? -2 : d === 3 ? -3 : -4);
+  const sorted = [...days].sort((a, b) => offset(a) - offset(b));
+  const day = simultaneous ? (sorted[sorted.length - 1] as number) : (sorted[index % sorted.length] as number);
+  return addDays(slot.date, offset(day));
 }
 
-export function gerarCalendarioLiga(def: DefinicaoLiga, epoca: number, c: Calend, rng: Rng): CalendarioLiga {
-  const voltas = def.voltas ?? 2;
-  const rondas = todosContraTodos(def.clubes, voltas, rng.derivar(`rondas/${def.competicao}`));
-  const slots = ranhurasDaLiga(rondas.length, epoca, c, def.escalao);
-  const dias = c.diasDeJogo[def.escalao];
-  const jornadas: Jornada[] = rondas.map((r, i) => {
-    const numero = i + 1;
-    const simultanea = numero > rondas.length - c.jornadasFinaisSimultaneas;
+export function generateLeagueCalendar(def: LeagueDefinition, season: number, c: Schedule, rng: Rng): LeagueCalendar {
+  const legs = def.legs ?? 2;
+  const pairings = allAgainstAll(def.clubs, legs, rng.derive(`rondas/${def.competition}`));
+  const slots = leagueSlots(pairings.length, season, c, def.tier);
+  const days = c.matchDays[def.tier];
+  const rounds: Round[] = pairings.map((r, i) => {
+    const number = i + 1;
+    const simultaneous = number > pairings.length - c.simultaneousFinalRounds;
     const slot = slots[i] as Slot;
-    const jogos: JogoAgendado[] = r.jogos.map((j, k) => ({
-      id: `e${epoca}-${slug(def.competicao)}-j${numero}-${j.casa}`,
-      competicao: def.competicao,
-      epoca,
-      jornada: numero,
-      data: dataDoJogo(slot, k, dias, simultanea),
-      casa: j.casa,
-      fora: j.fora,
+    const matches: ScheduledMatch[] = r.matches.map((j, k) => ({
+      id: `e${season}-${slug(def.competition)}-j${number}-${j.home}`,
+      competition: def.competition,
+      season,
+      round: number,
+      date: matchDate(slot, k, days, simultaneous),
+      home: j.home,
+      away: j.away,
     }));
-    const datas = jogos.map((j) => j.data).sort(comparar);
-    return { numero, data: (datas[0] as Data) ?? slot.data, jogos, ...(r.folga !== undefined ? { folga: r.folga } : {}) };
+    const dates = matches.map((j) => j.date).sort(compare);
+    return { number, date: (dates[0] as IsoDate) ?? slot.date, matches, ...(r.bye !== undefined ? { bye: r.bye } : {}) };
   });
-  return { competicao: def.competicao, epoca, escalao: def.escalao, voltas, clubes: [...def.clubes], jornadas };
+  return { competition: def.competition, season, tier: def.tier, legs, clubs: [...def.clubs], rounds };
 }
 
 /** Calendários de várias ligas da mesma época; cada liga tem o seu fluxo aleatório, por isso acrescentar uma não muda as outras. */
-export function gerarCalendariosDaEpoca(ligas: readonly DefinicaoLiga[], epoca: number, c: Calend, rng: Rng): CalendarioLiga[] {
-  return ligas.map((l) => gerarCalendarioLiga(l, epoca, c, rng.derivar(`epoca/${epoca}`)));
+export function generateSeasonCalendars(leagues: readonly LeagueDefinition[], season: number, c: Schedule, rng: Rng): LeagueCalendar[] {
+  return leagues.map((l) => generateLeagueCalendar(l, season, c, rng.derive(`epoca/${season}`)));
 }
 
 /** Verifica um calendário; devolve a lista de problemas (vazia se estiver certo). */
-export function validarCalendario(cal: CalendarioLiga): string[] {
-  const erros: string[] = [];
-  const n = cal.clubes.length;
-  const porVolta = n % 2 === 0 ? n - 1 : n;
-  if (cal.jornadas.length !== porVolta * cal.voltas) erros.push(`${cal.jornadas.length} jornadas (esperado ${porVolta * cal.voltas})`);
-  const encontros = new Map<string, number>();
-  const clubes = new Set(cal.clubes);
-  let anterior: Data = "0000-00-00";
-  for (const j of cal.jornadas) {
-    const naJornada = new Set<string>();
-    for (const g of j.jogos) {
-      if (!clubes.has(g.casa) || !clubes.has(g.fora)) erros.push(`jornada ${j.numero}: clube desconhecido`);
-      for (const c of [g.casa, g.fora]) {
-        if (naJornada.has(c)) erros.push(`jornada ${j.numero}: ${c} joga duas vezes`);
-        naJornada.add(c);
+export function validateCalendar(cal: LeagueCalendar): string[] {
+  const errors: string[] = [];
+  const n = cal.clubs.length;
+  const byLeg = n % 2 === 0 ? n - 1 : n;
+  if (cal.rounds.length !== byLeg * cal.legs) errors.push(`${cal.rounds.length} jornadas (esperado ${byLeg * cal.legs})`);
+  const meetings = new Map<string, number>();
+  const clubs = new Set(cal.clubs);
+  let previous: IsoDate = "0000-00-00";
+  for (const j of cal.rounds) {
+    const inRound = new Set<string>();
+    for (const g of j.matches) {
+      if (!clubs.has(g.home) || !clubs.has(g.away)) errors.push(`jornada ${j.number}: clube desconhecido`);
+      for (const c of [g.home, g.away]) {
+        if (inRound.has(c)) errors.push(`jornada ${j.number}: ${c} joga duas vezes`);
+        inRound.add(c);
       }
-      const k = `${g.casa}>${g.fora}`;
-      encontros.set(k, (encontros.get(k) ?? 0) + 1);
+      const k = `${g.home}>${g.away}`;
+      meetings.set(k, (meetings.get(k) ?? 0) + 1);
     }
-    const esperados = n - (n % 2);
-    if (naJornada.size !== esperados) erros.push(`jornada ${j.numero}: ${naJornada.size} clubes a jogar (esperado ${esperados})`);
-    if (n % 2 === 1 && (j.folga === undefined || naJornada.has(j.folga))) erros.push(`jornada ${j.numero}: folga inválida`);
-    if (n % 2 === 0 && j.folga !== undefined) erros.push(`jornada ${j.numero}: não devia haver folga`);
-    if (comparar(j.data, anterior) < 0) erros.push(`jornada ${j.numero}: data anterior à da jornada anterior`);
-    anterior = j.data;
+    const expected = n - (n % 2);
+    if (inRound.size !== expected) errors.push(`jornada ${j.number}: ${inRound.size} clubes a jogar (esperado ${expected})`);
+    if (n % 2 === 1 && (j.bye === undefined || inRound.has(j.bye))) errors.push(`jornada ${j.number}: folga inválida`);
+    if (n % 2 === 0 && j.bye !== undefined) errors.push(`jornada ${j.number}: não devia haver folga`);
+    if (compare(j.date, previous) < 0) errors.push(`jornada ${j.number}: data anterior à da jornada anterior`);
+    previous = j.date;
   }
-  for (const a of cal.clubes)
-    for (const b of cal.clubes)
+  for (const a of cal.clubs)
+    for (const b of cal.clubs)
       if (a !== b) {
-        const jogos = encontros.get(`${a}>${b}`) ?? 0;
-        if (jogos !== (cal.voltas === 2 ? 1 : 0) + (cal.voltas === 1 && a < b ? 1 : 0) && cal.voltas === 2 && jogos !== 1) erros.push(`${a} x ${b} em casa de ${a}: ${jogos} jogos (esperado 1)`);
-        if (cal.voltas === 1) {
-          const total = jogos + (encontros.get(`${b}>${a}`) ?? 0);
-          if (total !== 1) erros.push(`${a} x ${b}: ${total} jogos (esperado 1)`);
+        const matches = meetings.get(`${a}>${b}`) ?? 0;
+        if (matches !== (cal.legs === 2 ? 1 : 0) + (cal.legs === 1 && a < b ? 1 : 0) && cal.legs === 2 && matches !== 1) errors.push(`${a} x ${b} em casa de ${a}: ${matches} jogos (esperado 1)`);
+        if (cal.legs === 1) {
+          const total = matches + (meetings.get(`${b}>${a}`) ?? 0);
+          if (total !== 1) errors.push(`${a} x ${b}: ${total} jogos (esperado 1)`);
         }
       }
-  return erros;
+  return errors;
 }
 
-export { diaDaSemana };
+export { weekDay };
 
 /** Linhas a guardar no repositório para um calendário de liga. */
-export function paraRepositorio(cal: CalendarioLiga): { jogos: JogoAgendado[]; folgas: FolgaAgendada[] } {
+export function forRepository(cal: LeagueCalendar): { matches: ScheduledMatch[]; byes: ScheduledBye[] } {
   return {
-    jogos: cal.jornadas.flatMap((j) => j.jogos),
-    folgas: cal.jornadas.flatMap((j) => (j.folga !== undefined ? [{ competicao: cal.competicao, epoca: cal.epoca, jornada: j.numero, clube: j.folga }] : [])),
+    matches: cal.rounds.flatMap((j) => j.matches),
+    byes: cal.rounds.flatMap((j) => (j.bye !== undefined ? [{ competition: cal.competition, season: cal.season, round: j.number, club: j.bye }] : [])),
   };
 }

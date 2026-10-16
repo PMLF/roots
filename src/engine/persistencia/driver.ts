@@ -3,16 +3,16 @@
  * Síncrono. As transações são geridas pelo RepositorioSqlite com SAVEPOINTs, por isso o driver
  * só executa SQL.
  */
-export type ValorSql = string | number | null;
-export type LinhaSql = Record<string, ValorSql>;
+export type SqlValue = string | number | null;
+export type SqlLine = Record<string, SqlValue>;
 
 export interface DriverSql {
   /** Executa um ou mais comandos sem parâmetros (esquema, PRAGMA, BEGIN/COMMIT). */
-  executarScript(sql: string): void;
+  runScript(sql: string): void;
   /** Executa um comando com parâmetros posicionais (?). */
-  executar(sql: string, params?: readonly ValorSql[]): { alteradas: number; ultimoId: number };
-  todos(sql: string, params?: readonly ValorSql[]): LinhaSql[];
+  run(sql: string, params?: readonly SqlValue[]): { changed: number; lastId: number };
+  all(sql: string, params?: readonly SqlValue[]): SqlLine[];
   /** Cópia serializada da base de dados (ficheiro .sqlite completo). */
-  exportar(): Uint8Array;
-  fechar(): void;
+  exported(): Uint8Array;
+  close(): void;
 }

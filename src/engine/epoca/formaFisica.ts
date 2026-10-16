@@ -3,31 +3,31 @@
  * Um jogo por semana é normal (forma 1); cada 90 minutos a mais na janela tiram `perdaPor90`, até `minimo`. Quem joga
  * pouco não ganha bónus (a forma nunca passa de 1). A forma entra na força da equipa e no risco de lesão.
  */
-import { paraDias, somarDias } from "../calendario/datas";
-import type { Parametros } from "../config/parametros";
-import { estadoFisico } from "../lesoes/estado";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { Data } from "../persistencia/tipos";
+import { forDays, addDays } from "../calendario/datas";
+import type { Params } from "../config/parametros";
+import { physicalState } from "../lesoes/estado";
+import type { Repository } from "../persistencia/repositorio";
+import type { IsoDate } from "../persistencia/tipos";
 
 /** Forma a partir da carga (minutos na janela). Pura. */
-export function formaPorCarga(carga: number, params: Parametros): number {
-  const f = params.jogo.forma;
-  const excesso = Math.max(0, carga - f.cargaNormal);
-  return Math.min(1, Math.max(f.minimo, 1 - f.perdaPor90 * (excesso / 90)));
+export function formPerWorkload(workload: number, params: Params): number {
+  const f = params.match.form;
+  const excess = Math.max(0, workload - f.normalWorkload);
+  return Math.min(1, Math.max(f.min, 1 - f.lossPer90 * (excess / 90)));
 }
 
 /** Forma máxima de quem regressou de lesão em `regressouEm`: perde ritmo e recupera dia a dia (RZ-177). Pura. */
-export function formaNoRegresso(hoje: Data, regressouEm: Data, params: Parametros): number {
-  const r = params.jogo.forma.regresso;
-  return Math.min(1, r.inicial + r.ganhoPorDia * Math.max(0, paraDias(hoje) - paraDias(regressouEm)));
+export function formInReturn(today: IsoDate, returnedIn: IsoDate, params: Params): number {
+  const r = params.match.form.ret;
+  return Math.min(1, r.initial + r.gainByDay * Math.max(0, forDays(today) - forDays(returnedIn)));
 }
 
 /** A forma de cada jogador em `hoje`: considera os jogos desde `hoje − janelaDias` (inclusive) até ontem. */
-export function formaDosJogadores(repo: Repositorio, jogadores: readonly string[], hoje: Data, params: Parametros): Map<string, number> {
-  const minutos = repo.minutosJogados(jogadores, somarDias(hoje, -params.jogo.forma.janelaDias), hoje);
-  return new Map(jogadores.map((j) => {
-    const carga = formaPorCarga(minutos.get(j) ?? 0, params);
-    const reg = estadoFisico(repo, j, hoje, params).recemRegressado;
-    return [j, reg ? Math.min(carga, formaNoRegresso(hoje, reg.regressouEm, params)) : carga] as const;
+export function playersForm(repo: Repository, players: readonly string[], today: IsoDate, params: Params): Map<string, number> {
+  const minutes = repo.playedMinutes(players, addDays(today, -params.match.form.daysWindow), today);
+  return new Map(players.map((j) => {
+    const workload = formPerWorkload(minutes.get(j) ?? 0, params);
+    const record = physicalState(repo, j, today, params).returnedNewly;
+    return [j, record ? Math.min(workload, formInReturn(today, record.returnedIn, params)) : workload] as const;
   }));
 }

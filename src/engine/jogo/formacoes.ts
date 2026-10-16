@@ -2,13 +2,13 @@
  * Formações e efeitos da tática na força (RZ-108; docs/MOTOR_JOGO.md §7). Sem dependências do resto do motor, para
  * poderem ser usados por `equipa.ts` sem ciclos. As preferências do treinador estão em `tatica.ts`.
  */
-import { limitar } from "../aleatorio/rng";
-import type { Parametros } from "../config/parametros";
-import type { Posicao } from "../mundo/tipos";
-import type { Estilo, FormacaoId, Tatica } from "./tipos";
+import { clamp } from "../aleatorio/rng";
+import type { Params } from "../config/parametros";
+import type { Position } from "../mundo/tipos";
+import type { Style, FormationId, Tactic } from "./tipos";
 
 /** Posições de cada formação (o guarda-redes primeiro). Laterais a «alas» nos sistemas com três centrais. */
-export const FORMACOES: Record<FormacaoId, readonly Posicao[]> = {
+export const FORMATIONS: Record<FormationId, readonly Position[]> = {
   "4-3-3": ["GK", "RB", "CB", "CB", "LB", "DM", "CM", "AM", "RW", "ST", "LW"],
   "4-4-2": ["GK", "RB", "CB", "CB", "LB", "RW", "CM", "CM", "LW", "ST", "ST"],
   "4-2-3-1": ["GK", "RB", "CB", "CB", "LB", "DM", "DM", "RW", "AM", "LW", "ST"],
@@ -18,13 +18,13 @@ export const FORMACOES: Record<FormacaoId, readonly Posicao[]> = {
   "3-4-3": ["GK", "CB", "CB", "CB", "RB", "CM", "CM", "LB", "RW", "ST", "LW"],
   "4-3-1-2": ["GK", "RB", "CB", "CB", "LB", "DM", "CM", "CM", "AM", "ST", "ST"],
 };
-export const FORMACAO_IDS = Object.keys(FORMACOES) as FormacaoId[];
-export const ESTILOS: readonly Estilo[] = ["bonito", "equilibrado", "direto", "contraAtaque"];
+export const FORMATION_IDS = Object.keys(FORMATIONS) as FormationId[];
+export const STYLES: readonly Style[] = ["beautiful", "balanced", "direct", "counterAttack"];
 
-export const TATICA_PADRAO: Tatica = { formacao: "4-3-3", estilo: "equilibrado", intensidade: 3, linha: 3, ritmo: 3, fairPlay: 3 };
+export const DEFAULT_TACTIC: Tactic = { formation: "4-3-3", style: "balanced", intensity: 3, line: 3, tempo: 3, fairPlay: 3 };
 
 /** Quanto cada posição pesa na defesa, no meio-campo e no ataque. */
-const PESO_LINHA: Record<Posicao, readonly [number, number, number]> = {
+const LINE_WEIGHT: Record<Position, readonly [number, number, number]> = {
   GK: [0, 0, 0],
   RB: [1, 0, 0],
   CB: [1, 0, 0],
@@ -41,46 +41,46 @@ const PESO_LINHA: Record<Posicao, readonly [number, number, number]> = {
  * Quanto da formação é defesa, meio e ataque. Com três centrais e alguém mais adiantado (MO ou extremo),
  * os laterais jogam como alas: metade defesa, metade meio-campo.
  */
-export function linhasDaFormacao(posicoes: readonly Posicao[]): { defesa: number; meio: number; ataque: number } {
-  const alas = posicoes.filter((p) => p === "CB").length === 3 && posicoes.some((p) => p === "AM" || p === "RW" || p === "LW");
-  let defesa = 0, meio = 0, ataque = 0;
-  for (const p of posicoes) {
-    const [d, m, a] = alas && (p === "RB" || p === "LB") ? ([0.5, 0.5, 0] as const) : PESO_LINHA[p];
-    defesa += d;
-    meio += m;
-    ataque += a;
+export function formationLines(positions: readonly Position[]): { defence: number; middle: number; attack: number } {
+  const wings = positions.filter((p) => p === "CB").length === 3 && positions.some((p) => p === "AM" || p === "RW" || p === "LW");
+  let defence = 0, middle = 0, attack = 0;
+  for (const p of positions) {
+    const [d, m, a] = wings && (p === "RB" || p === "LB") ? ([0.5, 0.5, 0] as const) : LINE_WEIGHT[p];
+    defence += d;
+    middle += m;
+    attack += a;
   }
-  return { defesa, meio, ataque };
+  return { defence, middle, attack };
 }
-export const BASE = linhasDaFormacao(FORMACOES["4-3-3"]);
+export const BASE = formationLines(FORMATIONS["4-3-3"]);
 
-export type ModificadoresTatica = { ataque: number; controlo: number; defesa: number };
+export type TacticModifiers = { attack: number; control: number; defence: number };
 
 /** Pontos de força que a tática soma ou tira. A formação conta pelas posições realmente em campo, não pelo nome. */
-export function modificadoresTatica(posicoes: readonly Posicao[], t: Tatica, p: Parametros["tatica"], controloBase?: number): ModificadoresTatica {
-  const l = linhasDaFormacao(posicoes);
-  const e = p.estilos[t.estilo];
-  const i = t.intensidade - 3;
-  const li = t.linha - 3;
+export function tacticModifiers(positions: readonly Position[], t: Tactic, p: Params["tactic"], baseControl?: number): TacticModifiers {
+  const l = formationLines(positions);
+  const e = p.styles[t.style];
+  const i = t.intensity - 3;
+  const li = t.line - 3;
   // o jogo bonito só rende a quem tem técnica (controlo)
-  const tec = t.estilo === "bonito" && controloBase !== undefined ? limitar((controloBase - p.bonito.base) / p.bonito.escala, 0, p.bonito.max) : 1;
+  const tech = t.style === "beautiful" && baseControl !== undefined ? clamp((baseControl - p.beautiful.base) / p.beautiful.scale, 0, p.beautiful.max) : 1;
   return {
-    ataque: p.formacao.ataque * (l.ataque - BASE.ataque) + e.ataque * tec + p.linha.ataque * li,
-    controlo: p.formacao.controlo * (l.meio - BASE.meio) + e.controlo * tec + p.intensidade.controlo * i + p.linha.controlo * li,
-    defesa: p.formacao.defesa * (l.defesa - BASE.defesa) + e.defesa + p.intensidade.defesa * i + p.linha.defesa * li + (p.fairPlay.defesa[t.fairPlay - 1] as number),
+    attack: p.formation.attack * (l.attack - BASE.attack) + e.attack * tech + p.line.attack * li,
+    control: p.formation.control * (l.middle - BASE.middle) + e.control * tech + p.intensity.control * i + p.line.control * li,
+    defence: p.formation.defence * (l.defence - BASE.defence) + e.defence + p.intensity.defence * i + p.line.defence * li + (p.fairPlay.defence[t.fairPlay - 1] as number),
   };
 }
 
 /** Multiplicador das faltas de uma equipa com esta tática. */
-export function multiplicadorFaltas(t: Tatica, p: Parametros["tatica"]): number {
-  return p.estilos[t.estilo].faltas * (1 + p.intensidade.faltas * (t.intensidade - 3)) * (p.fairPlay.faltas[t.fairPlay - 1] as number);
+export function foulsMultiplier(t: Tactic, p: Params["tactic"]): number {
+  return p.styles[t.style].fouls * (1 + p.intensity.fouls * (t.intensity - 3)) * (p.fairPlay.fouls[t.fairPlay - 1] as number);
 }
 
 /** Pontos de força perdidos por cansaço no minuto `m` (cresce depois de `fadiga.inicio`; mais com intensidade e ritmo altos). */
-export function fadigaEm(m: number, duracao: number, t: Tatica, p: Parametros["tatica"]): number {
-  if (m <= p.fadiga.inicio) return 0;
-  const progresso = limitar((m - p.fadiga.inicio) / Math.max(1, duracao - p.fadiga.inicio), 0, 1);
-  const carga = (p.intensidade.fadiga * (t.intensidade - 1)) / 4 * 0.6 + (p.ritmo.fadiga * (t.ritmo - 1)) / 4 * 0.4;
-  return p.fadiga.max * progresso * carga;
+export function fatigueIn(m: number, duration: number, t: Tactic, p: Params["tactic"]): number {
+  if (m <= p.fatigue.start) return 0;
+  const progress = clamp((m - p.fatigue.start) / Math.max(1, duration - p.fatigue.start), 0, 1);
+  const workload = (p.intensity.fatigue * (t.intensity - 1)) / 4 * 0.6 + (p.tempo.fatigue * (t.tempo - 1)) / 4 * 0.4;
+  return p.fatigue.max * progress * workload;
 }
 

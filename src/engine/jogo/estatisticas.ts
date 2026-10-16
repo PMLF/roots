@@ -3,84 +3,84 @@
  * Puro e determinístico (as notas levam um ruído estável tirado da seed e do id do jogo). Sem texto: os momentos-chave
  * são estruturados e a interface escreve-os no idioma do gamer. Lesões entram com RZ-107.
  */
-import { Rng, limitar } from "../aleatorio/rng";
-import type { Parametros } from "../config/parametros";
-import type { Posicao } from "../mundo/tipos";
-import type { Lesao } from "../lesoes/lesao";
-import { outroLado, type EntradaJogo, type EquipaJogo, type EventoJogo, type EstatLado, type Lado, type Origem, type ResumoJogo } from "./tipos";
+import { Rng, clamp } from "../aleatorio/rng";
+import type { Params } from "../config/parametros";
+import type { Position } from "../mundo/tipos";
+import type { Injury } from "../lesoes/lesao";
+import { otherSide, type MatchInput, type MatchTeam, type MatchEvent, type SideStat, type Side, type Origin, type MatchSummary } from "./tipos";
 
-export type EstatJogador = {
+export type PlayerStat = {
   id: string;
-  lado: Lado;
-  clube: string;
-  posicao: Posicao;
-  minutos: number;
-  golos: number;
-  assistencias: number;
-  remates: number;
-  aBaliza: number;
+  side: Side;
+  club: string;
+  position: Position;
+  minutes: number;
+  goals: number;
+  assists: number;
+  shots: number;
+  onTarget: number;
   xg: number;
-  penaltisFalhados: number;
-  faltas: number;
-  amarelos: number;
+  missedPenalties: number;
+  fouls: number;
+  yellows: number;
   /** 1 se foi expulso (vermelho direto ou segundo amarelo). */
-  vermelhos: number;
+  reds: number;
   /** Lesão sofrida neste jogo. */
-  lesao?: Lesao;
+  injury?: Injury;
   /** Só guarda-redes: remates à baliza defendidos. */
-  defesas: number;
-  golosSofridos: number;
+  saves: number;
+  concededGoals: number;
   /** 1-10, uma casa decimal. */
-  nota: number;
+  rating: number;
 };
 
-export type GoloJogo = { minuto: number; lado: Lado; jogador: string; assistente?: string; origem: Origem; golosCasa: number; golosFora: number };
+export type MatchGoal = { minute: number; side: Side; player: string; assistant?: string; origin: Origin; homeGoals: number; awayGoals: number };
 
 /** O que o golo mudou no marcador, do ponto de vista de quem marcou. «Reviravolta» = passa para a frente depois de ter estado a perder. */
-export type ContextoGolo = "abertura" | "empate" | "reviravolta" | "vantagem" | "reducao" | "alargou";
+export type GoalContext = "abertura" | "draw" | "turnaround" | "vantagem" | "reducao" | "alargou";
 
-export type MomentoChave =
-  | { tipo: "golo"; minuto: number; lado: Lado; jogador: string; assistente?: string; origem: Origem; contexto: ContextoGolo; golosCasa: number; golosFora: number }
-  | { tipo: "penalti-falhado"; minuto: number; lado: Lado; jogador: string; guardaRedes?: string; defendido: boolean }
-  | { tipo: "grande-defesa"; minuto: number; lado: Lado; jogador: string; guardaRedes: string; xg: number }
-  | { tipo: "lesao"; minuto: number; lado: Lado; jogador: string; lesao: Lesao; substituto?: string }
-  | { tipo: "expulsao"; minuto: number; lado: Lado; jogador: string; segundoAmarelo: boolean }
-  | { tipo: "ocasiao-falhada"; minuto: number; lado: Lado; jogador: string; xg: number };
+export type MomentKey =
+  | { type: "goal"; minute: number; side: Side; player: string; assistant?: string; origin: Origin; context: GoalContext; homeGoals: number; awayGoals: number }
+  | { type: "penalti-falhado"; minute: number; side: Side; player: string; goalkeeper?: string; saved: boolean }
+  | { type: "grande-defesa"; minute: number; side: Side; player: string; goalkeeper: string; xg: number }
+  | { type: "injury"; minute: number; side: Side; player: string; injury: Injury; substitute?: string }
+  | { type: "expulsao"; minute: number; side: Side; player: string; secondYellow: boolean }
+  | { type: "ocasiao-falhada"; minute: number; side: Side; player: string; xg: number };
 
-export type CartaoJogo = { minuto: number; lado: Lado; jogador: string; cor: "amarelo" | "vermelho"; segundoAmarelo?: true };
+export type MatchCard = { minute: number; side: Side; player: string; colour: "yellow" | "red"; secondYellow?: true };
 
-export type LesaoJogo = { minuto: number; lado: Lado; jogador: string; lesao: Lesao; substituto?: string };
+export type MatchInjury = { minute: number; side: Side; player: string; injury: Injury; substitute?: string };
 
-export type RelatorioJogo = {
-  duracao: number;
-  golosCasa: number;
-  golosFora: number;
+export type MatchReport = {
+  duration: number;
+  homeGoals: number;
+  awayGoals: number;
   /** Golos ao intervalo (até ao minuto `duracao`/2 arredondado, 45 num jogo normal). */
-  intervalo: { casa: number; fora: number };
-  posseCasa: number;
-  casa: EstatLado;
-  fora: EstatLado;
+  halfTime: { home: number; away: number };
+  homePossession: number;
+  home: SideStat;
+  away: SideStat;
   /** Golos por ordem, com o marcador depois de cada um. */
-  golos: GoloJogo[];
+  goals: MatchGoal[];
   /** Todos os cartões, por ordem. */
-  cartoes: CartaoJogo[];
+  cards: MatchCard[];
   /** Lesões em jogo, por ordem, com o suplente que entrou (se entrou). */
-  lesoes: LesaoJogo[];
-  momentos: MomentoChave[];
-  jogadores: EstatJogador[];
+  injuries: MatchInjury[];
+  moments: MomentKey[];
+  players: PlayerStat[];
   /** Id do homem do jogo (melhor nota; desempata por golos + assistências, xG e id). */
-  homemDoJogo: string;
+  matchMan: string;
 };
 
-const defensivo: Partial<Record<Posicao, number>> = { GK: 1, RB: 1, CB: 1, LB: 1, DM: 0.5 };
-const arredondar = (x: number, casas: number) => Math.round(x * 10 ** casas) / 10 ** casas;
+const defensive: Partial<Record<Position, number>> = { GK: 1, RB: 1, CB: 1, LB: 1, DM: 0.5 };
+const round = (x: number, homes: number) => Math.round(x * 10 ** homes) / 10 ** homes;
 
 /** `proprios` e `adversario` são os golos ANTES deste golo; `jaPerdia` diz se a equipa já perdeu em algum momento do jogo. */
-function contextoDoGolo(proprios: number, adversario: number, jaPerdia: boolean): ContextoGolo {
-  if (proprios === 0 && adversario === 0) return "abertura";
-  if (proprios + 1 === adversario) return "empate";
-  if (proprios + 1 < adversario) return "reducao";
-  if (proprios === adversario) return jaPerdia ? "reviravolta" : "vantagem";
+function goalContext(own: number, opponent: number, alreadyLost: boolean): GoalContext {
+  if (own === 0 && opponent === 0) return "abertura";
+  if (own + 1 === opponent) return "draw";
+  if (own + 1 < opponent) return "reducao";
+  if (own === opponent) return alreadyLost ? "turnaround" : "vantagem";
   return "alargou";
 }
 
@@ -88,159 +88,159 @@ function contextoDoGolo(proprios: number, adversario: number, jaPerdia: boolean)
  * Constrói o relatório. `equipas` tem de incluir todos os jogadores que jogaram (os do onze inicial e, quando
  * houver substituições, os que entraram); um evento de um jogador que lá não está é um erro.
  */
-export function relatorioDoJogo(
-  entrada: Pick<EntradaJogo, "seed" | "id">,
-  equipas: { casa: EquipaJogo; fora: EquipaJogo },
-  eventos: readonly EventoJogo[],
-  resumo: ResumoJogo,
-  params: Parametros,
-): RelatorioJogo {
-  const pj = params.jogo;
-  const n = pj.notas;
-  const jogadores = new Map<string, EstatJogador>();
-  for (const lado of ["casa", "fora"] as const) {
-    for (const [j, minutos] of [...equipas[lado].onze.map((x) => [x, resumo.duracao] as const), ...(equipas[lado].banco ?? []).map((x) => [x, 0] as const)]) {
-      jogadores.set(j.id, { id: j.id, lado, clube: equipas[lado].clube, posicao: j.posicao, minutos, golos: 0, assistencias: 0, remates: 0, aBaliza: 0, xg: 0, penaltisFalhados: 0, faltas: 0, amarelos: 0, vermelhos: 0, defesas: 0, golosSofridos: 0, nota: n.base });
+export function matchReport(
+  input: Pick<MatchInput, "seed" | "id">,
+  teams: { home: MatchTeam; away: MatchTeam },
+  events: readonly MatchEvent[],
+  summary: MatchSummary,
+  params: Params,
+): MatchReport {
+  const pj = params.match;
+  const n = pj.ratings;
+  const players = new Map<string, PlayerStat>();
+  for (const side of ["home", "away"] as const) {
+    for (const [j, minutes] of [...teams[side].lineup.map((x) => [x, summary.duration] as const), ...(teams[side].bench ?? []).map((x) => [x, 0] as const)]) {
+      players.set(j.id, { id: j.id, side, club: teams[side].club, position: j.position, minutes, goals: 0, assists: 0, shots: 0, onTarget: 0, xg: 0, missedPenalties: 0, fouls: 0, yellows: 0, reds: 0, saves: 0, concededGoals: 0, rating: n.base });
     }
   }
-  const obter = (id: string): EstatJogador => {
-    const j = jogadores.get(id);
+  const get = (id: string): PlayerStat => {
+    const j = players.get(id);
     if (!j) throw new Error(`relatorioDoJogo: jogador ${id} não está nas equipas`);
     return j;
   };
 
-  const marcador = { casa: 0, fora: 0 };
-  const intervalo = { casa: 0, fora: 0 };
-  const jaPerdeu = { casa: false, fora: false };
-  const meio = Math.round(pj.duracao / 2);
-  const golos: GoloJogo[] = [];
-  const cartoes: CartaoJogo[] = [];
-  const lesoes: LesaoJogo[] = [];
-  const momentos: MomentoChave[] = [];
+  const scorer = { home: 0, away: 0 };
+  const halfTime = { home: 0, away: 0 };
+  const alreadyLost = { home: false, away: false };
+  const middle = Math.round(pj.duration / 2);
+  const goals: MatchGoal[] = [];
+  const cards: MatchCard[] = [];
+  const injuries: MatchInjury[] = [];
+  const moments: MomentKey[] = [];
   /** Ajustes à nota por jogador, antes do clamp. */
-  const ajuste = new Map<string, number>();
-  const somar = (id: string, v: number) => ajuste.set(id, (ajuste.get(id) ?? 0) + v);
+  const adjustment = new Map<string, number>();
+  const add = (id: string, v: number) => adjustment.set(id, (adjustment.get(id) ?? 0) + v);
 
-  for (const e of eventos) {
-    if (e.tipo === "falta") {
-      const inf = obter(e.jogador);
-      inf.faltas++;
-      somar(e.jogador, e.penalti ? n.penaltiConcedido : n.falta);
+  for (const e of events) {
+    if (e.type === "foul") {
+      const inf = get(e.player);
+      inf.fouls++;
+      add(e.player, e.penalty ? n.grantedPenalty : n.foul);
       continue;
     }
-    if (e.tipo === "lesao") {
-      const j = obter(e.jogador);
-      j.lesao = e.lesao;
-      j.minutos = Math.min(j.minutos, e.minuto);
-      momentos.push({ tipo: "lesao", minuto: e.minuto, lado: e.lado, jogador: e.jogador, lesao: e.lesao });
-      lesoes.push({ minuto: e.minuto, lado: e.lado, jogador: e.jogador, lesao: e.lesao });
+    if (e.type === "injury") {
+      const j = get(e.player);
+      j.injury = e.injury;
+      j.minutes = Math.min(j.minutes, e.minute);
+      moments.push({ type: "injury", minute: e.minute, side: e.side, player: e.player, injury: e.injury });
+      injuries.push({ minute: e.minute, side: e.side, player: e.player, injury: e.injury });
       continue;
     }
-    if (e.tipo === "substituicao") {
-      const sai = obter(e.sai);
-      const entra = obter(e.entra);
-      sai.minutos = Math.min(sai.minutos, e.minuto);
-      entra.minutos = resumo.duracao - e.minuto;
-      entra.posicao = sai.posicao;
-      const m = momentos.find((x) => x.tipo === "lesao" && x.jogador === e.sai);
-      if (m && m.tipo === "lesao") m.substituto = e.entra;
-      const l = lesoes.find((x) => x.jogador === e.sai);
-      if (l) l.substituto = e.entra;
+    if (e.type === "substitution") {
+      const playerOut = get(e.playerOut);
+      const playerIn = get(e.playerIn);
+      playerOut.minutes = Math.min(playerOut.minutes, e.minute);
+      playerIn.minutes = summary.duration - e.minute;
+      playerIn.position = playerOut.position;
+      const m = moments.find((x) => x.type === "injury" && x.player === e.playerOut);
+      if (m && m.type === "injury") m.substitute = e.playerIn;
+      const l = injuries.find((x) => x.player === e.playerOut);
+      if (l) l.substitute = e.playerIn;
       continue;
     }
-    if (e.tipo === "cartao") {
-      const j = obter(e.jogador);
-      cartoes.push({ minuto: e.minuto, lado: e.lado, jogador: e.jogador, cor: e.cor, ...(e.segundoAmarelo ? { segundoAmarelo: true as const } : {}) });
-      if (e.cor === "amarelo") {
-        j.amarelos++;
-        somar(e.jogador, n.amarelo);
+    if (e.type === "card") {
+      const j = get(e.player);
+      cards.push({ minute: e.minute, side: e.side, player: e.player, colour: e.colour, ...(e.secondYellow ? { secondYellow: true as const } : {}) });
+      if (e.colour === "yellow") {
+        j.yellows++;
+        add(e.player, n.yellow);
       } else {
-        j.vermelhos++;
-        j.minutos = Math.min(j.minutos, e.minuto);
-        somar(e.jogador, n.vermelho);
-        momentos.push({ tipo: "expulsao", minuto: e.minuto, lado: e.lado, jogador: e.jogador, segundoAmarelo: !!e.segundoAmarelo });
+        j.reds++;
+        j.minutes = Math.min(j.minutes, e.minute);
+        add(e.player, n.red);
+        moments.push({ type: "expulsao", minute: e.minute, side: e.side, player: e.player, secondYellow: !!e.secondYellow });
       }
       continue;
     }
-    if (e.tipo !== "remate") continue;
-    const fin = obter(e.jogador);
-    fin.remates++;
-    fin.xg += e.xg;
-    const gr = e.guardaRedes ? obter(e.guardaRedes) : undefined;
-    if (e.resultado === "golo") {
-      const adv = outroLado(e.lado);
-      const contexto = contextoDoGolo(marcador[e.lado], marcador[adv], jaPerdeu[e.lado]);
-      marcador[e.lado]++;
-      if (marcador[e.lado] > marcador[adv]) jaPerdeu[adv] = true;
-      if (e.minuto <= meio) intervalo[e.lado]++;
-      fin.golos++;
-      fin.aBaliza++;
-      somar(e.jogador, n.golo);
-      if (e.assistente) {
-        obter(e.assistente).assistencias++;
-        somar(e.assistente, n.assistencia);
+    if (e.type !== "shot") continue;
+    const end = get(e.player);
+    end.shots++;
+    end.xg += e.xg;
+    const gk = e.goalkeeper ? get(e.goalkeeper) : undefined;
+    if (e.outcome === "goal") {
+      const opp = otherSide(e.side);
+      const context = goalContext(scorer[e.side], scorer[opp], alreadyLost[e.side]);
+      scorer[e.side]++;
+      if (scorer[e.side] > scorer[opp]) alreadyLost[opp] = true;
+      if (e.minute <= middle) halfTime[e.side]++;
+      end.goals++;
+      end.onTarget++;
+      add(e.player, n.goal);
+      if (e.assistant) {
+        get(e.assistant).assists++;
+        add(e.assistant, n.attendance);
       }
-      const g: GoloJogo = { minuto: e.minuto, lado: e.lado, jogador: e.jogador, ...(e.assistente ? { assistente: e.assistente } : {}), origem: e.origem, golosCasa: marcador.casa, golosFora: marcador.fora };
-      golos.push(g);
-      momentos.push({ tipo: "golo", ...g, contexto });
+      const g: MatchGoal = { minute: e.minute, side: e.side, player: e.player, ...(e.assistant ? { assistant: e.assistant } : {}), origin: e.origin, homeGoals: scorer.home, awayGoals: scorer.away };
+      goals.push(g);
+      moments.push({ type: "goal", ...g, context });
       continue;
     }
-    if (e.resultado === "defendido") {
-      fin.aBaliza++;
-      somar(e.jogador, n.remateABaliza);
-      if (gr) {
-        gr.defesas++;
-        somar(gr.id, n.defesa);
+    if (e.outcome === "saved") {
+      end.onTarget++;
+      add(e.player, n.onTargetShot);
+      if (gk) {
+        gk.saves++;
+        add(gk.id, n.defence);
       }
     }
-    if (e.origem === "penalti") {
-      fin.penaltisFalhados++;
-      somar(e.jogador, n.penaltiFalhado);
-      momentos.push({ tipo: "penalti-falhado", minuto: e.minuto, lado: e.lado, jogador: e.jogador, ...(e.guardaRedes ? { guardaRedes: e.guardaRedes } : {}), defendido: e.resultado === "defendido" });
-    } else if (e.xg >= pj.momentos.xgGrande) {
-      if (e.resultado === "defendido" && e.guardaRedes) momentos.push({ tipo: "grande-defesa", minuto: e.minuto, lado: e.lado, jogador: e.jogador, guardaRedes: e.guardaRedes, xg: e.xg });
+    if (e.origin === "penalty") {
+      end.missedPenalties++;
+      add(e.player, n.missedPenalty);
+      moments.push({ type: "penalti-falhado", minute: e.minute, side: e.side, player: e.player, ...(e.goalkeeper ? { goalkeeper: e.goalkeeper } : {}), saved: e.outcome === "saved" });
+    } else if (e.xg >= pj.moments.bigXg) {
+      if (e.outcome === "saved" && e.goalkeeper) moments.push({ type: "grande-defesa", minute: e.minute, side: e.side, player: e.player, goalkeeper: e.goalkeeper, xg: e.xg });
       else {
-        somar(e.jogador, n.ocasiaoFalhada);
-        momentos.push({ tipo: "ocasiao-falhada", minuto: e.minuto, lado: e.lado, jogador: e.jogador, xg: e.xg });
+        add(e.player, n.missedChance);
+        moments.push({ type: "ocasiao-falhada", minute: e.minute, side: e.side, player: e.player, xg: e.xg });
       }
     }
   }
 
   // notas: base + ações + defesa + resultado + ruído estável
-  const rng = new Rng(entrada.seed, `jogo/${entrada.id}/notas`);
-  const golosDe = (l: Lado) => marcador[l];
-  for (const j of jogadores.values()) {
-    const meu = golosDe(j.lado);
-    const dele = golosDe(outroLado(j.lado));
-    const peso = defensivo[j.posicao] ?? 0;
-    let nota = n.base + (ajuste.get(j.id) ?? 0);
-    if (peso > 0) {
-      nota += n.golosSofridos * dele * peso;
-      if (dele === 0) nota += n.balizaZero * peso;
+  const rng = new Rng(input.seed, `jogo/${input.id}/notas`);
+  const goalsOf = (l: Side) => scorer[l];
+  for (const j of players.values()) {
+    const mine = goalsOf(j.side);
+    const its = goalsOf(otherSide(j.side));
+    const weight = defensive[j.position] ?? 0;
+    let rating = n.base + (adjustment.get(j.id) ?? 0);
+    if (weight > 0) {
+      rating += n.concededGoals * its * weight;
+      if (its === 0) rating += n.zeroGoalmouth * weight;
     }
-    nota += meu > dele ? n.resultado : meu < dele ? -n.resultado : 0;
-    nota += (rng.derivar(j.id).float() * 2 - 1) * n.ruido;
-    j.nota = arredondar(limitar(nota, n.min, n.max), 1);
-    j.xg = arredondar(j.xg, 3);
-    j.golosSofridos = j.posicao === "GK" ? dele : 0;
+    rating += mine > its ? n.outcome : mine < its ? -n.outcome : 0;
+    rating += (rng.derive(j.id).float() * 2 - 1) * n.noise;
+    j.rating = round(clamp(rating, n.min, n.max), 1);
+    j.xg = round(j.xg, 3);
+    j.concededGoals = j.position === "GK" ? its : 0;
   }
 
-  const lista = [...jogadores.values()].filter((j) => j.minutos > 0);
-  const melhor = [...lista].sort((a, b) => b.nota - a.nota || b.golos + b.assistencias - (a.golos + a.assistencias) || b.xg - a.xg || a.id.localeCompare(b.id))[0] as EstatJogador;
-  momentos.sort((a, b) => a.minuto - b.minuto);
+  const list = [...players.values()].filter((j) => j.minutes > 0);
+  const best = [...list].sort((a, b) => b.rating - a.rating || b.goals + b.assists - (a.goals + a.assists) || b.xg - a.xg || a.id.localeCompare(b.id))[0] as PlayerStat;
+  moments.sort((a, b) => a.minute - b.minute);
   return {
-    duracao: resumo.duracao,
-    golosCasa: marcador.casa,
-    golosFora: marcador.fora,
-    intervalo,
-    posseCasa: resumo.posseCasa,
-    casa: resumo.casa,
-    fora: resumo.fora,
-    golos,
-    cartoes,
-    lesoes,
-    momentos,
-    jogadores: lista,
-    homemDoJogo: melhor.id,
+    duration: summary.duration,
+    homeGoals: scorer.home,
+    awayGoals: scorer.away,
+    halfTime,
+    homePossession: summary.homePossession,
+    home: summary.home,
+    away: summary.away,
+    goals,
+    cards,
+    injuries,
+    moments,
+    players: list,
+    matchMan: best.id,
   };
 }

@@ -3,49 +3,49 @@
  * classificado da pirâmide. A tesouraria do clube e o orçamento da Câmara entram com as finanças (RZ-114): por agora o
  * valor fica no evento `PREMIO_ESTADO`, de onde se reconstrói.
  */
-import type { Escalao } from "../config/parametros";
-import type { ClubeId, DistritoId } from "../dados/tipos";
+import type { Tier } from "../config/parametros";
+import type { ClubId, DistrictId } from "../dados/tipos";
 
-export type ClubeClassificado = {
-  clube: ClubeId;
-  distrito: DistritoId;
-  escalao: Escalao;
+export type RankedClub = {
+  club: ClubId;
+  district: DistrictId;
+  tier: Tier;
   /** Posição final na tabela da sua competição (no CP, dentro da série). */
-  posicao: number;
-  jogos: number;
-  pontos: number;
-  diferenca: number;
-  golosMarcados: number;
-  reputacao: number;
+  position: number;
+  matches: number;
+  points: number;
+  difference: number;
+  scoredGoals: number;
+  reputation: number;
 };
 
-const ORDEM_ESCALAO: Record<Escalao, number> = { primeiraLiga: 0, segundaLiga: 1, terceiraLiga: 2, cp: 3, distrital: 4 };
+const TIER_ORDER: Record<Tier, number> = { firstLeague: 0, secondLeague: 1, thirdLeague: 2, cp: 3, district: 4 };
 
 /** Negativo se `a` é melhor classificado que `b`: escalão, posição, pontos por jogo, diferença, golos marcados, menor reputação. */
-export function compararParaPremio(a: ClubeClassificado, b: ClubeClassificado): number {
-  const ppg = (c: ClubeClassificado) => (c.jogos > 0 ? c.pontos / c.jogos : 0);
+export function compareForPrize(a: RankedClub, b: RankedClub): number {
+  const ppg = (c: RankedClub) => (c.matches > 0 ? c.points / c.matches : 0);
   return (
-    ORDEM_ESCALAO[a.escalao] - ORDEM_ESCALAO[b.escalao] ||
-    a.posicao - b.posicao ||
+    TIER_ORDER[a.tier] - TIER_ORDER[b.tier] ||
+    a.position - b.position ||
     ppg(b) - ppg(a) ||
-    b.diferenca - a.diferenca ||
-    b.golosMarcados - a.golosMarcados ||
-    a.reputacao - b.reputacao ||
-    (a.clube < b.clube ? -1 : a.clube > b.clube ? 1 : 0)
+    b.difference - a.difference ||
+    b.scoredGoals - a.scoredGoals ||
+    a.reputation - b.reputation ||
+    (a.club < b.club ? -1 : a.club > b.club ? 1 : 0)
   );
 }
 
 /** O melhor classificado de cada distrito (só os distritos com clubes). Ordenado por distrito, para ser estável. */
-export function premiadosPorDistrito(clubes: readonly ClubeClassificado[]): { distrito: DistritoId; clube: ClubeId }[] {
-  const melhor = new Map<DistritoId, ClubeClassificado>();
-  for (const c of clubes) {
-    const atual = melhor.get(c.distrito);
-    if (!atual || compararParaPremio(c, atual) < 0) melhor.set(c.distrito, c);
+export function winnersPerDistrict(clubs: readonly RankedClub[]): { district: DistrictId; club: ClubId }[] {
+  const best = new Map<DistrictId, RankedClub>();
+  for (const c of clubs) {
+    const current = best.get(c.district);
+    if (!current || compareForPrize(c, current) < 0) best.set(c.district, c);
   }
-  return [...melhor.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([distrito, c]) => ({ distrito, clube: c.clube }));
+  return [...best.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([district, c]) => ({ district, club: c.club }));
 }
 
 /** Anos seguidos em que o mesmo clube ganha o prémio do distrito (1 na primeira vez ou depois de outro vencedor). */
-export function anosSeguidos(anterior: { clube: ClubeId; seguidos: number } | undefined, clube: ClubeId): number {
-  return anterior && anterior.clube === clube ? anterior.seguidos + 1 : 1;
+export function consecutiveYears(previous: { club: ClubId; consecutive: number } | undefined, club: ClubId): number {
+  return previous && previous.club === club ? previous.consecutive + 1 : 1;
 }

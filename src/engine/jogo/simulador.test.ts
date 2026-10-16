@@ -1,103 +1,103 @@
 import { describe, expect, it } from "vitest";
-import { PARAMETROS_PADRAO as P } from "../config/parametros";
-import { RepositorioMemoria } from "../persistencia/repositorioMemoria";
-import { equipaSintetica } from "./teste-util";
-import { registoDoJogo } from "./registo";
-import { SimuladorJogo, simularJogo } from "./simulador";
-import type { EntradaJogo, EventoJogo } from "./tipos";
+import { DEFAULT_PARAMETERS as P } from "../config/parametros";
+import { MemoryRepository } from "../persistencia/repositorioMemoria";
+import { syntheticTeam } from "./teste-util";
+import { matchRecord } from "./registo";
+import { MatchSimulator, simulateMatch } from "./simulador";
+import type { MatchInput, MatchEvent } from "./tipos";
 
-const entrada = (id = "j1", seed = "s", a = 10, b = 10): EntradaJogo => ({ seed, id, casa: equipaSintetica("A", a), fora: equipaSintetica("B", b) });
+const input = (id = "j1", seed = "s", a = 10, b = 10): MatchInput => ({ seed, id, home: syntheticTeam("A", a), away: syntheticTeam("B", b) });
 
 describe("motor de jogo", () => {
   it("é determinístico: mesma seed e mesmo jogo, mesmo resultado; outro id, outro jogo", () => {
-    const a = simularJogo(entrada(), P);
-    const b = simularJogo(entrada(), P);
+    const a = simulateMatch(input(), P);
+    const b = simulateMatch(input(), P);
     expect(b).toEqual(a);
-    const c = simularJogo(entrada("j2"), P);
-    expect(c.eventos).not.toEqual(a.eventos);
-    expect(simularJogo(entrada("j1", "outra"), P).eventos).not.toEqual(a.eventos);
+    const c = simulateMatch(input("j2"), P);
+    expect(c.events).not.toEqual(a.events);
+    expect(simulateMatch(input("j1", "other"), P).events).not.toEqual(a.events);
   });
 
   it("é retomável: simular por partes dá o mesmo jogo que simular de uma vez", () => {
-    const inteiro = simularJogo(entrada("r1"), P);
-    const s = new SimuladorJogo(entrada("r1"), P);
-    const partes: EventoJogo[] = [];
-    for (const m of [10, 10, 45, 46, 70, 200]) partes.push(...s.simularAte(m));
-    expect(s.terminado).toBe(true);
-    expect(partes).toEqual(inteiro.eventos);
-    expect(s.resumo()).toEqual(inteiro.resumo);
+    const integer = simulateMatch(input("r1"), P);
+    const s = new MatchSimulator(input("r1"), P);
+    const parts: MatchEvent[] = [];
+    for (const m of [10, 10, 45, 46, 70, 200]) parts.push(...s.simulateUntil(m));
+    expect(s.finished).toBe(true);
+    expect(parts).toEqual(integer.events);
+    expect(s.summary()).toEqual(integer.summary);
     // depois do fim não há mais nada
-    expect(s.simularAte(300)).toEqual([]);
+    expect(s.simulateUntil(300)).toEqual([]);
   });
 
   it("os eventos são coerentes com o resumo", () => {
     for (let i = 0; i < 60; i++) {
-      const { eventos, resumo } = simularJogo(entrada(`c${i}`), P);
-      const golos = { casa: 0, fora: 0 };
-      let remates = 0;
-      let cantos = 0;
-      let faltas = 0;
-      let ultimo = 0;
-      for (const e of eventos) {
-        expect(e.minuto).toBeGreaterThanOrEqual(ultimo);
-        expect(e.minuto).toBeGreaterThanOrEqual(1);
-        expect(e.minuto).toBeLessThanOrEqual(resumo.duracao);
-        ultimo = e.minuto;
-        if (e.tipo === "remate") {
-          remates++;
-          if (e.resultado === "golo") golos[e.lado]++;
+      const { events, summary } = simulateMatch(input(`c${i}`), P);
+      const goals = { home: 0, away: 0 };
+      let shots = 0;
+      let corners = 0;
+      let fouls = 0;
+      let last = 0;
+      for (const e of events) {
+        expect(e.minute).toBeGreaterThanOrEqual(last);
+        expect(e.minute).toBeGreaterThanOrEqual(1);
+        expect(e.minute).toBeLessThanOrEqual(summary.duration);
+        last = e.minute;
+        if (e.type === "shot") {
+          shots++;
+          if (e.outcome === "goal") goals[e.side]++;
           expect(e.xg).toBeGreaterThan(0);
           expect(e.xg).toBeLessThan(1);
-          if (e.assistente) expect(e.assistente).not.toBe(e.jogador);
-          expect(e.jogador.startsWith(e.lado === "casa" ? "A-" : "B-")).toBe(true);
-          expect(e.jogador).not.toBe(`${e.lado === "casa" ? "A" : "B"}-0`); // o guarda-redes não remata
-        } else if (e.tipo === "canto") cantos++;
-        else if (e.tipo === "falta") faltas++;
+          if (e.assistant) expect(e.assistant).not.toBe(e.player);
+          expect(e.player.startsWith(e.side === "home" ? "A-" : "B-")).toBe(true);
+          expect(e.player).not.toBe(`${e.side === "home" ? "A" : "B"}-0`); // o guarda-redes não remata
+        } else if (e.type === "corner") corners++;
+        else if (e.type === "foul") fouls++;
       }
-      expect(golos).toEqual({ casa: resumo.casa.golos, fora: resumo.fora.golos });
-      expect(remates).toBe(resumo.casa.remates + resumo.fora.remates);
-      expect(cantos).toBe(resumo.casa.cantos + resumo.fora.cantos);
-      expect(faltas).toBe(resumo.casa.faltas + resumo.fora.faltas);
-      expect(resumo.casa.aBaliza).toBeGreaterThanOrEqual(resumo.casa.golos);
-      expect(resumo.duracao).toBeGreaterThanOrEqual(P.jogo.duracao + P.jogo.acrescimos.min);
-      expect(resumo.duracao).toBeLessThanOrEqual(P.jogo.duracao + P.jogo.acrescimos.max);
-      expect(resumo.posseCasa).toBeGreaterThan(0);
-      expect(resumo.posseCasa).toBeLessThan(1);
+      expect(goals).toEqual({ home: summary.home.goals, away: summary.away.goals });
+      expect(shots).toBe(summary.home.shots + summary.away.shots);
+      expect(corners).toBe(summary.home.corners + summary.away.corners);
+      expect(fouls).toBe(summary.home.fouls + summary.away.fouls);
+      expect(summary.home.onTarget).toBeGreaterThanOrEqual(summary.home.goals);
+      expect(summary.duration).toBeGreaterThanOrEqual(P.match.duration + P.match.stoppage.min);
+      expect(summary.duration).toBeLessThanOrEqual(P.match.duration + P.match.stoppage.max);
+      expect(summary.homePossession).toBeGreaterThan(0);
+      expect(summary.homePossession).toBeLessThan(1);
     }
   });
 
   it("alterar a equipa a meio só afeta o que vem depois", () => {
-    const s1 = new SimuladorJogo(entrada("a1", "s", 10, 10), P);
-    const antes1 = s1.simularAte(45);
-    s1.alterarEquipa("fora", equipaSintetica("B", 4));
-    const depois1 = s1.simularAte(200);
-    const s2 = new SimuladorJogo(entrada("a1", "s", 10, 10), P);
-    expect(s2.simularAte(45)).toEqual(antes1);
-    const depois2 = s2.simularAte(200);
-    expect(depois2).not.toEqual(depois1);
+    const s1 = new MatchSimulator(input("a1", "s", 10, 10), P);
+    const before1 = s1.simulateUntil(45);
+    s1.changeTeam("away", syntheticTeam("B", 4));
+    const after1 = s1.simulateUntil(200);
+    const s2 = new MatchSimulator(input("a1", "s", 10, 10), P);
+    expect(s2.simulateUntil(45)).toEqual(before1);
+    const after2 = s2.simulateUntil(200);
+    expect(after2).not.toEqual(after1);
   });
 
   it("um guarda-redes péssimo sofre mais: o atributo conta", () => {
-    let golosBom = 0;
-    let golosMau = 0;
+    let goodGoals = 0;
+    let badGoals = 0;
     for (let i = 0; i < 400; i++) {
-      const bom = { seed: "g", id: `gr${i}`, casa: equipaSintetica("A", 10), fora: equipaSintetica("B", 10, { reflexos: 18, manuseamento: 18, posicionamentoGR: 18, saidas: 18 }) };
-      const mau = { seed: "g", id: `gr${i}`, casa: equipaSintetica("A", 10), fora: equipaSintetica("B", 10, { reflexos: 3, manuseamento: 3, posicionamentoGR: 3, saidas: 3 }) };
-      golosBom += simularJogo(bom, P).resumo.casa.golos;
-      golosMau += simularJogo(mau, P).resumo.casa.golos;
+      const good = { seed: "g", id: `gr${i}`, home: syntheticTeam("A", 10), away: syntheticTeam("B", 10, { reflexes: 18, handling: 18, gkPositioning: 18, outputs: 18 }) };
+      const bad = { seed: "g", id: `gr${i}`, home: syntheticTeam("A", 10), away: syntheticTeam("B", 10, { reflexes: 3, handling: 3, gkPositioning: 3, outputs: 3 }) };
+      goodGoals += simulateMatch(good, P).summary.home.goals;
+      badGoals += simulateMatch(bad, P).summary.home.goals;
     }
-    expect(golosMau).toBeGreaterThan(golosBom * 1.2);
+    expect(badGoals).toBeGreaterThan(goodGoals * 1.2);
   });
 
   it("o registo do jogo é aceite pelo repositório e os factos batem com o resultado", () => {
-    const e = entrada("reg1");
-    const { eventos, resumo } = simularJogo(e, P);
-    const { jogo, factos, participacoes } = registoDoJogo({ id: "reg1", competicao: "SL", epoca: 1, jornada: 1, data: "2026-08-22" }, e.casa, e.fora, eventos, resumo);
-    expect(participacoes).toHaveLength(22);
-    expect(factos.filter((f) => f.tipo === "G")).toHaveLength(resumo.casa.golos + resumo.fora.golos);
-    const r = new RepositorioMemoria();
-    r.registarJogo(jogo, factos, participacoes);
-    expect(r.jogo("reg1")).toMatchObject({ golosCasa: resumo.casa.golos, golosFora: resumo.fora.golos });
-    expect(r.classificacao("SL", 1)).toHaveLength(2);
+    const e = input("reg1");
+    const { events, summary } = simulateMatch(e, P);
+    const { match, facts, appearances } = matchRecord({ id: "reg1", competition: "SL", season: 1, round: 1, date: "2026-08-22" }, e.home, e.away, events, summary);
+    expect(appearances).toHaveLength(22);
+    expect(facts.filter((f) => f.type === "G")).toHaveLength(summary.home.goals + summary.away.goals);
+    const r = new MemoryRepository();
+    r.recordMatch(match, facts, appearances);
+    expect(r.match("reg1")).toMatchObject({ homeGoals: summary.home.goals, awayGoals: summary.away.goals });
+    expect(r.standings("SL", 1)).toHaveLength(2);
   });
 });

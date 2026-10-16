@@ -7,53 +7,53 @@
  */
 import type { Rng } from "../aleatorio/rng";
 
-export type Duelo = { casa: string; fora: string };
-export type Ronda = { jogos: Duelo[]; folga?: string };
+export type Duel = { home: string; away: string };
+export type Round = { matches: Duel[]; bye?: string };
 
-export function todosContraTodos(clubes: readonly string[], voltas: 1 | 2, rng: Rng): Ronda[] {
-  if (clubes.length < 2) throw new Error("É preciso pelo menos 2 clubes");
-  if (new Set(clubes).size !== clubes.length) throw new Error("Clubes repetidos");
+export function allAgainstAll(clubs: readonly string[], legs: 1 | 2, rng: Rng): Round[] {
+  if (clubs.length < 2) throw new Error("É preciso pelo menos 2 clubes");
+  if (new Set(clubs).size !== clubs.length) throw new Error("Clubes repetidos");
   // ordem aleatória (mas determinística) para que cada seed dê jornadas diferentes
-  const base: (string | null)[] = rng.baralhar(clubes);
+  const base: (string | null)[] = rng.shuffle(clubs);
   if (base.length % 2 === 1) base.push(null); // null = folga
   const n = base.length;
   const t = base.map((_, i) => i);
-  const primeira: Ronda[] = [];
+  const first: Round[] = [];
   for (let r = 0; r < n - 1; r++) {
-    const ronda: Ronda = { jogos: [] };
+    const round: Round = { matches: [] };
     for (let i = 0; i < n / 2; i++) {
       const a = t[i] as number;
       const b = t[n - 1 - i] as number;
-      const aEmCasa = i === 0 ? r % 2 === 0 : i % 2 === 0;
-      const [h, v] = aEmCasa ? [a, b] : [b, a];
-      const casa = base[h] ?? null;
-      const fora = base[v] ?? null;
-      if (casa === null || fora === null) ronda.folga = (casa ?? fora) as string;
-      else ronda.jogos.push({ casa, fora });
+      const atHome = i === 0 ? r % 2 === 0 : i % 2 === 0;
+      const [h, v] = atHome ? [a, b] : [b, a];
+      const home = base[h] ?? null;
+      const away = base[v] ?? null;
+      if (home === null || away === null) round.bye = (home ?? away) as string;
+      else round.matches.push({ home, away });
     }
-    primeira.push(ronda);
+    first.push(round);
     t.splice(0, 0, t.splice(n - 2, 1)[0] as number); // roda todos menos o último
   }
-  if (voltas === 1) return primeira;
-  const espelho: Ronda[] = primeira.map((r) => ({
-    jogos: r.jogos.map((j) => ({ casa: j.fora, fora: j.casa })),
-    ...(r.folga !== undefined ? { folga: r.folga } : {}),
+  if (legs === 1) return first;
+  const mirror: Round[] = first.map((r) => ({
+    matches: r.matches.map((j) => ({ home: j.away, away: j.home })),
+    ...(r.bye !== undefined ? { bye: r.bye } : {}),
   }));
-  if (espelho.length > 2) [espelho[0], espelho[1]] = [espelho[1] as Ronda, espelho[0] as Ronda];
-  return [...primeira, ...espelho];
+  if (mirror.length > 2) [mirror[0], mirror[1]] = [mirror[1] as Round, mirror[0] as Round];
+  return [...first, ...mirror];
 }
 
 /** Maior sequência de jogos seguidos em casa ou fora de cada clube (as folgas não interrompem). */
-export function maiorSequenciaCasaFora(rondas: readonly Ronda[]): Map<string, number> {
-  const ultimo = new Map<string, { casa: boolean; corrida: number }>();
-  const maximo = new Map<string, number>();
-  for (const r of rondas)
-    for (const j of r.jogos)
-      for (const [clube, casa] of [[j.casa, true], [j.fora, false]] as const) {
-        const u = ultimo.get(clube);
-        const corrida = u && u.casa === casa ? u.corrida + 1 : 1;
-        ultimo.set(clube, { casa, corrida });
-        maximo.set(clube, Math.max(maximo.get(clube) ?? 0, corrida));
+export function largerAwayHomeSequence(pairings: readonly Round[]): Map<string, number> {
+  const last = new Map<string, { home: boolean; run: number }>();
+  const max = new Map<string, number>();
+  for (const r of pairings)
+    for (const j of r.matches)
+      for (const [club, home] of [[j.home, true], [j.away, false]] as const) {
+        const u = last.get(club);
+        const run = u && u.home === home ? u.run + 1 : 1;
+        last.set(club, { home, run });
+        max.set(club, Math.max(max.get(club) ?? 0, run));
       }
-  return maximo;
+  return max;
 }

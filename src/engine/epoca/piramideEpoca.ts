@@ -4,71 +4,71 @@
  * clube, para que todas as páginas mostrem sempre a liga em que o clube joga neste save (a de arranque só fica no
  * histórico de divisões).
  */
-import { ligaDaSegundaDistrital } from "./distritais";
-import type { Escalao } from "../config/parametros";
-import type { ClubeId, DadosBase, SerieCP } from "../dados/tipos";
-import type { Repositorio } from "../persistencia/repositorio";
-import { SERIES, type Piramide } from "./movimentos";
+import { secondDistrictLeague } from "./distritais";
+import type { Tier } from "../config/parametros";
+import type { ClubId, BaseData, CpSeries } from "../dados/tipos";
+import type { Repository } from "../persistencia/repositorio";
+import { SERIES, type Pyramid } from "./movimentos";
 
-const chave = (epoca: number) => `piramide.${epoca}`;
+const rowKey = (season: number) => `piramide.${season}`;
 
-export const epocaAtual = (repo: Repositorio): number => Number(repo.meta("epoca") ?? 1);
+export const currentSeason = (repo: Repository): number => Number(repo.meta("season") ?? 1);
 
-export function piramideInicial(dados: DadosBase): Piramide {
-  const ids = (e: Escalao) => dados.clubes.filter((c) => c.escalao === e).map((c) => c.id);
-  const distritais: Record<string, ClubeId[]> = {};
-  for (const c of dados.clubes) if (c.escalao === "distrital") (distritais[c.distrito] ??= []).push(c.id);
+export function initialPyramid(data: BaseData): Pyramid {
+  const ids = (e: Tier) => data.clubs.filter((c) => c.tier === e).map((c) => c.id);
+  const districtLeagues: Record<string, ClubId[]> = {};
+  for (const c of data.clubs) if (c.tier === "district") (districtLeagues[c.district] ??= []).push(c.id);
   return {
-    primeira: ids("primeiraLiga"),
-    segunda: ids("segundaLiga"),
-    terceira: ids("terceiraLiga"),
-    cp: Object.fromEntries(SERIES.map((s) => [s, dados.clubes.filter((c) => c.escalao === "cp" && c.liga === `CP Série ${s}`).map((c) => c.id)])) as Record<SerieCP, ClubeId[]>,
-    distritais,
+    first: ids("firstLeague"),
+    second: ids("secondLeague"),
+    third: ids("thirdLeague"),
+    cp: Object.fromEntries(SERIES.map((s) => [s, data.clubs.filter((c) => c.tier === "cp" && c.league === `CP Série ${s}`).map((c) => c.id)])) as Record<CpSeries, ClubId[]>,
+    districtLeagues,
   };
 }
 
-export function lerPiramide(repo: Repositorio, dados: DadosBase, epoca: number): Piramide {
-  const bruto = repo.meta(chave(epoca));
-  if (bruto) return JSON.parse(bruto) as Piramide;
-  if (epoca === 1) return piramideInicial(dados);
-  throw new Error(`Não há pirâmide guardada para a época ${epoca}`);
+export function readPyramid(repo: Repository, data: BaseData, season: number): Pyramid {
+  const raw = repo.meta(rowKey(season));
+  if (raw) return JSON.parse(raw) as Pyramid;
+  if (season === 1) return initialPyramid(data);
+  throw new Error(`Não há pirâmide guardada para a época ${season}`);
 }
 
-export const guardarPiramide = (repo: Repositorio, epoca: number, p: Piramide) => repo.definirMeta(chave(epoca), JSON.stringify(p));
+export const savePyramid = (repo: Repository, season: number, p: Pyramid) => repo.setMeta(rowKey(season), JSON.stringify(p));
 
-export type LigaEscalao = { liga: string; escalao: Escalao };
+export type TierLeague = { league: string; tier: Tier };
 
 /** A liga e o escalão de cada clube numa pirâmide. Os nomes das ligas vêm dos dados. */
-export function ligasDaPiramide(p: Piramide, dados: DadosBase): Map<ClubeId, LigaEscalao> {
-  const nomeDoEscalao = (e: Escalao) => dados.clubes.find((c) => c.escalao === e)?.liga ?? e;
-  const nomeDistrital = (distrito: string) => dados.clubes.find((c) => c.escalao === "distrital" && c.distrito === distrito)?.liga ?? `Distrital ${distrito}`;
-  const m = new Map<ClubeId, LigaEscalao>();
-  for (const [lista, e] of [[p.primeira, "primeiraLiga"], [p.segunda, "segundaLiga"], [p.terceira, "terceiraLiga"]] as const) for (const c of lista) m.set(c, { liga: nomeDoEscalao(e), escalao: e });
-  for (const s of SERIES) for (const c of p.cp[s]) m.set(c, { liga: `CP Série ${s}`, escalao: "cp" });
-  for (const [d, lista] of Object.entries(p.distritais)) for (const c of lista) m.set(c, { liga: nomeDistrital(d), escalao: "distrital" });
+export function pyramidLeagues(p: Pyramid, data: BaseData): Map<ClubId, TierLeague> {
+  const tierName = (e: Tier) => data.clubs.find((c) => c.tier === e)?.league ?? e;
+  const districtName = (district: string) => data.clubs.find((c) => c.tier === "district" && c.district === district)?.league ?? `Distrital ${district}`;
+  const m = new Map<ClubId, TierLeague>();
+  for (const [list, e] of [[p.first, "firstLeague"], [p.second, "secondLeague"], [p.third, "thirdLeague"]] as const) for (const c of list) m.set(c, { league: tierName(e), tier: e });
+  for (const s of SERIES) for (const c of p.cp[s]) m.set(c, { league: `CP Série ${s}`, tier: "cp" });
+  for (const [d, list] of Object.entries(p.districtLeagues)) for (const c of list) m.set(c, { league: districtName(d), tier: "district" });
   return m;
 }
 
 /** Os dados com a liga e o escalão de cada clube numa época do save. */
-export function dadosDaPiramide(repo: Repositorio, dados: DadosBase, epoca: number): DadosBase {
-  const ligas = ligasDaPiramide(lerPiramide(repo, dados, epoca), dados);
+export function pyramidData(repo: Repository, data: BaseData, season: number): BaseData {
+  const leagues = pyramidLeagues(readPyramid(repo, data, season), data);
   // quem não está na pirâmide está na SegundaDistrital distrital: não joga (RZ-113)
-  return { ...dados, clubes: dados.clubes.map((c) => { const l = ligas.get(c.id); return l ? { ...c, liga: l.liga, escalao: l.escalao } : { ...c, liga: ligaDaSegundaDistrital(c.distrito), escalao: "distrital" as const }; }) };
+  return { ...data, clubs: data.clubs.map((c) => { const l = leagues.get(c.id); return l ? { ...c, league: l.league, tier: l.tier } : { ...c, league: secondDistrictLeague(c.district), tier: "district" as const }; }) };
 }
 
 /** Os dados com a liga e o escalão **atuais** de cada clube. Idempotente. */
-export function dadosDaEpoca(repo: Repositorio, dados: DadosBase): DadosBase {
-  const epoca = epocaAtual(repo);
-  if (epoca === 1 && repo.meta(chave(1)) === undefined) return dados;
-  return dadosDaPiramide(repo, dados, epoca);
+export function seasonData(repo: Repository, data: BaseData): BaseData {
+  const season = currentSeason(repo);
+  if (season === 1 && repo.meta(rowKey(1)) === undefined) return data;
+  return pyramidData(repo, data, season);
 }
 
 /** Ligas por onde o clube passou, época a época (o gráfico de divisões). */
-export function historicoDeDivisoes(repo: Repositorio, dados: DadosBase, clube: ClubeId): { epoca: number; escalao: Escalao; liga: string }[] {
-  const out: { epoca: number; escalao: Escalao; liga: string }[] = [];
-  for (let e = 1; e <= epocaAtual(repo); e++) {
-    const l = ligasDaPiramide(lerPiramide(repo, dados, e), dados).get(clube);
-    if (l) out.push({ epoca: e, ...l });
+export function divisionsHistory(repo: Repository, data: BaseData, club: ClubId): { season: number; tier: Tier; league: string }[] {
+  const out: { season: number; tier: Tier; league: string }[] = [];
+  for (let e = 1; e <= currentSeason(repo); e++) {
+    const l = pyramidLeagues(readPyramid(repo, data, e), data).get(club);
+    if (l) out.push({ season: e, ...l });
   }
   return out;
 }

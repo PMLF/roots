@@ -14,72 +14,72 @@
  *
  * Ligas estrangeiras e agregados («só números», lod 2-3 de `MODELO_DADOS`) chegam com RZ-403, com o seu próprio modelo.
  */
-import type { Parametros } from "../config/parametros";
-import type { EventoNovo } from "../persistencia/tipos";
-import { relatorioDoJogo, type CartaoJogo, type GoloJogo, type LesaoJogo, type MomentoChave, type RelatorioJogo } from "./estatisticas";
-import { historiasDoJogo } from "./historias";
-import { registoDoJogo, type MetaJogo } from "./registo";
-import { simularJogo } from "./simulador";
-import type { EntradaJogo, EventoJogo, ResumoJogo } from "./tipos";
+import type { Params } from "../config/parametros";
+import type { NewEvent } from "../persistencia/tipos";
+import { matchReport, type MatchCard, type MatchGoal, type MatchInjury, type MomentKey, type MatchReport } from "./estatisticas";
+import { matchStories } from "./historias";
+import { matchRecord, type MatchMeta } from "./registo";
+import { simulateMatch } from "./simulador";
+import type { MatchInput, MatchEvent, MatchSummary } from "./tipos";
 
-export type NivelDetalhe = 0 | 1;
+export type DetailLevel = 0 | 1;
 
 /** Nível de um jogo: 0 se envolve o clube do gamer, 1 nos restantes. */
-export function nivelDoJogo(casa: string, fora: string, clubeGamer?: string): NivelDetalhe {
-  return clubeGamer !== undefined && (casa === clubeGamer || fora === clubeGamer) ? 0 : 1;
+export function matchLevel(home: string, away: string, gamerClub?: string): DetailLevel {
+  return gamerClub !== undefined && (home === gamerClub || away === gamerClub) ? 0 : 1;
 }
 
 /** O que se sabe publicamente de um jogo de nível 1. */
-export type RelatorioPublico = Pick<RelatorioJogo, "duracao" | "golosCasa" | "golosFora" | "intervalo" | "posseCasa" | "casa" | "fora" | "golos" | "cartoes" | "lesoes"> & {
+export type PublicReport = Pick<MatchReport, "duration" | "homeGoals" | "awayGoals" | "halfTime" | "homePossession" | "home" | "away" | "goals" | "cards" | "injuries"> & {
   /** Só golos, expulsões e lesões. */
-  momentos: MomentoChave[];
-  homemDoJogo: { id: string; nota: number };
+  moments: MomentKey[];
+  matchMan: { id: string; rating: number };
 };
 
-type Comum = {
-  resumo: ResumoJogo;
-  registo: ReturnType<typeof registoDoJogo>;
+type Common = {
+  summary: MatchSummary;
+  record: ReturnType<typeof matchRecord>;
   /** Eventos de notícia (hat-trick, vermelho, goleada, golo notável), para acrescentar a seguir ao `registarJogo`. */
-  historias: EventoNovo[];
+  stories: NewEvent[];
 };
-export type JogoResolvido =
-  | (Comum & { nivel: 0; eventos: EventoJogo[]; relatorio: RelatorioJogo })
-  | (Comum & { nivel: 1; relatorio: RelatorioPublico });
+export type ResolvedMatch =
+  | (Common & { level: 0; events: MatchEvent[]; report: MatchReport })
+  | (Common & { level: 1; report: PublicReport });
 
-const MOMENTOS_PUBLICOS = new Set<MomentoChave["tipo"]>(["golo", "expulsao", "lesao"]);
+const PUBLIC_MOMENTS = new Set<MomentKey["type"]>(["goal", "expulsao", "injury"]);
 
-function publico(r: RelatorioJogo): RelatorioPublico {
-  const melhor = r.jogadores.find((j) => j.id === r.homemDoJogo);
+function exposed(r: MatchReport): PublicReport {
+  const best = r.players.find((j) => j.id === r.matchMan);
   return {
-    duracao: r.duracao,
-    golosCasa: r.golosCasa,
-    golosFora: r.golosFora,
-    intervalo: r.intervalo,
-    posseCasa: r.posseCasa,
-    casa: r.casa,
-    fora: r.fora,
-    golos: r.golos as GoloJogo[],
-    cartoes: r.cartoes as CartaoJogo[],
-    lesoes: r.lesoes as LesaoJogo[],
-    momentos: r.momentos.filter((m) => MOMENTOS_PUBLICOS.has(m.tipo)),
-    homemDoJogo: { id: r.homemDoJogo, nota: melhor?.nota ?? 0 },
+    duration: r.duration,
+    homeGoals: r.homeGoals,
+    awayGoals: r.awayGoals,
+    halfTime: r.halfTime,
+    homePossession: r.homePossession,
+    home: r.home,
+    away: r.away,
+    goals: r.goals as MatchGoal[],
+    cards: r.cards as MatchCard[],
+    injuries: r.injuries as MatchInjury[],
+    moments: r.moments.filter((m) => PUBLIC_MOMENTS.has(m.type)),
+    matchMan: { id: r.matchMan, rating: best?.rating ?? 0 },
   };
 }
 
 /** Joga um jogo ao nível de detalhe indicado e devolve o que esse nível guarda. */
-export function jogarJogo(entrada: EntradaJogo, nivel: NivelDetalhe, meta: MetaJogo, params: Parametros): JogoResolvido {
-  const { eventos, resumo } = simularJogo(entrada, params);
-  return resolverJogo(entrada, eventos, resumo, nivel, meta, params);
+export function playMatch(input: MatchInput, level: DetailLevel, meta: MatchMeta, params: Params): ResolvedMatch {
+  const { events, summary } = simulateMatch(input, params);
+  return resolveMatch(input, events, summary, level, meta, params);
 }
 
 /** O que se guarda de um jogo já simulado (por inteiro, de uma vez ou aos poucos, com mudanças a meio). */
-export function resolverJogo(entrada: EntradaJogo, eventos: EventoJogo[], resumo: ResumoJogo, nivel: NivelDetalhe, meta: MetaJogo, params: Parametros): JogoResolvido {
-  const completo = relatorioDoJogo(entrada, { casa: entrada.casa, fora: entrada.fora }, eventos, resumo, params);
-  const registo = registoDoJogo(meta, entrada.casa, entrada.fora, eventos, resumo, completo);
-  const historias = historiasDoJogo(meta, { casa: entrada.casa.clube, fora: entrada.fora.clube }, completo, params);
-  if (nivel === 0) return { nivel, resumo, eventos, relatorio: completo, registo, historias };
+export function resolveMatch(input: MatchInput, events: MatchEvent[], summary: MatchSummary, level: DetailLevel, meta: MatchMeta, params: Params): ResolvedMatch {
+  const full = matchReport(input, { home: input.home, away: input.away }, events, summary, params);
+  const record = matchRecord(meta, input.home, input.away, events, summary, full);
+  const stories = matchStories(meta, { home: input.home.club, away: input.away.club }, full, params);
+  if (level === 0) return { level, summary, events, report: full, record, stories };
   // nível 1: só se guarda a nota do homem do jogo; as lesões de jogadores que entraram e saíram aparecem na mesma
-  const rel = publico(completo);
-  const participacoes = registo.participacoes.map((p) => (p.jogador === rel.homemDoJogo.id ? p : { jogador: p.jogador, clube: p.clube, titular: p.titular, minutos: p.minutos }));
-  return { nivel, resumo, relatorio: rel, registo: { ...registo, participacoes }, historias };
+  const report = exposed(full);
+  const appearances = record.appearances.map((p) => (p.player === report.matchMan.id ? p : { player: p.player, club: p.club, starter: p.starter, minutes: p.minutes }));
+  return { level, summary, report: report, record: { ...record, appearances }, stories };
 }

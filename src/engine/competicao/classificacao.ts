@@ -7,113 +7,113 @@
  * um fica à frente e os outros dois voltam a medir-se só entre si). Se não separa ninguém, passa-se ao critério seguinte.
  */
 import { Rng } from "../aleatorio/rng";
-import type { Criterio } from "../config/parametros";
-import type { LinhaClassificacao } from "../persistencia/tipos";
+import type { Criterion } from "../config/parametros";
+import type { StandingsLine } from "../persistencia/tipos";
 
-export type JogoResultado = { casa: string; fora: string; golosCasa: number; golosFora: number };
+export type ResultMatch = { home: string; away: string; homeGoals: number; awayGoals: number };
 
-export type LinhaOrdenada = LinhaClassificacao & {
-  posicao: number;
-  diferenca: number;
+export type SortedLine = StandingsLine & {
+  position: number;
+  difference: number;
   /** Se esteve empatado em pontos com outro clube: o critério que por fim o separou. */
-  desempatePor?: Criterio;
+  tiebreakPer?: Criterion;
 };
 
-export type ContextoClassificacao = {
-  pontosVitoria: number;
-  pontosEmpate: number;
+export type StandingsContext = {
+  winPoints: number;
+  drawPoints: number;
   seed: string;
-  competicao: string;
-  epoca: number;
+  competition: string;
+  season: number;
   /** Reputação dos clubes (para `reputacaoMenor`). */
-  reputacao?: ReadonlyMap<string, number>;
+  reputation?: ReadonlyMap<string, number>;
   /** Clubes da competição que ainda não jogaram: entram a zeros. */
-  clubes?: readonly string[];
+  clubs?: readonly string[];
 };
 
-const linhaVazia = (clube: string): LinhaClassificacao => ({ clube, jogos: 0, vitorias: 0, empates: 0, derrotas: 0, golosMarcados: 0, golosSofridos: 0, pontosJogos: 0, ajuste: 0, pontos: 0 });
+const emptyLine = (club: string): StandingsLine => ({ club, matches: 0, wins: 0, draws: 0, losses: 0, scoredGoals: 0, concededGoals: 0, matchesPoints: 0, adjustment: 0, points: 0 });
 
-type Mini = { pontos: number; diferenca: number; golos: number };
+type Mini = { points: number; difference: number; goals: number };
 
-function miniTabela(grupo: readonly string[], jogos: readonly JogoResultado[], ctx: ContextoClassificacao): Map<string, Mini> {
-  const m = new Map<string, Mini>(grupo.map((c) => [c, { pontos: 0, diferenca: 0, golos: 0 }]));
-  for (const j of jogos) {
-    const a = m.get(j.casa);
-    const b = m.get(j.fora);
+function tableMini(group: readonly string[], matches: readonly ResultMatch[], ctx: StandingsContext): Map<string, Mini> {
+  const m = new Map<string, Mini>(group.map((c) => [c, { points: 0, difference: 0, goals: 0 }]));
+  for (const j of matches) {
+    const a = m.get(j.home);
+    const b = m.get(j.away);
     if (!a || !b) continue;
-    a.golos += j.golosCasa;
-    b.golos += j.golosFora;
-    a.diferenca += j.golosCasa - j.golosFora;
-    b.diferenca += j.golosFora - j.golosCasa;
-    if (j.golosCasa > j.golosFora) a.pontos += ctx.pontosVitoria;
-    else if (j.golosCasa < j.golosFora) b.pontos += ctx.pontosVitoria;
+    a.goals += j.homeGoals;
+    b.goals += j.awayGoals;
+    a.difference += j.homeGoals - j.awayGoals;
+    b.difference += j.awayGoals - j.homeGoals;
+    if (j.homeGoals > j.awayGoals) a.points += ctx.winPoints;
+    else if (j.homeGoals < j.awayGoals) b.points += ctx.winPoints;
     else {
-      a.pontos += ctx.pontosEmpate;
-      b.pontos += ctx.pontosEmpate;
+      a.points += ctx.drawPoints;
+      b.points += ctx.drawPoints;
     }
   }
   return m;
 }
 
 /** Parte um grupo em subgrupos por ordem decrescente de uma chave (vetor comparado por ordem lexicográfica). */
-function partir(grupo: readonly string[], chave: (c: string) => number[]): string[][] {
-  const ordenado = [...grupo].sort((x, y) => {
-    const a = chave(x);
-    const b = chave(y);
+function split(group: readonly string[], rowKey: (c: string) => number[]): string[][] {
+  const sorted = [...group].sort((x, y) => {
+    const a = rowKey(x);
+    const b = rowKey(y);
     for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return (b[i] as number) - (a[i] as number);
     return x < y ? -1 : x > y ? 1 : 0;
   });
-  const partes: string[][] = [];
-  let anterior: number[] | undefined;
-  for (const c of ordenado) {
-    const k = chave(c);
-    if (anterior && k.every((v, i) => v === anterior?.[i])) (partes.at(-1) as string[]).push(c);
-    else partes.push([c]);
-    anterior = k;
+  const parts: string[][] = [];
+  let previous: number[] | undefined;
+  for (const c of sorted) {
+    const k = rowKey(c);
+    if (previous && k.every((v, i) => v === previous?.[i])) (parts.at(-1) as string[]).push(c);
+    else parts.push([c]);
+    previous = k;
   }
-  return partes;
+  return parts;
 }
 
-export function ordenarClassificacao(linhas: readonly LinhaClassificacao[], jogos: readonly JogoResultado[], criterios: readonly Criterio[], ctx: ContextoClassificacao): LinhaOrdenada[] {
-  const porClube = new Map<string, LinhaClassificacao>(linhas.map((l) => [l.clube, l]));
-  for (const c of ctx.clubes ?? []) if (!porClube.has(c)) porClube.set(c, linhaVazia(c));
-  const linha = (c: string) => porClube.get(c) as LinhaClassificacao;
-  const dif = (c: string) => linha(c).golosMarcados - linha(c).golosSofridos;
-  const desempatePor = new Map<string, Criterio>();
-  const sorteio = (c: string) => new Rng(ctx.seed, `classificacao/${ctx.competicao}/${ctx.epoca}/${c}`).float();
+export function sortStandings(lines: readonly StandingsLine[], matches: readonly ResultMatch[], criteria: readonly Criterion[], ctx: StandingsContext): SortedLine[] {
+  const byClub = new Map<string, StandingsLine>(lines.map((l) => [l.club, l]));
+  for (const c of ctx.clubs ?? []) if (!byClub.has(c)) byClub.set(c, emptyLine(c));
+  const line = (c: string) => byClub.get(c) as StandingsLine;
+  const diff = (c: string) => line(c).scoredGoals - line(c).concededGoals;
+  const tiebreakPer = new Map<string, Criterion>();
+  const lottery = (c: string) => new Rng(ctx.seed, `classificacao/${ctx.competition}/${ctx.season}/${c}`).float();
 
-  const resolver = (grupo: string[], idx: number): string[] => {
-    if (grupo.length <= 1) return grupo;
-    const criterio = criterios[idx];
-    if (criterio === undefined) return [...grupo].sort(); // nunca devia chegar cá: o último critério desempata sempre
-    let partes: string[][];
-    if (criterio === "confrontoDireto") {
-      const mini = miniTabela(grupo, jogos, ctx);
-      partes = partir(grupo, (c) => {
+  const resolve = (group: string[], idx: number): string[] => {
+    if (group.length <= 1) return group;
+    const criterion = criteria[idx];
+    if (criterion === undefined) return [...group].sort(); // nunca devia chegar cá: o último critério desempata sempre
+    let parts: string[][];
+    if (criterion === "confrontoDireto") {
+      const mini = tableMini(group, matches, ctx);
+      parts = split(group, (c) => {
         const m = mini.get(c) as Mini;
-        return [m.pontos, m.diferenca, m.golos];
+        return [m.points, m.difference, m.goals];
       });
-      if (partes.length > 1 && idx > 0) for (const c of grupo) desempatePor.set(c, criterio);
+      if (parts.length > 1 && idx > 0) for (const c of group) tiebreakPer.set(c, criterion);
       // um confronto direto que separa o grupo reaplica-se a cada parte que continue empatada
-      return partes.flatMap((p) => (partes.length > 1 && p.length > 1 ? resolver(p, idx) : resolver(p, idx + 1)));
+      return parts.flatMap((p) => (parts.length > 1 && p.length > 1 ? resolve(p, idx) : resolve(p, idx + 1)));
     }
-    const chave: Record<Exclude<Criterio, "confrontoDireto">, (c: string) => number[]> = {
-      pontos: (c) => [linha(c).pontos],
-      diferenca: (c) => [dif(c)],
-      golosMarcados: (c) => [linha(c).golosMarcados],
-      vitorias: (c) => [linha(c).vitorias],
-      reputacaoMenor: (c) => [-(ctx.reputacao?.get(c) ?? 0)],
-      sorteio: (c) => [sorteio(c)],
+    const rowKey: Record<Exclude<Criterion, "confrontoDireto">, (c: string) => number[]> = {
+      points: (c) => [line(c).points],
+      difference: (c) => [diff(c)],
+      scoredGoals: (c) => [line(c).scoredGoals],
+      wins: (c) => [line(c).wins],
+      smallerReputation: (c) => [-(ctx.reputation?.get(c) ?? 0)],
+      lottery: (c) => [lottery(c)],
     };
-    partes = partir(grupo, chave[criterio]);
-    if (partes.length > 1 && idx > 0) for (const c of grupo) desempatePor.set(c, criterio);
-    return partes.flatMap((p) => resolver(p, idx + 1));
+    parts = split(group, rowKey[criterion]);
+    if (parts.length > 1 && idx > 0) for (const c of group) tiebreakPer.set(c, criterion);
+    return parts.flatMap((p) => resolve(p, idx + 1));
   };
 
-  const ordem = resolver([...porClube.keys()], 0);
-  return ordem.map((c, i) => {
-    const l = linha(c);
-    const por = desempatePor.get(c);
-    return { ...l, posicao: i + 1, diferenca: dif(c), ...(por ? { desempatePor: por } : {}) };
+  const order = resolve([...byClub.keys()], 0);
+  return order.map((c, i) => {
+    const l = line(c);
+    const por = tiebreakPer.get(c);
+    return { ...l, position: i + 1, difference: diff(c), ...(por ? { tiebreakPer: por } : {}) };
   });
 }

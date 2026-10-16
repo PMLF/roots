@@ -4,18 +4,18 @@
  *  - estimado:    ≈ 14-16   (intervalo da Vista, arredondado às unidades)
  *  - desatualizado: ≈ 14-16 · visto há 2 épocas
  */
-export type Estado = "exato" | "estimado" | "desatualizado";
+export type State = "exact" | "estimado" | "outdated";
 
-export type ValorMostrado = { estado: Estado; texto: string; epocasDesde?: number };
+export type ShownValue = { state: State; text: string; sinceSeasons?: number };
 
-export function mostrarExato(v: number): ValorMostrado {
-  return { estado: "exato", texto: String(Math.round(v * 10) / 10) };
+export function showExact(v: number): ShownValue {
+  return { state: "exact", text: String(Math.round(v * 10) / 10) };
 }
 
-export function mostrarEstimativa(e: { valor: number; margem: number; intervalo: [number, number] }, frescura?: { desatualizado: boolean; epocasDesde: number }): ValorMostrado {
-  const lo = Math.round(e.intervalo[0]);
-  const hi = Math.round(e.intervalo[1]);
-  const texto = lo === hi ? `≈ ${lo}` : `≈ ${lo}-${hi}`;
-  if (frescura?.desatualizado) return { estado: "desatualizado", texto, epocasDesde: frescura.epocasDesde };
-  return { estado: "estimado", texto };
+export function showEstimate(e: { value: number; margin: number; halfTime: [number, number] }, freshness?: { outdated: boolean; sinceSeasons: number }): ShownValue {
+  const lo = Math.round(e.halfTime[0]);
+  const hi = Math.round(e.halfTime[1]);
+  const text = lo === hi ? `≈ ${lo}` : `≈ ${lo}-${hi}`;
+  if (freshness?.outdated) return { state: "outdated", text, sinceSeasons: freshness.sinceSeasons };
+  return { state: "estimado", text };
 }

@@ -1,60 +1,60 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import type { Mensagem } from "@/engine/noticias/noticias";
-import { ItemNoticia } from "@/ui/components/ItemNoticia";
+import type { Message } from "@/engine/noticias/noticias";
+import { NewsItemView } from "@/ui/components/ItemNoticia";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useMotor } from "@/ui/MotorProvider";
+import { useEngine } from "@/ui/MotorProvider";
 
-const POR_PAGINA = 25;
+const BY_PAGE = 25;
 
 /** Caixa de entrada (RZ-118): resultados do teu jogo, lesões do plantel, a tua carreira. Cada mensagem pode marcar-se como lida ou por ler; há um botão para marcar todas. */
-export default function PaginaCaixa() {
+export default function InboxPage() {
   const { t } = useT();
-  const motor = useMotor();
-  const [mensagens, setMensagens] = useState<Mensagem[] | undefined>(undefined);
-  const [naoLidas, setNaoLidas] = useState(0);
-  const [fim, setFim] = useState(false);
-  const [desempregado, setDesempregado] = useState(false);
+  const engine = useEngine();
+  const [messages, setMessages] = useState<Message[] | undefined>(undefined);
+  const [unread, setReadItemsNot] = useState(0);
+  const [end, setEnd] = useState(false);
+  const [unemployed, setUnemployed] = useState(false);
 
-  const carregar = useCallback(async (antesDe?: number) => {
-    if (!motor) return;
-    const c = await motor.chamar("caixa", { limite: POR_PAGINA, ...(antesDe !== undefined ? { antesDe } : {}) });
-    setMensagens((antes) => (antesDe === undefined ? c.mensagens : [...(antes ?? []), ...c.mensagens]));
-    if (antesDe === undefined) setNaoLidas(c.naoLidas);
-    setFim(c.mensagens.length < POR_PAGINA);
-  }, [motor]);
+  const load = useCallback(async (beforeOf?: number) => {
+    if (!engine) return;
+    const c = await engine.call("inbox", { limit: BY_PAGE, ...(beforeOf !== undefined ? { beforeOf } : {}) });
+    setMessages((before) => (beforeOf === undefined ? c.messages : [...(before ?? []), ...c.messages]));
+    if (beforeOf === undefined) setReadItemsNot(c.unread);
+    setEnd(c.messages.length < BY_PAGE);
+  }, [engine]);
   useEffect(() => {
-    void carregar().catch(() => setMensagens([]));
-    motor?.chamar("ofertas", null).then((o) => setDesempregado(o.desempregado)).catch(() => undefined);
-  }, [carregar, motor]);
+    void load().catch(() => setMessages([]));
+    engine?.call("offers", null).then((o) => setUnemployed(o.unemployed)).catch(() => undefined);
+  }, [load, engine]);
 
-  const marcar = async () => {
-    await motor?.chamar("marcarCaixaLida", null);
+  const score = async () => {
+    await engine?.call("markInboxRead", null);
     window.dispatchEvent(new Event("raizes:caixa"));
-    setMensagens((m) => m?.map((x) => ({ ...x, lida: true })));
-    setNaoLidas(0);
+    setMessages((m) => m?.map((x) => ({ ...x, isRead: true })));
+    setReadItemsNot(0);
   };
-  const alternar = async (m: Mensagem) => {
-    const lida = !m.lida;
-    await motor?.chamar("marcarMensagem", { id: m.id, lida });
+  const toggle = async (m: Message) => {
+    const isRead = !m.isRead;
+    await engine?.call("markMessage", { id: m.id, isRead });
     window.dispatchEvent(new Event("raizes:caixa"));
-    setMensagens((l) => l?.map((x) => (x.id === m.id ? { ...x, lida } : x)));
-    setNaoLidas((n) => Math.max(0, n + (lida ? -1 : 1)));
+    setMessages((l) => l?.map((x) => (x.id === m.id ? { ...x, isRead } : x)));
+    setReadItemsNot((n) => Math.max(0, n + (isRead ? -1 : 1)));
   };
 
   return (
     <section className="pagina-noticias">
       <h1>{t("caixa.titulo")}</h1>
       <div className="acoes">
-        <b>{t("caixa.naoLidas", { n: naoLidas })}</b>
-        <button type="button" onClick={() => void marcar()} disabled={naoLidas === 0}>{t("caixa.marcarLidas")}</button>
-        {desempregado && <Link href="/">{t("caixa.verOfertas")}</Link>}
+        <b>{t("caixa.naoLidas", { n: unread })}</b>
+        <button type="button" onClick={() => void score()} disabled={unread === 0}>{t("caixa.marcarLidas")}</button>
+        {unemployed && <Link href="/">{t("caixa.verOfertas")}</Link>}
       </div>
-      {mensagens === undefined ? <p>{t("ficha.aCarregar")}</p> : mensagens.length === 0 ? <p className="vazio">{t("caixa.vazio")}</p> : (
+      {messages === undefined ? <p>{t("ficha.aCarregar")}</p> : messages.length === 0 ? <p className="vazio">{t("caixa.vazio")}</p> : (
         <div className="noticias">
-          {mensagens.map((m) => <ItemNoticia key={m.id} n={m} naoLida={!m.lida} aoAlternarLida={() => void alternar(m)} />)}
-          {!fim && <button type="button" onClick={() => void carregar(mensagens.at(-1)!.id)}>{t("caixa.maisAntigas")}</button>}
+          {messages.map((m) => <NewsItemView key={m.id} n={m} unread={!m.isRead} onToggleIsRead={() => void toggle(m)} />)}
+          {!end && <button type="button" onClick={() => void load(messages.at(-1)!.id)}>{t("caixa.maisAntigas")}</button>}
         </div>
       )}
     </section>

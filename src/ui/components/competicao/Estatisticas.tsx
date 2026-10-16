@@ -1,46 +1,46 @@
 "use client";
 import type { CompetitionPage } from "@/engine/api/contratos";
-import { Cartao } from "@/ui/components/Cartao";
-import { ListaJogadores } from "@/ui/components/competicao/Destaques";
-import { Ligacao } from "@/ui/components/Ligacao";
-import { Tabela } from "@/ui/components/Tabela";
-import type { Chave } from "@/ui/i18n";
+import { Card } from "@/ui/components/Cartao";
+import { PlayersList } from "@/ui/components/competicao/Destaques";
+import { EntityLink } from "@/ui/components/Ligacao";
+import { Table } from "@/ui/components/Tabela";
+import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { siglaPosicao } from "@/ui/i18n/posicao";
-import type { Coluna } from "@/ui/tabela/logica";
+import { abbreviationPosition } from "@/ui/i18n/posicao";
+import type { Column } from "@/ui/tabela/logica";
 
 type Player = CompetitionPage["players"][number];
 type TeamRow = CompetitionPage["table"][number];
 
 /** Separador Estatísticas de uma competição: top 10 de cada lista, todas as equipas e todos os jogadores, ordenáveis. */
-export function Estatisticas({ page }: { page: CompetitionPage }) {
+export function Statistics({ page }: { page: CompetitionPage }) {
   const { t, locale } = useT();
   const h = page.highlights;
-  const nota = (v: number) => v.toFixed(2);
+  const rating = (v: number) => v.toFixed(2);
   const dec = new Intl.NumberFormat(locale, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
-  const perGame = (v: number, jogos: number) => (jogos > 0 ? v / jogos : 0);
+  const perGame = (v: number, matches: number) => (matches > 0 ? v / matches : 0);
 
-  const equipas: Coluna<TeamRow>[] = [
-    { id: "club", titulo: t("lab.col.clube"), valor: (r) => r.name },
-    { id: "played", titulo: t("lab.col.jogos"), valor: (r) => r.played, numerica: true },
-    { id: "gf", titulo: t("lab.col.gm"), valor: (r) => r.goalsFor, numerica: true },
-    { id: "ga", titulo: t("lab.col.gs"), valor: (r) => r.goalsAgainst, numerica: true },
-    { id: "gf-game", titulo: t("coluna.golosJogo"), valor: (r) => perGame(r.goalsFor, r.played), numerica: true },
-    { id: "ga-game", titulo: t("coluna.sofridosJogo"), valor: (r) => perGame(r.goalsAgainst, r.played), numerica: true },
-    { id: "gd", titulo: t("lab.col.dif"), valor: (r) => r.goalDifference, numerica: true },
+  const teams: Column<TeamRow>[] = [
+    { id: "club", title: t("lab.col.clube"), value: (r) => r.name },
+    { id: "played", title: t("lab.col.jogos"), value: (r) => r.played, numeric: true },
+    { id: "gf", title: t("lab.col.gm"), value: (r) => r.goalsFor, numeric: true },
+    { id: "ga", title: t("lab.col.gs"), value: (r) => r.goalsAgainst, numeric: true },
+    { id: "gf-game", title: t("coluna.golosJogo"), value: (r) => perGame(r.goalsFor, r.played), numeric: true },
+    { id: "ga-game", title: t("coluna.sofridosJogo"), value: (r) => perGame(r.goalsAgainst, r.played), numeric: true },
+    { id: "gd", title: t("lab.col.dif"), value: (r) => r.goalDifference, numeric: true },
   ];
-  const jogadores: Coluna<Player>[] = [
-    { id: "player", titulo: t("coluna.jogador"), valor: (p) => p.name },
-    { id: "club", titulo: t("lab.col.clube"), valor: (p) => p.clubName },
-    { id: "pos", titulo: t("coluna.posicao"), valor: (p) => siglaPosicao(t, p.position) },
-    { id: "age", titulo: t("coluna.idade"), valor: (p) => p.age, numerica: true },
-    { id: "games", titulo: t("coluna.jogos"), valor: (p) => p.games, numerica: true },
-    { id: "minutes", titulo: t("coluna.minutos"), valor: (p) => p.minutes, numerica: true },
-    { id: "goals", titulo: t("coluna.golos"), valor: (p) => p.goals, numerica: true },
-    { id: "assists", titulo: t("coluna.assistencias"), valor: (p) => p.assists, numerica: true },
-    { id: "rating", titulo: t("coluna.nota"), valor: (p) => p.rating ?? "", numerica: true },
-    { id: "yellow", titulo: t("coluna.amarelos"), valor: (p) => p.yellow, numerica: true },
-    { id: "red", titulo: t("coluna.vermelhos"), valor: (p) => p.red, numerica: true },
+  const players: Column<Player>[] = [
+    { id: "player", title: t("coluna.jogador"), value: (p) => p.name },
+    { id: "club", title: t("lab.col.clube"), value: (p) => p.clubName },
+    { id: "pos", title: t("coluna.posicao"), value: (p) => abbreviationPosition(t, p.position) },
+    { id: "age", title: t("coluna.idade"), value: (p) => p.age, numeric: true },
+    { id: "games", title: t("coluna.jogos"), value: (p) => p.games, numeric: true },
+    { id: "minutes", title: t("coluna.minutos"), value: (p) => p.minutes, numeric: true },
+    { id: "goals", title: t("coluna.golos"), value: (p) => p.goals, numeric: true },
+    { id: "assists", title: t("coluna.assistencias"), value: (p) => p.assists, numeric: true },
+    { id: "rating", title: t("coluna.nota"), value: (p) => p.rating ?? "", numeric: true },
+    { id: "yellow", title: t("coluna.amarelos"), value: (p) => p.yellow, numeric: true },
+    { id: "red", title: t("coluna.vermelhos"), value: (p) => p.red, numeric: true },
   ];
 
   return (
@@ -49,49 +49,49 @@ export function Estatisticas({ page }: { page: CompetitionPage }) {
         {([
           ["destaques.marcadores", h.topScorers, undefined],
           ["destaques.assistentes", h.topAssists, undefined],
-          ["destaques.melhoresJogadores", h.bestRated, nota],
+          ["destaques.melhoresJogadores", h.bestRated, rating],
           ["destaques.amarelos", h.mostYellow, undefined],
           ["destaques.vermelhos", h.mostRed, undefined],
-        ] as const).map(([chave, itens, fmt]) => (
-          <Cartao key={chave}>
-            <ListaJogadores titulo={t(chave as Chave)} itens={[...itens]} {...(fmt ? { fmt } : {})} />
-          </Cartao>
+        ] as const).map(([rowKey, items, fmt]) => (
+          <Card key={rowKey}>
+            <PlayersList title={t(rowKey as Key)} items={[...items]} {...(fmt ? { fmt } : {})} />
+          </Card>
         ))}
       </div>
-      <Cartao titulo={t("estatisticas.equipas")} larga>
-        <Tabela
+      <Card title={t("estatisticas.equipas")} wide>
+        <Table
           id="estatisticas-equipas"
-          nomeFicheiro={`teams-${page.league}`}
-          colunas={equipas}
-          linhas={page.table}
-          chave={(r) => r.club}
-          celula={{
-            club: (r) => <Ligacao k="clube" id={r.club}>{r.name}</Ligacao>,
+          fileName={`teams-${page.league}`}
+          columns={teams}
+          lines={page.table}
+          rowKey={(r) => r.club}
+          cell={{
+            club: (r) => <EntityLink k="club" id={r.club}>{r.name}</EntityLink>,
             "gf-game": (r) => dec.format(perGame(r.goalsFor, r.played)),
             "ga-game": (r) => dec.format(perGame(r.goalsAgainst, r.played)),
           }}
-          ordemInicial={{ coluna: "gf", direcao: "desc" }}
+          initialOrder={{ column: "gf", direction: "desc" }}
         />
-      </Cartao>
-      <Cartao titulo={t("estatisticas.jogadores")} larga>
+      </Card>
+      <Card title={t("estatisticas.jogadores")} wide>
         {page.players.length === 0 ? (
           <p className="vazio">{t("destaques.semDados")}</p>
         ) : (
-          <Tabela
+          <Table
             id="estatisticas-jogadores"
-            nomeFicheiro={`players-${page.league}`}
-            colunas={jogadores}
-            linhas={page.players}
-            chave={(p) => p.player}
-            celula={{
-              player: (p) => <Ligacao k="pessoa" id={p.player}>{p.name}</Ligacao>,
-              club: (p) => <Ligacao k="clube" id={p.club}>{p.clubName}</Ligacao>,
-              rating: (p) => (p.rating !== undefined ? nota(p.rating) : "—"),
+            fileName={`players-${page.league}`}
+            columns={players}
+            lines={page.players}
+            rowKey={(p) => p.player}
+            cell={{
+              player: (p) => <EntityLink k="person" id={p.player}>{p.name}</EntityLink>,
+              club: (p) => <EntityLink k="club" id={p.club}>{p.clubName}</EntityLink>,
+              rating: (p) => (p.rating !== undefined ? rating(p.rating) : "—"),
             }}
-            ordemInicial={{ coluna: "goals", direcao: "desc" }}
+            initialOrder={{ column: "goals", direction: "desc" }}
           />
         )}
-      </Cartao>
+      </Card>
     </div>
   );
 }

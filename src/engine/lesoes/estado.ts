@@ -2,73 +2,73 @@
  * Estado físico a partir do histórico (RZ-107): lesões são eventos públicos `LESAO`, nada se apaga.
  * Dados do evento: `{ tipo, gravidade, dias, ate, recaida, jogo?, minuto? }`; `ate` = primeiro dia em que já pode jogar.
  */
-import { comparar, somarDias } from "../calendario/datas";
-import { paraDias } from "../calendario/datas";
-import type { Parametros } from "../config/parametros";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { Data, Evento, EventoNovo } from "../persistencia/tipos";
-import type { Lesao, TipoLesao } from "./lesao";
+import { compare, addDays } from "../calendario/datas";
+import { forDays } from "../calendario/datas";
+import type { Params } from "../config/parametros";
+import type { Repository } from "../persistencia/repositorio";
+import type { IsoDate, HistoryEvent, NewEvent } from "../persistencia/tipos";
+import type { Injury, InjuryType } from "./lesao";
 
-export const EVENTO_LESAO = "LESAO";
+export const INJURY_EVENT = "LESAO";
 
-export type LesaoRegistada = Lesao & { ate: Data; data: Data; jogo?: string };
+export type RecordedInjury = Injury & { until: IsoDate; date: IsoDate; match?: string };
 
-export type EstadoFisico = {
-  jogador: string;
+export type PhysicalState = {
+  player: string;
   /** A lesão que o impede de jogar hoje. */
-  lesionado?: LesaoRegistada & { diasRestantes: number };
+  injured?: RecordedInjury & { remainingDays: number };
   /** Regressou há menos de `janelaRecaida` dias: o tipo da última lesão e o dia do regresso. */
-  recemRegressado?: { tipo: TipoLesao; regressouEm: Data };
+  returnedNewly?: { type: InjuryType; returnedIn: IsoDate };
   /** Total de lesões no histórico. */
-  lesoesNoHistorico: number;
+  injuriesInHistory: number;
 };
 
 /** O evento `LESAO` de uma lesão sofrida no dia `data` (num jogo ou treino). */
-export function eventoLesao(opcoes: { jogador: string; clube: string; data: Data; epoca: number; jornada?: number; lesao: Lesao; jogo?: string; minuto?: number }): EventoNovo {
-  const { jogador, clube, data, epoca, jornada, lesao, jogo, minuto } = opcoes;
+export function injuryEvent(options: { player: string; club: string; date: IsoDate; season: number; round?: number; injury: Injury; match?: string; minute?: number }): NewEvent {
+  const { player, club, date, season, round, injury, match, minute } = options;
   return {
-    tipo: EVENTO_LESAO,
-    data,
-    epoca,
-    ...(jornada !== undefined ? { jornada } : {}),
-    vis: "publico",
-    origem: "jogo",
-    entidades: [
-      { k: "pessoa", id: jogador, papel: "lesionado" },
-      { k: "clube", id: clube },
-      ...(jogo ? [{ k: "jogo" as const, id: jogo }] : []),
+    type: INJURY_EVENT,
+    date,
+    season,
+    ...(round !== undefined ? { round } : {}),
+    visibility: "exposed",
+    origin: "match",
+    entities: [
+      { k: "person", id: player, roleKind: "injured" },
+      { k: "club", id: club },
+      ...(match ? [{ k: "match" as const, id: match }] : []),
     ],
-    dados: { tipo: lesao.tipo, gravidade: lesao.gravidade, dias: lesao.dias, ate: somarDias(data, lesao.dias), recaida: lesao.recaida, ...(jogo ? { jogo } : {}), ...(minuto !== undefined ? { minuto } : {}) },
+    data: { type: injury.type, severity: injury.severity, days: injury.days, until: addDays(date, injury.days), relapse: injury.relapse, ...(match ? { match } : {}), ...(minute !== undefined ? { minute } : {}) },
   };
 }
 
-function lerLesao(e: Evento): LesaoRegistada {
-  const d = e.dados as { tipo: TipoLesao; gravidade: 1 | 2 | 3 | 4 | 5; dias: number; ate: Data; recaida?: boolean; jogo?: string };
-  return { tipo: d.tipo, gravidade: d.gravidade, dias: d.dias, ate: d.ate, recaida: !!d.recaida, data: e.data, ...(d.jogo ? { jogo: d.jogo } : {}) };
+function readInjury(e: HistoryEvent): RecordedInjury {
+  const d = e.data as { type: InjuryType; severity: 1 | 2 | 3 | 4 | 5; days: number; until: IsoDate; relapse?: boolean; match?: string };
+  return { type: d.type, severity: d.severity, days: d.days, until: d.until, relapse: !!d.relapse, date: e.date, ...(d.match ? { match: d.match } : {}) };
 }
 
 /** Estado físico de um jogador no dia `hoje`. */
-export function estadoFisico(repo: Repositorio, jogador: string, hoje: Data, params: Parametros): EstadoFisico {
-  const lesoes = repo
-    .eventosDe({ k: "pessoa", id: jogador }, { tipo: EVENTO_LESAO })
-    .filter((e) => e.entidades.some((x) => x.k === "pessoa" && x.id === jogador && x.papel === "lesionado") && comparar(e.data, hoje) <= 0)
-    .map(lerLesao)
-    .sort((a, b) => comparar(a.data, b.data));
-  const ativa = lesoes.filter((l) => comparar(l.ate, hoje) > 0).at(-1);
-  const ultima = lesoes.at(-1);
-  const out: EstadoFisico = { jogador, lesoesNoHistorico: lesoes.length };
-  if (ativa) out.lesionado = { ...ativa, diasRestantes: paraDias(ativa.ate) - paraDias(hoje) };
-  else if (ultima && paraDias(hoje) - paraDias(ultima.ate) < params.lesoes.janelaRecaida) out.recemRegressado = { tipo: ultima.tipo, regressouEm: ultima.ate };
+export function physicalState(repo: Repository, player: string, today: IsoDate, params: Params): PhysicalState {
+  const injuries = repo
+    .eventsOf({ k: "person", id: player }, { type: INJURY_EVENT })
+    .filter((e) => e.entities.some((x) => x.k === "person" && x.id === player && x.roleKind === "injured") && compare(e.date, today) <= 0)
+    .map(readInjury)
+    .sort((a, b) => compare(a.date, b.date));
+  const active = injuries.filter((l) => compare(l.until, today) > 0).at(-1);
+  const last = injuries.at(-1);
+  const out: PhysicalState = { player, injuriesInHistory: injuries.length };
+  if (active) out.injured = { ...active, remainingDays: forDays(active.until) - forDays(today) };
+  else if (last && forDays(today) - forDays(last.until) < params.injuries.relapseWindow) out.returnedNewly = { type: last.type, returnedIn: last.until };
   return out;
 }
 
 /** Os lesionados de uma lista de jogadores no dia `hoje`. */
-export function lesionadosDoClube(repo: Repositorio, jogadores: readonly string[], hoje: Data, params: Parametros): EstadoFisico[] {
-  return jogadores.map((j) => estadoFisico(repo, j, hoje, params)).filter((e) => e.lesionado);
+export function clubInjured(repo: Repository, players: readonly string[], today: IsoDate, params: Params): PhysicalState[] {
+  return players.map((j) => physicalState(repo, j, today, params)).filter((e) => e.injured);
 }
 
 /** Tira os lesionados dos candidatos a titular. */
-export function semLesionados<T extends { pessoa: string }>(candidatos: readonly T[], lesionados: readonly EstadoFisico[]): T[] {
-  const fora = new Set(lesionados.filter((l) => l.lesionado).map((l) => l.jogador));
-  return candidatos.filter((c) => !fora.has(c.pessoa));
+export function withoutInjured<T extends { person: string }>(candidates: readonly T[], injured: readonly PhysicalState[]): T[] {
+  const away = new Set(injured.filter((l) => l.injured).map((l) => l.player));
+  return candidates.filter((c) => !away.has(c.person));
 }

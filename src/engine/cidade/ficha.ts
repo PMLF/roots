@@ -1,64 +1,64 @@
 /** Ficha pública de uma cidade (RZ-133): converte o estado verdadeiro em níveis em palavras e tendências. */
-import type { FichaCidadeDados, NivelCidadeVista } from "../api/contratos";
-import type { Parametros } from "../config/parametros";
-import type { DadosBase } from "../dados/tipos";
-import { nomeDaEpoca } from "../calendario/nomeEpoca";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { Vista } from "../vista/vista";
-import { historicoDaCidade } from "./cidades";
-import { INDICADORES, nivelDe, tendenciaDe } from "./estado";
+import type { CityProfileData, ViewCityLevel } from "../api/contratos";
+import type { Params } from "../config/parametros";
+import type { BaseData } from "../dados/tipos";
+import { seasonName } from "../calendario/nomeEpoca";
+import type { Repository } from "../persistencia/repositorio";
+import type { View } from "../vista/vista";
+import { cityHistory } from "./cidades";
+import { INDICATORS, levelOf, trendOf } from "./estado";
 
 /** Atitude da Câmara perante o desporto (1-10 nos dados) em cinco níveis. */
-const nivelApoio = (v: number): NivelCidadeVista => (v <= 2 ? 1 : v <= 4 ? 2 : v <= 6 ? 3 : v <= 8 ? 4 : 5);
+const supportLevel = (v: number): ViewCityLevel => (v <= 2 ? 1 : v <= 4 ? 2 : v <= 6 ? 3 : v <= 8 ? 4 : 5);
 
 /** Quintil do valor entre todos (1 = os 20 % mais baixos). */
-const quintil = (valor: number, todos: readonly number[]): NivelCidadeVista => {
-  const abaixo = todos.filter((x) => x < valor).length;
-  return (Math.min(4, Math.floor((abaixo / Math.max(1, todos.length)) * 5)) + 1) as NivelCidadeVista;
+const quintile = (value: number, all: readonly number[]): ViewCityLevel => {
+  const below = all.filter((x) => x < value).length;
+  return (Math.min(4, Math.floor((below / Math.max(1, all.length)) * 5)) + 1) as ViewCityLevel;
 };
 
-export function fichaCidade(repo: Repositorio, dados: DadosBase, base: DadosBase, params: Parametros, vista: Vista, id: string): FichaCidadeDados | null {
-  const c = base.cidades.find((x) => x.id === id);
+export function cityProfile(repo: Repository, data: BaseData, base: BaseData, params: Params, view: View, id: string): CityProfileData | null {
+  const c = base.cities.find((x) => x.id === id);
   if (!c) return null;
-  const hist = historicoDaCidade(repo, base, params, id);
-  const agora = hist[hist.length - 1]!;
-  const antes = hist[hist.length - 2];
-  const rotulo = (epoca: number) => nomeDaEpoca(epoca, params.calendario.anoInicial);
+  const history = cityHistory(repo, base, params, id);
+  const now = history[history.length - 1]!;
+  const before = history[history.length - 2];
+  const label = (season: number) => seasonName(season, params.calendar.initialYear);
 
-  const perCapita = (x: { orcamentoMunicipal: number; populacao: number }) => x.orcamentoMunicipal / Math.max(1, x.populacao);
-  const autarca = vista.cargos({ cidade: id }).find((p) => p.funcao === "autarca");
-  const { vaidade, ambicao } = c.autarca.tracos;
-  const perfil: NonNullable<FichaCidadeDados["autarca"]>["perfil"] = [];
-  if (vaidade >= 15) perfil.push("vaidoso"); else if (vaidade <= 6) perfil.push("discreto");
-  if (ambicao >= 15) perfil.push("ambicioso");
+  const perCapita = (x: { municipalBudget: number; population: number }) => x.municipalBudget / Math.max(1, x.population);
+  const mayor = view.roles({ city: id }).find((p) => p.fn === "mayor");
+  const { vanity, ambition } = c.mayor.traits;
+  const profile: NonNullable<CityProfileData["mayor"]>["profile"] = [];
+  if (vanity >= 15) profile.push("vaidoso"); else if (vanity <= 6) profile.push("discreto");
+  if (ambition >= 15) profile.push("ambicioso");
   // mandato fixo no MVP: as eleições autárquicas (RZ-308) ainda não mudam o autarca
-  const desde = params.cidade.mandatoDesde;
+  const since = params.city.sinceTerm;
 
   return {
-    id: c.id, nome: c.nome, distrito: c.distrito, polo: c.polo, ilha: c.ilha, setor: c.setor, setorSecundario: c.tag2,
-    populacao: agora.estado.populacao,
-    populacaoHistorico: hist.map((h) => ({ epoca: h.epoca, label: rotulo(h.epoca), populacao: h.estado.populacao })),
-    indicadores: INDICADORES.map((i) => ({
+    id: c.id, name: c.name, district: c.district, hub: c.hub, island: c.island, sector: c.sector, secondarySector: c.tag2,
+    population: now.state.population,
+    historyPopulation: history.map((h) => ({ season: h.season, label: label(h.season), population: h.state.population })),
+    indicators: INDICATORS.map((i) => ({
       id: i,
-      nivel: nivelDe(agora.estado[i], params),
-      tendencia: tendenciaDe(antes?.estado[i], agora.estado[i], params),
-      historico: hist.map((h) => ({ epoca: h.epoca, label: rotulo(h.epoca), nivel: nivelDe(h.estado[i], params) })),
+      level: levelOf(now.state[i], params),
+      trend: trendOf(before?.state[i], now.state[i], params),
+      history: history.map((h) => ({ season: h.season, label: label(h.season), level: levelOf(h.state[i], params) })),
     })),
-    orcamento: quintil(perCapita({ orcamentoMunicipal: c.orcamentoMunicipal, populacao: agora.estado.populacao }), base.cidades.map(perCapita)),
-    ...(autarca
-      ? { autarca: { pessoa: { k: "pessoa" as const, id: autarca.id, nome: autarca.nomeDesportivo }, mandatoDesde: desde, mandatoAte: desde + params.cidade.eleicoesAutarquicasAnos, apoioDesporto: nivelApoio(c.autarca.apoioDesporto), perfil } }
+    budget: quintile(perCapita({ municipalBudget: c.municipalBudget, population: now.state.population }), base.cities.map(perCapita)),
+    ...(mayor
+      ? { mayor: { person: { k: "person" as const, id: mayor.id, name: mayor.sportingName }, sinceTerm: since, untilTerm: since + params.city.yearsMunicipalElections, sportSupport: supportLevel(c.mayor.sportSupport), profile } }
       : {}),
-    localidades: base.localidades
-      .filter((l) => l.cidade === id)
+    localities: base.localities
+      .filter((l) => l.city === id)
       .map((l) => {
-        const reg = repo.localidade(l.id);
-        return { ref: { k: "localidade" as const, id: l.id, nome: l.nome }, estatuto: reg?.estatuto ?? l.estatuto, populacao: reg?.populacao ?? l.populacao };
+        const record = repo.locality(l.id);
+        return { ref: { k: "locality" as const, id: l.id, name: l.name }, status: record?.status ?? l.status, population: record?.population ?? l.population };
       }),
-    clubes: dados.clubes
-      .filter((x) => x.cidade === id)
-      .map((x) => ({ ref: { k: "clube" as const, id: x.id, nome: x.nome }, liga: x.liga, escalao: x.escalao, estadio: { nome: x.estadio.nome, capacidade: x.estadio.capacidade, propriedade: x.estadio.propriedade } })),
-    acontecimentos: repo
-      .eventosDe({ k: "cidade", id }, { tipo: "CIDADE_EVENTO", apenasPublicos: true, limite: 10 })
-      .map((e) => ({ data: e.data, epoca: e.epoca, label: rotulo(e.epoca), tipo: String(e.dados.evento), regional: e.dados.regional === true, ...(typeof e.dados.polo === "string" ? { polo: e.dados.polo } : {}) })),
+    clubs: data.clubs
+      .filter((x) => x.city === id)
+      .map((x) => ({ ref: { k: "club" as const, id: x.id, name: x.name }, league: x.league, tier: x.tier, stadium: { name: x.stadium.name, capacity: x.stadium.capacity, ownership: x.stadium.ownership } })),
+    incidents: repo
+      .eventsOf({ k: "city", id }, { type: "CIDADE_EVENTO", publicOnly: true, limit: 10 })
+      .map((e) => ({ date: e.date, season: e.season, label: label(e.season), type: String(e.data.evento), regional: e.data.regional === true, ...(typeof e.data.polo === "string" ? { hub: e.data.polo } : {}) })),
   };
 }

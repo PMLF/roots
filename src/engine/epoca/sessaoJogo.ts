@@ -4,224 +4,224 @@
  * o estado reconstrói-se sempre a partir disto (`reproduzir`). Cada passo simula só os minutos pedidos, com a tática em vigor
  * em cada momento. Nada vai para o histórico (nem notícias, nem caixa de entrada) até ao apito final (`finalizar`).
  */
-import type { Parametros } from "../config/parametros";
-import type { DadosBase } from "../dados/tipos";
-import { relatorioDoJogo } from "../jogo/estatisticas";
-import { SimuladorJogo } from "../jogo/simulador";
-import { jogarJogo, resolverJogo } from "../jogo/detalhe";
-import type { EntradaJogo, EventoJogo, Lado, Tatica } from "../jogo/tipos";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { Data } from "../persistencia/tipos";
-import { arbitroDoJogo } from "../jogo/contextoDoJogo";
-import { bilheteDoJogo, contextoDoJogo, coresDos, equipaParaJogo, tabelaAntes, zonasDa } from "./avancar";
-import { lancar } from "../clube/financas";
-import { CHAVE_SESSAO, curvaXg, equipasDoJogo, type ConfrontoVivo, type InfoJogo, guardarJogoVivo, linhasDoJogo, type JogoVivo, type LinhaTabelaVivo, type OutroJogoVivo } from "./jogoAoVivo";
-import { dadosDaEpoca } from "./piramideEpoca";
-import { eventoRival, motivoDeRival } from "./rivais";
-import { lerPlano, validarTatica } from "./planoDeJogo";
-import { prepararEpoca } from "./preparar";
+import type { Params } from "../config/parametros";
+import type { BaseData } from "../dados/tipos";
+import { matchReport } from "../jogo/estatisticas";
+import { MatchSimulator } from "../jogo/simulador";
+import { playMatch, resolveMatch } from "../jogo/detalhe";
+import type { MatchInput, MatchEvent, Side, Tactic } from "../jogo/tipos";
+import type { Repository } from "../persistencia/repositorio";
+import type { IsoDate } from "../persistencia/tipos";
+import { matchReferee } from "../jogo/contextoDoJogo";
+import { matchTicket, matchContext, coloursOf, teamForMatch, beforeTable, zonesOf } from "./avancar";
+import { post } from "../clube/financas";
+import { SESSION_KEY, xgCurve, matchTeams, type LiveMeeting, type MatchInfo, saveLiveMatch, matchLines, type LiveMatch, type LiveTableLine, type OtherLiveMatch } from "./jogoAoVivo";
+import { seasonData } from "./piramideEpoca";
+import { rivalEvent, rivalReason } from "./rivais";
+import { readPlan, validateTactic } from "./planoDeJogo";
+import { prepareSeason } from "./preparar";
 
-type Mudanca = { minuto: number; tatica: Tatica };
+type Change = { minute: number; tactic: Tactic };
 /** Uma substituição do gamer. `pausa`: número da paragem que a trouxe (0 = intervalo, que não gasta pausas). */
-export type TrocaFeita = { minuto: number; sai: string; entra: string; pausa: number };
-export type SessaoGuardada = {
-  jogo: string;
-  competicao: string;
-  jornada: number;
-  epoca: number;
-  data: Data;
-  lado: Lado;
-  entrada: EntradaJogo;
-  mudancas: Mudanca[];
-  trocas?: TrocaFeita[];
-  minuto: number;
-  tabela: LinhaTabelaVivo[];
-  outros: OutroJogoVivo[];
-  pontosVitoria: number;
-  pontosEmpate: number;
-  cores: Record<string, string>;
-  zonas?: { promovidos: number; descidos: number };
-  confrontos?: ConfrontoVivo[];
-  info?: InfoJogo;
+export type MadeSubstitution = { minute: number; playerOut: string; playerIn: string; pause: number };
+export type SavedSession = {
+  match: string;
+  competition: string;
+  round: number;
+  season: number;
+  date: IsoDate;
+  side: Side;
+  input: MatchInput;
+  changes: Change[];
+  substitutions?: MadeSubstitution[];
+  minute: number;
+  table: LiveTableLine[];
+  others: OtherLiveMatch[];
+  winPoints: number;
+  drawPoints: number;
+  colours: Record<string, string>;
+  zones?: { promoted: number; relegated: number };
+  meetings?: LiveMeeting[];
+  info?: MatchInfo;
 };
 
-export function lerSessao(repo: Repositorio): SessaoGuardada | undefined {
-  const bruto = repo.meta(CHAVE_SESSAO);
-  return bruto ? (JSON.parse(bruto) as SessaoGuardada) : undefined;
+export function readSession(repo: Repository): SavedSession | undefined {
+  const raw = repo.meta(SESSION_KEY);
+  return raw ? (JSON.parse(raw) as SavedSession) : undefined;
 }
-const guardar = (repo: Repositorio, s: SessaoGuardada) => repo.definirMeta(CHAVE_SESSAO, JSON.stringify(s));
+const save = (repo: Repository, s: SavedSession) => repo.setMeta(SESSION_KEY, JSON.stringify(s));
 
 /** Refaz o simulador até ao minuto atual, aplicando as mudanças de tática no minuto em que foram feitas. */
-function reproduzir(s: SessaoGuardada, params: Parametros, ate: number = s.minuto): { sim: SimuladorJogo; eventos: EventoJogo[] } {
-  const sim = new SimuladorJogo(s.entrada, params);
-  const eventos: EventoJogo[] = [];
-  const taticas = s.mudancas.filter((m) => m.minuto <= ate);
-  const trocas = (s.trocas ?? []).filter((t) => t.minuto <= ate);
+function replay(s: SavedSession, params: Params, until: number = s.minute): { sim: MatchSimulator; events: MatchEvent[] } {
+  const sim = new MatchSimulator(s.input, params);
+  const events: MatchEvent[] = [];
+  const tactics = s.changes.filter((m) => m.minute <= until);
+  const substitutions = (s.substitutions ?? []).filter((t) => t.minute <= until);
   // no mesmo minuto aplica-se primeiro a tática e depois as substituições (sempre pela mesma ordem, para a repetição ser igual)
-  const minutos = [...new Set([...taticas.map((m) => m.minuto), ...trocas.map((t) => t.minuto)])].sort((x, y) => x - y);
-  for (const m of minutos) {
-    eventos.push(...sim.simularAte(m));
-    for (const x of taticas.filter((y) => y.minuto === m)) sim.mudarTatica(s.lado, x.tatica);
-    const doMinuto = trocas.filter((t) => t.minuto === m);
-    if (doMinuto.length > 0) eventos.push(...sim.substituir(s.lado, doMinuto));
+  const minutes = [...new Set([...tactics.map((m) => m.minute), ...substitutions.map((t) => t.minute)])].sort((x, y) => x - y);
+  for (const m of minutes) {
+    events.push(...sim.simulateUntil(m));
+    for (const x of tactics.filter((y) => y.minute === m)) sim.changeTactic(s.side, x.tactic);
+    const ofMinute = substitutions.filter((t) => t.minute === m);
+    if (ofMinute.length > 0) events.push(...sim.substitute(s.side, ofMinute));
   }
-  eventos.push(...sim.simularAte(ate));
-  return { sim, eventos };
+  events.push(...sim.simulateUntil(until));
+  return { sim, events };
 }
 
 /** O minuto do intervalo: as substituições feitas aqui não gastam pausas. */
-export const minutoDoIntervalo = (params: Parametros): number => Math.round(params.jogo.duracao / 2);
+export const halfTimeMinute = (params: Params): number => Math.round(params.match.duration / 2);
 
 /** A vista do jogo no minuto atual: o mesmo formato do jogo guardado, só com o que já aconteceu. */
-function vista(repo: Repositorio, s: SessaoGuardada, params: Parametros, nomes: ReadonlyMap<string, string>): JogoVivo {
-  const { sim, eventos } = reproduzir(s, params);
-  const resumo = sim.resumo();
-  const nomePessoa = (id: string) => repo.pessoaPublica(id)?.nomeDesportivo ?? id;
-  const linhas = linhasDoJogo(eventos, sim.duracao, nomePessoa).filter((l) => l.minuto <= s.minuto && (l.tipo !== "fim" || sim.terminado));
-  const equipas = equipasDoJogo(s.entrada, eventos, relatorioDoJogo(s.entrada, s.entrada, eventos, resumo, params), nomePessoa);
-  const ultima = [...s.mudancas].reverse()[0]?.tatica ?? (s.lado === "casa" ? s.entrada.casa.tatica : s.entrada.fora.tatica);
-  const outros = s.outros.map((o) => {
-    const golos = o.golos.filter((g) => g.minuto <= s.minuto);
-    return { ...o, golos, golosCasa: golos.filter((g) => g.lado === "casa").length, golosFora: golos.filter((g) => g.lado === "fora").length };
+function view(repo: Repository, s: SavedSession, params: Params, names: ReadonlyMap<string, string>): LiveMatch {
+  const { sim, events } = replay(s, params);
+  const summary = sim.summary();
+  const personName = (id: string) => repo.publicPerson(id)?.sportingName ?? id;
+  const lines = matchLines(events, sim.duration, personName).filter((l) => l.minute <= s.minute && (l.type !== "end" || sim.finished));
+  const teams = matchTeams(s.input, events, matchReport(s.input, s.input, events, summary, params), personName);
+  const last = [...s.changes].reverse()[0]?.tactic ?? (s.side === "home" ? s.input.home.tactic : s.input.away.tactic);
+  const others = s.others.map((o) => {
+    const goals = o.goals.filter((g) => g.minute <= s.minute);
+    return { ...o, goals, homeGoals: goals.filter((g) => g.side === "home").length, awayGoals: goals.filter((g) => g.side === "away").length };
   });
   return {
-    id: s.jogo, competicao: s.competicao, jornada: s.jornada, data: s.data,
-    casa: { id: s.entrada.casa.clube, nome: nomes.get(s.entrada.casa.clube) ?? s.entrada.casa.clube },
-    fora: { id: s.entrada.fora.clube, nome: nomes.get(s.entrada.fora.clube) ?? s.entrada.fora.clube },
-    duracao: sim.duracao, golosCasa: resumo.casa.golos, golosFora: resumo.fora.golos, linhas,
-    tabela: s.tabela, pontosVitoria: s.pontosVitoria, pontosEmpate: s.pontosEmpate, outros, cores: s.cores, ...(s.zonas ? { zonas: s.zonas } : {}),
-    resumo, equipas, subs: { usadas: eventos.filter((e) => e.tipo === "substituicao" && e.lado === s.lado).length, max: params.jogo.substituicoes.max, pausasUsadas: new Set((s.trocas ?? []).map((t) => t.pausa).filter((p) => p > 0)).size, maxPausas: params.jogo.substituicoes.pausas }, xg: curvaXg(eventos, s.minuto), ...(s.confrontos ? { confrontos: s.confrontos } : {}), ...(s.info ? { info: s.info } : {}), ladoGamer: s.lado, emCurso: true, minuto: s.minuto, ...(ultima ? { tatica: ultima } : {}),
+    id: s.match, competition: s.competition, round: s.round, date: s.date,
+    home: { id: s.input.home.club, name: names.get(s.input.home.club) ?? s.input.home.club },
+    away: { id: s.input.away.club, name: names.get(s.input.away.club) ?? s.input.away.club },
+    duration: sim.duration, homeGoals: summary.home.goals, awayGoals: summary.away.goals, lines,
+    table: s.table, winPoints: s.winPoints, drawPoints: s.drawPoints, others, colours: s.colours, ...(s.zones ? { zones: s.zones } : {}),
+    summary, teams, subs: { used: events.filter((e) => e.type === "substitution" && e.side === s.side).length, max: params.match.substitutions.max, usedPauses: new Set((s.substitutions ?? []).map((t) => t.pause).filter((p) => p > 0)).size, pausesMax: params.match.substitutions.pauses }, xg: xgCurve(events, s.minute), ...(s.meetings ? { meetings: s.meetings } : {}), ...(s.info ? { info: s.info } : {}), gamerSide: s.side, ongoing: true, minute: s.minute, ...(last ? { tactic: last } : {}),
   };
 }
 
-const nomesDe = (dados: DadosBase) => new Map(dados.clubes.map((c) => [c.id, c.nome] as const));
+const namesOf = (data: BaseData) => new Map(data.clubs.map((c) => [c.id, c.name] as const));
 
 /** Começa o jogo do gamer (já com a tática e o onze do plano). Não regista nada no histórico. */
-export function iniciarSessao(repo: Repositorio, base: DadosBase, params: Parametros, clubeGamer: string, jogo: string): JogoVivo {
-  const existente = lerSessao(repo);
-  const dados = dadosDaEpoca(repo, base);
-  const nomes = nomesDe(dados);
-  if (existente) {
-    if (existente.jogo !== jogo) throw new Error("Já há um jogo a decorrer");
-    return vista(repo, existente, params, nomes);
+export function startSession(repo: Repository, base: BaseData, params: Params, gamerClub: string, match: string): LiveMatch {
+  const existing = readSession(repo);
+  const data = seasonData(repo, base);
+  const names = namesOf(data);
+  if (existing) {
+    if (existing.match !== match) throw new Error("Já há um jogo a decorrer");
+    return view(repo, existing, params, names);
   }
-  const { hoje, epoca } = prepararEpoca(repo, dados, params);
-  const g = repo.jogosDoDia(hoje).find((x) => x.id === jogo);
-  if (!g || repo.jogo(g.id) || (g.casa !== clubeGamer && g.fora !== clubeGamer)) throw new Error("Este jogo não é para jogar hoje");
+  const { today, season } = prepareSeason(repo, data, params);
+  const g = repo.dayMatches(today).find((x) => x.id === match);
+  if (!g || repo.match(g.id) || (g.home !== gamerClub && g.away !== gamerClub)) throw new Error("Este jogo não é para jogar hoje");
   const seed = repo.meta("seed") ?? "?";
-  const plano = lerPlano(repo, clubeGamer);
-  const casa = equipaParaJogo(repo, g.casa, g.competicao, epoca, g.jornada, hoje, seed, params, g.casa === clubeGamer ? plano : undefined);
-  const fora = equipaParaJogo(repo, g.fora, g.competicao, epoca, g.jornada, hoje, seed, params, g.fora === clubeGamer ? plano : undefined);
-  const lado: Lado = g.casa === clubeGamer ? "casa" : "fora";
+  const plan = readPlan(repo, gamerClub);
+  const home = teamForMatch(repo, g.home, g.competition, season, g.round, today, seed, params, g.home === gamerClub ? plan : undefined);
+  const away = teamForMatch(repo, g.away, g.competition, season, g.round, today, seed, params, g.away === gamerClub ? plan : undefined);
+  const side: Side = g.home === gamerClub ? "home" : "away";
   // os outros jogos da competição, no mesmo dia: já se sabe o que vão dar (não dependem do teu jogo) mas só se mostram ao minuto
-  const outros: OutroJogoVivo[] = [];
-  for (const o of repo.jogosDoDia(hoje)) {
-    if (o.id === g.id || o.competicao !== g.competicao || repo.jogo(o.id)) continue;
-    const ec = equipaParaJogo(repo, o.casa, o.competicao, epoca, o.jornada, hoje, seed, params);
-    const ef = equipaParaJogo(repo, o.fora, o.competicao, epoca, o.jornada, hoje, seed, params);
-    const r = jogarJogo({ seed, id: o.id, casa: ec, fora: ef }, 1, { id: o.id, competicao: o.competicao, epoca, jornada: o.jornada, data: hoje }, params);
-    outros.push({ id: o.id, casa: { id: o.casa, nome: nomes.get(o.casa) ?? o.casa }, fora: { id: o.fora, nome: nomes.get(o.fora) ?? o.fora }, duracao: r.relatorio.duracao, golos: r.relatorio.golos.map((x) => ({ minuto: x.minuto, lado: x.lado })), golosCasa: r.relatorio.golosCasa, golosFora: r.relatorio.golosFora });
+  const others: OtherLiveMatch[] = [];
+  for (const o of repo.dayMatches(today)) {
+    if (o.id === g.id || o.competition !== g.competition || repo.match(o.id)) continue;
+    const ec = teamForMatch(repo, o.home, o.competition, season, o.round, today, seed, params);
+    const ef = teamForMatch(repo, o.away, o.competition, season, o.round, today, seed, params);
+    const r = playMatch({ seed, id: o.id, home: ec, away: ef }, 1, { id: o.id, competition: o.competition, season, round: o.round, date: today }, params);
+    others.push({ id: o.id, home: { id: o.home, name: names.get(o.home) ?? o.home }, away: { id: o.away, name: names.get(o.away) ?? o.away }, duration: r.report.duration, goals: r.report.goals.map((x) => ({ minute: x.minute, side: x.side })), homeGoals: r.report.homeGoals, awayGoals: r.report.awayGoals });
   }
-  const tabela = tabelaAntes(repo, g.competicao, epoca, nomes);
-  const s: SessaoGuardada = {
-    jogo: g.id, competicao: g.competicao, jornada: g.jornada, epoca, data: hoje, lado, entrada: { seed, id: g.id, casa, fora }, mudancas: [], minuto: 0,
-    tabela, outros, pontosVitoria: params.classificacao.pontosVitoria, pontosEmpate: params.classificacao.pontosEmpate, cores: coresDos(dados, [g.casa, g.fora, ...tabela.map((l) => l.clube)]), zonas: zonasDa(dados, params, clubeGamer),
-    ...contextoDoJogo(repo, dados, params, g.casa, g.fora, g.competicao, g.id),
+  const table = beforeTable(repo, g.competition, season, names);
+  const s: SavedSession = {
+    match: g.id, competition: g.competition, round: g.round, season, date: today, side, input: { seed, id: g.id, home, away }, changes: [], minute: 0,
+    table, others, winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, colours: coloursOf(data, [g.home, g.away, ...table.map((l) => l.club)]), zones: zonesOf(data, params, gamerClub),
+    ...matchContext(repo, data, params, g.home, g.away, g.competition, g.id),
   };
-  guardar(repo, s);
-  return vista(repo, s, params, nomes);
+  save(repo, s);
+  return view(repo, s, params, names);
 }
 
 /** O jogo a decorrer, se houver, no minuto em que está. */
-export function sessaoAtual(repo: Repositorio, base: DadosBase, params: Parametros): JogoVivo | null {
-  const s = lerSessao(repo);
-  return s ? vista(repo, s, params, nomesDe(dadosDaEpoca(repo, base))) : null;
+export function currentSession(repo: Repository, base: BaseData, params: Params): LiveMatch | null {
+  const s = readSession(repo);
+  return s ? view(repo, s, params, namesOf(seasonData(repo, base))) : null;
 }
 
 /** Avança `minutos` minutos (a partir de agora, com a tática em vigor). No apito final regista o jogo. */
-export function passoSessao(repo: Repositorio, base: DadosBase, params: Parametros, minutos: number): JogoVivo {
-  const s = lerSessao(repo);
+export function sessionStep(repo: Repository, base: BaseData, params: Params, minutes: number): LiveMatch {
+  const s = readSession(repo);
   if (!s) throw new Error("Não há jogo a decorrer");
-  const dados = dadosDaEpoca(repo, base);
-  const { sim } = reproduzir(s, params);
-  const novo = { ...s, minuto: Math.min(sim.duracao, s.minuto + Math.max(0, Math.floor(minutos))) };
-  if (novo.minuto >= sim.duracao) return finalizar(repo, dados, params, novo);
-  guardar(repo, novo);
-  return vista(repo, novo, params, nomesDe(dados));
+  const data = seasonData(repo, base);
+  const { sim } = replay(s, params);
+  const fresh = { ...s, minute: Math.min(sim.duration, s.minute + Math.max(0, Math.floor(minutes))) };
+  if (fresh.minute >= sim.duration) return finish(repo, data, params, fresh);
+  save(repo, fresh);
+  return view(repo, fresh, params, namesOf(data));
 }
 
 /** Muda a tática do gamer a partir do minuto seguinte. */
-export function mudarTaticaSessao(repo: Repositorio, base: DadosBase, params: Parametros, tatica: Tatica): JogoVivo {
-  const s = lerSessao(repo);
+export function changeSessionTactic(repo: Repository, base: BaseData, params: Params, tactic: Tactic): LiveMatch {
+  const s = readSession(repo);
   if (!s) throw new Error("Não há jogo a decorrer");
-  validarTatica(tatica);
-  const atual = [...s.mudancas].reverse()[0]?.tatica ?? (s.lado === "casa" ? s.entrada.casa.tatica : s.entrada.fora.tatica);
-  if (atual && atual.formacao !== tatica.formacao) throw new Error("A formação não muda a meio do jogo");
-  const novo = { ...s, mudancas: [...s.mudancas, { minuto: s.minuto, tatica }] };
-  guardar(repo, novo);
-  return vista(repo, novo, params, nomesDe(dadosDaEpoca(repo, base)));
+  validateTactic(tactic);
+  const current = [...s.changes].reverse()[0]?.tactic ?? (s.side === "home" ? s.input.home.tactic : s.input.away.tactic);
+  if (current && current.formation !== tactic.formation) throw new Error("A formação não muda a meio do jogo");
+  const fresh = { ...s, changes: [...s.changes, { minute: s.minute, tactic }] };
+  save(repo, fresh);
+  return view(repo, fresh, params, namesOf(seasonData(repo, base)));
 }
 
 /**
  * Substituições do gamer (RZ-215), todas as que confirma de uma vez. Fora do intervalo gastam uma pausa (3 por jogo), seja
  * qual for o número de trocas; ao intervalo não gastam pausas. No total, no máximo 5 (as lesões também contam).
  */
-export function substituirSessao(repo: Repositorio, base: DadosBase, params: Parametros, trocas: readonly { sai: string; entra: string }[]): JogoVivo {
-  const s = lerSessao(repo);
+export function substituteSession(repo: Repository, base: BaseData, params: Params, substitutions: readonly { playerOut: string; playerIn: string }[]): LiveMatch {
+  const s = readSession(repo);
   if (!s) throw new Error("Não há jogo a decorrer");
-  if (trocas.length === 0) throw new Error("Escolhe pelo menos uma substituição");
-  const { sim, eventos } = reproduzir(s, params);
-  if (sim.terminado || s.minuto < 1) throw new Error("Só se fazem substituições com o jogo a decorrer");
-  const cfg = params.jogo.substituicoes;
-  const usadas = eventos.filter((e) => e.tipo === "substituicao" && e.lado === s.lado).length;
-  if (usadas >= cfg.max) throw new Error("Já não tens substituições");
-  if (usadas + trocas.length > cfg.max) throw new Error(`Só tens mais ${cfg.max - usadas} substituições`);
-  const intervalo = s.minuto === minutoDoIntervalo(params);
-  const pausasUsadas = new Set((s.trocas ?? []).map((t) => t.pausa).filter((p) => p > 0)).size;
-  if (!intervalo && pausasUsadas >= cfg.pausas) throw new Error("Já não tens pausas para substituições");
-  const eq = sim.equipa(s.lado);
-  const sai = new Set<string>();
-  const entra = new Set<string>();
-  for (const t of trocas) {
-    if (!eq.onze.some((j) => j.id === t.sai)) throw new Error("O jogador que sai não está em campo");
-    if (!(eq.banco ?? []).some((j) => j.id === t.entra)) throw new Error("O jogador que entra não está no banco");
-    if (sai.has(t.sai) || entra.has(t.entra)) throw new Error("Jogador repetido nas substituições");
-    sai.add(t.sai);
-    entra.add(t.entra);
+  if (substitutions.length === 0) throw new Error("Escolhe pelo menos uma substituição");
+  const { sim, events } = replay(s, params);
+  if (sim.finished || s.minute < 1) throw new Error("Só se fazem substituições com o jogo a decorrer");
+  const cfg = params.match.substitutions;
+  const used = events.filter((e) => e.type === "substitution" && e.side === s.side).length;
+  if (used >= cfg.max) throw new Error("Já não tens substituições");
+  if (used + substitutions.length > cfg.max) throw new Error(`Só tens mais ${cfg.max - used} substituições`);
+  const halfTime = s.minute === halfTimeMinute(params);
+  const usedPauses = new Set((s.substitutions ?? []).map((t) => t.pause).filter((p) => p > 0)).size;
+  if (!halfTime && usedPauses >= cfg.pauses) throw new Error("Já não tens pausas para substituições");
+  const eq = sim.team(s.side);
+  const playerOut = new Set<string>();
+  const playerIn = new Set<string>();
+  for (const t of substitutions) {
+    if (!eq.lineup.some((j) => j.id === t.playerOut)) throw new Error("O jogador que sai não está em campo");
+    if (!(eq.bench ?? []).some((j) => j.id === t.playerIn)) throw new Error("O jogador que entra não está no banco");
+    if (playerOut.has(t.playerOut) || playerIn.has(t.playerIn)) throw new Error("Jogador repetido nas substituições");
+    playerOut.add(t.playerOut);
+    playerIn.add(t.playerIn);
   }
-  const pausa = intervalo ? 0 : Math.max(0, ...(s.trocas ?? []).map((t) => t.pausa)) + 1;
-  const novo: SessaoGuardada = { ...s, trocas: [...(s.trocas ?? []), ...trocas.map((t) => ({ minuto: s.minuto, sai: t.sai, entra: t.entra, pausa }))] };
-  guardar(repo, novo);
-  return vista(repo, novo, params, nomesDe(dadosDaEpoca(repo, base)));
+  const pause = halfTime ? 0 : Math.max(0, ...(s.substitutions ?? []).map((t) => t.pause)) + 1;
+  const fresh: SavedSession = { ...s, substitutions: [...(s.substitutions ?? []), ...substitutions.map((t) => ({ minute: s.minute, playerOut: t.playerOut, playerIn: t.playerIn, pause }))] };
+  save(repo, fresh);
+  return view(repo, fresh, params, namesOf(seasonData(repo, base)));
 }
 
 /** Apito final: regista o jogo, as lesões e as histórias (é aqui que nascem as notícias e as mensagens) e guarda a repetição. */
-function finalizar(repo: Repositorio, dados: DadosBase, params: Parametros, s: SessaoGuardada): JogoVivo {
-  const nomes = nomesDe(dados);
-  const nomePessoa = (id: string) => repo.pessoaPublica(id)?.nomeDesportivo ?? id;
-  const { sim, eventos } = reproduzir(s, params, 10_000);
-  const resumo = sim.resumo();
-  const r = resolverJogo(s.entrada, eventos, resumo, 0, { id: s.jogo, competicao: s.competicao, epoca: s.epoca, jornada: s.jornada, data: s.data }, params);
-  if (r.nivel !== 0) throw new Error("nível inesperado");
-  return repo.transacao(() => {
+function finish(repo: Repository, data: BaseData, params: Params, s: SavedSession): LiveMatch {
+  const names = namesOf(data);
+  const personName = (id: string) => repo.publicPerson(id)?.sportingName ?? id;
+  const { sim, events } = replay(s, params, 10_000);
+  const summary = sim.summary();
+  const r = resolveMatch(s.input, events, summary, 0, { id: s.match, competition: s.competition, season: s.season, round: s.round, date: s.date }, params);
+  if (r.level !== 0) throw new Error("nível inesperado");
+  return repo.transaction(() => {
     const gamer = repo.meta("clube.gamer");
-    const rival = gamer ? motivoDeRival(repo, dados, params, s.competicao, s.epoca, gamer, s.entrada.casa.clube === gamer ? s.entrada.fora.clube : s.entrada.casa.clube) : undefined;
-    const bilhete = bilheteDoJogo(dados, params, s.entrada.casa.clube, s.entrada.fora.clube, s.competicao);
-    const { evento } = repo.registarJogo({ ...r.registo.jogo, arbitro: arbitroDoJogo(s.entrada.seed, s.jogo), ...(bilhete ? { assistencia: bilhete.assistencia, receita: bilhete.receita } : {}) }, r.registo.factos, r.registo.participacoes);
-    if (bilhete) lancar(repo, bilhete.clube, "bilheteira", bilhete.receita);
-    if (rival) repo.acrescentarEvento(eventoRival(s.jogo, s.entrada.casa.clube, s.entrada.fora.clube, s.data, s.epoca, s.jornada, evento, rival));
-    for (const l of r.registo.lesoes) repo.acrescentarEvento({ ...l, causa: evento });
-    for (const h of r.historias) repo.acrescentarEvento({ ...h, causa: evento });
-    const jogo: JogoVivo = {
-      id: s.jogo, competicao: s.competicao, jornada: s.jornada, data: s.data,
-      casa: { id: s.entrada.casa.clube, nome: nomes.get(s.entrada.casa.clube) ?? s.entrada.casa.clube },
-      fora: { id: s.entrada.fora.clube, nome: nomes.get(s.entrada.fora.clube) ?? s.entrada.fora.clube },
-      duracao: r.relatorio.duracao, golosCasa: r.relatorio.golosCasa, golosFora: r.relatorio.golosFora,
-      linhas: linhasDoJogo(r.eventos, r.relatorio.duracao, nomePessoa), tabela: s.tabela, pontosVitoria: s.pontosVitoria, pontosEmpate: s.pontosEmpate, outros: s.outros,
-      cores: s.cores, ...(s.zonas ? { zonas: s.zonas } : {}), resumo, equipas: equipasDoJogo(s.entrada, r.eventos, r.relatorio, nomePessoa), xg: curvaXg(r.eventos, r.relatorio.duracao), ...(s.confrontos ? { confrontos: s.confrontos } : {}), ...(s.info ? { info: s.info } : {}), ladoGamer: s.lado,
+    const rival = gamer ? rivalReason(repo, data, params, s.competition, s.season, gamer, s.input.home.club === gamer ? s.input.away.club : s.input.home.club) : undefined;
+    const ticket = matchTicket(data, params, s.input.home.club, s.input.away.club, s.competition);
+    const { event } = repo.recordMatch({ ...r.record.match, referee: matchReferee(s.input.seed, s.match), ...(ticket ? { attendance: ticket.attendance, revenue: ticket.revenue } : {}) }, r.record.facts, r.record.appearances);
+    if (ticket) post(repo, ticket.club, "ticketing", ticket.revenue);
+    if (rival) repo.appendEvent(rivalEvent(s.match, s.input.home.club, s.input.away.club, s.date, s.season, s.round, event, rival));
+    for (const l of r.record.injuries) repo.appendEvent({ ...l, cause: event });
+    for (const h of r.stories) repo.appendEvent({ ...h, cause: event });
+    const match: LiveMatch = {
+      id: s.match, competition: s.competition, round: s.round, date: s.date,
+      home: { id: s.input.home.club, name: names.get(s.input.home.club) ?? s.input.home.club },
+      away: { id: s.input.away.club, name: names.get(s.input.away.club) ?? s.input.away.club },
+      duration: r.report.duration, homeGoals: r.report.homeGoals, awayGoals: r.report.awayGoals,
+      lines: matchLines(r.events, r.report.duration, personName), table: s.table, winPoints: s.winPoints, drawPoints: s.drawPoints, others: s.others,
+      colours: s.colours, ...(s.zones ? { zones: s.zones } : {}), summary, teams: matchTeams(s.input, r.events, r.report, personName), xg: xgCurve(r.events, r.report.duration), ...(s.meetings ? { meetings: s.meetings } : {}), ...(s.info ? { info: s.info } : {}), gamerSide: s.side,
     };
-    guardarJogoVivo(repo, jogo);
-    repo.definirMeta(CHAVE_SESSAO, "");
-    return jogo;
+    saveLiveMatch(repo, match);
+    repo.setMeta(SESSION_KEY, "");
+    return match;
   });
 }

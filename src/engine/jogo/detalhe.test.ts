@@ -1,107 +1,107 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { PARAMETROS_PADRAO as P } from "../config/parametros";
-import { importarDados } from "../dados/importar";
-import { gerarMundo } from "../mundo/gerarMundo";
-import { importarPaises } from "../mundo/paises";
-import { RepositorioMemoria } from "../persistencia/repositorioMemoria";
-import { jogarJogo, nivelDoJogo, type JogoResolvido } from "./detalhe";
-import { equipaDe, type CandidatoOnze } from "./equipa";
-import { historiasDoJogo } from "./historias";
-import { equipaSintetica } from "./teste-util";
-import type { EntradaJogo, EquipaJogo, Lado } from "./tipos";
+import { DEFAULT_PARAMETERS as P } from "../config/parametros";
+import { importData } from "../dados/importar";
+import { generateWorld } from "../mundo/gerarMundo";
+import { importCountries } from "../mundo/paises";
+import { MemoryRepository } from "../persistencia/repositorioMemoria";
+import { playMatch, matchLevel, type ResolvedMatch } from "./detalhe";
+import { teamOf, type LineupCandidate } from "./equipa";
+import { matchStories } from "./historias";
+import { syntheticTeam } from "./teste-util";
+import type { MatchInput, MatchTeam, Side } from "./tipos";
 
-const meta = (id: string) => ({ id, competicao: "PL", epoca: 1, jornada: 1, data: "2026-09-05" });
-const entrada = (id: string): EntradaJogo => ({ seed: "det", id, casa: equipaSintetica("A", 10), fora: equipaSintetica("B", 10) });
+const meta = (id: string) => ({ id, competition: "PL", season: 1, round: 1, date: "2026-09-05" });
+const input = (id: string): MatchInput => ({ seed: "det", id, home: syntheticTeam("A", 10), away: syntheticTeam("B", 10) });
 
 describe("nível de detalhe", () => {
   it("0 para os jogos do clube do gamer, 1 para os outros", () => {
-    expect(nivelDoJogo("A", "B", "A")).toBe(0);
-    expect(nivelDoJogo("A", "B", "B")).toBe(0);
-    expect(nivelDoJogo("A", "B", "C")).toBe(1);
-    expect(nivelDoJogo("A", "B")).toBe(1);
+    expect(matchLevel("A", "B", "A")).toBe(0);
+    expect(matchLevel("A", "B", "B")).toBe(0);
+    expect(matchLevel("A", "B", "C")).toBe(1);
+    expect(matchLevel("A", "B")).toBe(1);
   });
 
   it("o mesmo jogo dá o mesmo resultado, golos e cartões nos dois níveis; só muda o que se guarda", () => {
     for (let i = 0; i < 60; i++) {
-      const e = entrada(`n${i}`);
-      const a = jogarJogo(e, 0, meta(e.id), P) as Extract<JogoResolvido, { nivel: 0 }>;
-      const b = jogarJogo(e, 1, meta(e.id), P) as Extract<JogoResolvido, { nivel: 1 }>;
-      expect(b.resumo).toEqual(a.resumo);
-      expect(b.registo.jogo).toEqual(a.registo.jogo);
-      expect(b.registo.factos).toEqual(a.registo.factos);
-      expect(b.registo.lesoes).toEqual(a.registo.lesoes);
-      expect(b.historias).toEqual(a.historias);
-      expect(b.relatorio.golos).toEqual(a.relatorio.golos);
-      expect(b.relatorio.cartoes).toEqual(a.relatorio.cartoes);
-      expect(b.relatorio.lesoes).toEqual(a.relatorio.lesoes);
-      expect(b.relatorio.homemDoJogo.id).toBe(a.relatorio.homemDoJogo);
-      expect(a.eventos.length).toBeGreaterThan(0);
-      expect("eventos" in b).toBe(false);
-      expect("jogadores" in b.relatorio).toBe(false);
+      const e = input(`n${i}`);
+      const a = playMatch(e, 0, meta(e.id), P) as Extract<ResolvedMatch, { level: 0 }>;
+      const b = playMatch(e, 1, meta(e.id), P) as Extract<ResolvedMatch, { level: 1 }>;
+      expect(b.summary).toEqual(a.summary);
+      expect(b.record.match).toEqual(a.record.match);
+      expect(b.record.facts).toEqual(a.record.facts);
+      expect(b.record.injuries).toEqual(a.record.injuries);
+      expect(b.stories).toEqual(a.stories);
+      expect(b.report.goals).toEqual(a.report.goals);
+      expect(b.report.cards).toEqual(a.report.cards);
+      expect(b.report.injuries).toEqual(a.report.injuries);
+      expect(b.report.matchMan.id).toBe(a.report.matchMan);
+      expect(a.events.length).toBeGreaterThan(0);
+      expect("events" in b).toBe(false);
+      expect("players" in b.report).toBe(false);
       // notas: todas no nível 0, só a do homem do jogo no nível 1
-      expect(a.registo.participacoes.every((p) => p.nota !== undefined)).toBe(true);
-      const comNota = b.registo.participacoes.filter((p) => p.nota !== undefined);
-      expect(comNota.map((p) => p.jogador)).toEqual([b.relatorio.homemDoJogo.id]);
-      expect(comNota[0]?.nota).toBe(b.relatorio.homemDoJogo.nota);
+      expect(a.record.appearances.every((p) => p.rating !== undefined)).toBe(true);
+      const withRating = b.record.appearances.filter((p) => p.rating !== undefined);
+      expect(withRating.map((p) => p.player)).toEqual([b.report.matchMan.id]);
+      expect(withRating[0]?.rating).toBe(b.report.matchMan.rating);
       // o nível 1 só tem momentos públicos
-      expect(b.relatorio.momentos.every((m) => ["golo", "expulsao", "lesao"].includes(m.tipo))).toBe(true);
+      expect(b.report.moments.every((m) => ["goal", "expulsao", "injury"].includes(m.type))).toBe(true);
       // sobrevivem as mesmas participações (minutos incluídos)
-      expect(b.registo.participacoes.map((p) => [p.jogador, p.minutos, p.titular])).toEqual(a.registo.participacoes.map((p) => [p.jogador, p.minutos, p.titular]));
+      expect(b.record.appearances.map((p) => [p.player, p.minutes, p.starter])).toEqual(a.record.appearances.map((p) => [p.player, p.minutes, p.starter]));
     }
   });
 });
 
 describe("histórias do jogo", () => {
-  const golo = (minuto: number, lado: Lado, golosCasa: number, golosFora: number, jogador = lado === "casa" ? "c1" : "f1") => ({ minuto, lado, jogador, origem: "jogada" as const, golosCasa, golosFora });
-  const hist = (golos: ReturnType<typeof golo>[], cartoes: { minuto: number; lado: Lado; jogador: string; cor: "amarelo" | "vermelho"; segundoAmarelo?: true }[] = []) => {
-    const ult = golos.at(-1);
-    return historiasDoJogo(meta("j"), { casa: "A", fora: "B" }, { duracao: 94, golosCasa: ult?.golosCasa ?? 0, golosFora: ult?.golosFora ?? 0, golos, cartoes }, P);
+  const goal = (minute: number, side: Side, homeGoals: number, awayGoals: number, player = side === "home" ? "c1" : "f1") => ({ minute, side, player, origin: "jogada" as const, homeGoals, awayGoals });
+  const history = (goals: ReturnType<typeof goal>[], cards: { minute: number; side: Side; player: string; colour: "yellow" | "red"; secondYellow?: true }[] = []) => {
+    const ult = goals.at(-1);
+    return matchStories(meta("j"), { home: "A", away: "B" }, { duration: 94, homeGoals: ult?.homeGoals ?? 0, awayGoals: ult?.awayGoals ?? 0, goals, cards }, P);
   };
-  const tipos = (e: ReturnType<typeof hist>) => e.map((x) => x.tipo);
+  const types = (e: ReturnType<typeof history>) => e.map((x) => x.type);
 
   it("um 1-0 a meio do jogo não é notícia", () => {
-    expect(hist([golo(30, "casa", 1, 0)])).toEqual([]);
-    expect(hist([])).toEqual([]);
+    expect(history([goal(30, "home", 1, 0)])).toEqual([]);
+    expect(history([])).toEqual([]);
   });
   it("hat-trick", () => {
-    const e = hist([golo(10, "casa", 1, 0, "x"), golo(40, "casa", 2, 0, "x"), golo(70, "casa", 3, 0, "x")]);
+    const e = history([goal(10, "home", 1, 0, "x"), goal(40, "home", 2, 0, "x"), goal(70, "home", 3, 0, "x")]);
     expect(e).toHaveLength(1);
-    expect(e[0]).toMatchObject({ tipo: "HATTRICK", vis: "publico", dados: { golos: 3, minutos: [10, 40, 70] } });
-    expect(e[0]?.entidades).toEqual([{ k: "pessoa", id: "x", papel: "marcador" }, { k: "clube", id: "A" }, { k: "jogo", id: "j" }]);
-    expect(tipos(hist([golo(10, "casa", 1, 0, "x"), golo(40, "casa", 2, 0, "x")]))).toEqual([]);
+    expect(e[0]).toMatchObject({ type: "HATTRICK", visibility: "exposed", data: { goals: 3, minutes: [10, 40, 70] } });
+    expect(e[0]?.entities).toEqual([{ k: "person", id: "x", roleKind: "scorer" }, { k: "club", id: "A" }, { k: "match", id: "j" }]);
+    expect(types(history([goal(10, "home", 1, 0, "x"), goal(40, "home", 2, 0, "x")]))).toEqual([]);
   });
   it("goleada: 4 ou mais de diferença", () => {
-    const g = [golo(5, "fora", 0, 1), golo(20, "fora", 0, 2), golo(50, "fora", 0, 3, "f2"), golo(60, "fora", 0, 4, "f3")];
-    const e = hist(g);
-    expect(tipos(e)).toEqual(["GOLEADA"]);
-    expect(e[0]?.entidades.map((x) => `${x.papel}:${x.id}`).slice(0, 2)).toEqual(["vencedor:B", "vencido:A"]);
-    expect(tipos(hist(g.slice(0, 3)))).toEqual([]);
+    const g = [goal(5, "away", 0, 1), goal(20, "away", 0, 2), goal(50, "away", 0, 3, "f2"), goal(60, "away", 0, 4, "f3")];
+    const e = history(g);
+    expect(types(e)).toEqual(["GOLEADA"]);
+    expect(e[0]?.entities.map((x) => `${x.roleKind}:${x.id}`).slice(0, 2)).toEqual(["vencedor:B", "vencido:A"]);
+    expect(types(history(g.slice(0, 3)))).toEqual([]);
   });
   it("reviravolta: o vencedor chegou a perder por dois", () => {
-    const e = hist([golo(10, "fora", 0, 1), golo(20, "fora", 0, 2), golo(50, "casa", 1, 2), golo(60, "casa", 2, 2), golo(75, "casa", 3, 2, "herói")]);
-    expect(tipos(e)).toEqual(["GOLO_NOTAVEL"]);
-    expect(e[0]).toMatchObject({ dados: { motivo: "reviravolta", minuto: 75, golosCasa: 3, golosFora: 2 } });
+    const e = history([goal(10, "away", 0, 1), goal(20, "away", 0, 2), goal(50, "home", 1, 2), goal(60, "home", 2, 2), goal(75, "home", 3, 2, "herói")]);
+    expect(types(e)).toEqual(["GOLO_NOTAVEL"]);
+    expect(e[0]).toMatchObject({ data: { reason: "turnaround", minute: 75, homeGoals: 3, awayGoals: 2 } });
     // perder por um e virar não chega
-    expect(tipos(hist([golo(10, "fora", 0, 1), golo(50, "casa", 1, 1), golo(60, "casa", 2, 1)]))).toEqual([]);
+    expect(types(history([goal(10, "away", 0, 1), goal(50, "home", 1, 1), goal(60, "home", 2, 1)]))).toEqual([]);
   });
   it("golo nos descontos que decide ou salva o empate", () => {
-    expect(hist([golo(30, "fora", 0, 1), golo(93, "casa", 1, 1)])[0]).toMatchObject({ tipo: "GOLO_NOTAVEL", dados: { motivo: "descontos" } });
-    expect(hist([golo(92, "casa", 1, 0)])[0]).toMatchObject({ dados: { motivo: "descontos" } });
+    expect(history([goal(30, "away", 0, 1), goal(93, "home", 1, 1)])[0]).toMatchObject({ type: "GOLO_NOTAVEL", data: { reason: "discounts" } });
+    expect(history([goal(92, "home", 1, 0)])[0]).toMatchObject({ data: { reason: "discounts" } });
     // já estava decidido
-    expect(hist([golo(10, "casa", 1, 0, "a"), golo(40, "casa", 2, 0, "b"), golo(93, "casa", 3, 0, "c")])).toEqual([]);
+    expect(history([goal(10, "home", 1, 0, "a"), goal(40, "home", 2, 0, "b"), goal(93, "home", 3, 0, "c")])).toEqual([]);
     // fora dos últimos minutos
-    expect(hist([golo(85, "casa", 1, 0)])).toEqual([]);
+    expect(history([goal(85, "home", 1, 0)])).toEqual([]);
   });
-  it("vermelhos", () => {
-    const e = hist([], [{ minuto: 20, lado: "fora", jogador: "p", cor: "amarelo" }, { minuto: 60, lado: "fora", jogador: "p", cor: "vermelho", segundoAmarelo: true }]);
+  it("reds", () => {
+    const e = history([], [{ minute: 20, side: "away", player: "p", colour: "yellow" }, { minute: 60, side: "away", player: "p", colour: "red", secondYellow: true }]);
     expect(e).toHaveLength(1);
-    expect(e[0]).toMatchObject({ tipo: "CARTAO_VERMELHO", dados: { minuto: 60, segundoAmarelo: true } });
+    expect(e[0]).toMatchObject({ type: "CARTAO_VERMELHO", data: { minute: 60, secondYellow: true } });
   });
   it("com muitos jogos, as histórias aparecem em frequências razoáveis", () => {
     const N = 4000;
     const c: Record<string, number> = {};
-    for (let i = 0; i < N; i++) for (const h of jogarJogo(entrada(`h${i}`), 1, meta(`h${i}`), P).historias) c[h.tipo] = (c[h.tipo] ?? 0) + 1;
+    for (let i = 0; i < N; i++) for (const h of playMatch(input(`h${i}`), 1, meta(`h${i}`), P).stories) c[h.type] = (c[h.type] ?? 0) + 1;
     console.log("histórias por jogo", Object.fromEntries(Object.entries(c).map(([k, v]) => [k, Math.round((v / N) * 1000) / 1000])));
     expect((c.HATTRICK ?? 0) / N).toBeGreaterThan(0.002);
     expect((c.HATTRICK ?? 0) / N).toBeLessThan(0.05);
@@ -115,46 +115,46 @@ describe("histórias do jogo", () => {
 
 // ---------- com o mundo gerado
 
-const ler = (f: string) => readFileSync(`data/${f}`, "utf8");
+const read = (f: string) => readFileSync(`data/${f}`, "utf8");
 
 describe("época de jogos com o mundo gerado", () => {
-  const d = importarDados({ clubes: ler("clubes.csv"), cidades: ler("cidades.csv"), localidades: ler("localidades.csv"), rivalidades: ler("rivalidades.csv"), distritos: ler("distritos.csv") });
-  const pr = importarPaises(ler("paises.csv"));
+  const d = importData({ clubs: read("clubes.csv"), cities: read("cidades.csv"), localities: read("localidades.csv"), rivalries: read("rivalidades.csv"), districts: read("distritos.csv") });
+  const pr = importCountries(read("paises.csv"));
   if (!d.ok || !pr.ok) throw new Error("dados inválidos");
-  const lote = gerarMundo({ seed: "det-mundo", dados: d.dados, paises: pr.paises, params: P });
-  const equipas = new Map<string, EquipaJogo>();
-  const equipa = (clube: string): EquipaJogo => {
-    let e = equipas.get(clube);
+  const batch = generateWorld({ seed: "det-mundo", data: d.data, countries: pr.countries, params: P });
+  const teams = new Map<string, MatchTeam>();
+  const team = (club: string): MatchTeam => {
+    let e = teams.get(club);
     if (!e) {
-      const cs: CandidatoOnze[] = lote.jogadores.filter((j) => j.clube === clube && j.estado === "ativo").map((j) => ({ pessoa: j.pessoa, posicoes: j.posicoes, atributos: j.atributos, alturaCm: j.alturaCm }));
-      e = equipaDe(clube, cs);
-      equipas.set(clube, e);
+      const cs: LineupCandidate[] = batch.players.filter((j) => j.club === club && j.state === "active").map((j) => ({ person: j.person, positions: j.positions, attributes: j.attributes, heightCm: j.heightCm }));
+      e = teamOf(club, cs);
+      teams.set(club, e);
     }
     return e;
   };
 
   it("simula milhares de jogos, o repositório aceita-os e o custo por jogo é baixo", () => {
-    const clubes = d.dados.clubes.map((c) => c.id);
-    const repo = new RepositorioMemoria();
+    const clubs = d.data.clubs.map((c) => c.id);
+    const repo = new MemoryRepository();
     const N = 4500;
-    const gamer = clubes[0] as string;
+    const gamer = clubs[0] as string;
     let niv0 = 0;
     const t0 = performance.now();
     for (let i = 0; i < N; i++) {
-      const casa = clubes[i % clubes.length] as string;
-      const fora = clubes[(i * 7 + 1) % clubes.length] as string;
-      if (casa === fora) continue;
-      const nivel = nivelDoJogo(casa, fora, gamer);
-      if (nivel === 0) niv0++;
+      const home = clubs[i % clubs.length] as string;
+      const away = clubs[(i * 7 + 1) % clubs.length] as string;
+      if (home === away) continue;
+      const level = matchLevel(home, away, gamer);
+      if (level === 0) niv0++;
       const id = `m${i}`;
-      const r = jogarJogo({ seed: "det-mundo", id, casa: equipa(casa), fora: equipa(fora) }, nivel, { id, competicao: "X", epoca: 1, jornada: 1 + (i % 30), data: "2026-09-05" }, P);
-      repo.registarJogo(r.registo.jogo, r.registo.factos, r.registo.participacoes);
-      for (const ev of [...r.registo.lesoes, ...r.historias]) repo.acrescentarEvento(ev);
+      const r = playMatch({ seed: "det-mundo", id, home: team(home), away: team(away) }, level, { id, competition: "X", season: 1, round: 1 + (i % 30), date: "2026-09-05" }, P);
+      repo.recordMatch(r.record.match, r.record.facts, r.record.appearances);
+      for (const ev of [...r.record.injuries, ...r.stories]) repo.appendEvent(ev);
     }
     const ms = performance.now() - t0;
     console.log(`jogos: ${N}, nível 0: ${niv0}, ${(ms / N).toFixed(2)} ms/jogo, ${(ms / 1000).toFixed(1)} s no total (com o repositório em memória)`);
     expect(ms / N).toBeLessThan(15);
-    expect(repo.contar("JOGO_JOGADO")).toBeGreaterThan(N - 20);
+    expect(repo.count("JOGO_JOGADO")).toBeGreaterThan(N - 20);
     expect(niv0).toBeGreaterThan(0);
   }, 120000);
 });

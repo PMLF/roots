@@ -3,236 +3,236 @@
  * (`vivo.<jogo>`; só os últimos jogos) para a interface a reproduzir minuto a minuto, com pausa e velocidade.
  * Os outros jogos só deixam o resumo público (golos, vermelhos, lesões, melhor em campo).
  */
-import type { RelatorioJogo } from "../jogo/estatisticas";
-import type { EquipaJogo, EventoJogo, Lado, ResultadoRemate, ResumoJogo, Tatica } from "../jogo/tipos";
-import type { Posicao } from "../mundo/tipos";
-import type { Repositorio } from "../persistencia/repositorio";
-import type { Data } from "../persistencia/tipos";
+import type { MatchReport } from "../jogo/estatisticas";
+import type { MatchTeam, MatchEvent, Side, ShotResult, MatchSummary, Tactic } from "../jogo/tipos";
+import type { Position } from "../mundo/tipos";
+import type { Repository } from "../persistencia/repositorio";
+import type { IsoDate } from "../persistencia/tipos";
 
-export type TipoLinhaVivo = "inicio" | "golo" | "remate" | "canto" | "penalti" | "cartao" | "lesao" | "substituicao" | "intervalo" | "fim";
+export type LiveLineType = "start" | "goal" | "shot" | "corner" | "penalty" | "card" | "injury" | "substitution" | "halfTime" | "end";
 
-export type LinhaVivo = {
-  minuto: number;
-  tipo: TipoLinhaVivo;
-  lado?: Lado;
-  jogador?: string;
-  nome?: string;
-  assistente?: string;
+export type LiveLine = {
+  minute: number;
+  type: LiveLineType;
+  side?: Side;
+  player?: string;
+  name?: string;
+  assistant?: string;
   /** Ids para a interface ligar os nomes às fichas (jogos guardados antes não os têm). */
-  assistenteId?: string;
-  entraId?: string;
+  assistantId?: string;
+  inId?: string;
   /** Quem entra, numa substituição. */
-  entra?: string;
-  resultado?: ResultadoRemate;
-  cor?: "amarelo" | "vermelho";
-  segundoAmarelo?: boolean;
+  playerIn?: string;
+  outcome?: ShotResult;
+  colour?: "yellow" | "red";
+  secondYellow?: boolean;
   /** Notificar: golos, cartões, penáltis, lesões e substituições. Os remates e cantos só enchem o feed. */
-  importante: boolean;
+  important: boolean;
   /** Num golo: o que muda no jogo, do ponto de vista de quem marca (para o comentário). */
-  situacao?: "abre" | "empata" | "vira" | "aumenta" | "reduz";
+  situation?: "opens" | "empata" | "vira" | "aumenta" | "reduz";
   /** Marcador depois deste lance. */
-  golosCasa: number;
-  golosFora: number;
+  homeGoals: number;
+  awayGoals: number;
 };
 
 /**
  * Um jogador no jogo (painel «Equipas»): o onze inicial e o banco, com a nota ao minuto, o que fez e quando entrou ou saiu.
  * `estado`: em campo, no banco (ainda não entrou), substituído, ou expulso.
  */
-export type JogadorVivo = {
+export type LivePlayer = {
   id: string;
-  nome: string;
-  posicao: Posicao;
-  estado: "campo" | "banco" | "saiu" | "expulso";
+  name: string;
+  position: Position;
+  state: "pitch" | "bench" | "left" | "sentOff";
   /** Só quem já jogou. */
-  nota?: number;
-  golos: number;
-  assistencias: number;
-  amarelos: number;
-  vermelho: boolean;
-  lesionado: boolean;
+  rating?: number;
+  goals: number;
+  assists: number;
+  yellows: number;
+  red: boolean;
+  injured: boolean;
   /** Minuto em que entrou (suplentes). */
-  entrou?: number;
+  cameOn?: number;
   /** Minuto em que saiu (substituído, lesionado, expulso). */
-  saiu?: number;
+  left?: number;
   /** Quem o substituiu / quem substituiu. */
-  trocaCom?: { id: string; nome: string };
+  substitutionWith?: { id: string; name: string };
   /** Posições que sabe jogar, com a aptidão (1-20): para escolher substituições. */
-  posicoes?: { pos: string; aptidao: number }[];
+  positions?: { pos: string; aptitude: number }[];
 };
 
 /** Substituições e pausas do gamer neste jogo (as lesões também gastam substituições, mas não pausas). */
-export type SubsVivo = { usadas: number; max: number; pausasUsadas: number; maxPausas: number };
-export type EquipasVivo = { casa: JogadorVivo[]; fora: JogadorVivo[] };
+export type LiveSubs = { used: number; max: number; usedPauses: number; pausesMax: number };
+export type LiveTeams = { home: LivePlayer[]; away: LivePlayer[] };
 
 /** Constrói o painel das equipas no minuto a que `eventos` e `relatorio` chegam. */
-export function equipasDoJogo(equipas: { casa: EquipaJogo; fora: EquipaJogo }, eventos: readonly EventoJogo[], relatorio: RelatorioJogo, nome: (id: string) => string): EquipasVivo {
-  const stat = new Map(relatorio.jogadores.map((j) => [j.id, j] as const));
-  const entrou = new Map<string, number>();
-  const saiu = new Map<string, { minuto: number; expulso: boolean }>();
-  const troca = new Map<string, string>();
-  for (const e of eventos) {
-    if (e.tipo === "substituicao") {
-      entrou.set(e.entra, e.minuto);
-      saiu.set(e.sai, { minuto: e.minuto, expulso: false });
-      troca.set(e.sai, e.entra);
-      troca.set(e.entra, e.sai);
-    } else if (e.tipo === "cartao" && e.cor === "vermelho") saiu.set(e.jogador, { minuto: e.minuto, expulso: true });
+export function matchTeams(teams: { home: MatchTeam; away: MatchTeam }, events: readonly MatchEvent[], report: MatchReport, name: (id: string) => string): LiveTeams {
+  const stat = new Map(report.players.map((j) => [j.id, j] as const));
+  const cameOn = new Map<string, number>();
+  const left = new Map<string, { minute: number; sentOff: boolean }>();
+  const substitution = new Map<string, string>();
+  for (const e of events) {
+    if (e.type === "substitution") {
+      cameOn.set(e.playerIn, e.minute);
+      left.set(e.playerOut, { minute: e.minute, sentOff: false });
+      substitution.set(e.playerOut, e.playerIn);
+      substitution.set(e.playerIn, e.playerOut);
+    } else if (e.type === "card" && e.colour === "red") left.set(e.player, { minute: e.minute, sentOff: true });
   }
-  const lado = (l: Lado): JogadorVivo[] =>
-    [...equipas[l].onze, ...(equipas[l].banco ?? [])].map((j, i) => {
+  const side = (l: Side): LivePlayer[] =>
+    [...teams[l].lineup, ...(teams[l].bench ?? [])].map((j, i) => {
       const st = stat.get(j.id);
-      const inicial = i < equipas[l].onze.length;
-      const sai = saiu.get(j.id);
-      const ent = entrou.get(j.id);
-      const jogou = inicial || ent !== undefined;
-      const outro = troca.get(j.id);
+      const initial = i < teams[l].lineup.length;
+      const playerOut = left.get(j.id);
+      const entity = cameOn.get(j.id);
+      const played = initial || entity !== undefined;
+      const other = substitution.get(j.id);
       return {
-        id: j.id, nome: nome(j.id), posicao: st?.posicao ?? j.posicao,
-        estado: sai ? (sai.expulso ? "expulso" : "saiu") : jogou ? "campo" : "banco",
-        ...(jogou && st ? { nota: st.nota } : {}),
-        golos: st?.golos ?? 0, assistencias: st?.assistencias ?? 0, amarelos: st?.amarelos ?? 0, vermelho: (st?.vermelhos ?? 0) > 0, lesionado: !!st?.lesao,
-        ...(ent !== undefined ? { entrou: ent } : {}), ...(sai ? { saiu: sai.minuto } : {}),
-        ...(outro ? { trocaCom: { id: outro, nome: nome(outro) } } : {}),
-        ...(j.posicoes ? { posicoes: j.posicoes.map((x) => ({ pos: x.pos, aptidao: x.aptidao })) } : {}),
+        id: j.id, name: name(j.id), position: st?.position ?? j.position,
+        state: playerOut ? (playerOut.sentOff ? "sentOff" : "left") : played ? "pitch" : "bench",
+        ...(played && st ? { rating: st.rating } : {}),
+        goals: st?.goals ?? 0, assists: st?.assists ?? 0, yellows: st?.yellows ?? 0, red: (st?.reds ?? 0) > 0, injured: !!st?.injury,
+        ...(entity !== undefined ? { cameOn: entity } : {}), ...(playerOut ? { left: playerOut.minute } : {}),
+        ...(other ? { substitutionWith: { id: other, name: name(other) } } : {}),
+        ...(j.positions ? { positions: j.positions.map((x) => ({ pos: x.pos, aptitude: x.aptitude })) } : {}),
       };
     });
-  return { casa: lado("casa"), fora: lado("fora") };
+  return { home: side("home"), away: side("away") };
 }
 
 /** Uma linha da tabela da competição antes dos jogos de hoje. */
-export type LinhaTabelaVivo = { clube: string; nome: string; jogos: number; pontos: number; golosMarcados: number; golosSofridos: number };
+export type LiveTableLine = { club: string; name: string; matches: number; points: number; scoredGoals: number; concededGoals: number };
 
 /** Outro jogo da mesma competição no mesmo dia: só os golos (o que se sabe dos jogos que não são o teu). */
-export type OutroJogoVivo = {
+export type OtherLiveMatch = {
   id: string;
-  casa: { id: string; nome: string };
-  fora: { id: string; nome: string };
-  duracao: number;
-  golos: { minuto: number; lado: Lado }[];
-  golosCasa: number;
-  golosFora: number;
+  home: { id: string; name: string };
+  away: { id: string; name: string };
+  duration: number;
+  goals: { minute: number; side: Side }[];
+  homeGoals: number;
+  awayGoals: number;
 };
 
 /** Um jogo anterior entre as duas equipas (do ponto de vista de quem joga em casa agora não importa: guarda quem jogou onde). */
-export type ConfrontoVivo = { id: string; data: Data; competicao: string; epoca: number; casa: string; fora: string; golosCasa: number; golosFora: number };
+export type LiveMeeting = { id: string; date: IsoDate; competition: string; season: number; home: string; away: string; homeGoals: number; awayGoals: number };
 
 /** O que se sabe do jogo além do que acontece em campo. Árbitro e transmissão entram quando existirem (RZ-218, RZ-222). */
-export type InfoJogo = {
-  estadio: { nome: string; localidade: string; capacidade: number };
+export type MatchInfo = {
+  stadium: { name: string; locality: string; capacity: number };
   /** Adeptos no estádio (pré-visualização determinística; o valor registado é o mesmo). */
-  assistencia: number;
-  arbitro?: string;
+  attendance: number;
+  referee?: string;
   /** Quem transmite o jogo (televisão, streaming, rádio). */
-  canais?: { nome: string; meio: "tv" | "streaming" | "radio" }[];
+  channels?: { name: string; middle: "tv" | "streaming" | "radio" }[];
 };
 
 /** xG acumulado de cada equipa em cada minuto (índice = minuto; o 0 é sempre 0). */
-export type CurvaXg = { casa: number[]; fora: number[] };
+export type XgCurve = { home: number[]; away: number[] };
 
 /** Constrói a curva de xG até ao minuto `ate` a partir dos remates. */
-export function curvaXg(eventos: readonly EventoJogo[], ate: number): CurvaXg {
-  const n = Math.max(0, Math.floor(ate));
-  const casa = new Array<number>(n + 1).fill(0);
-  const fora = new Array<number>(n + 1).fill(0);
-  for (const e of eventos) {
-    if (e.tipo !== "remate") continue;
-    const m = Math.min(n, Math.max(0, Math.ceil(e.minuto)));
-    (e.lado === "casa" ? casa : fora)[m]! += e.xg;
+export function xgCurve(events: readonly MatchEvent[], until: number): XgCurve {
+  const n = Math.max(0, Math.floor(until));
+  const home = new Array<number>(n + 1).fill(0);
+  const away = new Array<number>(n + 1).fill(0);
+  for (const e of events) {
+    if (e.type !== "shot") continue;
+    const m = Math.min(n, Math.max(0, Math.ceil(e.minute)));
+    (e.side === "home" ? home : away)[m]! += e.xg;
   }
-  for (const v of [casa, fora]) for (let i = 1; i <= n; i++) v[i] = Math.round((v[i]! + v[i - 1]!) * 1000) / 1000;
-  return { casa, fora };
+  for (const v of [home, away]) for (let i = 1; i <= n; i++) v[i] = Math.round((v[i]! + v[i - 1]!) * 1000) / 1000;
+  return { home, away };
 }
 
-export type JogoVivo = {
+export type LiveMatch = {
   id: string;
-  competicao: string;
-  jornada: number;
-  data: Data;
-  casa: { id: string; nome: string };
-  fora: { id: string; nome: string };
-  duracao: number;
-  golosCasa: number;
-  golosFora: number;
-  linhas: LinhaVivo[];
+  competition: string;
+  round: number;
+  date: IsoDate;
+  home: { id: string; name: string };
+  away: { id: string; name: string };
+  duration: number;
+  homeGoals: number;
+  awayGoals: number;
+  lines: LiveLine[];
   /** Tabela antes dos jogos de hoje; a interface soma-lhe os marcadores a cada minuto. */
-  tabela: LinhaTabelaVivo[];
-  pontosVitoria: number;
-  pontosEmpate: number;
-  outros: OutroJogoVivo[];
+  table: LiveTableLine[];
+  winPoints: number;
+  drawPoints: number;
+  others: OtherLiveMatch[];
   /** Cores de cada clube que aparece no jogo (casa, fora e tabela). */
-  cores?: Record<string, string>;
+  colours?: Record<string, string>;
   /** As duas equipas: onze, banco, notas e o que cada jogador fez (ao minuto, ou as finais num jogo guardado). */
-  equipas?: EquipasVivo;
+  teams?: LiveTeams;
   /** Estatísticas do jogo (as finais num jogo guardado; as do minuto atual ao vivo). */
-  resumo?: ResumoJogo;
+  summary?: MatchSummary;
   /** Evolução do xG por minuto (até ao minuto atual ao vivo). */
-  xg?: CurvaXg;
+  xg?: XgCurve;
   /** Últimos jogos entre as duas equipas, mais recente primeiro. */
-  confrontos?: ConfrontoVivo[];
+  meetings?: LiveMeeting[];
   /** Substituições e pausas que o gamer já gastou (só ao vivo). */
-  subs?: SubsVivo;
+  subs?: LiveSubs;
   /** Estádio, assistência, árbitro, ... */
-  info?: InfoJogo;
+  info?: MatchInfo;
   /** Quantos sobem e descem nesta competição (para as zonas da tabela). */
-  zonas?: { promovidos: number; descidos: number };
+  zones?: { promoted: number; relegated: number };
   /** De que lado joga o clube do gamer. */
-  ladoGamer?: Lado;
+  gamerSide?: Side;
   /** Só ao vivo (RZ-170): o jogo está a decorrer, no minuto indicado, com esta tática do lado do gamer. */
-  emCurso?: boolean;
-  minuto?: number;
-  tatica?: Tatica;
+  ongoing?: boolean;
+  minute?: number;
+  tactic?: Tactic;
 };
 
-const GUARDAR = 6;
+const SAVE = 6;
 
 /** Chave do save onde fica o jogo do gamer que está a decorrer (RZ-170). */
-export const CHAVE_SESSAO = "sessao";
+export const SESSION_KEY = "sessao";
 
 /** Converte os eventos do motor no feed do jogo (sem os «lances» simples, que são ruído). */
-export function linhasDoJogo(eventos: readonly EventoJogo[], duracao: number, nome: (id: string) => string): LinhaVivo[] {
+export function matchLines(events: readonly MatchEvent[], duration: number, name: (id: string) => string): LiveLine[] {
   let gc = 0;
   let gf = 0;
-  const out: LinhaVivo[] = [];
-  const base = (e: { minuto: number; lado: Lado }) => ({ minuto: e.minuto, lado: e.lado });
-  const marcador = () => ({ golosCasa: gc, golosFora: gf });
-  for (const e of [...eventos].sort((a, b) => a.minuto - b.minuto)) {
-    if (e.tipo === "remate") {
-      let situacao: LinhaVivo["situacao"];
-      if (e.resultado === "golo") {
-        const meus = e.lado === "casa" ? gc : gf;
-        const deles = e.lado === "casa" ? gf : gc;
-        situacao = meus + deles === 0 ? "abre" : meus + 1 === deles ? "empata" : meus + 1 < deles ? "reduz" : meus === deles ? "vira" : "aumenta";
-        if (e.lado === "casa") gc++; else gf++;
+  const out: LiveLine[] = [];
+  const base = (e: { minute: number; side: Side }) => ({ minute: e.minute, side: e.side });
+  const scorer = () => ({ homeGoals: gc, awayGoals: gf });
+  for (const e of [...events].sort((a, b) => a.minute - b.minute)) {
+    if (e.type === "shot") {
+      let situation: LiveLine["situation"];
+      if (e.outcome === "goal") {
+        const ownSquad = e.side === "home" ? gc : gf;
+        const their = e.side === "home" ? gf : gc;
+        situation = ownSquad + their === 0 ? "opens" : ownSquad + 1 === their ? "empata" : ownSquad + 1 < their ? "reduz" : ownSquad === their ? "vira" : "aumenta";
+        if (e.side === "home") gc++; else gf++;
       }
-      out.push({ ...base(e), tipo: e.resultado === "golo" ? "golo" : "remate", ...(situacao ? { situacao } : {}), jogador: e.jogador, nome: nome(e.jogador), ...(e.assistente ? { assistente: nome(e.assistente), assistenteId: e.assistente } : {}), resultado: e.resultado, importante: e.resultado === "golo", ...marcador() });
-    } else if (e.tipo === "canto") out.push({ ...base(e), tipo: "canto", importante: false, ...marcador() });
-    else if (e.tipo === "falta" && e.penalti) out.push({ ...base(e), tipo: "penalti", jogador: e.jogador, nome: nome(e.jogador), importante: true, ...marcador() });
-    else if (e.tipo === "cartao") out.push({ ...base(e), tipo: "cartao", jogador: e.jogador, nome: nome(e.jogador), cor: e.cor, ...(e.segundoAmarelo ? { segundoAmarelo: true } : {}), importante: true, ...marcador() });
-    else if (e.tipo === "lesao") out.push({ ...base(e), tipo: "lesao", jogador: e.jogador, nome: nome(e.jogador), importante: true, ...marcador() });
-    else if (e.tipo === "substituicao") out.push({ ...base(e), tipo: "substituicao", jogador: e.sai, nome: nome(e.sai), entra: nome(e.entra), entraId: e.entra, importante: true, ...marcador() });
+      out.push({ ...base(e), type: e.outcome === "goal" ? "goal" : "shot", ...(situation ? { situation } : {}), player: e.player, name: name(e.player), ...(e.assistant ? { assistant: name(e.assistant), assistantId: e.assistant } : {}), outcome: e.outcome, important: e.outcome === "goal", ...scorer() });
+    } else if (e.type === "corner") out.push({ ...base(e), type: "corner", important: false, ...scorer() });
+    else if (e.type === "foul" && e.penalty) out.push({ ...base(e), type: "penalty", player: e.player, name: name(e.player), important: true, ...scorer() });
+    else if (e.type === "card") out.push({ ...base(e), type: "card", player: e.player, name: name(e.player), colour: e.colour, ...(e.secondYellow ? { secondYellow: true } : {}), important: true, ...scorer() });
+    else if (e.type === "injury") out.push({ ...base(e), type: "injury", player: e.player, name: name(e.player), important: true, ...scorer() });
+    else if (e.type === "substitution") out.push({ ...base(e), type: "substitution", player: e.playerOut, name: name(e.playerOut), playerIn: name(e.playerIn), inId: e.playerIn, important: true, ...scorer() });
   }
   // intervalo: marcador à passagem dos 45 minutos
-  const aoIntervalo = out.filter((l) => l.minuto <= 45).at(-1);
-  out.push({ minuto: 0, tipo: "inicio", importante: false, golosCasa: 0, golosFora: 0 });
-  out.push({ minuto: 45, tipo: "intervalo", importante: false, golosCasa: aoIntervalo?.golosCasa ?? 0, golosFora: aoIntervalo?.golosFora ?? 0 });
-  out.push({ minuto: duracao, tipo: "fim", importante: false, ...marcador() });
-  return out.sort((a, b) => a.minuto - b.minuto || (a.tipo === "intervalo" ? 1 : 0) - (b.tipo === "intervalo" ? 1 : 0));
+  const onHalfTime = out.filter((l) => l.minute <= 45).at(-1);
+  out.push({ minute: 0, type: "start", important: false, homeGoals: 0, awayGoals: 0 });
+  out.push({ minute: 45, type: "halfTime", important: false, homeGoals: onHalfTime?.homeGoals ?? 0, awayGoals: onHalfTime?.awayGoals ?? 0 });
+  out.push({ minute: duration, type: "end", important: false, ...scorer() });
+  return out.sort((a, b) => a.minute - b.minute || (a.type === "halfTime" ? 1 : 0) - (b.type === "halfTime" ? 1 : 0));
 }
 
-export function guardarJogoVivo(repo: Repositorio, jogo: JogoVivo): void {
-  repo.definirMeta(`vivo.${jogo.id}`, JSON.stringify(jogo));
-  const ids = (JSON.parse(repo.meta("vivo.lista") || "[]") as string[]).filter((x) => x !== jogo.id);
-  ids.push(jogo.id);
-  while (ids.length > GUARDAR) repo.definirMeta(`vivo.${ids.shift()}`, "");
-  repo.definirMeta("vivo.lista", JSON.stringify(ids));
+export function saveLiveMatch(repo: Repository, match: LiveMatch): void {
+  repo.setMeta(`vivo.${match.id}`, JSON.stringify(match));
+  const ids = (JSON.parse(repo.meta("vivo.lista") || "[]") as string[]).filter((x) => x !== match.id);
+  ids.push(match.id);
+  while (ids.length > SAVE) repo.setMeta(`vivo.${ids.shift()}`, "");
+  repo.setMeta("vivo.lista", JSON.stringify(ids));
 }
 
 /** O jogo pedido ou, sem id, o último jogo do clube do gamer. */
-export function lerJogoVivo(repo: Repositorio, id?: string): JogoVivo | null {
+export function readLiveMatch(repo: Repository, id?: string): LiveMatch | null {
   const ids = JSON.parse(repo.meta("vivo.lista") || "[]") as string[];
-  const alvo = id ?? ids.at(-1);
-  const bruto = alvo ? repo.meta(`vivo.${alvo}`) : undefined;
-  return bruto ? (JSON.parse(bruto) as JogoVivo) : null;
+  const target = id ?? ids.at(-1);
+  const raw = target ? repo.meta(`vivo.${target}`) : undefined;
+  return raw ? (JSON.parse(raw) as LiveMatch) : null;
 }
 

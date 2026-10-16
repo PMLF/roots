@@ -3,22 +3,22 @@
  * grande visitante × final. Determinística, sem aleatoriedade (o jogo já tem a sua). Forma, preço e decisões de subida/descida
  * entram na versão completa do RZ-115. A receita de bilheteira é a assistência × preço do escalão.
  */
-import type { Parametros } from "../config/parametros";
-import type { ClubeBase } from "../dados/tipos";
-import { fatorReputacao } from "./financas";
+import type { Params } from "../config/parametros";
+import type { BaseClub } from "../dados/tipos";
+import { factorReputation } from "./financas";
 
-export type EntradaAssistencia = { casa: ClubeBase; fora: ClubeBase; culturaFutebol: number; final?: boolean };
+export type AttendanceInput = { home: BaseClub; away: BaseClub; footballCulture: number; final?: boolean };
 
-export function assistenciaDoJogo(e: EntradaAssistencia, params: Parametros): { assistencia: number; receita: number } {
-  const m = params.financas.modelo;
-  const a = params.assistencia;
-  const esc = e.casa.escalao;
-  let ocupacao = m.ocupacao[esc] * fatorReputacao(e.casa, params) ** 0.5;
-  ocupacao *= 1 - m.ocupacaoCultura + 2 * m.ocupacaoCultura * (e.culturaFutebol / 100);
-  const derbi = e.casa.rival === e.fora.id || e.fora.rival === e.casa.id;
-  if (derbi) ocupacao *= e.casa.rival === e.fora.id && e.fora.rival === e.casa.id ? a.derbiMutuo : a.derbi;
-  if (e.fora.reputacao > e.casa.reputacao) ocupacao *= 1 + a.grandeVisitanteCoef * Math.min(1, e.fora.reputacao / e.casa.reputacao - 1);
-  if (e.final) ocupacao *= a.multFinal;
-  const assistencia = Math.round(e.casa.estadio.capacidade * Math.min(1, Math.max(0.05, ocupacao)));
-  return { assistencia, receita: Math.round(assistencia * m.precoBilhete[esc]) };
+export function matchAttendance(e: AttendanceInput, params: Params): { attendance: number; revenue: number } {
+  const m = params.finances.model;
+  const a = params.attendance;
+  const tier = e.home.tier;
+  let occupancy = m.occupancy[tier] * factorReputation(e.home, params) ** 0.5;
+  occupancy *= 1 - m.cultureOccupancy + 2 * m.cultureOccupancy * (e.footballCulture / 100);
+  const derby = e.home.rival === e.away.id || e.away.rival === e.home.id;
+  if (derby) occupancy *= e.home.rival === e.away.id && e.away.rival === e.home.id ? a.mutualDerby : a.derby;
+  if (e.away.reputation > e.home.reputation) occupancy *= 1 + a.bigCoefAway * Math.min(1, e.away.reputation / e.home.reputation - 1);
+  if (e.final) occupancy *= a.finalMult;
+  const attendance = Math.round(e.home.stadium.capacity * Math.min(1, Math.max(0.05, occupancy)));
+  return { attendance, revenue: Math.round(attendance * m.ticketPrice[tier]) };
 }

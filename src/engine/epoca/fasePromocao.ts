@@ -4,45 +4,45 @@
  * Puro: o calendário usa o motor de todos-contra-todos e a classificação os desempates `promocao`.
  */
 import { Rng } from "../aleatorio/rng";
-import { todosContraTodos, type Ronda } from "../calendario/todosContraTodos";
-import type { Parametros } from "../config/parametros";
-import type { ClubeId, DistritoId, SerieCP } from "../dados/tipos";
-import { ordenarClassificacao, type JogoResultado } from "../competicao/classificacao";
-import type { LinhaClassificacao } from "../persistencia/tipos";
+import { allAgainstAll, type Round } from "../calendario/todosContraTodos";
+import type { Params } from "../config/parametros";
+import type { ClubId, DistrictId, CpSeries } from "../dados/tipos";
+import { sortStandings, type ResultMatch } from "../competicao/classificacao";
+import type { StandingsLine } from "../persistencia/tipos";
 import { SERIES } from "./movimentos";
 
-export type GrupoPromocao = { serie: SerieCP; clubes: ClubeId[] };
+export type PromotionGroup = { series: CpSeries; clubs: ClubId[] };
 
 /** Agrupa os campeões distritais pela série do CP do seu distrito. */
-export function formarGrupos(campeoes: readonly { clube: ClubeId; distrito: DistritoId }[], serieDoDistrito: (d: DistritoId) => SerieCP, params: Parametros): { grupos: GrupoPromocao[]; avisos: string[] } {
-  const avisos: string[] = [];
-  const grupos = SERIES.map((serie): GrupoPromocao => ({ serie, clubes: campeoes.filter((c) => serieDoDistrito(c.distrito) === serie).map((c) => c.clube) }));
-  for (const g of grupos) if (g.clubes.length !== params.piramide.promocao.campeoesPorGrupo) avisos.push(`grupo ${g.serie} da Fase de Promoção tem ${g.clubes.length} clubes (esperado ${params.piramide.promocao.campeoesPorGrupo})`);
-  return { grupos, avisos };
+export function buildGroups(champions: readonly { club: ClubId; district: DistrictId }[], districtSeries: (d: DistrictId) => CpSeries, params: Params): { groups: PromotionGroup[]; warnings: string[] } {
+  const warnings: string[] = [];
+  const groups = SERIES.map((series): PromotionGroup => ({ series, clubs: champions.filter((c) => districtSeries(c.district) === series).map((c) => c.club) }));
+  for (const g of groups) if (g.clubs.length !== params.pyramid.promotion.championsPerGroup) warnings.push(`grupo ${g.series} da Fase de Promoção tem ${g.clubs.length} clubes (esperado ${params.pyramid.promotion.championsPerGroup})`);
+  return { groups, warnings };
 }
 
 /** Jornadas de um grupo (uma volta, mando alternado). Com 5 clubes há folga em cada ronda. */
-export function calendarioDoGrupo(g: GrupoPromocao, epoca: number, seed: string, params: Parametros): Ronda[] {
-  return todosContraTodos(g.clubes, params.piramide.promocao.voltas, new Rng(seed, `promocao/${epoca}/${g.serie}`));
+export function groupCalendar(g: PromotionGroup, season: number, seed: string, params: Params): Round[] {
+  return allAgainstAll(g.clubs, params.pyramid.promotion.legs, new Rng(seed, `promocao/${season}/${g.series}`));
 }
 
 /** Classificação final de um grupo a partir dos jogos disputados. */
-export function classificarGrupo(g: GrupoPromocao, jogos: readonly JogoResultado[], epoca: number, seed: string, params: Parametros, reputacao: ReadonlyMap<ClubeId, number>): ClubeId[] {
-  const { pontosVitoria, pontosEmpate } = params.classificacao;
-  const linhas = new Map<ClubeId, LinhaClassificacao>(g.clubes.map((c) => [c, { clube: c, jogos: 0, vitorias: 0, empates: 0, derrotas: 0, golosMarcados: 0, golosSofridos: 0, pontosJogos: 0, ajuste: 0, pontos: 0 }]));
-  for (const j of jogos) {
-    const casa = linhas.get(j.casa);
-    const fora = linhas.get(j.fora);
-    if (!casa || !fora) continue;
-    for (const [l, gm, gs] of [[casa, j.golosCasa, j.golosFora], [fora, j.golosFora, j.golosCasa]] as const) {
-      l.jogos++; l.golosMarcados += gm; l.golosSofridos += gs;
-      if (gm > gs) { l.vitorias++; l.pontosJogos += pontosVitoria; } else if (gm === gs) { l.empates++; l.pontosJogos += pontosEmpate; } else l.derrotas++;
-      l.pontos = l.pontosJogos + l.ajuste;
+export function rankGroup(g: PromotionGroup, matches: readonly ResultMatch[], season: number, seed: string, params: Params, reputation: ReadonlyMap<ClubId, number>): ClubId[] {
+  const { winPoints, drawPoints } = params.standings;
+  const lines = new Map<ClubId, StandingsLine>(g.clubs.map((c) => [c, { club: c, matches: 0, wins: 0, draws: 0, losses: 0, scoredGoals: 0, concededGoals: 0, matchesPoints: 0, adjustment: 0, points: 0 }]));
+  for (const j of matches) {
+    const home = lines.get(j.home);
+    const away = lines.get(j.away);
+    if (!home || !away) continue;
+    for (const [l, gm, gs] of [[home, j.homeGoals, j.awayGoals], [away, j.awayGoals, j.homeGoals]] as const) {
+      l.matches++; l.scoredGoals += gm; l.concededGoals += gs;
+      if (gm > gs) { l.wins++; l.matchesPoints += winPoints; } else if (gm === gs) { l.draws++; l.matchesPoints += drawPoints; } else l.losses++;
+      l.points = l.matchesPoints + l.adjustment;
     }
   }
-  return ordenarClassificacao([...linhas.values()], jogos, params.desempate.promocao, { pontosVitoria, pontosEmpate, seed, competicao: `promocao-${g.serie}`, epoca, reputacao, clubes: g.clubes }).map((l) => l.clube);
+  return sortStandings([...lines.values()], matches, params.tiebreak.promotion, { winPoints, drawPoints, seed, competition: `promocao-${g.series}`, season, reputation, clubs: g.clubs }).map((l) => l.club);
 }
 
 /** Os promovidos de um grupo, já com a série para onde sobem. */
-export const promovidosDoGrupo = (g: GrupoPromocao, classificacao: readonly ClubeId[], params: Parametros) =>
-  classificacao.slice(0, params.piramide.promocao.promovidosPorGrupo).map((clube) => ({ clube, serie: g.serie }));
+export const groupPromoted = (g: PromotionGroup, standings: readonly ClubId[], params: Params) =>
+  standings.slice(0, params.pyramid.promotion.promotedPerGroup).map((club) => ({ club, series: g.series }));

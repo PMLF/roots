@@ -1,7 +1,7 @@
-import type { NivelReputacao, Parametros } from "../config/parametros";
+import type { LevelReputation, Params } from "../config/parametros";
 
 /** A reputação (0-10 000) em palavra: mundial, continental, nacional, regional, local ou obscuro. */
-export function nivelDeReputacao(reputacao: number, params: Parametros): NivelReputacao {
-  const n = params.reputacao.niveis.find((x) => reputacao >= x.min);
-  return (n ?? params.reputacao.niveis.at(-1) as { nivel: NivelReputacao }).nivel;
+export function reputationLevel(reputation: number, params: Params): LevelReputation {
+  const n = params.reputation.levels.find((x) => reputation >= x.min);
+  return (n ?? params.reputation.levels.at(-1) as { level: LevelReputation }).level;
 }
