@@ -16,6 +16,9 @@ export type LinhaVivo = {
   jogador?: string;
   nome?: string;
   assistente?: string;
+  /** Ids para a interface ligar os nomes às fichas (jogos guardados antes não os têm). */
+  assistenteId?: string;
+  entraId?: string;
   /** Quem entra, numa substituição. */
   entra?: string;
   resultado?: ResultadoRemate;
@@ -95,12 +98,12 @@ export function linhasDoJogo(eventos: readonly EventoJogo[], duracao: number, no
         situacao = meus + deles === 0 ? "abre" : meus + 1 === deles ? "empata" : meus + 1 < deles ? "reduz" : meus === deles ? "vira" : "aumenta";
         if (e.lado === "casa") gc++; else gf++;
       }
-      out.push({ ...base(e), tipo: e.resultado === "golo" ? "golo" : "remate", ...(situacao ? { situacao } : {}), jogador: e.jogador, nome: nome(e.jogador), ...(e.assistente ? { assistente: nome(e.assistente) } : {}), resultado: e.resultado, importante: e.resultado === "golo", ...marcador() });
+      out.push({ ...base(e), tipo: e.resultado === "golo" ? "golo" : "remate", ...(situacao ? { situacao } : {}), jogador: e.jogador, nome: nome(e.jogador), ...(e.assistente ? { assistente: nome(e.assistente), assistenteId: e.assistente } : {}), resultado: e.resultado, importante: e.resultado === "golo", ...marcador() });
     } else if (e.tipo === "canto") out.push({ ...base(e), tipo: "canto", importante: false, ...marcador() });
     else if (e.tipo === "falta" && e.penalti) out.push({ ...base(e), tipo: "penalti", jogador: e.jogador, nome: nome(e.jogador), importante: true, ...marcador() });
     else if (e.tipo === "cartao") out.push({ ...base(e), tipo: "cartao", jogador: e.jogador, nome: nome(e.jogador), cor: e.cor, ...(e.segundoAmarelo ? { segundoAmarelo: true } : {}), importante: true, ...marcador() });
     else if (e.tipo === "lesao") out.push({ ...base(e), tipo: "lesao", jogador: e.jogador, nome: nome(e.jogador), importante: true, ...marcador() });
-    else if (e.tipo === "substituicao") out.push({ ...base(e), tipo: "substituicao", jogador: e.sai, nome: nome(e.sai), entra: nome(e.entra), importante: true, ...marcador() });
+    else if (e.tipo === "substituicao") out.push({ ...base(e), tipo: "substituicao", jogador: e.sai, nome: nome(e.sai), entra: nome(e.entra), entraId: e.entra, importante: true, ...marcador() });
   }
   // intervalo: marcador à passagem dos 45 minutos
   const aoIntervalo = out.filter((l) => l.minuto <= 45).at(-1);

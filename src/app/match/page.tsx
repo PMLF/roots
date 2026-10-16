@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { JogoVivo } from "@/engine/epoca/jogoAoVivo";
 import type { Tatica } from "@/engine/jogo/tipos";
+import { Ligacao } from "@/ui/components/Ligacao";
 import { AmostraClube } from "@/ui/components/AmostraClube";
 import { Eventos, Estatisticas, OutrosJogos, TabelaViva, TaticaNoJogo } from "@/ui/components/jogo/PainelJogo";
 import { guardar, ler } from "@/ui/armazenamento";
@@ -100,11 +101,11 @@ function Conteudo() {
   const gf = ultima?.golosFora ?? 0;
   return (
     <section className="pagina-jogo">
-      <p className="suave">{jogo.competicao} · {t("jogo.jornada", { n: jogo.jornada })} · {jogo.data}</p>
+      <p className="suave"><Ligacao k="competicao" id={jogo.competicao}>{jogo.competicao}</Ligacao> · {t("jogo.jornada", { n: jogo.jornada })} · {jogo.data}</p>
       <div className="placar" aria-live="polite">
-        <span className="placar-equipa placar-casa"><AmostraClube cores={jogo.cores?.[jogo.casa.id]} />{jogo.casa.nome}</span>
+        <span className="placar-equipa placar-casa"><AmostraClube cores={jogo.cores?.[jogo.casa.id]} /><Ligacao k="clube" id={jogo.casa.id} semAmostra>{jogo.casa.nome}</Ligacao></span>
         <b className="placar-golos">{gc}–{gf}</b>
-        <span className="placar-equipa placar-fora">{jogo.fora.nome}<AmostraClube cores={jogo.cores?.[jogo.fora.id]} /></span>
+        <span className="placar-equipa placar-fora"><Ligacao k="clube" id={jogo.fora.id} semAmostra>{jogo.fora.nome}</Ligacao><AmostraClube cores={jogo.cores?.[jogo.fora.id]} /></span>
       </div>
       <p className="relogio">{emCurso ? `${Math.floor(minuto)}'` : t("jogo.terminado")}</p>
       {emCurso ? (

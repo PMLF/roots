@@ -930,5 +930,6 @@
   "epoca.jogos": "Jogos",
   "epoca.vde": "V / E / D",
   "epoca.golos": "Golos (marcados / sofridos)",
-  "epoca.pontos": "Pontos"
+  "epoca.pontos": "Pontos",
+  "clube.lugar": "{n}.º lugar"
 }

@@ -930,5 +930,6 @@
   "epoca.jogos": "Played",
   "epoca.vde": "W / D / L",
   "epoca.golos": "Goals (for / against)",
-  "epoca.pontos": "Points"
+  "epoca.pontos": "Points",
+  "clube.lugar": "Position {n}"
 }

@@ -2,7 +2,9 @@
 import type { JogoVivo, LinhaVivo } from "@/engine/epoca/jogoAoVivo";
 import { useEffect, useRef } from "react";
 import type { Estilo, Nivel, Tatica } from "@/engine/jogo/tipos";
+import type { ReactNode } from "react";
 import { AmostraClube } from "@/ui/components/AmostraClube";
+import { Ligacao } from "@/ui/components/Ligacao";
 import type { Chave } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { estatisticasDoJogo, marcadorAo, tabelaAoVivo, zonaDaPosicao } from "@/ui/jogo/vistaJogo";
@@ -14,19 +16,30 @@ const VARIANTES: Record<string, number> = { "jogo.golo.abre": 2, "jogo.golo.empa
 function frase(base: string, l: LinhaVivo, t: T): string {
   const n = VARIANTES[base] ?? 1;
   const h = Math.abs(Math.floor(l.minuto * 7) + (l.nome ?? "").length * 13);
-  return t((n === 1 ? base : `${base}.${(h % n) + 1}`) as Chave, { nome: l.nome ?? "" });
+  return t((n === 1 ? base : `${base}.${(h % n) + 1}`) as Chave, { nome: MARCA.nome });
+}
+
+/** O texto do comentário leva marcas no lugar dos nomes; `comLigacoes` troca-as por ligações às fichas. */
+const MARCA = { nome: "\uE000n\uE000", assistente: "\uE000a\uE000", entra: "\uE000e\uE000" };
+function comLigacoes(texto: string, l: LinhaVivo): ReactNode[] {
+  const alvo = (c: string) => (c === "n" ? { id: l.jogador, nome: l.nome } : c === "a" ? { id: l.assistenteId, nome: l.assistente } : { id: l.entraId, nome: l.entra });
+  return texto.split(/\uE000([nae])\uE000/).map((parte, i) => {
+    if (i % 2 === 0) return parte;
+    const a = alvo(parte);
+    return a.id ? <Ligacao key={i} k="pessoa" id={a.id}>{a.nome}</Ligacao> : (a.nome ?? "");
+  });
 }
 
 function textoDaLinha(l: LinhaVivo, t: T): string {
   switch (l.tipo) {
     case "inicio": return t("jogo.inicio");
-    case "golo": return frase(`jogo.golo.${l.situacao ?? "abre"}`, l, t) + (l.assistente ? ` ${t("jogo.assistencia", { nome: l.assistente })}` : "");
+    case "golo": return frase(`jogo.golo.${l.situacao ?? "abre"}`, l, t) + (l.assistente ? ` ${t("jogo.assistencia", { nome: MARCA.assistente })}` : "");
     case "remate": return frase(`jogo.remate.${l.resultado ?? "fora"}`, l, t);
     case "canto": return frase("jogo.canto", l, t);
     case "penalti": return frase("jogo.penalti", l, t);
     case "cartao": return l.cor === "vermelho" && l.segundoAmarelo ? frase("jogo.segundoAmarelo", l, t) : frase(l.cor === "vermelho" ? "jogo.vermelho" : "jogo.amarelo", l, t);
     case "lesao": return frase("jogo.lesao", l, t);
-    case "substituicao": return t("jogo.substituicao", { sai: l.nome ?? "", entra: l.entra ?? "" });
+    case "substituicao": return t("jogo.substituicao", { sai: MARCA.nome, entra: MARCA.entra });
     case "intervalo": return t("jogo.intervalo");
     case "fim": return t("jogo.fim");
   }
@@ -42,7 +55,7 @@ export function Eventos({ jogo, soImportante }: { jogo: JogoVivo; soImportante: 
     <ol className="feed" reversed aria-label={t("jogo.eventos")}>
       {[...linhas].reverse().map((l, i) => (
         <li key={`${l.minuto}-${l.tipo}-${linhas.length - i}`} className={`feed-${l.tipo}${l.importante ? " importante" : ""}`}>
-          <b>{Math.floor(l.minuto)}'</b> {l.lado && <span className="suave">{nomeDe(l.lado)} · </span>}{textoDaLinha(l, t)}
+          <b>{Math.floor(l.minuto)}'</b> {l.lado && <span className="suave"><Ligacao k="clube" id={l.lado === "casa" ? jogo.casa.id : jogo.fora.id} semAmostra>{nomeDe(l.lado)}</Ligacao> · </span>}{comLigacoes(textoDaLinha(l, t), l)}
           {l.tipo === "golo" && <b> {l.golosCasa}–{l.golosFora}</b>}
         </li>
       ))}
@@ -66,7 +79,7 @@ export function TabelaViva({ jogo, meu }: { jogo: JogoVivo; meu?: string }) {
           {tabela.map((l) => (
             <tr key={l.clube} className={[zonaDaPosicao(l.pos, tabela.length, jogo.zonas) ? `zona zona-${zonaDaPosicao(l.pos, tabela.length, jogo.zonas)}` : "", l.clube === meu ? "meu-clube" : emJogo.has(l.clube) ? "destaque" : l.aJogar ? "a-jogar" : ""].filter(Boolean).join(" ") || undefined}>
               <td>{l.pos}{l.pos < l.antes ? <span className="sobe" aria-label="▲"> ▲</span> : l.pos > l.antes ? <span className="desce" aria-label="▼"> ▼</span> : null}</td>
-              <td className="nome-clube"><AmostraClube cores={jogo.cores?.[l.clube]} />{l.nome}</td><td>{l.jogos}</td><td>{l.dg > 0 ? `+${l.dg}` : l.dg}</td><td><b>{l.pontos}</b></td>
+              <td className="nome-clube"><AmostraClube cores={jogo.cores?.[l.clube]} /><Ligacao k="clube" id={l.clube} semAmostra>{l.nome}</Ligacao></td><td>{l.jogos}</td><td>{l.dg > 0 ? `+${l.dg}` : l.dg}</td><td><b>{l.pontos}</b></td>
             </tr>
           ))}
         </tbody>
@@ -90,9 +103,9 @@ export function OutrosJogos({ jogo, meu }: { jogo: JogoVivo; meu?: string }) {
           return (
             <li key={o.id} className={o.casa.id === meu || o.fora.id === meu ? "meu-jogo" : undefined}>
               <AmostraClube cores={jogo.cores?.[o.casa.id]} className="amostra-esq" />
-              <span className={`nome-clube nome-casa${o.casa.id === meu ? " meu-clube" : ""}`}>{o.casa.nome}</span>
+              <span className={`nome-clube nome-casa${o.casa.id === meu ? " meu-clube" : ""}`}><Ligacao k="clube" id={o.casa.id} semAmostra>{o.casa.nome}</Ligacao></span>
               <b className="marcador-pequeno">{a}–{b}</b>
-              <span className={`nome-clube nome-fora${o.fora.id === meu ? " meu-clube" : ""}`}>{o.fora.nome}</span>
+              <span className={`nome-clube nome-fora${o.fora.id === meu ? " meu-clube" : ""}`}><Ligacao k="clube" id={o.fora.id} semAmostra>{o.fora.nome}</Ligacao></span>
               <AmostraClube cores={jogo.cores?.[o.fora.id]} className="amostra-dir" />
               {minuto >= o.duracao && <span className="suave fim-jogo">{t("jogo.fimJogo")}</span>}
             </li>
