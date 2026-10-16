@@ -85,7 +85,7 @@ legend { padding: 0 6px; color: var(--suave); }
 .topo > button { border-radius: 999px; padding: 5px 12px; color: var(--suave); }
 
 .centro { grid-area: centro; overflow: auto; padding: 8px 24px 32px; }
-.barra { grid-area: barra; display: flex; gap: 20px; padding: 8px 24px; color: var(--suave); font-size: 12px; border-top: 1px solid var(--linha); background: var(--fundo); }
+.barra { grid-area: barra; display: flex; align-items: center; gap: 20px; padding: 6px 24px; color: var(--suave); font-size: 12px; border-top: 1px solid var(--linha); background: var(--fundo); }
 .barra b { color: var(--texto); font-weight: 600; }
 
 .migalhas { display: flex; gap: 8px; align-items: center; margin: 0 0 14px; color: var(--suave); font-size: 13px; }
@@ -371,3 +371,64 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .tendencia-desce { color: var(--aviso); }
 .so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .lista-simples { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+
+/* «Avançar» global (RZ-166): botão dividido em baixo à direita */
+.avancar { position: relative; margin-left: auto; display: flex; align-items: center; gap: 10px; }
+.avancar-erro { font-size: 12px; max-width: 360px; }
+.avancar-botao { display: inline-flex; }
+.avancar-botao button { font-size: 13px; padding: 6px 14px; }
+.avancar-principal { display: inline-flex; align-items: baseline; gap: 8px; border-radius: 999px 0 0 999px; }
+.avancar-modo { font-weight: 400; font-size: 12px; opacity: .85; }
+.avancar-seta { border-radius: 0 999px 999px 0; padding: 6px 10px 6px 8px; border-left-color: rgba(255,255,255,.35); display: inline-flex; align-items: center; }
+.avancar-menu { position: absolute; right: 0; bottom: calc(100% + 6px); min-width: 210px; background: var(--painel); border: 1px solid var(--linha-forte); border-radius: var(--r-m); padding: 4px; box-shadow: 0 6px 24px rgba(0,0,0,.14); display: grid; gap: 2px; z-index: 20; }
+.avancar-menu button { display: flex; gap: 8px; align-items: center; text-align: left; border: 0; background: none; padding: 7px 10px; border-radius: var(--r-s); font-size: 13px; }
+.avancar-menu button:hover:not(:disabled) { background: var(--painel-2); }
+.avancar-visto { width: 14px; color: var(--destaque-texto); }
+
+/* Página inicial (RZ-166): A seguir em cima, três cartões lado a lado, fita de resultados no rodapé */
+.inicio { display: flex; flex-direction: column; gap: 14px; min-height: 100%; }
+.inicio-cabecalho { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.inicio-cabecalho h1 { margin: 0; }
+.inicio-cabecalho .espaco { margin-left: auto; }
+.inicio-clube { margin: 0; }
+.inicio .painel h2 { font-size: 15px; margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
+.inicio-seguir { display: flex; align-items: center; gap: 12px 32px; flex-wrap: wrap; padding: 12px 18px; }
+.inicio-seguir h2 { margin: 0; flex: 0 0 auto; min-width: 84px; }
+.inicio-jogo { flex: 1 1 280px; min-width: 0; }
+.inicio-jogo p { margin: 0; }
+.inicio-confronto { font-size: 18px; font-weight: 650; letter-spacing: -0.01em; }
+.inicio-factos { display: flex; gap: 28px; margin: 0; flex-wrap: wrap; }
+.inicio-factos dt { color: var(--suave); font-size: 12px; }
+.inicio-factos dd { margin: 0; font-weight: 600; }
+.inicio-colunas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+.inicio-colunas .painel { display: flex; flex-direction: column; min-width: 0; }
+.painel-rodape { margin: auto 0 0; padding-top: 10px; font-size: 13px; }
+.lista-compacta { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.lista-compacta .noticia { padding: 6px 8px; }
+.lista-compacta .noticia h3 { font-size: 13.5px; font-weight: 500; margin: 0; line-height: 1.3; }
+.lista-compacta .noticia.nao-lida h3 { font-weight: 700; }
+.lista-compacta .noticia p { font-size: 12px; margin: 0; }
+.inicio .decisao { margin-bottom: 8px; }
+.inicio .distintivo { margin-left: 0; }
+@media (max-width: 1100px) { .inicio-colunas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) { .inicio-colunas { grid-template-columns: 1fr; } }
+
+/* Fita de resultados: corre sem parar, pára com o rato ou o foco; estática com «reduzir movimento» */
+.fita { position: sticky; bottom: 0; margin-top: auto; display: flex; align-items: center; gap: 12px; background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 8px 14px; overflow: hidden; z-index: 5; }
+.fita-rotulo { flex: none; font-weight: 600; font-size: 13px; color: var(--destaque-texto); padding-right: 12px; border-right: 1px solid var(--linha); }
+.fita-janela { overflow: hidden; flex: 1; min-width: 0; }
+.fita-pista { display: flex; width: max-content; list-style: none; margin: 0; padding: 0; animation: fita-correr linear infinite; font-size: 13px; white-space: nowrap; }
+.fita-pista li { padding-right: 36px; }
+.fita-pista a { color: inherit; }
+.fita:hover .fita-pista, .fita:focus-within .fita-pista { animation-play-state: paused; }
+@keyframes fita-correr { from { transform: translateX(0); } to { transform: translateX(calc(-100% / var(--grupos, 2))); } }
+@media (prefers-reduced-motion: reduce) {
+  .fita-pista { animation: none; }
+  .fita-pista li[aria-hidden="true"] { display: none; }
+  .fita-janela { overflow-x: auto; }
+}
+.avancar-principal { white-space: nowrap; }
+@media (max-width: 720px) {
+  .barra > span:not(.avancar):nth-of-type(n+2) { display: none; }
+  .barra { gap: 12px; }
+}

@@ -7,19 +7,20 @@ import { useT } from "@/ui/i18n/LocaleProvider";
 import { guardar, ler } from "@/ui/armazenamento";
 import { useModoDev, useVerTudo } from "@/ui/dev";
 import { useCaixaNaoLidas } from "@/ui/useCaixa";
+import { BotaoAvancar } from "@/ui/components/BotaoAvancar";
 import { Icone, type NomeIcone } from "@/ui/components/Icone";
 import { Pesquisa } from "@/ui/components/Pesquisa";
 import { useTempo } from "@/ui/useTempo";
 import { SeletorClube, useClubes } from "@/ui/components/ComClube";
 import { useMeuClube } from "@/ui/meuClube";
 
-type ItemMenu = { chave: Chave; icone: NomeIcone; href?: string; ativoQuando: (caminho: string) => boolean; /** Ferramenta de developer: só no modo dev (`ui/dev.ts`). */ soDev?: true };
+type ItemMenu = { chave: Chave; icone: NomeIcone; href?: string; ativoQuando: (caminho: string) => boolean; /** Ferramenta de developer: só no modo dev (`ui/dev.ts`). */ soDev?: true; /** Não aparece no menu (tem lugar noutra página), mas continua a ter rota e migalhas. */ oculto?: true };
 
 // Máximo 2 níveis (TOM_E_UX §3.5): secção no menu, separadores dentro da página. Sem href = ainda não existe.
 const MENU: ItemMenu[] = [
   { chave: "menu.hoje", icone: "hoje", href: "/", ativoQuando: (c) => c === "/" },
   { chave: "menu.noticias", icone: "noticias", href: "/news/", ativoQuando: (c) => c.startsWith("/news") },
-  { chave: "menu.caixa", icone: "caixa", href: "/inbox/", ativoQuando: (c) => c.startsWith("/inbox") },
+  { chave: "menu.caixa", icone: "caixa", href: "/inbox/", ativoQuando: (c) => c.startsWith("/inbox"), oculto: true },
   { chave: "menu.competicoes", icone: "competicoes", href: "/competitions/", ativoQuando: (c) => c.startsWith("/competitions") },
   { chave: "menu.clube", icone: "clube", href: "/club/", ativoQuando: (c) => c.startsWith("/club") },
   { chave: "menu.plantel", icone: "plantel", href: "/squad/", ativoQuando: (c) => c.startsWith("/squad") },
@@ -72,7 +73,7 @@ export function Shell({ children }: { children: ReactNode }) {
     guardar("raizes.densidade", nova);
   };
 
-  const itens = MENU.filter((m) => !m.soDev || dev);
+  const itens = MENU.filter((m) => (!m.soDev || dev) && !m.oculto);
   return (
     <div className="shell">
       <nav className="menu" aria-label="Menu">
@@ -138,6 +139,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <span>{t("barra.data")}: <b>{tempo.estado ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${tempo.estado.hoje}T00:00:00Z`)) : t("barra.semDados")}</b></span>
         <span>{t("barra.orcamento")}: <b>{t("barra.semDados")}</b></span>
         <span>{t("barra.humor")}: <b>{t("barra.semDados")}</b></span>
+        <BotaoAvancar />
       </footer>
     </div>
   );
@@ -156,7 +158,7 @@ function ItemDoMenu({ m, caminho }: { m: ItemMenu; caminho: string }) {
     <>
       <Icone nome={m.icone} />
       {t(m.chave)}
-      {m.chave === "menu.caixa" && <DistintivoCaixa />}
+      {m.chave === "menu.hoje" && <DistintivoCaixa />}
     </>
   );
   return (

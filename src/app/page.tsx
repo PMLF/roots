@@ -4,20 +4,34 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { CompetitionPage, FichaClubeDados, ResumoMundoCriado } from "@/engine/api/contratos";
 import type { Noticia } from "@/engine/noticias/noticias";
-import { ItemNoticia } from "@/ui/components/ItemNoticia";
-import { jogosDoClube } from "@/ui/jogosClube";
-import { Ligacao } from "@/ui/components/Ligacao";
-import { useMeuClube } from "@/ui/meuClube";
 import { BotaoDemitir, EscolherClubeInicial } from "@/ui/components/ComClube";
-import { useTempo } from "@/ui/useTempo";
+import { FitaResultados } from "@/ui/components/FitaResultados";
+import { ItemNoticia } from "@/ui/components/ItemNoticia";
+import { Ligacao } from "@/ui/components/Ligacao";
+import { useCaixaRecente } from "@/ui/useCaixa";
+import { useModoDev } from "@/ui/dev";
 import { useT } from "@/ui/i18n/LocaleProvider";
+import { jogosDoClube } from "@/ui/jogosClube";
+import { useMeuClube } from "@/ui/meuClube";
 import { useMotor } from "@/ui/MotorProvider";
+import { useTempo } from "@/ui/useTempo";
 
-/** Página «Hoje» (TOM_E_UX §3.8): o que mudou, o que exige decisão, o que vem a seguir. */
-export default function Hoje() {
-  const { t } = useT();
+const DIA = 86_400_000;
+const diasEntre = (de: string, ate: string) => Math.round((Date.parse(`${ate}T00:00:00Z`) - Date.parse(`${de}T00:00:00Z`)) / DIA);
+
+/**
+ * Página inicial (TOM_E_UX §3.8, RZ-166), por hierarquia: o que vem a seguir em cima, num cartão baixo; por baixo, lado a lado,
+ * o que exige decisão, a caixa de entrada e as notícias; no rodapé, a fita com os resultados e os marcadores.
+ */
+export default function Inicio() {
+  const { t, locale } = useT();
   const motor = useMotor();
+  const router = useRouter();
+  const dev = useModoDev();
   const [mundo, setMundo] = useState<ResumoMundoCriado | null | undefined>(undefined);
+  const [meu] = useMeuClube();
+  const tempo = useTempo();
+  const caixa = useCaixaRecente(5);
 
   useEffect(() => {
     if (!motor) return;
@@ -26,9 +40,6 @@ export default function Hoje() {
     return () => { vivo = false; };
   }, [motor]);
 
-  const router = useRouter();
-  const [meu] = useMeuClube();
-  const tempo = useTempo();
   const [clube, setClube] = useState<{ ficha: FichaClubeDados; liga: CompetitionPage } | undefined>(undefined);
   useEffect(() => {
     if (!motor || !meu || !mundo) { setClube(undefined); return; }
@@ -40,99 +51,119 @@ export default function Hoje() {
     })().catch(() => vivo && setClube(undefined));
     return () => { vivo = false; };
   }, [motor, meu, mundo, tempo.estado?.hoje]);
+
   const [noticias, setNoticias] = useState<Noticia[]>([]);
   useEffect(() => {
     if (!motor || !mundo) return;
     let vivo = true;
-    motor.chamar("noticias", { escopo: meu ? "liga" : "mundo", limite: 4 }).then((l) => vivo && setNoticias(l)).catch(() => undefined);
+    motor.chamar("noticias", { escopo: meu ? "liga" : "mundo", limite: 5 }).then((l) => vivo && setNoticias(l)).catch(() => undefined);
     return () => { vivo = false; };
   }, [motor, mundo, meu, tempo.estado?.hoje]);
-  const resultados = (tempo.ultimo?.dias ?? []).flatMap((d) => d.jogos).filter((j) => (meu ? j.casa === meu || j.fora === meu : false) || (clube ? j.competicao === clube.ficha.liga : false)).slice(-12);
-  const proximo = clube ? jogosDoClube(clube.liga, clube.ficha.id).find((j) => !j.bye && j.result === "") : undefined;
-  const posicao = clube?.liga.table.find((r) => r.club === clube.ficha.id)?.position;
+
+  // o próximo jogo vem do plano (data real do jogo); a jornada, do calendário da liga
+  const pj = tempo.proximoJogo;
+  const lin = pj && clube ? jogosDoClube(clube.liga, clube.ficha.id).find((j) => j.id === pj.id) : undefined;
+  const proximo = pj && clube ? { home: pj.emCasa, opponentName: pj.adversario, date: pj.data, round: lin?.round ?? 0 } : undefined;
+  const linha = clube?.liga.table.find((r) => r.club === clube.ficha.id);
+  const hoje = tempo.estado?.hoje;
+  const dias = proximo && hoje ? diasEntre(hoje, proximo.date) : undefined;
+  const quando = dias === undefined ? "" : dias <= 0 ? t("inicio.hoje") : dias === 1 ? t("inicio.amanha") : t("inicio.emDias", { n: dias });
+  const dataLonga = (d: string) => new Intl.DateTimeFormat(locale, { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${d}T00:00:00Z`));
+  const fita = (tempo.ultimo?.dias ?? []).flatMap((d) => d.jogos).filter((j) => (clube ? j.competicao === clube.ficha.liga : meu ? j.casa === meu || j.fora === meu : false)).slice(-40);
+  const resumo = tempo.ultimo?.resumoEpoca;
+
+  if (mundo === null) {
+    return (
+      <section className="inicio">
+        <h1>{t("hoje.titulo")}</h1>
+        <p data-testid="hoje-sem-mundo">{t("hoje.semMundo")} <Link href="/world/">{t("hoje.criarMundo")}</Link></p>
+      </section>
+    );
+  }
+
+  const casaFora = proximo && clube ? (proximo.home ? [clube.ficha.nome, proximo.opponentName] : [proximo.opponentName, clube.ficha.nome]) : [];
+  const decisoes = (tempo.pausa ? 1 : 0) + (mundo && !meu ? 1 : 0);
 
   return (
-    <section>
-      <h1>{t("hoje.titulo")}</h1>
-      {mundo && (
-        <p>
-          {clube ? (
-            <>
-              <b>{t("hoje.oTeuClube")}:</b> <Ligacao k="clube" id={clube.ficha.id}>{clube.ficha.nome}</Ligacao>
-              {posicao !== undefined && <span className="suave"> · {t("hoje.posicao", { pos: posicao, liga: clube.ficha.liga })}</span>}
-              {proximo && <span className="suave"> · {t("hoje.proximo", { jogo: `${proximo.home ? "" : "@ "}${proximo.opponentName}` })}</span>}{" "}
-              <BotaoDemitir />
-            </>
-          ) : (
-            <EscolherClubeInicial />
-          )}
-        </p>
-      )}
-      {mundo === null && (
-        <p data-testid="hoje-sem-mundo">
-          {t("hoje.semMundo")} <Link href="/world/">{t("hoje.criarMundo")}</Link>
-        </p>
-      )}
-      {mundo && <p className="suave" data-testid="hoje-mundo">{t("hoje.mundo", { seed: mundo.seed, pessoas: mundo.pessoas })}</p>}
-      <div className="hoje-grelha">
-        <section className="painel" aria-labelledby="h-mudou">
-          <h2 id="h-mudou">{t("hoje.mudou")}</h2>
-          {resultados.length === 0 ? <p className="vazio">{t("hoje.mudouVazio")}</p> : (
-            <ul className="ligacoes">
-              {resultados.map((j) => (
-                <li key={j.id}>
-                  <b>{j.casaNome} {j.golosCasa}–{j.golosFora} {j.foraNome}</b>{j.nivel === 0 && <> <Link href={`/match/?id=${encodeURIComponent(j.id)}`}>{t("hoje.verJogo")}</Link></>}
-                  <span className="suave"> · {[...j.golos.map((g) => `${g.nome} ${g.minuto}'`), ...j.cartoes.map((c) => `${c.cor === "vermelho" ? "🟥" : "🟨"} ${c.nome}`), ...j.lesoes.map((l) => `✚ ${l.nome}`)].join(" · ")}</span>
-                  {j.homemDoJogo && <span className="suave"> · {t("hoje.homemDoJogo", { nome: j.homemDoJogo.nome, nota: j.homemDoJogo.nota.toFixed(1) })}</span>}
-                </li>
-              ))}
-            </ul>
-          )}
-          {tempo.ultimo && <p className="suave">{t("hoje.resumoAvanco", { jogos: tempo.ultimo.dias.reduce((s, d) => s + d.jogos.length, 0), lesoes: tempo.ultimo.dias.reduce((s, d) => s + d.jogos.reduce((x, j) => x + j.lesoes.length, 0), 0), cartoes: tempo.ultimo.dias.reduce((s, d) => s + d.jogos.reduce((x, j) => x + j.cartoes.length, 0), 0) })}</p>}
-        </section>
-        <section className="painel" aria-labelledby="h-decisao">
-          <h2 id="h-decisao">{t("hoje.decisao")}</h2>
-          <p className="vazio">{t("hoje.decisaoVazio")}</p>
-        </section>
-        <section className="painel" aria-labelledby="h-seguir">
-          <h2 id="h-seguir">{t("hoje.seguir")}</h2>
-          {proximo ? <p>{t("hoje.proximo", { jogo: `${proximo.home ? "" : "@ "}${proximo.opponentName}` })} <span className="suave">· {proximo.date}</span></p> : <p className="vazio">{t("hoje.seguirVazio")}</p>}
-          {tempo.ultimo?.resumoEpoca && (
-            <div className="resumo-epoca">
-              <p><b>{t("hoje.epocaAcabou", { epoca: tempo.ultimo.resumoEpoca.epoca })}</b></p>
-              <p className="suave">{t("hoje.campeoes")}: {tempo.ultimo.resumoEpoca.campeoes.map((c) => `${c.nome} (${c.liga})`).join(" · ")}</p>
-              {meu && tempo.ultimo.resumoEpoca.movimentos.filter((m) => m.clube === meu).map((m) => <p key={m.clube}>{t(m.motivo === "descida" ? "hoje.desceste" : "hoje.subiste")}</p>)}
-              <p className="suave">{t("hoje.movimentos", { n: tempo.ultimo.resumoEpoca.movimentos.length })}</p>
+    <section className="inicio">
+      <header className="inicio-cabecalho">
+        <h1>{t("hoje.titulo")}</h1>
+        {clube && (
+          <p className="inicio-clube">
+            <Ligacao k="clube" id={clube.ficha.id}>{clube.ficha.nome}</Ligacao>
+            <span className="suave"> · <Ligacao k="competicao" id={clube.ficha.liga}>{clube.ficha.liga}</Ligacao></span>
+          </p>
+        )}
+        <span className="espaco" />
+        {dev && mundo && <span className="suave" data-testid="hoje-mundo">{t("hoje.mundo", { seed: mundo.seed, pessoas: mundo.pessoas })}</span>}
+        {clube && <BotaoDemitir />}
+      </header>
+
+      <section className="painel inicio-seguir" aria-labelledby="i-seguir">
+        <h2 id="i-seguir">{t("inicio.seguir")}</h2>
+        {proximo && clube ? (
+          <>
+            <div className="inicio-jogo">
+              <p className="inicio-confronto">{casaFora[0]} <span className="suave">{t("inicio.vs")}</span> {casaFora[1]}</p>
+              <p className="suave">{t(proximo.home ? "inicio.emCasa" : "inicio.fora")} · {clube.ficha.liga} {proximo.round > 0 && <>· {t("inicio.jornada", { n: proximo.round })}</>}</p>
             </div>
-          )}
+            <dl className="inicio-factos">
+              <div><dt>{t("inicio.quando")}</dt><dd>{quando} <span className="suave">· {dataLonga(proximo.date)}</span></dd></div>
+              {linha && <div><dt>{t("inicio.classificacao")}</dt><dd>{t("hoje.posicao", { pos: linha.position, liga: clube.ficha.liga })}</dd></div>}
+            </dl>
+          </>
+        ) : (
+          <p className="vazio">{!meu ? t("inicio.semClube") : clube ? t("hoje.seguirVazio") : t("ficha.aCarregar")}</p>
+        )}
+      </section>
+
+      {resumo && (
+        <section className="painel resumo-epoca" aria-label={t("hoje.epocaAcabou", { epoca: resumo.epoca })}>
+          <p><b>{t("hoje.epocaAcabou", { epoca: resumo.epoca })}</b></p>
+          <p className="suave">{t("hoje.campeoes")}: {resumo.campeoes.map((c) => `${c.nome} (${c.liga})`).join(" · ")}</p>
+          {meu && resumo.movimentos.filter((m) => m.clube === meu).map((m) => <p key={m.clube}>{t(m.motivo === "descida" ? "hoje.desceste" : "hoje.subiste")}</p>)}
+          <p className="suave">{t("hoje.movimentos", { n: resumo.movimentos.length })}</p>
+        </section>
+      )}
+
+      <div className="inicio-colunas">
+        <section className="painel" aria-labelledby="i-decisao">
+          <h2 id="i-decisao">{t("hoje.decisao")}{decisoes > 0 && <span className="distintivo" aria-label={t("inicio.pendentes", { n: decisoes })}>{decisoes}</span>}</h2>
           {tempo.pausa && (
-            <>
+            <div className="decisao">
               <p><b>{t("hoje.jogoHoje", { jogo: `${tempo.pausa.emCasa ? "" : "@ "}${tempo.pausa.adversario}` })}</b></p>
               <p className="acoes">
-                <button type="button" className="primario" disabled={tempo.aAvancar} onClick={() => { const id = tempo.pausa?.jogo; void tempo.confirmarEJogar().then(() => id && router.push(`/match/?id=${encodeURIComponent(id)}`)); }}>{t("hoje.confirmarJogar")}</button>
+                <button id="confirmar-jogo" type="button" className="primario" disabled={tempo.aAvancar} onClick={() => { const id = tempo.pausa?.jogo; void tempo.confirmarEJogar().then(() => id && router.push(`/match/?id=${encodeURIComponent(id)}`)); }}>{t("hoje.confirmarJogar")}</button>
                 <Link href="/tactics/">{t("hoje.verTatica")}</Link>
               </p>
-            </>
+            </div>
           )}
-          <p className="acoes">
-            <button type="button" className={tempo.pausa ? undefined : "primario"} disabled={!mundo || tempo.aAvancar || !!tempo.pausa || tempo.estado?.porJogar === 0} onClick={() => void tempo.avancar(meu ? "proximoJogo" : "semana")}>{tempo.aAvancar ? t("hoje.aAvancar") : meu ? t("hoje.avancarJogo") : t("hoje.avancarSemana")}</button>
-            <button type="button" disabled={!mundo || tempo.aAvancar || !!tempo.pausa || tempo.estado?.porJogar === 0} onClick={() => void tempo.avancar("dia")}>{t("hoje.avancarDia")}</button>
-            <button type="button" disabled={!mundo || tempo.aAvancar || !!tempo.pausa || tempo.estado?.porJogar === 0} onClick={() => void tempo.avancar("semana")}>{t("hoje.avancarSemana")}</button>
-          </p>
-          {tempo.erro && <p className="erro">{tempo.erro}</p>}
+          {mundo && !meu && <EscolherClubeInicial />}
+          {decisoes === 0 && <p className="vazio">{t("hoje.decisaoVazio")}</p>}
         </section>
-        {mundo && (
-          <section className="painel" aria-labelledby="h-noticias">
-            <h2 id="h-noticias">{t("noticias.ultimas")}</h2>
-            {noticias.length === 0 ? <p className="vazio">{t("noticias.vazio")}</p> : (
-              <ul className="ligacoes">
-                {noticias.map((n) => <li key={n.id}><ItemNoticia n={n} /></li>)}
-              </ul>
-            )}
-            <p><Link href="/news/">{t("noticias.verTodas")}</Link></p>
-          </section>
-        )}
+
+        <section className="painel" aria-labelledby="i-caixa">
+          <h2 id="i-caixa">{t("menu.caixa")}{caixa.naoLidas > 0 && <span className="distintivo" aria-label={t("caixa.naoLidas", { n: caixa.naoLidas })}>{caixa.naoLidas > 99 ? "99+" : caixa.naoLidas}</span>}</h2>
+          {caixa.mensagens.length === 0 ? <p className="vazio">{t("caixa.vazio")}</p> : (
+            <ul className="lista-compacta">
+              {caixa.mensagens.map((m) => <li key={m.id}><ItemNoticia n={m} naoLida={!m.lida} compacto /></li>)}
+            </ul>
+          )}
+          <p className="painel-rodape"><Link href="/inbox/">{t("inicio.verCaixa")}</Link></p>
+        </section>
+
+        <section className="painel" aria-labelledby="i-noticias">
+          <h2 id="i-noticias">{t("menu.noticias")}</h2>
+          {noticias.length === 0 ? <p className="vazio">{t("noticias.vazio")}</p> : (
+            <ul className="lista-compacta">
+              {noticias.map((n) => <li key={n.id}><ItemNoticia n={n} compacto /></li>)}
+            </ul>
+          )}
+          <p className="painel-rodape"><Link href="/news/">{t("noticias.verTodas")}</Link></p>
+        </section>
       </div>
+
+      <FitaResultados jogos={fita} />
     </section>
   );
 }
