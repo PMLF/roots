@@ -7,7 +7,7 @@
 import { zoneSizes } from "../competicao/ficha";
 import { diaDaSemana, somarDias } from "../calendario/datas";
 import type { Parametros } from "../config/parametros";
-import type { DadosBase } from "../dados/tipos";
+import type { ClubeBase, DadosBase } from "../dados/tipos";
 import { jogarJogo, nivelDoJogo } from "../jogo/detalhe";
 import { onzeAutomatico, type CandidatoOnze } from "../jogo/equipa";
 import { TATICA_PADRAO } from "../jogo/formacoes";
@@ -21,7 +21,7 @@ import { estaNaSegundaDistrital } from "./distritais";
 import { COMPETICAO_FINAL_CP, gerarFinalCp, gerarMeiasFinaisCp } from "./faseFinalCp";
 import { fecharEpoca, gerarFasePromocao, type ResumoEpoca } from "./fecharEpoca";
 import { eventoRival, motivoDeRival } from "./rivais";
-import { CHAVE_SESSAO, guardarJogoVivo, linhasDoJogo, type LinhaTabelaVivo } from "./jogoAoVivo";
+import { CHAVE_SESSAO, equipasDoJogo, guardarJogoVivo, linhasDoJogo, type EquipasVivo, type LinhaTabelaVivo } from "./jogoAoVivo";
 import { atualizarOfertas, estaDesempregado } from "./mercadoTreinadores";
 import { dadosDaEpoca, epocaAtual } from "./piramideEpoca";
 import { gruposDaPromocao, jogosPorJogar, prepararEpoca } from "./preparar";
@@ -103,6 +103,15 @@ export function coresDos(dados: { clubes: readonly { id: string; cores: string }
   return out;
 }
 
+/** Assistência e bilheteira do jogo (RZ-114/115); a receita fica com o clube da casa. */
+export function bilheteDoJogo(dados: DadosBase, params: Parametros, casa: string, fora: string, competicao: string): { assistencia: number; receita: number; clube: ClubeBase } | undefined {
+  const cc = dados.clubes.find((x) => x.id === casa);
+  const cf = dados.clubes.find((x) => x.id === fora);
+  if (!cc || !cf) return undefined;
+  const b = assistenciaDoJogo({ casa: cc, fora: cf, culturaFutebol: dados.cidades.find((x) => x.id === cc.cidade)?.culturaFutebol ?? 50, final: competicao === COMPETICAO_FINAL_CP }, params);
+  return { ...b, clube: cc };
+}
+
 /** Joga os jogos de `hoje` e passa ao dia seguinte. Tudo numa transação. */
 export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametros, clubeGamer?: string): ResumoDia {
   const dados = dadosDaEpoca(repo, base);
@@ -118,7 +127,7 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
       if (repo.jogo(g.id) || nivelDoJogo(g.casa, g.fora, clubeGamer) !== 0 || tabelas.has(g.competicao)) continue;
       tabelas.set(g.competicao, tabelaAntes(repo, g.competicao, epoca, nomeClube));
     }
-    const vivos: { id: string; competicao: string; jornada: number; casa: string; fora: string; duracao: number; golosCasa: number; golosFora: number; linhas: ReturnType<typeof linhasDoJogo>; resumo: ResumoJogo }[] = [];
+    const vivos: { id: string; competicao: string; jornada: number; casa: string; fora: string; duracao: number; golosCasa: number; golosFora: number; linhas: ReturnType<typeof linhasDoJogo>; resumo: ResumoJogo; equipas: EquipasVivo }[] = [];
     const duracoes = new Map<string, number>();
     for (const g of repo.jogosDoDia(hoje)) {
       if (repo.jogo(g.id)) continue;
@@ -127,18 +136,15 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
       const fora = equipaParaJogo(repo, g.fora, g.competicao, epoca, g.jornada, hoje, seed, params, g.fora === clubeGamer ? lerPlano(repo, g.fora) : undefined);
       const r = jogarJogo({ seed, id: g.id, casa, fora }, nivel, { id: g.id, competicao: g.competicao, epoca, jornada: g.jornada, data: hoje }, params);
       const rival = clubeGamer && nivel === 0 ? motivoDeRival(repo, dados, params, g.competicao, epoca, clubeGamer, g.casa === clubeGamer ? g.fora : g.casa) : undefined;
-      // bilheteira (RZ-114/115): assistência simples; a receita fica com o clube da casa
-      const cc = dados.clubes.find((x) => x.id === g.casa);
-      const cf = dados.clubes.find((x) => x.id === g.fora);
-      const bilhete = cc && cf ? assistenciaDoJogo({ casa: cc, fora: cf, culturaFutebol: dados.cidades.find((x) => x.id === cc.cidade)?.culturaFutebol ?? 50, final: g.competicao === COMPETICAO_FINAL_CP }, params) : undefined;
+      const bilhete = bilheteDoJogo(dados, params, g.casa, g.fora, g.competicao);
       const { evento } = repo.registarJogo(bilhete ? { ...r.registo.jogo, assistencia: bilhete.assistencia, receita: bilhete.receita } : r.registo.jogo, r.registo.factos, r.registo.participacoes);
-      if (cc && bilhete) lancar(repo, cc, "bilheteira", bilhete.receita);
+      if (bilhete) lancar(repo, bilhete.clube, "bilheteira", bilhete.receita);
       if (rival) repo.acrescentarEvento(eventoRival(g.id, g.casa, g.fora, hoje, epoca, g.jornada, evento, rival));
       for (const l of r.registo.lesoes) repo.acrescentarEvento({ ...l, causa: evento });
       for (const h of r.historias) repo.acrescentarEvento({ ...h, causa: evento });
       const rel = r.relatorio;
       duracoes.set(g.id, rel.duracao);
-      if (r.nivel === 0) vivos.push({ id: g.id, competicao: g.competicao, jornada: g.jornada, casa: g.casa, fora: g.fora, duracao: rel.duracao, golosCasa: rel.golosCasa, golosFora: rel.golosFora, linhas: linhasDoJogo(r.eventos, rel.duracao, nomePessoa), resumo: r.resumo });
+      if (r.nivel === 0) vivos.push({ id: g.id, competicao: g.competicao, jornada: g.jornada, casa: g.casa, fora: g.fora, duracao: rel.duracao, golosCasa: rel.golosCasa, golosFora: rel.golosFora, linhas: linhasDoJogo(r.eventos, rel.duracao, nomePessoa), resumo: r.resumo, equipas: equipasDoJogo({ casa, fora }, r.eventos, r.relatorio, nomePessoa) });
       const clubeDe = (lado: "casa" | "fora") => (lado === "casa" ? g.casa : g.fora);
       const homem = r.nivel === 1 ? { jogador: r.relatorio.homemDoJogo.id, nota: r.relatorio.homemDoJogo.nota } : (() => { const j = r.relatorio.jogadores.find((x) => x.id === r.relatorio.homemDoJogo); return j ? { jogador: j.id, nota: j.nota } : undefined; })();
       jogos.push({

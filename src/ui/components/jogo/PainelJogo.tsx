@@ -1,11 +1,12 @@
 "use client";
-import type { JogoVivo, LinhaVivo } from "@/engine/epoca/jogoAoVivo";
+import type { JogadorVivo, JogoVivo, LinhaVivo } from "@/engine/epoca/jogoAoVivo";
 import { useEffect, useRef } from "react";
 import type { Estilo, Nivel, Tatica } from "@/engine/jogo/tipos";
 import type { ReactNode } from "react";
 import { AmostraClube } from "@/ui/components/AmostraClube";
 import { Ligacao } from "@/ui/components/Ligacao";
 import type { Chave } from "@/ui/i18n";
+import { siglaPosicao } from "@/ui/i18n/posicao";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { estatisticasDoJogo, marcadorAo, tabelaAoVivo, zonaDaPosicao } from "@/ui/jogo/vistaJogo";
 
@@ -176,5 +177,55 @@ export function TaticaNoJogo({ tatica, aoMudar, aoFechar, ocupado }: { tatica: T
       <p className="suave">{t("jogo.taticaAviso")}</p>
       <p className="acoes"><button type="button" className="primario" onClick={() => ref.current?.close()}>{t("jogo.taticaFechar")}</button></p>
     </dialog>
+  );
+}
+
+const classeNota = (n: number) => (n >= 7.5 ? "nota-alta" : n >= 6.5 ? "nota-boa" : n >= 5.5 ? "nota-media" : "nota-baixa");
+
+function LinhaJogador({ j }: { j: JogadorVivo }) {
+  const { t } = useT();
+  const marcas = (n: number, glifo: string, chave: Chave) => (n > 0 ? <span className="ind" title={t(chave)} aria-label={`${n} ${t(chave)}`}>{glifo}{n > 1 ? `×${n}` : ""}</span> : null);
+  return (
+    <li className={`jogador-vivo jv-${j.estado}`}>
+      <b className={`nota ${j.nota !== undefined ? classeNota(j.nota) : "nota-vazia"}`} title={t("jogo.nota")}>{j.nota !== undefined ? j.nota.toFixed(1) : "–"}</b>
+      <span className="pos">{siglaPosicao(t, j.posicao)}</span>
+      <span className="jv-nome"><Ligacao k="pessoa" id={j.id}>{j.nome}</Ligacao></span>
+      <span className="inds">
+        {marcas(j.golos, "⚽", "jogo.ind.golo")}
+        {marcas(j.assistencias, "🅰", "jogo.ind.assistencia")}
+        {marcas(j.amarelos, "🟨", "jogo.ind.amarelo")}
+        {j.vermelho && <span className="ind" title={t("jogo.ind.vermelho")} aria-label={t("jogo.ind.vermelho")}>🟥</span>}
+        {j.lesionado && <span className="ind" title={t("jogo.ind.lesao")} aria-label={t("jogo.ind.lesao")}>✚</span>}
+        {j.entrou !== undefined && <span className="ind sub-entra" title={t("jogo.ind.entrou", { min: Math.floor(j.entrou) })}>▲ {Math.floor(j.entrou)}'</span>}
+        {j.saiu !== undefined && j.estado !== "expulso" && <span className="ind sub-sai" title={t("jogo.ind.saiu", { min: Math.floor(j.saiu) })}>▼ {Math.floor(j.saiu)}'</span>}
+        {j.estado === "expulso" && j.saiu !== undefined && <span className="ind sub-sai">{Math.floor(j.saiu)}'</span>}
+      </span>
+    </li>
+  );
+}
+
+/** Os dois onzes (e bancos) com a nota de cada jogador ao minuto, o que fez e quando entrou ou saiu. */
+export function Equipas({ jogo }: { jogo: JogoVivo }) {
+  const { t } = useT();
+  if (!jogo.equipas) return null;
+  const lado = (l: "casa" | "fora") => {
+    const todos = jogo.equipas![l];
+    const campo = todos.filter((j) => j.estado !== "banco" && j.entrou === undefined);
+    const entraram = todos.filter((j) => j.entrou !== undefined);
+    const banco = todos.filter((j) => j.estado === "banco");
+    return (
+      <div className="equipa-vivo">
+        <h3><AmostraClube cores={jogo.cores?.[jogo[l].id]} /> <Ligacao k="clube" id={jogo[l].id} semAmostra>{jogo[l].nome}</Ligacao></h3>
+        <ul>{campo.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul>
+        {entraram.length > 0 && <><h4>{t("jogo.entraram")}</h4><ul>{entraram.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
+        {banco.length > 0 && <><h4>{t("jogo.banco")}</h4><ul>{banco.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
+      </div>
+    );
+  };
+  return (
+    <section className="painel painel-equipas" aria-labelledby="h-equipas">
+      <h2 id="h-equipas">{t("jogo.equipas")}</h2>
+      <div className="equipas-vivo">{lado("casa")}{lado("fora")}</div>
+    </section>
   );
 }

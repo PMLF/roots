@@ -957,5 +957,16 @@
   "financas.estado.remediado": "Well-off",
   "financas.estado.estavel": "Stable",
   "financas.estado.modesto": "Modest",
-  "financas.estado.pobre": "Poor"
+  "financas.estado.pobre": "Poor",
+  "jogo.equipas": "Line-ups",
+  "jogo.nota": "Rating",
+  "jogo.banco": "Bench",
+  "jogo.entraram": "Came on",
+  "jogo.ind.golo": "goal(s)",
+  "jogo.ind.assistencia": "assist(s)",
+  "jogo.ind.amarelo": "yellow card",
+  "jogo.ind.vermelho": "red card",
+  "jogo.ind.lesao": "injured",
+  "jogo.ind.entrou": "Came on at {min}'",
+  "jogo.ind.saiu": "Went off at {min}'"
 }

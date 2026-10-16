@@ -6,13 +6,15 @@
  */
 import type { Parametros } from "../config/parametros";
 import type { DadosBase } from "../dados/tipos";
+import { relatorioDoJogo } from "../jogo/estatisticas";
 import { SimuladorJogo } from "../jogo/simulador";
 import { jogarJogo, resolverJogo } from "../jogo/detalhe";
 import type { EntradaJogo, EventoJogo, Lado, Tatica } from "../jogo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
-import { coresDos, equipaParaJogo, tabelaAntes, zonasDa } from "./avancar";
-import { CHAVE_SESSAO, guardarJogoVivo, linhasDoJogo, type JogoVivo, type LinhaTabelaVivo, type OutroJogoVivo } from "./jogoAoVivo";
+import { bilheteDoJogo, coresDos, equipaParaJogo, tabelaAntes, zonasDa } from "./avancar";
+import { lancar } from "../clube/financas";
+import { CHAVE_SESSAO, equipasDoJogo, guardarJogoVivo, linhasDoJogo, type JogoVivo, type LinhaTabelaVivo, type OutroJogoVivo } from "./jogoAoVivo";
 import { dadosDaEpoca } from "./piramideEpoca";
 import { eventoRival, motivoDeRival } from "./rivais";
 import { lerPlano, validarTatica } from "./planoDeJogo";
@@ -62,6 +64,7 @@ function vista(repo: Repositorio, s: SessaoGuardada, params: Parametros, nomes: 
   const resumo = sim.resumo();
   const nomePessoa = (id: string) => repo.pessoaPublica(id)?.nomeDesportivo ?? id;
   const linhas = linhasDoJogo(eventos, sim.duracao, nomePessoa).filter((l) => l.minuto <= s.minuto && (l.tipo !== "fim" || sim.terminado));
+  const equipas = equipasDoJogo(s.entrada, eventos, relatorioDoJogo(s.entrada, s.entrada, eventos, resumo, params), nomePessoa);
   const ultima = [...s.mudancas].reverse()[0]?.tatica ?? (s.lado === "casa" ? s.entrada.casa.tatica : s.entrada.fora.tatica);
   const outros = s.outros.map((o) => {
     const golos = o.golos.filter((g) => g.minuto <= s.minuto);
@@ -73,7 +76,7 @@ function vista(repo: Repositorio, s: SessaoGuardada, params: Parametros, nomes: 
     fora: { id: s.entrada.fora.clube, nome: nomes.get(s.entrada.fora.clube) ?? s.entrada.fora.clube },
     duracao: sim.duracao, golosCasa: resumo.casa.golos, golosFora: resumo.fora.golos, linhas,
     tabela: s.tabela, pontosVitoria: s.pontosVitoria, pontosEmpate: s.pontosEmpate, outros, cores: s.cores, ...(s.zonas ? { zonas: s.zonas } : {}),
-    resumo, ladoGamer: s.lado, emCurso: true, minuto: s.minuto, ...(ultima ? { tatica: ultima } : {}),
+    resumo, equipas, ladoGamer: s.lado, emCurso: true, minuto: s.minuto, ...(ultima ? { tatica: ultima } : {}),
   };
 }
 
@@ -155,7 +158,9 @@ function finalizar(repo: Repositorio, dados: DadosBase, params: Parametros, s: S
   return repo.transacao(() => {
     const gamer = repo.meta("clube.gamer");
     const rival = gamer ? motivoDeRival(repo, dados, params, s.competicao, s.epoca, gamer, s.entrada.casa.clube === gamer ? s.entrada.fora.clube : s.entrada.casa.clube) : undefined;
-    const { evento } = repo.registarJogo(r.registo.jogo, r.registo.factos, r.registo.participacoes);
+    const bilhete = bilheteDoJogo(dados, params, s.entrada.casa.clube, s.entrada.fora.clube, s.competicao);
+    const { evento } = repo.registarJogo(bilhete ? { ...r.registo.jogo, assistencia: bilhete.assistencia, receita: bilhete.receita } : r.registo.jogo, r.registo.factos, r.registo.participacoes);
+    if (bilhete) lancar(repo, bilhete.clube, "bilheteira", bilhete.receita);
     if (rival) repo.acrescentarEvento(eventoRival(s.jogo, s.entrada.casa.clube, s.entrada.fora.clube, s.data, s.epoca, s.jornada, evento, rival));
     for (const l of r.registo.lesoes) repo.acrescentarEvento({ ...l, causa: evento });
     for (const h of r.historias) repo.acrescentarEvento({ ...h, causa: evento });
@@ -165,7 +170,7 @@ function finalizar(repo: Repositorio, dados: DadosBase, params: Parametros, s: S
       fora: { id: s.entrada.fora.clube, nome: nomes.get(s.entrada.fora.clube) ?? s.entrada.fora.clube },
       duracao: r.relatorio.duracao, golosCasa: r.relatorio.golosCasa, golosFora: r.relatorio.golosFora,
       linhas: linhasDoJogo(r.eventos, r.relatorio.duracao, nomePessoa), tabela: s.tabela, pontosVitoria: s.pontosVitoria, pontosEmpate: s.pontosEmpate, outros: s.outros,
-      cores: s.cores, ...(s.zonas ? { zonas: s.zonas } : {}), resumo, ladoGamer: s.lado,
+      cores: s.cores, ...(s.zonas ? { zonas: s.zonas } : {}), resumo, equipas: equipasDoJogo(s.entrada, r.eventos, r.relatorio, nomePessoa), ladoGamer: s.lado,
     };
     guardarJogoVivo(repo, jogo);
     repo.definirMeta(CHAVE_SESSAO, "");
