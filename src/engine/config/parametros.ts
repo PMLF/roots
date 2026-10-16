@@ -113,9 +113,13 @@ export type Parametros = {
     diasDeJogo: Record<Escalao, number[]>;
     /** As últimas N jornadas jogam-se todas no mesmo dia. */
     jornadasFinaisSimultaneas: number;
+    /** Fase final do CP (meias-finais e final entre os campeões das séries; domingos): dias depois da última jornada das séries e entre rondas. Tem de acabar em maio. */
+    faseFinalCp: { diasAposSeries: number; diasEntreRondas: number };
   };
   saves: { autosaveDias: number; autosavesRotativos: number; guardarNoInicioDeEpoca: boolean };
   fairPlay: { niveis: number; padrao: number };
+  /** Jogos a eliminar: se acabam empatados, decide-se nos penáltis (série inicial de `iniciais` cobranças por equipa, depois morte súbita). */
+  eliminatorias: { penaltis: { iniciais: number; probGolo: number } };
   /** Mercado de treinadores (RZ-157): ofertas que o gamer recebe sem clube, renovadas todas as segundas-feiras. */
   treinador: {
     /** Ofertas de clubes de reputação igual ou inferior à do clube que deixou. */
@@ -421,7 +425,7 @@ export const PARAMETROS_PADRAO: Parametros = {
     anoInicial: 2026,
     primeiraJornada: { mes: 8, dia: 15 },
     ultimaJornadaAte: { mes: 5, dia: 18 },
-    ultimaJornadaPorEscalao: { distrital: { mes: 4, dia: 5 } },
+    ultimaJornadaPorEscalao: { distrital: { mes: 4, dia: 5 }, cp: { mes: 4, dia: 25 } },
     pausas: [
       { motivo: "seleções (setembro)", de: { mes: 9, dia: 4 }, ate: { mes: 9, dia: 10 } },
       { motivo: "seleções (outubro)", de: { mes: 10, dia: 9 }, ate: { mes: 10, dia: 15 } },
@@ -431,9 +435,11 @@ export const PARAMETROS_PADRAO: Parametros = {
     ],
     diasDeJogo: { primeiraLiga: [6, 0], segundaLiga: [6, 0], terceiraLiga: [6, 0], cp: [0], distrital: [0] },
     jornadasFinaisSimultaneas: 1,
+    faseFinalCp: { diasAposSeries: 7, diasEntreRondas: 7 },
   },
   saves: { autosaveDias: 7, autosavesRotativos: 3, guardarNoInicioDeEpoca: true },
   fairPlay: { niveis: 5, padrao: 3 },
+  eliminatorias: { penaltis: { iniciais: 5, probGolo: 0.76 } },
   treinador: { ofertas: 3, surpresas: 1, margemSurpresa: 600 },
   estrangeiros: { primeiraLiga: 0.55, segundaLiga: 0.3, terceiraLiga: 0.15, cp: 0.08, distrital: 0.03 },
   assistencia: {
@@ -653,6 +659,8 @@ export function validarParametros(p: Parametros): string[] {
   for (const d of [c.primeiraJornada, c.ultimaJornadaAte, ...Object.values(c.ultimaJornadaPorEscalao), ...c.pausas.flatMap((x) => [x.de, x.ate])]) if (!dataOk(d)) erros.push("calendario: datas com mês 1-12 e dia 1-31");
   for (const [esc, dias] of Object.entries(c.diasDeJogo))
     if (dias.length === 0 || dias.some((x) => x < 0 || x > 6)) erros.push(`calendario.diasDeJogo.${esc}: dias entre 0 e 6, pelo menos um`);
+  if (c.faseFinalCp.diasAposSeries < 1 || c.faseFinalCp.diasEntreRondas < 1) erros.push("calendario: faseFinalCp com intervalos ≥ 1 dia");
+  if (!(p.eliminatorias.penaltis.iniciais >= 1 && p.eliminatorias.penaltis.probGolo > 0 && p.eliminatorias.penaltis.probGolo < 1)) erros.push("eliminatorias.penaltis: iniciais ≥ 1 e probGolo entre 0 e 1");
   if (c.jornadasFinaisSimultaneas < 0) erros.push("calendario: jornadasFinaisSimultaneas ≥ 0");
   for (const m of [c.mesInicioEpoca, c.mesFimEpoca]) if (m < 1 || m > 12) erros.push("calendario: meses entre 1 e 12");
   if (c.janelas.length === 0) erros.push("calendario: tem de existir pelo menos uma janela de transferências");

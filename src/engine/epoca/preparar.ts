@@ -7,6 +7,7 @@ import type { DadosBase } from "../dados/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data, JogoAgendado } from "../persistencia/tipos";
 import { estaNaSegundaDistrital } from "./distritais";
+import { COMPETICOES_FASE_FINAL_CP } from "./faseFinalCp";
 import { parametrosDoSave } from "./anoDoSave";
 import { epocaAtual, guardarPiramide, piramideInicial } from "./piramideEpoca";
 
@@ -47,7 +48,7 @@ export function gruposDaPromocao(repo: Repositorio, epoca: number): { serie: "A"
 
 /** Todos os jogos marcados e por jogar na época (ligas e Fase de Promoção). */
 export function jogosPorJogar(repo: Repositorio, dados: DadosBase, epoca: number): JogoAgendado[] {
-  const competicoes = [...ligasDoMundo(dados).filter((l) => l.clubes.length >= 2).map((l) => l.competicao), ...(gruposDaPromocao(repo, epoca) ?? []).map((g) => nomeGrupoPromocao(g.serie))];
+  const competicoes = [...ligasDoMundo(dados).filter((l) => l.clubes.length >= 2).map((l) => l.competicao), ...COMPETICOES_FASE_FINAL_CP, ...(gruposDaPromocao(repo, epoca) ?? []).map((g) => nomeGrupoPromocao(g.serie))];
   const out: JogoAgendado[] = [];
   for (const c of competicoes) {
     const jogados = new Set(repo.jogosDaCompeticao(c, epoca).map((j) => j.id));

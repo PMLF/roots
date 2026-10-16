@@ -40,6 +40,7 @@ Efeito no CP: saem 4 (sobem à Terceira Liga) + 8 (descem) = **12 de 40 (30%)**,
 1. Fecham-se todas as classificações finais (incluindo distritais).
 2. **Prémio do Estado por distrito** (§3), calculado sobre as classificações finais, antes de qualquer movimento.
 3. **Fase de Promoção** dos 20 campeões distritais.
+   - **Fase final do CP** (decidido a 16-10-2026): acabadas as séries (até 25 de abril), os quatro campeões de série jogam **meias-finais e final a jogo único**, em domingos, até maio. Meias-finais: melhor contra pior e segundo contra terceiro (pontos por jogo, diferença, golos, menor reputação), em casa o melhor classificado; empate decide-se nos penáltis. O vencedor é o **campeão do CP** (prémio extra, RZ-216). Os campeões de série sobem à Terceira Liga na mesma.
 4. Movimentos entre escalões 1→2→3→CP (com os números da tabela); descidas do CP calculadas com a fórmula do §1.
 5. Descidas do CP entram na liga distrital do **seu** distrito; promovidos saem da sua distrital para o CP.
 6. Reajuste do tamanho das distritais (§4).

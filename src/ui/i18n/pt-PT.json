@@ -937,5 +937,9 @@
   "noticia.premio_estado.2.titulo": "Prémio do Estado para {clube}",
   "noticia.premio_estado.2.corpo": "Melhor classificado do distrito de {distrito} na pirâmide ({seguidos, plural, one {primeiro ano} other {# anos seguidos}}).",
   "noticia.despedido.1.titulo": "{clube} desce à segunda distrital: foste despedido",
-  "noticia.despedido.1.corpo": "O clube deixou de ser jogável até voltar à pirâmide. Há equipas interessadas nos teus serviços: vê as ofertas."
+  "noticia.despedido.1.corpo": "O clube deixou de ser jogável até voltar à pirâmide. Há equipas interessadas nos teus serviços: vê as ofertas.",
+  "noticia.segunda_distrital.1.titulo": "{clube} desce à segunda distrital",
+  "noticia.segunda_distrital.1.corpo": "Fica fora das competições que acompanhamos no distrito de {distrito}, mas continua a existir e pode voltar.",
+  "noticia.regresso_distrital.1.titulo": "{clube} regressa à distrital de {distrito}",
+  "noticia.regresso_distrital.1.corpo": "O clube volta à competição para completar a liga do distrito."
 }

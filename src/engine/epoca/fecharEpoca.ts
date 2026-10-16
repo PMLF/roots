@@ -16,6 +16,7 @@ import type { Data } from "../persistencia/tipos";
 import { calendarioDoGrupo, classificarGrupo, formarGrupos, promovidosDoGrupo } from "./fasePromocao";
 import { aplicarMovimentos, SERIES, type Movimento } from "./movimentos";
 import { parametrosDoSave } from "./anoDoSave";
+import { campeaoDoCp } from "./faseFinalCp";
 import { despedirPorDescida } from "./mercadoTreinadores";
 import { ajustarDistritais, estaNaSegundaDistrital, type SegundaDistrital } from "./distritais";
 import { anosSeguidos, premiadosPorDistrito, type ClubeClassificado } from "./premioEstado";
@@ -106,6 +107,8 @@ export function fecharEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Par
   const campeoes = [primeira, segunda, terceira, ...SERIES.map((s) => cp[s])].map((t) => ({ liga: nomeLiga(t[0] as string), clube: t[0] as string, nome: nome.get(t[0] as string) ?? "" }));
   repo.transacao(() => {
     for (const c of campeoes) repo.acrescentarEvento({ tipo: "CAMPEAO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: c.clube, papel: "campeao" }, { k: "competicao", id: c.liga }], dados: { liga: c.liga } });
+    const campeaoCp = campeaoDoCp(repo, params, epoca);
+    if (campeaoCp) repo.acrescentarEvento({ tipo: "CAMPEAO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: campeaoCp, papel: "campeao" }, { k: "competicao", id: "Campeonato de Portugal" }], dados: { liga: "Campeonato de Portugal" } });
     for (const m of r.movimentos) {
       const para = m.para.startsWith("cp-") ? `CP Série ${m.para.slice(3)}` : m.para;
       repo.acrescentarEvento({ tipo: m.motivo === "descida" ? "DESCIDA" : "SUBIDA", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: m.clube }], dados: { de: m.de, para, motivo: m.motivo } });
