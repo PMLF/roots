@@ -509,6 +509,36 @@ export type Params = {
       nameFamily: string;
     };
   };
+  /** Empresas e patrocínios (RZ-219, RZ-311). */
+  companies: {
+    /** Empresas por cidade = base + porDécada × log10(população / 15 000), com mínimo. */
+    perCity: { base: number; perDecade: number; min: number };
+    /** Peso de cada escala = base + porDécada × décadas (nunca negativo), em função da população da cidade. */
+    scaleWeight: Record<"local" | "regional" | "national" | "international", { base: number; perDecade: number }>;
+    /** Capacidade (volume de negócio, €) mediana por escala e desvio do logaritmo. */
+    capital: { median: Record<"local" | "regional" | "national" | "international", number>; sigma: number };
+    /** Evolução anual do capital: crescimento médio, efeito da economia da cidade (±metade da escala), desvio. */
+    evolution: { growth: number; economyEffect: number; sigma: number; closureProbability: number; lowCapitalShare: number; lowCapitalClosure: number; foundingRate: number };
+    sponsorship: {
+      /** Tipos de patrocínio que o clube de cada escalão oferece e a quota de cada um no total do escalão. */
+      slots: Record<Tier, ("shirt" | "stadium" | "youth")[]>;
+      kindShare: Record<"shirt" | "stadium" | "youth", number>;
+      /** Desvio do logaritmo do valor negociado. */
+      valueSigma: number;
+      /** Fração máxima da capacidade da empresa que pode estar comprometida em patrocínios por ano. */
+      maxShareOfCapital: number;
+      yearsMin: number;
+      yearsMax: number;
+      /** Probabilidade de renovação, e os seus ajustes se o clube subiu ou desceu de escalão. */
+      renewBase: number;
+      renewPromoted: number;
+      renewRelegated: number;
+      /** Proximidade: mesmo concelho, mesmo distrito, resto; empresas nacionais e internacionais nunca descem de `farFloor`. */
+      proximity: { city: number; district: number; elsewhere: number; nationalFloor: number };
+      /** Quanto cada escala encaixa em cada escalão. */
+      scaleFit: Record<Tier, Record<"local" | "regional" | "national" | "international", number>>;
+    };
+  };
   /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
   knowledge: {
     /** Épocas sem nova observação a partir das quais a ficha mostra "desatualizado". */
@@ -789,6 +819,31 @@ export const DEFAULT_PARAMETERS: Params = {
     squad: { slack: 2, freeAgentTolerance: 2.5 },
     youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal" },
   },
+  companies: {
+    perCity: { base: 3, perDecade: 4, min: 2 },
+    scaleWeight: { local: { base: 1, perDecade: 0 }, regional: { base: 0.3, perDecade: 0.35 }, national: { base: 0.02, perDecade: 0.12 }, international: { base: 0.004, perDecade: 0.04 } },
+    capital: { median: { local: 300_000, regional: 3_000_000, national: 50_000_000, international: 600_000_000 }, sigma: 0.9 },
+    evolution: { growth: 0.03, economyEffect: 0.06, sigma: 0.18, closureProbability: 0.012, lowCapitalShare: 0.15, lowCapitalClosure: 0.15, foundingRate: 0.5 },
+    sponsorship: {
+      slots: { firstLeague: ["shirt", "stadium", "youth"], secondLeague: ["shirt", "stadium", "youth"], thirdLeague: ["shirt", "stadium"], cp: ["shirt", "stadium"], district: ["shirt"] },
+      kindShare: { shirt: 0.6, stadium: 0.25, youth: 0.15 },
+      valueSigma: 0.15,
+      maxShareOfCapital: 0.08,
+      yearsMin: 1,
+      yearsMax: 3,
+      renewBase: 0.65,
+      renewPromoted: 0.2,
+      renewRelegated: -0.3,
+      proximity: { city: 1, district: 0.35, elsewhere: 0.04, nationalFloor: 0.5 },
+      scaleFit: {
+        firstLeague: { local: 0.05, regional: 0.4, national: 1, international: 1.2 },
+        secondLeague: { local: 0.2, regional: 1, national: 0.8, international: 0.4 },
+        thirdLeague: { local: 0.6, regional: 1, national: 0.3, international: 0.1 },
+        cp: { local: 1, regional: 0.8, national: 0.1, international: 0.02 },
+        district: { local: 1, regional: 0.35, national: 0.02, international: 0.005 },
+      },
+    },
+  },
   knowledge: {
     seasonsAfterOutdated: 2,
     uncertaintyGrowthPerSeason: 0.25,
@@ -938,6 +993,10 @@ export function validateParameters(p: Params): string[] {
   if (Object.values(m.placesByPosition).some((n) => n < 1)) errors.push("mundo.lugaresPorPosicao: pelo menos 1 por posição");
   if (Object.values(m.wage.average).some((x) => !(x > 0)) || m.wage.yearsContractMin < 1 || m.wage.yearsContractMax < m.wage.yearsContractMin) errors.push("mundo.salario inválido");
   if (!(m.age.min < m.age.max && m.age.min >= 15)) errors.push("mundo.idade: 15 ≤ min < max");
+  const co = p.companies;
+  if (!(co.perCity.min >= 1 && co.perCity.base > 0 && co.capital.sigma >= 0)) errors.push("companies.perCity/capital inválido");
+  if (!(co.sponsorship.yearsMin >= 1 && co.sponsorship.yearsMax >= co.sponsorship.yearsMin && co.sponsorship.maxShareOfCapital > 0)) errors.push("companies.sponsorship inválido");
+  for (const [t, kinds] of Object.entries(co.sponsorship.slots)) if (kinds.length === 0 || kinds.some((k) => !(co.sponsorship.kindShare[k] > 0))) errors.push(`companies.sponsorship.slots.${t} inválido`);
   const sc = p.squadCycle;
   if (!(sc.development.growthShare > 0 && sc.development.growthShare <= 1 && sc.development.yearlyNoise >= 0)) errors.push("squadCycle.development: 0 < growthShare ≤ 1 e yearlyNoise ≥ 0");
   if (!(sc.retirement.fromAge < sc.retirement.maxAge && sc.retirement.baseProbability >= 0 && sc.retirement.baseProbability <= 1)) errors.push("squadCycle.retirement: fromAge < maxAge e baseProbability em [0, 1]");

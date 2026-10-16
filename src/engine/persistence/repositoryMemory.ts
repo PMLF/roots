@@ -18,6 +18,11 @@ import type {
   FactMatch,
   PlayerRecord,
   PlayerPatch,
+  CompanyRecord,
+  CompanyPatch,
+  CompanyState,
+  SponsorshipRecord,
+  NewSponsorship,
   PlayerState,
   NewMatch,
   StandingsLine,
@@ -62,6 +67,8 @@ export class MemoryRepository implements Repository {
   private people = new Map<string, PersonRecord>();
   private mapPlayers = new Map<string, PlayerRecord>();
   private contracts: ContractRecord[] = [];
+  private mapCompanies = new Map<string, CompanyRecord>();
+  private sponsorships: SponsorshipRecord[] = [];
   private roles = new Map<string, RoleRecord>();
   private locals = new Map<string, LocalityRecord>();
   private matchesCal = new Map<string, ScheduledMatch>();
@@ -88,6 +95,8 @@ export class MemoryRepository implements Repository {
     this.people = new Map();
     this.mapPlayers = new Map();
     this.contracts = [];
+    this.mapCompanies = new Map();
+    this.sponsorships = [];
     this.roles = new Map();
     this.locals = new Map();
     this.matchesCal = new Map();
@@ -189,6 +198,64 @@ export class MemoryRepository implements Repository {
       const total = batch.people.length + batch.players.length + batch.contracts.length + batch.roles.length;
       onProgress?.(total, total);
     });
+  }
+  saveCompanies(companies: readonly CompanyRecord[]): void {
+    this.transaction(() => {
+      for (const c of companies) {
+        if (this.mapCompanies.has(c.id)) throw new Error(`Duplicate company: ${c.id}`);
+        this.mapCompanies.set(c.id, { ...c });
+        this.undo(() => this.mapCompanies.delete(c.id));
+      }
+    });
+  }
+  company(id: string): CompanyRecord | undefined {
+    const c = this.mapCompanies.get(id);
+    return c ? { ...c } : undefined;
+  }
+  companies(filter: { city?: string; state?: CompanyState } = {}): CompanyRecord[] {
+    return [...this.mapCompanies.values()]
+      .filter((c) => (filter.city === undefined || c.city === filter.city) && (filter.state === undefined || c.state === filter.state))
+      .sort((a, b) => cmp(a.id, b.id))
+      .map((c) => ({ ...c }));
+  }
+  updateCompany(id: string, patch: CompanyPatch): void {
+    const before = this.mapCompanies.get(id);
+    if (!before) throw new Error(`Unknown company: ${id}`);
+    const next: CompanyRecord = { ...before };
+    if (patch.capital !== undefined) next.capital = patch.capital;
+    if (patch.state) next.state = patch.state;
+    if (patch.scale) next.scale = patch.scale;
+    if (patch.owner === null) delete next.owner;
+    else if (patch.owner !== undefined) next.owner = patch.owner;
+    this.mapCompanies.set(id, next);
+    this.undo(() => this.mapCompanies.set(id, before));
+  }
+  addSponsorship(s: NewSponsorship): number {
+    if (!this.mapCompanies.has(s.company)) throw new Error(`Unknown company: ${s.company}`);
+    const id = (this.sponsorships.at(-1)?.id ?? 0) + 1;
+    this.sponsorships.push({ ...s, id });
+    this.undo(() => this.sponsorships.pop());
+    return id;
+  }
+  endSponsorship(id: number, date: IsoDate): void {
+    const i = this.sponsorships.findIndex((x) => x.id === id);
+    if (i < 0) throw new Error(`Unknown sponsorship: ${id}`);
+    const before = this.sponsorships[i] as SponsorshipRecord;
+    this.sponsorships[i] = { ...before, ended: date };
+    this.undo(() => (this.sponsorships[i] = before));
+  }
+  private activeOn(x: SponsorshipRecord, on?: IsoDate): boolean {
+    if (on === undefined) return x.ended === undefined;
+    return x.start <= on && on <= x.end && (x.ended === undefined || on < x.ended);
+  }
+  clubSponsorships(club: string, on?: IsoDate): SponsorshipRecord[] {
+    return this.sponsorships.filter((x) => x.club === club && this.activeOn(x, on)).map((x) => ({ ...x }));
+  }
+  companySponsorships(company: string, on?: IsoDate): SponsorshipRecord[] {
+    return this.sponsorships.filter((x) => x.company === company && this.activeOn(x, on)).map((x) => ({ ...x }));
+  }
+  activeSponsorships(on: IsoDate): SponsorshipRecord[] {
+    return this.sponsorships.filter((x) => this.activeOn(x, on)).map((x) => ({ ...x }));
   }
   addPeople(batch: WorldBatchRecord): void {
     this.transaction(() => {

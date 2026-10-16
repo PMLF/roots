@@ -65,6 +65,14 @@ export function annualFixedRevenues(club: BaseClub, params: Params): { sponsorsh
 }
 
 /**
+ * Patrocínios que o clube recebe por mês na data: dos contratos com empresas se o mundo as tem (RZ-311), senão da fórmula por escalão e reputação.
+ */
+export function monthlySponsorship(repo: Repository, club: BaseClub, params: Params, date: IsoDate): number {
+  if (repo.meta("companies.enabled") !== "1") return annualFixedRevenues(club, params).sponsorships / 12;
+  return repo.clubSponsorships(club.id, date).reduce((t, s) => t + s.annualValue, 0) / 12;
+}
+
+/**
  * Fecha o mês que acabou: salários, staff, estádio e fixos saem; patrocínios e comercial entram (1/12 do ano).
  * Grava `FECHO_FINANCEIRO` por clube. Os clubes fora da pirâmide (segunda distrital) não têm movimentos.
  */
@@ -73,7 +81,7 @@ export function closeMonth(repo: Repository, data: BaseData, params: Params, dat
     if (!active(c)) continue;
     const costs = monthlyCosts(repo, c, params);
     const fixed = annualFixedRevenues(c, params);
-    post(repo, c, "sponsorships", fixed.sponsorships / 12);
+    post(repo, c, "sponsorships", monthlySponsorship(repo, c, params, date));
     post(repo, c, "commercial", fixed.commercial / 12);
     post(repo, c, "wages", -costs.wages);
     post(repo, c, "staff", -costs.staff);

@@ -163,8 +163,23 @@ ALTER TABLE match ADD COLUMN home_penalties INTEGER;
 ALTER TABLE match ADD COLUMN away_penalties INTEGER;
 `;
 
+const V6 = `
+-- Empresas e patrocínios (RZ-219, RZ-311): entidades da cidade que financiam clubes.
+CREATE TABLE company (
+  id TEXT PRIMARY KEY, name TEXT NOT NULL, sector TEXT NOT NULL, scale TEXT NOT NULL, city TEXT NOT NULL,
+  owner TEXT, capital INTEGER NOT NULL, founded INTEGER NOT NULL, state TEXT NOT NULL
+) WITHOUT ROWID;
+CREATE INDEX ix_company_city ON company(city);
+CREATE TABLE sponsorship (
+  id INTEGER PRIMARY KEY, company TEXT NOT NULL REFERENCES company(id), club TEXT NOT NULL, kind TEXT NOT NULL,
+  annual_value INTEGER NOT NULL, start_date TEXT NOT NULL, end_date TEXT NOT NULL, ended TEXT
+);
+CREATE INDEX ix_sponsorship_club ON sponsorship(club);
+CREATE INDEX ix_sponsorship_company ON sponsorship(company);
+`;
+
 /** A posição no array + 1 é o número da versão do esquema. */
-export const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5];
+export const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6];
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
 export function fileVersion(d: DriverSql): number {

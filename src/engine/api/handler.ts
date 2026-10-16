@@ -29,6 +29,7 @@ import { KEY } from "../world/player";
 import type { Attribute, Position } from "../world/types";
 import { View } from "../view/view";
 import { buildIndex, find, type InputIndex, type Indexed } from "../search/search";
+import { startCompanies } from "../company/cycle";
 import type { EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
 export const ENGINE_VERSION = "0.1.0";
@@ -137,6 +138,10 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         finances: clubFinances(repository, data, params, c, repository.meta("gamer.club") === c.id || seeAll),
         detailStadium: { ownership: c.stadium.ownership, zone: c.stadium.location.zone, centreDistanceKm: c.stadium.location.centreDistanceKm, transport: c.stadium.location.transport, roadAccess: c.stadium.location.roadAccess, parking: c.stadium.location.parking, expansionTerrain: c.stadium.location.expansionTerrain },
         divisionsHistory: divisionsHistory(repository, base, c.id).map((h) => ({ ...h, label: seasonName(h.season, params.calendar.initialYear) })),
+        sponsors: repository.clubSponsorships(c.id, repository.meta("date.today") ?? undefined).flatMap((x) => {
+          const company = repository.company(x.company);
+          return company ? [{ company: company.id, name: company.name, sector: company.sector, kind: x.kind, ...(repository.meta("gamer.club") === c.id || seeAll ? { annualValue: x.annualValue } : {}) }] : [];
+        }),
         extraSquad: {},
         ...(clubSeason(repository, data, params, c.id) ? { season: clubSeason(repository, data, params, c.id) as NonNullable<ReturnType<typeof clubSeason>> } : {}),
       };
@@ -400,8 +405,10 @@ async function createWorld(seed: string, servicos: Servicos, onProgress: (p: Wor
     repository.setMeta("world.players", String(batch.players.length));
     saveStartLocalities(repository, data, year);
     repository.saveWorld(batch, (done, total) => onProgress({ phase: "save", done, total }));
+    onProgress({ phase: "companies", done: 0, total: 1 });
+    startCompanies(repository, data, params, { seasonStart: createDate(year, params.calendar.seasonStartMonth, 1), year, tiers: new Map(data.clubs.map((c) => [c.id, c.tier] as const)) });
   });
-  return { seed, clubs: data.clubs.length, people: batch.people.length, players: batch.players.length, ms: Date.now() - t0, warnings: v.warnings, alreadyExisted: false };
+  return { seed, clubs: data.clubs.length, people: repository.peopleTotal(), players: batch.players.length, ms: Date.now() - t0, warnings: v.warnings, alreadyExisted: false };
 }
 
 function saveStartLocalities(r: Repository, data: BaseData, year: number): void {

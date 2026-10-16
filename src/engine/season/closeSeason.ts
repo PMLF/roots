@@ -24,6 +24,7 @@ import { districtFactors, prizeValue, type PrizeType } from "./competitionPrizes
 import { consecutiveYears, winnersPerDistrict, type RankedClub } from "./statePrize";
 import { seasonData, savePyramid, readPyramid, pyramidLeagues } from "./seasonPyramid";
 import { rolloverSquads } from "../squad/rollover";
+import { rolloverCompanies } from "../company/cycle";
 import { promotionGroupName, promotionGroups, prepareSeason } from "./prepare";
 
 export type SeasonSummary = {
@@ -163,6 +164,8 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
     const nextTiers = new Map([...pyramidLeagues(r.pyramid, data)].map(([club, l]) => [club, l.tier] as const));
     const gamerClub = repo.meta("gamer.club");
     rolloverSquads(repo, data, params, { season, seasonStart: newSeasonStart, tiers: nextTiers, ...(gamerClub ? { gamerClub } : {}) });
+    // empresas: evolução, falências, novas e patrocínios do clube para a nova época (RZ-219, RZ-311)
+    rolloverCompanies(repo, data, params, { season, seasonStart: newSeasonStart, year: params.calendar.initialYear + season, tiers: nextTiers, previousTiers: new Map([...leagues].map(([club, l]) => [club, l.tier] as const)) });
     savePyramid(repo, season + 1, r.pyramid);
     repo.setMeta("season", String(season + 1));
     repo.setMeta("date.today", newSeasonStart);

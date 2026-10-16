@@ -106,6 +106,8 @@ export type ClubProfileData = {
   finances: ClubFinances;
   levelReputation: LevelReputation;
   detailStadium: { ownership: string; zone: string; centreDistanceKm: number; transport: number; roadAccess: number; parking: number; expansionTerrain: number };
+  /** Patrocinadores vigentes (nome e setor são públicos; o valor só o gamer vê no seu clube). */
+  sponsors: { company: string; name: string; sector: string; kind: string; annualValue?: number }[];
   /** Divisão em que o clube esteve, por época (a história de subidas e descidas). */
   divisionsHistory: { season: number; label: string; tier: Tier; league: string }[];
   /** Por jogador do plantel: fim de contrato e nível geral. */
