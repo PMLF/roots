@@ -8,8 +8,9 @@ import { gerarMundo } from "../mundo/gerarMundo";
 import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
-import { caixa, marcarCaixaLida, noticias } from "../noticias/noticias";
+import { caixa, marcarCaixaLida, marcarMensagem, noticias } from "../noticias/noticias";
 import { lerJogoVivo } from "../epoca/jogoAoVivo";
+import { iniciarSessao, mudarTaticaSessao, passoSessao, sessaoAtual } from "../epoca/sessaoJogo";
 import { aceitarOferta, demitir, estaDesempregado, ofertasDoGamer } from "../epoca/mercadoTreinadores";
 import { avancar, estadoDoTempo } from "../epoca/avancar";
 import { parametrosDoSave, anoDaEpocaQueContem, anoInicialDoSave, nomeDaEpoca } from "../epoca/anoDoSave";
@@ -70,7 +71,7 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
     }
     case "clubes": {
       const { dados } = await contexto(servicos);
-      return dados.clubes.map((c): ClubeResumo => ({ id: c.id, nome: c.nome, liga: c.liga }));
+      return dados.clubes.map((c): ClubeResumo => ({ id: c.id, nome: c.nome, liga: c.liga, cores: c.cores }));
     }
     case "estadoMundo": {
       const { repositorio, dados } = await contexto(servicos);
@@ -199,6 +200,10 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
     }
     case "jogoAoVivo": {
       const { repositorio } = await contexto(servicos);
+      const { dados, params } = await contexto(servicos);
+      // um jogo a decorrer tem prioridade (sem id, ou com o id desse jogo)
+      const emCurso = sessaoAtual(repositorio, dados, params);
+      if (emCurso && (!m.entrada.id || m.entrada.id === emCurso.id)) return emCurso;
       return lerJogoVivo(repositorio, m.entrada.id);
     }
     case "noticias": {
@@ -212,6 +217,11 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
     case "marcarCaixaLida": {
       const { repositorio } = await contexto(servicos);
       marcarCaixaLida(repositorio);
+      return null;
+    }
+    case "marcarMensagem": {
+      const { repositorio } = await contexto(servicos);
+      marcarMensagem(repositorio, m.entrada.id, m.entrada.lida);
       return null;
     }
     case "demitir": {
@@ -262,6 +272,20 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       const { repositorio } = await servicos.abrirRepositorio();
       confirmarJogo(repositorio, m.entrada.jogo);
       return { jogo: m.entrada.jogo };
+    }
+    case "iniciarJogo": {
+      const { repositorio, dados, params } = await contexto(servicos);
+      const clube = repositorio.meta("clube.gamer");
+      if (!clube) throw new Error("Escolhe um clube primeiro");
+      return iniciarSessao(repositorio, dados, params, clube, m.entrada.jogo);
+    }
+    case "passoJogo": {
+      const { repositorio, dados, params } = await contexto(servicos);
+      return passoSessao(repositorio, dados, params, m.entrada.minutos);
+    }
+    case "taticaNoJogo": {
+      const { repositorio, dados, params } = await contexto(servicos);
+      return mudarTaticaSessao(repositorio, dados, params, m.entrada.tatica);
     }
     case "estadoTempo": {
       const { repositorio, dados, params } = await contexto(servicos);

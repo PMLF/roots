@@ -17,7 +17,7 @@ const ONDE_ESPACO_E_DO_ELEMENTO = "input, textarea, select, button, a, summary, 
 /**
  * «Avançar» (RZ-166): botão dividido, em baixo à direita em todas as páginas. Por defeito passa um dia; a seta deixa escolher
  * um dia, uma semana ou até ao próximo jogo (fica guardado). A barra de espaço conta como clicar. Quando há jogo do teu clube
- * por preparar, o botão leva ao onze e à tática em vez de avançar: o tempo nunca passa por cima de uma decisão.
+ * por jogar, o botão leva ao ecrã pré-jogo (ou ao jogo a decorrer) em vez de avançar: o tempo nunca passa por cima de uma decisão.
  */
 export function BotaoAvancar() {
   const { t } = useT();
@@ -40,8 +40,7 @@ export function BotaoAvancar() {
 
   const carregar = () => {
     if (tempo.pausa) {
-      if (caminho === "/") document.getElementById("confirmar-jogo")?.focus();
-      else router.push("/");
+      router.push(tempo.pausa.emCurso ? "/match/" : "/prematch/");
       return;
     }
     if (!desativado) void tempo.avancar(efetivo);
@@ -72,7 +71,7 @@ export function BotaoAvancar() {
   }, [aberto]);
 
   const rotuloModo = (m: ModoAvancar) => t(`avancar.modo.${m}` as Chave);
-  const principal = tempo.aAvancar ? t("avancar.aAvancar") : tempo.pausa ? t("avancar.jogoHoje") : t("avancar.rotulo");
+  const principal = tempo.aAvancar ? t("avancar.aAvancar") : tempo.pausa ? t(tempo.pausa.emCurso ? "avancar.jogoEmCurso" : "avancar.jogoHoje") : t("avancar.rotulo");
 
   return (
     <div className="avancar" ref={raiz}>

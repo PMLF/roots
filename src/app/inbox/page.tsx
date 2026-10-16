@@ -8,7 +8,7 @@ import { useMotor } from "@/ui/MotorProvider";
 
 const POR_PAGINA = 25;
 
-/** Caixa de entrada (RZ-118): resultados do teu jogo, lesões do plantel, a tua carreira. As por ler ficam assinaladas até saíres desta página. */
+/** Caixa de entrada (RZ-118): resultados do teu jogo, lesões do plantel, a tua carreira. Cada mensagem pode marcar-se como lida ou por ler; há um botão para marcar todas. */
 export default function PaginaCaixa() {
   const { t } = useT();
   const motor = useMotor();
@@ -29,30 +29,31 @@ export default function PaginaCaixa() {
     motor?.chamar("ofertas", null).then((o) => setDesempregado(o.desempregado)).catch(() => undefined);
   }, [carregar, motor]);
 
-  // quem abre a caixa e fica uns segundos leu-a: marca-se como lida no save, mas aqui continuam assinaladas até saíres
-  useEffect(() => {
-    if (!motor) return;
-    const timer = window.setTimeout(() => { void motor.chamar("marcarCaixaLida", null).then(() => window.dispatchEvent(new Event("raizes:caixa"))); }, 3000);
-    return () => window.clearTimeout(timer);
-  }, [motor]);
-
   const marcar = async () => {
     await motor?.chamar("marcarCaixaLida", null);
     window.dispatchEvent(new Event("raizes:caixa"));
     setMensagens((m) => m?.map((x) => ({ ...x, lida: true })));
     setNaoLidas(0);
   };
+  const alternar = async (m: Mensagem) => {
+    const lida = !m.lida;
+    await motor?.chamar("marcarMensagem", { id: m.id, lida });
+    window.dispatchEvent(new Event("raizes:caixa"));
+    setMensagens((l) => l?.map((x) => (x.id === m.id ? { ...x, lida } : x)));
+    setNaoLidas((n) => Math.max(0, n + (lida ? -1 : 1)));
+  };
 
   return (
     <section className="pagina-noticias">
       <h1>{t("caixa.titulo")}</h1>
       <div className="acoes">
-        {naoLidas > 0 && <><b>{t("caixa.naoLidas", { n: naoLidas })}</b><button type="button" onClick={() => void marcar()}>{t("caixa.marcarLidas")}</button></>}
+        <b>{t("caixa.naoLidas", { n: naoLidas })}</b>
+        <button type="button" onClick={() => void marcar()} disabled={naoLidas === 0}>{t("caixa.marcarLidas")}</button>
         {desempregado && <Link href="/">{t("caixa.verOfertas")}</Link>}
       </div>
       {mensagens === undefined ? <p>{t("ficha.aCarregar")}</p> : mensagens.length === 0 ? <p className="vazio">{t("caixa.vazio")}</p> : (
         <div className="noticias">
-          {mensagens.map((m) => <ItemNoticia key={m.id} n={m} naoLida={!m.lida} />)}
+          {mensagens.map((m) => <ItemNoticia key={m.id} n={m} naoLida={!m.lida} aoAlternarLida={() => void alternar(m)} />)}
           {!fim && <button type="button" onClick={() => void carregar(mensagens.at(-1)!.id)}>{t("caixa.maisAntigas")}</button>}
         </div>
       )}

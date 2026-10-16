@@ -89,6 +89,11 @@ export class SimuladorJogo {
     this.riscosBase[lado] = undefined;
   }
 
+  /** Muda só a tática de um lado (RZ-170): vale a partir do minuto seguinte. */
+  mudarTatica(lado: Lado, tatica: Tatica): void {
+    this.alterarEquipa(lado, { ...this.equipas[lado], tatica });
+  }
+
   /** Simula até ao minuto indicado (inclusive) e devolve os eventos novos, por ordem. */
   simularAte(minuto: number): EventoJogo[] {
     const alvo = Math.min(Math.floor(minuto), this.duracao);

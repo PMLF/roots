@@ -54,6 +54,14 @@ describe("notícias e caixa de entrada", () => {
     const lida = await tratar({ id: 52, tipo: "caixa", entrada: {} }, s);
     expect(lida.naoLidas).toBe(0);
     expect(lida.mensagens.every((m) => m.lida)).toBe(true);
+    // marcar à mão: uma mensagem lida volta a por ler e uma nova passa a lida, sem mexer nas outras
+    const alvo = lida.mensagens[0]!;
+    await tratar({ id: 57, tipo: "marcarMensagem", entrada: { id: alvo.id, lida: false } }, s);
+    const um = await tratar({ id: 58, tipo: "caixa", entrada: {} }, s);
+    expect(um.naoLidas).toBe(1);
+    expect(um.mensagens.filter((m) => !m.lida).map((m) => m.id)).toEqual([alvo.id]);
+    await tratar({ id: 59, tipo: "marcarMensagem", entrada: { id: alvo.id, lida: true } }, s);
+    expect((await tratar({ id: 60, tipo: "caixa", entrada: {} }, s)).naoLidas).toBe(0);
     // novos jogos voltam a trazer mensagens por ler
     const r = await tratar({ id: 53, tipo: "avancar", entrada: { modo: "proximoJogo" } }, s);
     if (r.pausa) { await tratar({ id: 54, tipo: "confirmarJogo", entrada: { jogo: r.pausa.jogo } }, s); await tratar({ id: 55, tipo: "avancar", entrada: { modo: "dia" } }, s); }

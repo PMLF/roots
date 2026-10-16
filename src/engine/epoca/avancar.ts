@@ -11,11 +11,11 @@ import { jogarJogo, nivelDoJogo } from "../jogo/detalhe";
 import { onzeAutomatico, type CandidatoOnze } from "../jogo/equipa";
 import { TATICA_PADRAO } from "../jogo/formacoes";
 import { indisponiveis, jogoConfirmado, lerPlano, onzeDoPlano, type Plano } from "./planoDeJogo";
-import type { EquipaJogo } from "../jogo/tipos";
+import type { EquipaJogo, ResumoJogo } from "../jogo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
 import { fecharEpoca, gerarFasePromocao, type ResumoEpoca } from "./fecharEpoca";
-import { guardarJogoVivo, linhasDoJogo, type LinhaTabelaVivo } from "./jogoAoVivo";
+import { CHAVE_SESSAO, guardarJogoVivo, linhasDoJogo, type LinhaTabelaVivo } from "./jogoAoVivo";
 import { atualizarOfertas, estaDesempregado } from "./mercadoTreinadores";
 import { dadosDaEpoca, epocaAtual } from "./piramideEpoca";
 import { gruposDaPromocao, jogosPorJogar, prepararEpoca } from "./preparar";
@@ -44,7 +44,7 @@ export type EstadoTempo = { hoje: Data; epoca: number; /** Jogos por disputar ne
 export type Modo = "dia" | "semana" | "proximoJogo";
 
 /** O avanço parou antes do jogo do clube do gamer: falta confirmar onze e tática. */
-export type Pausa = { jogo: string; data: Data; competicao: string; jornada: number; casa: string; fora: string; casaNome: string; foraNome: string };
+export type Pausa = { /** Já começou (há um jogo a decorrer): continuar em vez de preparar. */ emCurso: boolean; jogo: string; data: Data; competicao: string; jornada: number; casa: string; fora: string; casaNome: string; foraNome: string };
 
 export type ResultadoAvanco = { de: Data; ate: Data; dias: ResumoDia[]; fimDeEpoca: boolean; /** Preenchido quando a época fechou durante este avanço. */ resumoEpoca?: ResumoEpoca; estado: EstadoTempo; pausa?: Pausa };
 
@@ -62,7 +62,7 @@ function candidatosDoClube(repo: Repositorio, clube: string): CandidatoOnze[] {
   return repo.jogadoresDoClube(clube).filter((j) => j.estado === "ativo").map((j) => ({ pessoa: j.pessoa, posicoes: j.posicoes, atributos: j.atributos, alturaCm: j.alturaCm }));
 }
 
-function equipaParaJogo(repo: Repositorio, clube: string, competicao: string, epoca: number, jornada: number, hoje: Data, seed: string, params: Parametros, plano?: Plano): EquipaJogo {
+export function equipaParaJogo(repo: Repositorio, clube: string, competicao: string, epoca: number, jornada: number, hoje: Data, seed: string, params: Parametros, plano?: Plano): EquipaJogo {
   const todos = candidatosDoClube(repo, clube);
   const fora = indisponiveis(repo, clube, todos.map((c) => c.pessoa), competicao, epoca, jornada, hoje, seed, params);
   const tatica = plano?.tatica ?? { ...TATICA_PADRAO };
@@ -71,6 +71,22 @@ function equipaParaJogo(repo: Repositorio, clube: string, competicao: string, ep
   const disponiveis = todos.filter((c) => !emCampo.has(c.pessoa) && !fora.has(c.pessoa));
   const banco = onzeAutomatico(disponiveis.length >= 7 ? disponiveis : todos.filter((c) => !emCampo.has(c.pessoa))).slice(0, 7);
   return { clube, onze, tatica, banco };
+}
+
+/** A tabela de uma competição tal como está agora (antes dos jogos de hoje), com todos os clubes. */
+export function tabelaAntes(repo: Repositorio, competicao: string, epoca: number, nomeClube: ReadonlyMap<string, string>): LinhaTabelaVivo[] {
+  const cal = repo.calendario(competicao, epoca);
+  const clubes = [...new Set(cal.jogos.flatMap((j) => [j.casa, j.fora]))];
+  const linhas = new Map(repo.classificacao(competicao, epoca).map((l) => [l.clube, l] as const));
+  return clubes.map((c) => { const l = linhas.get(c); return { clube: c, nome: nomeClube.get(c) ?? c, jogos: l?.jogos ?? 0, pontos: l?.pontos ?? 0, golosMarcados: l?.golosMarcados ?? 0, golosSofridos: l?.golosSofridos ?? 0 }; });
+}
+
+/** Cores (texto dos dados) dos clubes pedidos. */
+export function coresDos(dados: { clubes: readonly { id: string; cores: string }[] }, ids: Iterable<string>): Record<string, string> {
+  const por = new Map(dados.clubes.map((c) => [c.id, c.cores] as const));
+  const out: Record<string, string> = {};
+  for (const id of ids) { const c = por.get(id); if (c) out[id] = c; }
+  return out;
 }
 
 /** Joga os jogos de `hoje` e passa ao dia seguinte. Tudo numa transação. */
@@ -86,12 +102,9 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
     const tabelas = new Map<string, LinhaTabelaVivo[]>();
     for (const g of repo.jogosDoDia(hoje)) {
       if (repo.jogo(g.id) || nivelDoJogo(g.casa, g.fora, clubeGamer) !== 0 || tabelas.has(g.competicao)) continue;
-      const cal = repo.calendario(g.competicao, epoca);
-      const clubes = [...new Set(cal.jogos.flatMap((j) => [j.casa, j.fora]))];
-      const linhas = new Map(repo.classificacao(g.competicao, epoca).map((l) => [l.clube, l] as const));
-      tabelas.set(g.competicao, clubes.map((c) => { const l = linhas.get(c); return { clube: c, nome: nomeClube.get(c) ?? c, jogos: l?.jogos ?? 0, pontos: l?.pontos ?? 0, golosMarcados: l?.golosMarcados ?? 0, golosSofridos: l?.golosSofridos ?? 0 }; }));
+      tabelas.set(g.competicao, tabelaAntes(repo, g.competicao, epoca, nomeClube));
     }
-    const vivos: { id: string; competicao: string; jornada: number; casa: string; fora: string; duracao: number; golosCasa: number; golosFora: number; linhas: ReturnType<typeof linhasDoJogo> }[] = [];
+    const vivos: { id: string; competicao: string; jornada: number; casa: string; fora: string; duracao: number; golosCasa: number; golosFora: number; linhas: ReturnType<typeof linhasDoJogo>; resumo: ResumoJogo }[] = [];
     const duracoes = new Map<string, number>();
     for (const g of repo.jogosDoDia(hoje)) {
       if (repo.jogo(g.id)) continue;
@@ -104,7 +117,7 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
       for (const h of r.historias) repo.acrescentarEvento({ ...h, causa: evento });
       const rel = r.relatorio;
       duracoes.set(g.id, rel.duracao);
-      if (r.nivel === 0) vivos.push({ id: g.id, competicao: g.competicao, jornada: g.jornada, casa: g.casa, fora: g.fora, duracao: rel.duracao, golosCasa: rel.golosCasa, golosFora: rel.golosFora, linhas: linhasDoJogo(r.eventos, rel.duracao, nomePessoa) });
+      if (r.nivel === 0) vivos.push({ id: g.id, competicao: g.competicao, jornada: g.jornada, casa: g.casa, fora: g.fora, duracao: rel.duracao, golosCasa: rel.golosCasa, golosFora: rel.golosFora, linhas: linhasDoJogo(r.eventos, rel.duracao, nomePessoa), resumo: r.resumo });
       const clubeDe = (lado: "casa" | "fora") => (lado === "casa" ? g.casa : g.fora);
       const homem = r.nivel === 1 ? { jogador: r.relatorio.homemDoJogo.id, nota: r.relatorio.homemDoJogo.nota } : (() => { const j = r.relatorio.jogadores.find((x) => x.id === r.relatorio.homemDoJogo); return j ? { jogador: j.id, nota: j.nota } : undefined; })();
       jogos.push({
@@ -121,7 +134,7 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
         id: j.id, casa: { id: j.casa, nome: j.casaNome }, fora: { id: j.fora, nome: j.foraNome }, duracao: duracoes.get(j.id) ?? 90,
         golos: j.golos.map((x) => ({ minuto: x.minuto, lado: (x.clube === j.casa ? "casa" : "fora") as "casa" | "fora" })), golosCasa: j.golosCasa, golosFora: j.golosFora,
       }));
-      guardarJogoVivo(repo, { ...v, data: hoje, casa: { id: v.casa, nome: nomeClube.get(v.casa) ?? v.casa }, fora: { id: v.fora, nome: nomeClube.get(v.fora) ?? v.fora }, tabela: tabelas.get(v.competicao) ?? [], pontosVitoria: params.classificacao.pontosVitoria, pontosEmpate: params.classificacao.pontosEmpate, outros });
+      guardarJogoVivo(repo, { ...v, data: hoje, casa: { id: v.casa, nome: nomeClube.get(v.casa) ?? v.casa }, fora: { id: v.fora, nome: nomeClube.get(v.fora) ?? v.fora }, tabela: tabelas.get(v.competicao) ?? [], pontosVitoria: params.classificacao.pontosVitoria, pontosEmpate: params.classificacao.pontosEmpate, outros, cores: coresDos(dados, [v.casa, v.fora, ...(tabelas.get(v.competicao) ?? []).map((l) => l.clube)]), ladoGamer: v.casa === clubeGamer ? "casa" : "fora" });
     }
     const amanha = somarDias(hoje, 1);
     repo.definirMeta("data.hoje", amanha);
@@ -162,12 +175,14 @@ export function avancar(repo: Repositorio, base: DadosBase, params: Parametros, 
     const dele = clubeGamer ? repo.jogosDoDia(hoje).find((g) => (g.casa === clubeGamer || g.fora === clubeGamer) && !repo.jogo(g.id)) : undefined;
     if (dele && !jogoConfirmado(repo, dele.id)) {
       const nome = (id: string) => dados.clubes.find((c) => c.id === id)?.nome ?? id;
-      pausa = { jogo: dele.id, data: hoje, competicao: dele.competicao, jornada: dele.jornada, casa: dele.casa, fora: dele.fora, casaNome: nome(dele.casa), foraNome: nome(dele.fora) };
+      pausa = { emCurso: !!repo.meta(CHAVE_SESSAO), jogo: dele.id, data: hoje, competicao: dele.competicao, jornada: dele.jornada, casa: dele.casa, fora: dele.fora, casaNome: nome(dele.casa), foraNome: nome(dele.fora) };
       break;
     }
+    // o jogo do gamer pode já ter sido jogado ao vivo (RZ-170): conta na mesma como «dia de jogo»
+    const jogaHoje = !!clubeGamer && repo.jogosDoDia(hoje).some((g) => g.casa === clubeGamer || g.fora === clubeGamer);
     const d = avancarDia(repo, base, params, clubeGamer);
     dias.push(d);
-    if (modo === "proximoJogo" && clubeGamer && d.jogos.some((j) => j.nivel === 0)) break;
+    if (modo === "proximoJogo" && jogaHoje) break;
   }
   // A época fecha logo depois da última jornada, sem esperar por outro pedido.
   if (!resumoEpoca && !pausa) for (let i = 0; i < 2 && !resumoEpoca; i++) if (etapaDeEpoca() !== "gerou") break;

@@ -205,6 +205,8 @@ export function caixa(repo: Repositorio, dados: DadosBase, opcoes: { limite?: nu
   const c = contexto(repo, dados);
   if (!c.clube && !repo.meta("gamer.anterior")) return { mensagens: [], naoLidas: 0 };
   const lida = Number(repo.meta("caixa.lida") ?? 0);
+  const ex = excecoesDaCaixa(repo);
+  const estaLida = (id: number) => (ex.lidas.has(id) ? true : ex.naoLidas.has(id) ? false : id <= lida);
   // sem clube (demitido): a tua carreira e só o que a imprensa conta do clube que deixaste (sem pormenores internos)
   const alvo = c.clube ?? repo.meta("gamer.anterior");
   const externo = alvo !== undefined && alvo !== c.clube;
@@ -212,12 +214,36 @@ export function caixa(repo: Repositorio, dados: DadosBase, opcoes: { limite?: nu
   const aceita = externo ? (n: Noticia) => n.ligacoes.some((l) => l.k === "clube" && l.id === alvo) : (n: Noticia) => n.doTeuClube;
   const fonte = { clubes: alvo ? [alvo] : [] };
   const todas = recolher(cx, EVENTOS_CAIXA, true, opcoes.limite ?? 40, opcoes.antesDe, aceita, fonte);
-  const mensagens = todas.map((n): Mensagem => ({ ...n, lida: n.id <= lida }));
-  const naoLidas = recolher(cx, EVENTOS_CAIXA, true, 99, undefined, aceita, fonte, lida).length;
+  const mensagens = todas.map((n): Mensagem => ({ ...n, lida: estaLida(n.id) }));
+  const novas = recolher(cx, EVENTOS_CAIXA, true, 99, undefined, aceita, fonte, lida).filter((n) => !ex.lidas.has(n.id)).length;
+  const naoLidas = novas + [...ex.naoLidas].filter((id) => id <= lida).length;
   return { mensagens, naoLidas };
 }
 
-/** Marca tudo como lido (até ao último evento). */
+/** Exceções ao «tudo até ao último evento lido»: mensagens que o gamer marcou à mão como lidas ou por ler. */
+function excecoesDaCaixa(repo: Repositorio): { lidas: Set<number>; naoLidas: Set<number> } {
+  try {
+    const x = JSON.parse(repo.meta("caixa.excecoes") || "{}") as { lidas?: number[]; naoLidas?: number[] };
+    return { lidas: new Set(x.lidas ?? []), naoLidas: new Set(x.naoLidas ?? []) };
+  } catch {
+    return { lidas: new Set(), naoLidas: new Set() };
+  }
+}
+
+/** Marca tudo como lido (até ao último evento) e esquece as marcas individuais. */
 export function marcarCaixaLida(repo: Repositorio): void {
   repo.definirMeta("caixa.lida", String(repo.totalEventos()));
+  repo.definirMeta("caixa.excecoes", "");
+}
+
+/** Marca uma mensagem como lida ou por ler (RZ-167). */
+export function marcarMensagem(repo: Repositorio, id: number, lida: boolean): void {
+  const ex = excecoesDaCaixa(repo);
+  ex.lidas.delete(id);
+  ex.naoLidas.delete(id);
+  const marca = Number(repo.meta("caixa.lida") ?? 0);
+  // só é exceção se contrariar a marca-d'água
+  if (lida && id > marca) ex.lidas.add(id);
+  if (!lida && id <= marca) ex.naoLidas.add(id);
+  repo.definirMeta("caixa.excecoes", JSON.stringify({ lidas: [...ex.lidas], naoLidas: [...ex.naoLidas] }));
 }
