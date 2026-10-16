@@ -16,6 +16,7 @@ import type { Data } from "../persistencia/tipos";
 import { calendarioDoGrupo, classificarGrupo, formarGrupos, promovidosDoGrupo } from "./fasePromocao";
 import { aplicarMovimentos, SERIES, type Movimento } from "./movimentos";
 import { parametrosDoSave } from "./anoDoSave";
+import { ajustarDistritais, estaNaBolsa, type Bolsa } from "./distritais";
 import { anosSeguidos, premiadosPorDistrito, type ClubeClassificado } from "./premioEstado";
 import { dadosDaEpoca, guardarPiramide, lerPiramide, ligasDaPiramide } from "./piramideEpoca";
 import { nomeGrupoPromocao, gruposDaPromocao, prepararEpoca } from "./preparar";
@@ -34,7 +35,7 @@ export function gerarFasePromocao(repo: Repositorio, dados: DadosBase, paramsBas
   const params = parametrosDoSave(repo, paramsBase);
   const seed = repo.meta("seed") ?? "?";
   const rep = new Map(dados.clubes.map((c) => [c.id, c.reputacao] as const));
-  const campeoes = [...new Set(dados.clubes.filter((c) => c.escalao === "distrital").map((c) => c.liga))].flatMap((liga) => {
+  const campeoes = [...new Set(dados.clubes.filter((c) => c.escalao === "distrital" && !estaNaBolsa(c.liga)).map((c) => c.liga))].flatMap((liga) => {
     const tabela = tabelaDaCompeticao(repo, liga, epoca, "promocao", params, { seed, reputacao: rep });
     const clube = tabela[0]?.clube;
     return clube ? [{ clube, distrito: dados.clubes.find((c) => c.id === clube)!.distrito }] : [];
@@ -91,6 +92,16 @@ export function fecharEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Par
   const premiados = premiadosPorDistrito(classificados);
   const cidadeDe0 = new Map(dados.clubes.map((c) => [c.id, c.cidade] as const));
 
+  // Distritais de tamanho variável e Bolsa distrital (RZ-113): depois dos movimentos, ajusta-se cada distrito a [min, max]
+  const brutoBolsa = repo.meta("bolsa.distrital");
+  const bolsaAntes: Bolsa = brutoBolsa ? (JSON.parse(brutoBolsa) as Bolsa) : {};
+  const finaisDistritais: Record<string, string[]> = {};
+  for (const x of [...classificados].filter((c) => c.escalao === "distrital").sort((a, b) => a.posicao - b.posicao)) (finaisDistritais[x.distrito] ??= []).push(x.clube);
+  const despromovidosDoCp = new Set(r.movimentos.filter((m) => m.de.startsWith("cp-") && m.para.startsWith("distrital-")).map((m) => m.clube));
+  const ajuste = ajustarDistritais(r.piramide.distritais, { finais: finaisDistritais, protegidos: despromovidosDoCp, bolsa: bolsaAntes, epoca }, params);
+  r.piramide.distritais = ajuste.distritais;
+  r.avisos.push(...ajuste.avisos);
+
   const campeoes = [primeira, segunda, terceira, ...SERIES.map((s) => cp[s])].map((t) => ({ liga: nomeLiga(t[0] as string), clube: t[0] as string, nome: nome.get(t[0] as string) ?? "" }));
   repo.transacao(() => {
     for (const c of campeoes) repo.acrescentarEvento({ tipo: "CAMPEAO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: c.clube, papel: "campeao" }, { k: "competicao", id: c.liga }], dados: { liga: c.liga } });
@@ -106,6 +117,8 @@ export function fecharEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Par
       const cidade = cidadeDe0.get(p.clube);
       repo.acrescentarEvento({ tipo: "PREMIO_ESTADO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: p.clube, papel: "premiado" }, ...(cidade ? [{ k: "cidade" as const, id: cidade, papel: "camara" }] : [])], dados: { distrito: p.distrito, valorClube: params.premios.clube, valorCidade: params.premios.cidade, seguidos } });
     }
+    repo.definirMeta("bolsa.distrital", JSON.stringify(ajuste.bolsa));
+    for (const a of ajuste.ajustes) repo.acrescentarEvento({ tipo: a.tipo === "bolsa" ? "BOLSA_DISTRITAL" : "REGRESSO_DISTRITAL", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: a.clube }], dados: { distrito: a.distrito } });
     // as cidades reagem aos resultados dos clubes e ao que lhes acontece (RZ-133)
     const cidadeDe = new Map(dados.clubes.map((c) => [c.id, c.cidade] as const));
     const resultados = new Map<string, ResultadosClubes>();
