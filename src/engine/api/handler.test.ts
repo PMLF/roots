@@ -60,6 +60,7 @@ describe("handler do motor", () => {
     expect(fc.plantel.length).toBeGreaterThanOrEqual(20);
     expect(fc.cargos.map((c) => c.funcao)).toContain("presidente");
     expect(fc.cidade.k).toBe("cidade");
+    expect(fc.epoca?.season).toBeGreaterThan(0);
     const jog = fc.plantel[0]!;
     const achados = await tratar({ id: 15, tipo: "pesquisar", entrada: { q: jog.nomeDesportivo } }, s3);
     expect(achados.some((r) => r.k === "pessoa" && r.id === jog.id)).toBe(true);

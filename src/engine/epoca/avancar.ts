@@ -4,6 +4,7 @@
  * do homem do jogo; nível 1, RZ-109). Lesões e suspensões contam: quem está lesionado ou suspenso não entra no onze e as
  * histórias saem dos jogos como em qualquer outro. Puro em relação ao tempo real: a data vive no save (`data.hoje`).
  */
+import { zoneSizes } from "../competicao/ficha";
 import { diaDaSemana, somarDias } from "../calendario/datas";
 import type { Parametros } from "../config/parametros";
 import type { DadosBase } from "../dados/tipos";
@@ -15,6 +16,7 @@ import type { EquipaJogo, ResumoJogo } from "../jogo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
 import { fecharEpoca, gerarFasePromocao, type ResumoEpoca } from "./fecharEpoca";
+import { eventoRival, motivoDeRival } from "./rivais";
 import { CHAVE_SESSAO, guardarJogoVivo, linhasDoJogo, type LinhaTabelaVivo } from "./jogoAoVivo";
 import { atualizarOfertas, estaDesempregado } from "./mercadoTreinadores";
 import { dadosDaEpoca, epocaAtual } from "./piramideEpoca";
@@ -81,6 +83,14 @@ export function tabelaAntes(repo: Repositorio, competicao: string, epoca: number
   return clubes.map((c) => { const l = linhas.get(c); return { clube: c, nome: nomeClube.get(c) ?? c, jogos: l?.jogos ?? 0, pontos: l?.pontos ?? 0, golosMarcados: l?.golosMarcados ?? 0, golosSofridos: l?.golosSofridos ?? 0 }; });
 }
 
+/** Quantos sobem e descem na competição de um clube (as zonas da tabela). */
+export function zonasDa(dados: DadosBase, params: Parametros, clube: string): { promovidos: number; descidos: number } | undefined {
+  const tier = dados.clubes.find((c) => c.id === clube)?.escalao;
+  if (!tier) return undefined;
+  const z = zoneSizes(tier, params);
+  return { promovidos: z.promoted, descidos: z.relegated };
+}
+
 /** Cores (texto dos dados) dos clubes pedidos. */
 export function coresDos(dados: { clubes: readonly { id: string; cores: string }[] }, ids: Iterable<string>): Record<string, string> {
   const por = new Map(dados.clubes.map((c) => [c.id, c.cores] as const));
@@ -112,7 +122,9 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
       const casa = equipaParaJogo(repo, g.casa, g.competicao, epoca, g.jornada, hoje, seed, params, g.casa === clubeGamer ? lerPlano(repo, g.casa) : undefined);
       const fora = equipaParaJogo(repo, g.fora, g.competicao, epoca, g.jornada, hoje, seed, params, g.fora === clubeGamer ? lerPlano(repo, g.fora) : undefined);
       const r = jogarJogo({ seed, id: g.id, casa, fora }, nivel, { id: g.id, competicao: g.competicao, epoca, jornada: g.jornada, data: hoje }, params);
+      const rival = clubeGamer && nivel === 0 ? motivoDeRival(repo, dados, params, g.competicao, epoca, clubeGamer, g.casa === clubeGamer ? g.fora : g.casa) : undefined;
       const { evento } = repo.registarJogo(r.registo.jogo, r.registo.factos, r.registo.participacoes);
+      if (rival) repo.acrescentarEvento(eventoRival(g.id, g.casa, g.fora, hoje, epoca, g.jornada, evento, rival));
       for (const l of r.registo.lesoes) repo.acrescentarEvento({ ...l, causa: evento });
       for (const h of r.historias) repo.acrescentarEvento({ ...h, causa: evento });
       const rel = r.relatorio;
@@ -134,7 +146,7 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
         id: j.id, casa: { id: j.casa, nome: j.casaNome }, fora: { id: j.fora, nome: j.foraNome }, duracao: duracoes.get(j.id) ?? 90,
         golos: j.golos.map((x) => ({ minuto: x.minuto, lado: (x.clube === j.casa ? "casa" : "fora") as "casa" | "fora" })), golosCasa: j.golosCasa, golosFora: j.golosFora,
       }));
-      guardarJogoVivo(repo, { ...v, data: hoje, casa: { id: v.casa, nome: nomeClube.get(v.casa) ?? v.casa }, fora: { id: v.fora, nome: nomeClube.get(v.fora) ?? v.fora }, tabela: tabelas.get(v.competicao) ?? [], pontosVitoria: params.classificacao.pontosVitoria, pontosEmpate: params.classificacao.pontosEmpate, outros, cores: coresDos(dados, [v.casa, v.fora, ...(tabelas.get(v.competicao) ?? []).map((l) => l.clube)]), ladoGamer: v.casa === clubeGamer ? "casa" : "fora" });
+      guardarJogoVivo(repo, { ...v, data: hoje, casa: { id: v.casa, nome: nomeClube.get(v.casa) ?? v.casa }, fora: { id: v.fora, nome: nomeClube.get(v.fora) ?? v.fora }, tabela: tabelas.get(v.competicao) ?? [], pontosVitoria: params.classificacao.pontosVitoria, pontosEmpate: params.classificacao.pontosEmpate, outros, cores: coresDos(dados, [v.casa, v.fora, ...(tabelas.get(v.competicao) ?? []).map((l) => l.clube)]), ladoGamer: v.casa === clubeGamer ? "casa" : "fora", zonas: zonasDa(dados, params, v.casa) });
     }
     const amanha = somarDias(hoje, 1);
     repo.definirMeta("data.hoje", amanha);

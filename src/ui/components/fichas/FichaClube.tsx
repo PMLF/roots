@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import type { FichaClubeDados } from "@/engine/api/contratos";
 import type { PessoaVista } from "@/engine/vista/tipos";
 import { Chip } from "@/ui/components/Atributos";
@@ -52,6 +53,81 @@ export function FichaClube({ d, verTudo, soPlantel = false }: { d: FichaClubeDad
     { id: "contract", titulo: t("coluna.contrato"), valor: (p) => d.plantelExtra[p.id]?.contratoFim ?? "" },
     { id: "status", titulo: t("coluna.estado"), valor: (p) => (p.jogador ? t(`estado.${p.jogador.estado}` as Chave) : "") },
   ];
+  // estatísticas da época atual (RZ-175); o xG por jogador não se guarda
+  const ep = (p: PessoaVista) => d.epoca?.players[p.id];
+  const dec = (v: number, c = 1) => v.toFixed(c);
+  const g90 = (p: PessoaVista) => { const e = ep(p); return e && e.minutes > 0 ? (e.goals * 90) / e.minutes : 0; };
+  const numC = (id: string, titulo: Chave, valor: (p: PessoaVista) => number): Coluna<PessoaVista> => ({ id, titulo: t(titulo), valor, numerica: true });
+  const base = plantel.filter((c) => ["name", "pos"].includes(c.id));
+  const colEpoca: Coluna<PessoaVista>[] = [
+    ...base,
+    numC("games", "coluna.jogos", (p) => ep(p)?.games ?? 0),
+    numC("minutes", "coluna.minutos", (p) => ep(p)?.minutes ?? 0),
+    numC("goals", "coluna.golos", (p) => ep(p)?.goals ?? 0),
+    numC("assists", "coluna.assistencias", (p) => ep(p)?.assists ?? 0),
+    numC("ga", "coluna.ga", (p) => (ep(p)?.goals ?? 0) + (ep(p)?.assists ?? 0)),
+    numC("g90", "coluna.golos90", g90),
+    numC("rating", "coluna.nota", (p) => ep(p)?.rating ?? 0),
+    numC("yellow", "coluna.amarelos", (p) => ep(p)?.yellow ?? 0),
+    numC("red", "coluna.vermelhos", (p) => ep(p)?.red ?? 0),
+  ];
+  const colDisciplina: Coluna<PessoaVista>[] = [
+    ...base,
+    numC("games", "coluna.jogos", (p) => ep(p)?.games ?? 0),
+    numC("minutes", "coluna.minutos", (p) => ep(p)?.minutes ?? 0),
+    numC("mpg", "coluna.minPorJogo", (p) => { const e = ep(p); return e && e.games ? Math.round(e.minutes / e.games) : 0; }),
+    numC("yellow", "coluna.amarelos", (p) => ep(p)?.yellow ?? 0),
+    numC("red", "coluna.vermelhos", (p) => ep(p)?.red ?? 0),
+    { id: "status", titulo: t("coluna.estado"), valor: (p) => (p.jogador ? t(`estado.${p.jogador.estado}` as Chave) : "") },
+  ];
+  const [vista, setVista] = useState<"perfil" | "epoca" | "disciplina">("perfil");
+  const colunasVista = vista === "epoca" ? colEpoca : vista === "disciplina" ? colDisciplina : plantel;
+  const celulaEpoca = {
+    name: nome, level: nivelCelula,
+    rating: (p: PessoaVista) => (ep(p)?.rating !== undefined ? dec(ep(p)?.rating ?? 0, 2) : "—"),
+    g90: (p: PessoaVista) => (ep(p)?.minutes ? dec(g90(p), 2) : "—"),
+  };
+  const tabelaPlantel = (
+    <>
+      <label className="vista-plantel">
+        <span>{t("plantel.vista")}</span>
+        <select value={vista} onChange={(e) => setVista(e.target.value as typeof vista)} data-testid="plantel-vista">
+          <option value="perfil">{t("plantel.vista.perfil")}</option>
+          <option value="epoca">{t("plantel.vista.epoca")}</option>
+          <option value="disciplina">{t("plantel.vista.disciplina")}</option>
+        </select>
+      </label>
+      <Tabela key={vista} id={`plantel-${vista}`} nomeFicheiro={`plantel-${vista}-${d.id}`} colunas={colunasVista} linhas={d.plantel} chave={(p) => p.id} celula={celulaEpoca} ordemInicial={vista === "perfil" ? { coluna: "pos", direcao: "asc" } : { coluna: vista === "epoca" ? "ga" : "minutes", direcao: "desc" }} />
+    </>
+  );
+  const tp = d.epoca?.tops;
+  const linhaTop = (rot: Chave, x: { player: string; name: string; value: number } | undefined, fmt: (v: number) => string = String) =>
+    x ? [{ rotulo: t(rot), valor: <><Ligacao k="pessoa" id={x.player}>{x.name}</Ligacao> <b>{fmt(x.value)}</b></> }] : [];
+  const topsClube = (
+    <Cartao titulo={t("cartao.topsClube")}>
+      {tp && Object.keys(tp).length > 0 ? (
+        <Dados linhas={[
+          ...linhaTop("tops.marcador", tp.scorer), ...linhaTop("tops.assistente", tp.assister), ...linhaTop("tops.ga", tp.goalsAndAssists),
+          ...linhaTop("tops.nota", tp.rating, (v) => dec(v, 2)), ...linhaTop("tops.jogos", tp.games), ...linhaTop("tops.minutos", tp.minutes),
+          ...linhaTop("tops.amarelos", tp.yellow), ...linhaTop("tops.vermelhos", tp.red),
+        ]} />
+      ) : (
+        <p className="vazio">{t("tops.vazio")}</p>
+      )}
+    </Cartao>
+  );
+  const eq = d.epoca?.team;
+  const epocaClube = eq ? (
+    <Cartao titulo={t("cartao.epocaClube", { epoca: d.epoca?.seasonLabel ?? "" })}>
+      <Dados linhas={[
+        { rotulo: t("epoca.posicao"), valor: <b>{eq.position}º</b> },
+        { rotulo: t("epoca.jogos"), valor: eq.played },
+        { rotulo: t("epoca.vde"), valor: `${eq.won} / ${eq.drawn} / ${eq.lost}` },
+        { rotulo: t("epoca.golos"), valor: `${eq.goalsFor} / ${eq.goalsAgainst}` },
+        { rotulo: t("epoca.pontos"), valor: <b>{eq.points}</b> },
+      ]} />
+    </Cartao>
+  ) : null;
   const staff: Coluna<PessoaVista>[] = [
     { id: "name", titulo: t("coluna.nome"), valor: (p) => p.nomeDesportivo },
     { id: "role", titulo: t("coluna.funcao"), valor: (p) => (p.funcao ? t(`funcao.${p.funcao}` as Chave) : "") },
@@ -114,9 +190,8 @@ export function FichaClube({ d, verTudo, soPlantel = false }: { d: FichaClubeDad
           ]}
         />
       </Cartao>
-      <Cartao titulo={t("cartao.jogos")}>
-        <Dados linhas={[{ rotulo: t("clube.proximoJogo"), valor: t("clube.semJogos") }, { rotulo: t("clube.ultimosJogos"), valor: "—" }, { rotulo: t("clube.classificacao"), valor: "—" }]} />
-      </Cartao>
+      {epocaClube}
+      {topsClube}
       <Cartao titulo={t("cartao.plantelNumeros")}>
         <Dados
           linhas={[
@@ -157,7 +232,7 @@ export function FichaClube({ d, verTudo, soPlantel = false }: { d: FichaClubeDad
 
   if (soPlantel) {
     return d.plantel.length > 0 ? (
-      <Tabela id="plantel" nomeFicheiro={`plantel-${d.id}`} colunas={plantel} linhas={d.plantel} chave={(p) => p.id} celula={{ name: nome, level: nivelCelula }} ordemInicial={{ coluna: "pos", direcao: "asc" }} />
+      tabelaPlantel
     ) : (
       <p className="vazio">{t("clube.semMundo")}</p>
     );
@@ -171,7 +246,7 @@ export function FichaClube({ d, verTudo, soPlantel = false }: { d: FichaClubeDad
       separadores={{
         resumo,
         plantel: d.plantel.length > 0 ? (
-          <Tabela id="plantel" nomeFicheiro={`plantel-${d.id}`} colunas={plantel} linhas={d.plantel} chave={(p) => p.id} celula={{ name: nome, level: nivelCelula }} ordemInicial={{ coluna: "pos", direcao: "asc" }} />
+          tabelaPlantel
         ) : (
           <p className="vazio">{t("clube.semMundo")}</p>
         ),

@@ -437,11 +437,13 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .amostra-clube { display: inline-block; width: 12px; height: 8px; margin-right: 6px; border-radius: 2px; box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent); vertical-align: 0.05em; flex: none; }
 
 /* Ecrã do jogo (RZ-170): placar, três colunas (eventos | tabela | outros jogos + estatísticas) */
-.pagina-jogo .placar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px; margin: 4px 0; font-size: clamp(18px, 2.4vw, 26px); font-weight: 650; }
-.placar-equipa { display: inline-flex; align-items: center; min-width: 0; }
+.pagina-jogo .placar { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; column-gap: 20px; margin: 4px 0; font-size: clamp(18px, 2.4vw, 26px); font-weight: 650; }
+.placar-equipa { display: flex; align-items: center; min-width: 0; }
+.placar-casa { justify-content: flex-end; text-align: right; }
+.placar-fora { justify-content: flex-start; text-align: left; }
 .placar-equipa .amostra-clube { width: 22px; height: 14px; margin: 0 10px; border-radius: 3px; }
-.placar-golos { font-size: clamp(30px, 4.4vw, 48px); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
-.pagina-jogo .relogio { display: block; max-width: none; text-align: center; }
+.placar-golos { text-align: center; font-size: clamp(30px, 4.4vw, 48px); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.pagina-jogo .relogio { display: block; max-width: none; width: 100%; text-align: center; margin: 0 0 8px; }
 .controlos-jogo label { display: inline-flex; align-items: center; gap: 6px; }
 .controlos-jogo input[type=checkbox] { margin: 0; width: auto; }
 .controlos-jogo { align-items: center; justify-content: center; }
@@ -453,11 +455,16 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .jogo-coluna h2 { font-size: 15px; margin: 0 0 8px; }
 .jogo-coluna .feed { max-height: 68vh; overflow-y: auto; margin: 0; }
 .tabela-viva td, .tabela-viva th { padding: 0.12rem 0.3rem; font-size: 13px; }
-.tabela-viva .nome-clube, .outros-jogos .nome-clube { display: inline-flex; align-items: center; white-space: nowrap; }
+.tabela-viva td.nome-clube { white-space: nowrap; max-width: 11rem; overflow: hidden; text-overflow: ellipsis; }
+.tabela-viva td.nome-clube .amostra-clube { vertical-align: middle; margin-right: 6px; }
 .outros-jogos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 13px; }
-.outros-jogos li { display: grid; grid-template-columns: minmax(0, 1fr) 1.6rem; grid-auto-flow: row; column-gap: 8px; row-gap: 2px; align-items: center; position: relative; }
-.outros-jogos li .nome-clube { overflow: hidden; text-overflow: ellipsis; }
-.outros-jogos .marcador-pequeno { text-align: right; }
+.outros-jogos li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; column-gap: 8px; }
+.outros-jogos .nome-clube { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.outros-jogos .nome-fora { text-align: right; }
+.outros-jogos .amostra-clube { margin: 0; }
+.outros-jogos .marcador-pequeno { text-align: center; padding: 0 4px; }
+.outros-jogos .fim-jogo { grid-column: 1 / -1; text-align: center; font-size: 11px; }
+.marcador-pequeno { text-align: right; }
 .outros-jogos .fim-jogo { grid-column: 1 / -1; font-size: 11px; }
 .marcador-pequeno { font-variant-numeric: tabular-nums; }
 .fim-jogo { font-size: 11px; }
@@ -474,13 +481,10 @@ button.dev { border-style: dashed; }
 .prematch-confronto { font-size: 20px; font-weight: 650; margin: 4px 0; }
 
 /* Caixa de entrada: marcar como lida/por ler (RZ-167) */
-.ponto-alternar { width: 10px; height: 10px; padding: 0; margin-right: 8px; border-radius: 50%; border: 1.5px solid var(--cor-destaque, #1a7f37); background: transparent; vertical-align: 0.05em; cursor: pointer; min-height: 0; }
-.ponto-alternar.por-ler { background: var(--cor-destaque, #1a7f37); }
-.ponto-alternar:hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-destaque, #1a7f37) 25%, transparent); }
 .ligacao-botao { margin-left: 10px; padding: 0; border: 0; background: none; color: inherit; text-decoration: underline; font: inherit; font-size: 13px; cursor: pointer; min-height: 0; }
 
 /* RZ-172 */
-.ponto-alternar { position: relative; width: 28px; height: 28px; margin: -9px 2px -9px -9px; border: 0; background: none; vertical-align: middle; }
+.ponto-alternar { position: relative; padding: 0; cursor: pointer; min-height: 0; background: none !important; border-radius: 0; width: 28px; height: 28px; margin: -9px 2px -9px -9px; border: 0; background: none; vertical-align: middle; }
 .ponto-alternar::before { content: ""; position: absolute; inset: 9px; border-radius: 50%; border: 1.5px solid var(--cor-destaque, #1a7f37); }
 .ponto-alternar.por-ler::before { background: var(--cor-destaque, #1a7f37); }
 .ponto-alternar:hover { box-shadow: none; }
@@ -492,6 +496,20 @@ button.dev { border-style: dashed; }
 .popup::backdrop { background: rgb(0 0 0 / 0.45); }
 .popup h2 { margin: 0 0 10px; font-size: 16px; }
 .popup .formulario { display: grid; gap: 8px; }
-.tabela-viva tr.meu-clube { background: color-mix(in srgb, var(--cor-destaque, #1a7f37) 22%, transparent); color: var(--cor-destaque, #1a7f37); font-weight: 750; box-shadow: inset 3px 0 0 var(--cor-destaque, #1a7f37); }
+.tabela-viva tr.meu-clube { font-weight: 800; outline: 2px solid var(--cor-destaque, #1a7f37); outline-offset: -2px; }
 .nome-clube.meu-clube { color: var(--cor-destaque, #1a7f37); font-weight: 750; }
-.tabela tr.meu-clube { background: color-mix(in srgb, var(--cor-destaque, #1a7f37) 20%, transparent); font-weight: 700; box-shadow: inset 3px 0 0 var(--cor-destaque, #1a7f37); }
+.tabela tr.meu-clube { font-weight: 800; outline: 2px solid var(--cor-destaque, #1a7f37); outline-offset: -2px; }
+.tabela-viva.tabela th, .tabela-viva.tabela td { padding: 0.12rem 0.3rem; }
+.tabela-viva.tabela tr.destaque:not(.zona) { background: color-mix(in srgb, currentColor 10%, transparent); }
+/* área clicável maior sem mudar o aspeto (RZ-173) */
+.ponto-alternar::before { inset: 9px; }
+
+.vista-plantel { display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+.jogo-grelha > * { min-width: 0; }
+.jogo-grelha .cartao, .jogo-grelha section { min-width: 0; overflow: hidden; }
+.outros-jogos li { min-width: 0; }
+.tabela-viva { width: 100%; table-layout: auto; }
+.tabela-viva.tabela { table-layout: fixed; width: 100%; min-width: 0; }
+.tabela-viva.tabela th:nth-child(1), .tabela-viva.tabela td:nth-child(1) { width: 3.2rem; }
+.tabela-viva.tabela th:nth-child(n+3), .tabela-viva.tabela td:nth-child(n+3) { width: 2.4rem; text-align: right; }
+.tabela-viva td.nome-clube { max-width: none; }

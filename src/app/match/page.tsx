@@ -122,13 +122,7 @@ function Conteudo() {
           <label><input type="checkbox" checked={soImportante} onChange={(e) => setSoImportante(e.target.checked)} /> {t("jogo.soImportante")}</label>
           {dev && <button type="button" className="dev" onClick={() => { setACorrer(false); void passo(500); }}>{t("jogo.saltar")}</button>}
         </div>
-      ) : (
-        <div className="acoes controlos-jogo">
-          <span className="suave">{t("jogo.revisao")}</span>
-          <label><input type="checkbox" checked={soImportante} onChange={(e) => setSoImportante(e.target.checked)} /> {t("jogo.soImportante")}</label>
-          <Link href="/">{t("jogo.voltar")}</Link>
-        </div>
-      )}
+      ) : null}
       {erro && <p className="erro" role="alert">{erro}</p>}
       {taticaAberta && emCurso && jogo.tatica && <TaticaNoJogo tatica={jogo.tatica} aoMudar={(x) => void mudarTatica(x)} aoFechar={fecharTatica} ocupado={aMudar} />}
       <div className="jogo-grelha">

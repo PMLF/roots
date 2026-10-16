@@ -9,6 +9,7 @@ import { importarPaises, type Pais } from "../mundo/paises";
 import { validarMundo } from "../mundo/validar";
 import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
 import { caixa, marcarCaixaLida, marcarMensagem, noticias } from "../noticias/noticias";
+import { epocaDoClube } from "../competicao/clubeEpoca";
 import { lerJogoVivo } from "../epoca/jogoAoVivo";
 import { iniciarSessao, mudarTaticaSessao, passoSessao, sessaoAtual } from "../epoca/sessaoJogo";
 import { aceitarOferta, demitir, estaDesempregado, ofertasDoGamer } from "../epoca/mercadoTreinadores";
@@ -133,6 +134,7 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
         estadioDetalhe: { propriedade: c.estadio.propriedade, zona: c.estadio.localizacao.zona, distanciaCentroKm: c.estadio.localizacao.distanciaCentroKm, transportes: c.estadio.localizacao.transportes, acessoRodoviario: c.estadio.localizacao.acessoRodoviario, estacionamento: c.estadio.localizacao.estacionamento, terrenoExpansao: c.estadio.localizacao.terrenoExpansao },
         historicoDivisoes: historicoDeDivisoes(repositorio, base, c.id).map((h) => ({ ...h, label: nomeDaEpoca(h.epoca, params.calendario.anoInicial) })),
         plantelExtra: {},
+        ...(epocaDoClube(repositorio, dados, params, c.id) ? { epoca: epocaDoClube(repositorio, dados, params, c.id) as NonNullable<ReturnType<typeof epocaDoClube>> } : {}),
       };
       for (const j of saida.plantel) {
         const ct = repositorio.contrato(j.id);
