@@ -105,7 +105,7 @@ export default function Inicio() {
         {proximo && clube ? (
           <>
             <div className="inicio-jogo">
-              <p className="inicio-confronto">{proximo.home ? <><AmostraClube id={clube.ficha.id} />{casaFora[0]}</> : <><AmostraClube id={pj?.adversarioId} />{casaFora[0]}</>} <span className="suave">{t("inicio.vs")}</span> {proximo.home ? <><AmostraClube id={pj?.adversarioId} />{casaFora[1]}</> : <><AmostraClube id={clube.ficha.id} />{casaFora[1]}</>}</p>
+              <p className="inicio-confronto">{proximo.home ? <><AmostraClube id={clube.ficha.id} /><Ligacao k="clube" id={clube.ficha.id} semAmostra>{casaFora[0]}</Ligacao></> : <><AmostraClube id={pj?.adversarioId} />{pj?.adversarioId ? <Ligacao k="clube" id={pj.adversarioId} semAmostra>{casaFora[0]}</Ligacao> : casaFora[0]}</>} <span className="suave">{t("inicio.vs")}</span> {proximo.home ? <><AmostraClube id={pj?.adversarioId} />{pj?.adversarioId ? <Ligacao k="clube" id={pj.adversarioId} semAmostra>{casaFora[1]}</Ligacao> : casaFora[1]}</> : <><AmostraClube id={clube.ficha.id} /><Ligacao k="clube" id={clube.ficha.id} semAmostra>{casaFora[1]}</Ligacao></>}</p>
               <p className="suave">{t(proximo.home ? "inicio.emCasa" : "inicio.fora")} · {clube.ficha.liga} {proximo.round > 0 && <>· {t("inicio.jornada", { n: proximo.round })}</>}</p>
             </div>
             <dl className="inicio-factos">
@@ -121,7 +121,7 @@ export default function Inicio() {
       {resumo && (
         <section className="painel resumo-epoca" aria-label={t("hoje.epocaAcabou", { epoca: resumo.epoca })}>
           <p><b>{t("hoje.epocaAcabou", { epoca: resumo.epoca })}</b></p>
-          <p className="suave">{t("hoje.campeoes")}: {resumo.campeoes.map((c) => `${c.nome} (${c.liga})`).join(" · ")}</p>
+          <p className="suave">{t("hoje.campeoes")}: {resumo.campeoes.map((c, i) => <span key={c.clube}>{i > 0 && " · "}<Ligacao k="clube" id={c.clube} semAmostra>{c.nome}</Ligacao> (<Ligacao k="competicao" id={c.liga}>{c.liga}</Ligacao>)</span>)}</p>
           {meu && resumo.movimentos.filter((m) => m.clube === meu).map((m) => <p key={m.clube}>{t(m.motivo === "descida" ? "hoje.desceste" : "hoje.subiste")}</p>)}
           <p className="suave">{t("hoje.movimentos", { n: resumo.movimentos.length })}</p>
         </section>
