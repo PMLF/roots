@@ -5,6 +5,8 @@ import { corPredominante } from "@/ui/cores";
 import type { Estilo, Nivel, Tatica } from "@/engine/jogo/tipos";
 import type { ReactNode } from "react";
 import { AmostraClube } from "@/ui/components/AmostraClube";
+import { Icone } from "@/ui/components/Icone";
+import { BotaoFechar } from "@/ui/components/BotaoFechar";
 import { IconeEvento, chaveIcone } from "@/ui/components/IconeEvento";
 import { ContadoresSubs, semSubstituicoes } from "@/ui/components/jogo/Substituicoes";
 import { Ligacao } from "@/ui/components/Ligacao";
@@ -37,7 +39,7 @@ function comLigacoes(texto: string, l: LinhaVivo): ReactNode[] {
 function textoDaLinha(l: LinhaVivo, t: T): string {
   switch (l.tipo) {
     case "inicio": return t("jogo.inicio");
-    case "golo": return frase(`jogo.golo.${l.situacao ?? "abre"}`, l, t) + (l.assistente ? ` ${t("jogo.assistencia", { nome: MARCA.assistente })}` : "");
+    case "golo": return frase(`jogo.golo.${l.situacao ?? "abre"}`, l, t);
     case "remate": return frase(`jogo.remate.${l.resultado ?? "fora"}`, l, t);
     case "canto": return frase("jogo.canto", l, t);
     case "penalti": return frase("jogo.penalti", l, t);
@@ -59,8 +61,9 @@ export function Eventos({ jogo, soImportante }: { jogo: JogoVivo; soImportante: 
     <ol className="feed" reversed aria-label={t("jogo.eventos")}>
       {[...linhas].reverse().map((l, i) => (
         <li key={`${l.minuto}-${l.tipo}-${linhas.length - i}`} className={`feed-${l.tipo}${l.tipo === "cartao" && l.cor ? ` feed-cartao-${l.cor}` : ""}${l.importante ? " importante" : ""}`}>
-          <span className="feed-cab"><IconeEvento chave={chaveIcone(l)} {...(l.tipo === "cartao" && l.cor ? { cor: l.cor } : {})} /><b>{Math.floor(l.minuto)}'</b>{l.lado && <span className="feed-clube"><Ligacao k="clube" id={l.lado === "casa" ? jogo.casa.id : jogo.fora.id} semAmostra>{nomeDe(l.lado)}</Ligacao></span>}</span>
-          <span className="feed-texto">{comLigacoes(textoDaLinha(l, t), l)}{l.tipo === "golo" && <b className="feed-marcador"> {l.golosCasa}–{l.golosFora}</b>}</span>
+          <span className="feed-cab"><IconeEvento chave={chaveIcone(l)} {...(l.tipo === "cartao" && l.cor ? { cor: l.cor } : {})} /><b>{Math.floor(l.minuto)}'</b>{l.lado && <span className="feed-clube"><Ligacao k="clube" id={l.lado === "casa" ? jogo.casa.id : jogo.fora.id} semAmostra>{nomeDe(l.lado)}</Ligacao></span>}{l.tipo === "golo" && <b className="feed-marcador">{l.golosCasa}–{l.golosFora}</b>}</span>
+          <span className="feed-texto">{comLigacoes(textoDaLinha(l, t), l)}</span>
+          {l.tipo === "golo" && l.assistente && <span className="feed-assist">{comLigacoes(t("jogo.assistencia", { nome: MARCA.assistente }), l)}</span>}
         </li>
       ))}
       {linhas.length === 0 && <li className="vazio">{t("jogo.arranque")}</li>}
@@ -165,6 +168,7 @@ export function TaticaNoJogo({ tatica, aoMudar, aoFechar, ocupado }: { tatica: T
   }, []);
   return (
     <dialog ref={ref} className="popup tatica-jogo" aria-labelledby="h-tatica-jogo" onClose={aoFechar} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
+      <BotaoFechar aoFechar={() => ref.current?.close()} />
       <h2 id="h-tatica-jogo">{t("jogo.taticaTitulo")}</h2>
       <div className="formulario">
         <p className="suave">{t("lab.formacao")}: <b>{tatica.formacao}</b></p>
@@ -182,7 +186,6 @@ export function TaticaNoJogo({ tatica, aoMudar, aoFechar, ocupado }: { tatica: T
         ))}
       </div>
       <p className="suave">{t("jogo.taticaAviso")}</p>
-      <p className="acoes"><button type="button" className="primario" onClick={() => ref.current?.close()}>{t("jogo.taticaFechar")}</button></p>
     </dialog>
   );
 }
@@ -221,8 +224,8 @@ export function Intervalo({ jogo, aoTatica, aoSubs, aoContinuar }: { jogo: JogoV
       </div>
       {jogo.subs && <p className="subs-resumo"><ContadoresSubs subs={jogo.subs} /></p>}
       <p className="acoes">
-        <button type="button" onClick={aoTatica}>{t("jogo.intervaloTatica")}</button>
-        <button type="button" onClick={aoSubs} disabled={semSubstituicoes(jogo.subs, true)}>{t("jogo.subs.botao")}</button>
+        <button type="button" onClick={aoTatica}><Icone nome="tatica" />{t("jogo.intervaloTatica")}</button>
+        <button type="button" onClick={aoSubs} disabled={semSubstituicoes(jogo.subs, true)}><IconeEvento chave="substituicao" />{t("jogo.subs.botao")}</button>
         <button type="button" className="primario" onClick={aoContinuar} autoFocus>{t("jogo.segundaParte")}</button>
       </p>
     </dialog>
@@ -253,18 +256,34 @@ function LinhaJogador({ j }: { j: JogadorVivo }) {
   );
 }
 
-/** Um onze (e o banco) com a nota de cada jogador ao minuto, o que fez e quando entrou ou saiu. */
+/**
+ * O onze tal como está agora: quem entrou ocupa o lugar de quem saiu (com a seta verde e o minuto). Por baixo, o banco que
+ * resta e os que já saíram.
+ */
 function Onze({ jogo, lado }: { jogo: JogoVivo; lado: "casa" | "fora" }) {
   const { t } = useT();
   const todos = jogo.equipas?.[lado] ?? [];
-  const campo = todos.filter((j) => j.estado !== "banco" && j.entrou === undefined);
-  const entraram = todos.filter((j) => j.entrou !== undefined);
+  const porId = new Map(todos.map((j) => [j.id, j] as const));
+  const iniciais = todos.filter((j) => j.entrou === undefined && j.estado !== "banco");
+  const ocupante = (j: JogadorVivo): JogadorVivo => {
+    let atual = j;
+    const vistos = new Set<string>();
+    while (atual.estado === "saiu" && atual.trocaCom && !vistos.has(atual.id)) {
+      vistos.add(atual.id);
+      const seguinte = porId.get(atual.trocaCom.id);
+      if (!seguinte || seguinte.entrou === undefined) break;
+      atual = seguinte;
+    }
+    return atual;
+  };
+  const campo = iniciais.map(ocupante);
   const banco = todos.filter((j) => j.estado === "banco");
+  const saidos = todos.filter((j) => j.estado === "saiu");
   return (
     <div className="equipa-vivo">
       <ul>{campo.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul>
-      {entraram.length > 0 && <><h4>{t("jogo.entraram")}</h4><ul>{entraram.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
-      {banco.length > 0 && <details className="banco-vivo"><summary>{t("jogo.banco")} ({banco.length})</summary><ul>{banco.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></details>}
+      {banco.length > 0 && <><h4>{t("jogo.banco")}</h4><ul>{banco.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
+      {saidos.length > 0 && <><h4>{t("jogo.saiuLista")}</h4><ul>{saidos.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
     </div>
   );
 }

@@ -4,6 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { JogoVivo } from "@/engine/epoca/jogoAoVivo";
 import type { Tatica } from "@/engine/jogo/tipos";
+import { Icone } from "@/ui/components/Icone";
+import { IconeEvento } from "@/ui/components/IconeEvento";
 import { Ligacao } from "@/ui/components/Ligacao";
 import { AmostraClube } from "@/ui/components/AmostraClube";
 import { CartaoEquipa, Confrontos, Estatisticas, Eventos, GraficoXg, InfoCabecalho, Intervalo, OutrosJogos, TabelaViva, TaticaNoJogo } from "@/ui/components/jogo/PainelJogo";
@@ -158,26 +160,34 @@ function Conteudo() {
       <p className="relogio">{emCurso ? `${Math.floor(minuto)}'` : t("jogo.terminado")}</p>
       <InfoCabecalho jogo={jogo} />
       {emCurso ? (
-        <div className="acoes controlos-jogo">
-          <button type="button" className="primario" onClick={() => setACorrer((v) => !v)} disabled={taticaAberta || subsAberto}>
-            {aCorrer ? t("jogo.pausa") : minuto === 0 ? t("jogo.comecar") : t("jogo.continuar")}
-          </button>
-          <label className="velocidade">
-            <span className="so-leitor">{t("jogo.velocidade")}</span>
-            <select value={vel} aria-label={t("jogo.velocidade")} onChange={(e) => { const v = Number(e.target.value); setVel(v); guardar("raizes.velocidadeJogo", v); }}>
-              {VELOCIDADES.map((v, i) => <option key={v.rotulo} value={i}>{v.rotulo}</option>)}
-            </select>
-          </label>
-          <button type="button" onClick={abrirTatica}>{t("jogo.taticaBotao")}</button>
-          <button type="button" onClick={abrirSubs} disabled={minuto < 1 || semSubstituicoes(jogo.subs, minuto === minutoIntervalo)} title={semSubstituicoes(jogo.subs, minuto === minutoIntervalo) ? t("jogo.subs.semMais") : undefined}>{t("jogo.subs.botao")}</button>
-          <label><input type="checkbox" checked={soImportante} onChange={(e) => setSoImportante(e.target.checked)} /> {t("jogo.soImportante")}</label>
-          {dev && <button type="button" className="dev" onClick={() => { setACorrer(false); void passo(500); }}>{t("jogo.saltar")}</button>}
-        </div>
+        <>
+          <div className="controlos-fixos" role="group" aria-label={t("jogo.controlos")}>
+            <button type="button" className="primario controlo-principal" onClick={() => setACorrer((v) => !v)} disabled={taticaAberta || subsAberto} aria-label={aCorrer ? t("jogo.pausa") : minuto === 0 ? t("jogo.comecar") : t("jogo.continuar")}>
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d={aCorrer ? "M7 5h3.500v14H7zM13.500 5H17v14h-3.500z" : "M8 5v14l11-7z"} fill="currentColor" /></svg>
+              <span>{aCorrer ? t("jogo.pausa") : minuto === 0 ? t("jogo.comecar") : t("jogo.continuar")}</span>
+            </button>
+            <span className="velocidade-seg" role="radiogroup" aria-label={t("jogo.velocidade")}>
+              {VELOCIDADES.map((v, i) => (
+                <button key={v.rotulo} type="button" role="radio" aria-checked={vel === i} onClick={() => { setVel(i); guardar("raizes.velocidadeJogo", i); }}>{v.rotulo}</button>
+              ))}
+            </span>
+            {dev && (
+              <button type="button" className="controlo-saltar" title={t("jogo.saltar")} aria-label={t("jogo.saltar")} onClick={() => { setACorrer(false); void passo(500); }}>
+                <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 5v14l9-7zM16.500 5H19v14h-2.500z" fill="currentColor" /></svg>
+              </button>
+            )}
+          </div>
+          <div className="acoes controlos-jogo">
+            <button type="button" onClick={abrirTatica}><Icone nome="tatica" />{t("jogo.taticaBotao")}</button>
+            <button type="button" onClick={abrirSubs} disabled={minuto < 1 || semSubstituicoes(jogo.subs, minuto === minutoIntervalo)} title={semSubstituicoes(jogo.subs, minuto === minutoIntervalo) ? t("jogo.subs.semMais") : undefined}><IconeEvento chave="substituicao" />{t("jogo.subs.botao")}</button>
+            <label><input type="checkbox" checked={soImportante} onChange={(e) => setSoImportante(e.target.checked)} /> {t("jogo.soImportante")}</label>
+          </div>
+        </>
       ) : null}
       {emCurso && jogo.subs && <p className="subs-resumo"><ContadoresSubs subs={jogo.subs} /></p>}
       {erro && <p className="erro" role="alert">{erro}</p>}
       {intervalo && emCurso && <Intervalo jogo={jogo} aoTatica={taticaDoIntervalo} aoSubs={subsDoIntervalo} aoContinuar={segundaParte} />}
-      {subsAberto && emCurso && <SubstituicoesNoJogo jogo={jogo} noIntervalo={minuto === minutoIntervalo} ocupado={aMudar} {...(erroSubs ? { erro: erroSubs } : {})} aoConfirmar={(x) => void confirmarSubs(x)} aoFechar={fecharSubs} />}
+      {subsAberto && emCurso && <SubstituicoesNoJogo jogo={jogo} ocupado={aMudar} {...(erroSubs ? { erro: erroSubs } : {})} aoConfirmar={(x) => void confirmarSubs(x)} aoFechar={fecharSubs} />}
       {taticaAberta && emCurso && jogo.tatica && <TaticaNoJogo tatica={jogo.tatica} aoMudar={(x) => void mudarTatica(x)} aoFechar={fecharTatica} ocupado={aMudar} />}
       <div className="separadores" role="tablist" aria-label={t("jogo.separadores")}>
         {SEPARADORES.map((x) => (
