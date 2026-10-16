@@ -95,13 +95,15 @@ legend { padding: 0 6px; color: var(--suave); }
 .barra { position: relative; }
 .progresso-jogo { position: absolute; left: 0; right: 0; top: -1px; height: 2px; background: transparent; pointer-events: none; }
 .progresso-jogo i { display: block; height: 100%; background: var(--destaque); transition: width .25s linear; }
-.intervalo-jogo { width: min(92vw, 760px); text-align: center; }
-.intervalo-jogo h2 { text-align: center; font-size: 18px; }
-.intervalo-corpo { display: grid; gap: 16px; align-items: center; margin-bottom: 14px; }
+.intervalo-jogo { width: min(92vw, 780px); text-align: center; padding: 24px 28px; }
+.intervalo-jogo h2 { text-align: center; font-size: 18px; margin-bottom: 18px; }
+.intervalo-corpo { display: grid; gap: 28px; align-items: stretch; margin-bottom: 22px; }
+.intervalo-corpo > * { padding: 14px 16px; border: 1px solid var(--linha); border-radius: var(--r-m); }
+.intervalo-corpo .estatisticas { display: grid; align-content: space-between; gap: 10px; margin: 0; list-style: none; }
 @media (min-width: 640px) { .intervalo-corpo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
-.intervalo-xg { min-width: 0; }
+.intervalo-xg { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
 .intervalo-xg .xg-legenda { justify-content: center; }
-.intervalo-jogo .acoes { justify-content: center; }
+.intervalo-jogo .acoes { justify-content: center; gap: 12px; margin: 0; }
 .ind .ev-icone { width: 15px; height: 15px; }
 .ind-assist { font-size: 11px; border: 1px solid currentColor; border-radius: 3px; padding: 0 3px; line-height: 1.3; }
 .barra b { color: var(--texto); font-weight: 600; }
@@ -556,14 +558,15 @@ button.dev { border-style: dashed; }
 .confrontos-resumo { margin: 0 0 8px; font-size: 14px; }
 .confrontos { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
 .confrontos li { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 8px; }
-.jogo-contexto { text-align: center; margin: 0 0 2px; max-width: none; }
+.jogo-contexto { text-align: center; margin: 20px 0 0; max-width: none; }
+.pagina-jogo .jogo-contexto + .placar { margin-top: 0; }
 .info-cabecalho { margin: 0 0 12px; font-size: 13px; color: var(--suave); text-align: center; }
 .info-cabecalho p { max-width: none; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px 18px; margin: 0 0 2px; }
 .info-adeptos { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
 .info-adeptos b { color: var(--texto); font-weight: 600; }
 .painel-eventos { margin-top: 12px; padding-bottom: 10px; }
 .painel-eventos h2 { font-size: 15px; margin: 0 0 8px; }
-.painel-eventos .feed { display: flex; flex-direction: row; gap: 0; overflow-x: auto; max-height: none; margin: 0; padding: 0 0 6px; list-style: none; }
+.painel-eventos .feed { display: flex; flex-direction: row; gap: 4px; overflow-x: auto; max-height: none; margin: 0; padding: 0 0 6px; list-style: none; }
 .painel-eventos .feed > li { flex: 0 0 auto; width: clamp(190px, 22vw, 260px); display: grid; gap: 3px; align-content: start; border: 0; border-left: 1px solid var(--linha); border-radius: 0; padding: 2px 12px; font-size: 13px; line-height: 1.35; max-height: 5.6em; overflow: hidden; opacity: 1; font-weight: 400; }
 .painel-eventos .feed > li:first-child { border-left: 0; padding-left: 0; }
 .painel-eventos .feed > li.feed-golo { background: var(--destaque-fundo); border-radius: var(--r-s); border-left-color: transparent; padding-left: 12px; font-weight: 600; }
