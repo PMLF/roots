@@ -448,6 +448,67 @@ export type Params = {
     /** Aptidão (1-20) nas posições alternativas relativamente à principal. */
     secondaryAptitude: number;
   };
+  /** Ciclo anual dos plantéis (RZ-117): desenvolvimento, reforma, contratos, livres e formação. */
+  squadCycle: {
+    development: {
+      /** Fração da distância ao potencial que um jogador abaixo do auge recupera num ano. */
+      growthShare: number;
+      /** Desvio (pontos de qualidade) da variação anual de um jogador. */
+      yearlyNoise: number;
+      /** Idade a partir da qual a qualidade desce, descida base por ano e aumento por ano de idade acima. */
+      declineAge: number;
+      declineBase: number;
+      declinePerYear: number;
+      /** Descida extra por ano acima da idade de declínio nos atributos físicos; ganho anual (até aos 29) nos mentais. */
+      physicalExtra: number;
+      mentalGain: number;
+      /** Os atributos fora da posição seguem a variação com este peso. */
+      offPositionWeight: number;
+    };
+    retirement: {
+      /** Idade mínima, probabilidade nessa idade e aumento por ano; guarda-redes reformam-se mais tarde (anos). */
+      fromAge: number;
+      baseProbability: number;
+      perYear: number;
+      goalkeeperExtraYears: number;
+      /** Idade em que reforma sempre. */
+      maxAge: number;
+      /** Multiplicador para jogadores sem clube. */
+      freeMultiplier: number;
+    };
+    contracts: {
+      yearsMin: number;
+      yearsMax: number;
+      /** Probabilidade de renovação = base + porPonto × (qualidade − média do escalão) − porAnoVelho × anos acima de `oldAge`. */
+      renewBase: number;
+      renewPerQualityPoint: number;
+      renewPerOldYear: number;
+      oldAge: number;
+      /** Mínimo e máximo da probabilidade de renovação. */
+      renewMin: number;
+      renewMax: number;
+      /** Ordenado de renovação relativo à fórmula do escalão (1 = igual). */
+      renewalWageFactor: number;
+    };
+    squad: {
+      /** Jogadores acima do plantel-alvo que a formação ainda pode juntar. */
+      slack: number;
+      /** Quanto a qualidade procurada num livre pode diferir da qualidade-alvo do clube. */
+      freeAgentTolerance: number;
+    };
+    youth: {
+      /** Entradas máximas por clube e por ano, por escalão. */
+      perClub: Record<Tier, number>;
+      ageMin: number;
+      ageMax: number;
+      /** Desvio à qualidade-alvo do escalão (positivo = formação melhor). */
+      targetOffset: number;
+      /** Probabilidade de o jovem ser da cidade do clube. */
+      hometownProbability: number;
+      /** Família de nomes dos jogadores formados. */
+      nameFamily: string;
+    };
+  };
   /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
   knowledge: {
     /** Épocas sem nova observação a partir das quais a ficha mostra "desatualizado". */
@@ -721,6 +782,13 @@ export const DEFAULT_PARAMETERS: Params = {
     peakAge: 27,
     secondaryAptitude: 0.6,
   },
+  squadCycle: {
+    development: { growthShare: 0.4, yearlyNoise: 0.45, declineAge: 30, declineBase: 0.2, declinePerYear: 0.12, physicalExtra: 0.25, mentalGain: 0.1, offPositionWeight: 0.7 },
+    retirement: { fromAge: 33, baseProbability: 0.06, perYear: 0.14, goalkeeperExtraYears: 3, maxAge: 40, freeMultiplier: 1.6 },
+    contracts: { yearsMin: 1, yearsMax: 3, renewBase: 0.7, renewPerQualityPoint: 0.1, renewPerOldYear: 0.08, oldAge: 31, renewMin: 0.05, renewMax: 0.95, renewalWageFactor: 1 },
+    squad: { slack: 2, freeAgentTolerance: 2.5 },
+    youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal" },
+  },
   knowledge: {
     seasonsAfterOutdated: 2,
     uncertaintyGrowthPerSeason: 0.25,
@@ -870,6 +938,11 @@ export function validateParameters(p: Params): string[] {
   if (Object.values(m.placesByPosition).some((n) => n < 1)) errors.push("mundo.lugaresPorPosicao: pelo menos 1 por posição");
   if (Object.values(m.wage.average).some((x) => !(x > 0)) || m.wage.yearsContractMin < 1 || m.wage.yearsContractMax < m.wage.yearsContractMin) errors.push("mundo.salario inválido");
   if (!(m.age.min < m.age.max && m.age.min >= 15)) errors.push("mundo.idade: 15 ≤ min < max");
+  const sc = p.squadCycle;
+  if (!(sc.development.growthShare > 0 && sc.development.growthShare <= 1 && sc.development.yearlyNoise >= 0)) errors.push("squadCycle.development: 0 < growthShare ≤ 1 e yearlyNoise ≥ 0");
+  if (!(sc.retirement.fromAge < sc.retirement.maxAge && sc.retirement.baseProbability >= 0 && sc.retirement.baseProbability <= 1)) errors.push("squadCycle.retirement: fromAge < maxAge e baseProbability em [0, 1]");
+  if (!(sc.contracts.yearsMin >= 1 && sc.contracts.yearsMax >= sc.contracts.yearsMin && sc.contracts.renewMin <= sc.contracts.renewMax)) errors.push("squadCycle.contracts inválido");
+  if (!(sc.youth.ageMin >= 15 && sc.youth.ageMax >= sc.youth.ageMin && sc.squad.slack >= 0)) errors.push("squadCycle.youth/squad inválido");
   if (p.personality.traitMin >= p.personality.traitMax) errors.push("personalidade: tracoMin < tracoMax");
   return errors;
 }

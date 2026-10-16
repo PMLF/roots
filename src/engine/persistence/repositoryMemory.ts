@@ -17,6 +17,8 @@ import type {
   ScheduledMatch,
   FactMatch,
   PlayerRecord,
+  PlayerPatch,
+  PlayerState,
   NewMatch,
   StandingsLine,
   PlayerStatLine,
@@ -187,6 +189,54 @@ export class MemoryRepository implements Repository {
       const total = batch.people.length + batch.players.length + batch.contracts.length + batch.roles.length;
       onProgress?.(total, total);
     });
+  }
+  addPeople(batch: WorldBatchRecord): void {
+    this.transaction(() => {
+      const ids = new Set<string>();
+      for (const p of batch.people) {
+        if (this.people.has(p.id) || ids.has(p.id)) throw new Error(`Duplicate person: ${p.id}`);
+        ids.add(p.id);
+      }
+      const known = (id: string) => ids.has(id) || this.people.has(id);
+      for (const j of batch.players) if (!known(j.person) || this.mapPlayers.has(j.person)) throw new Error(`Invalid player: ${j.person}`);
+      for (const c of batch.contracts) if (!known(c.person)) throw new Error(`Contract without person: ${c.person}`);
+      for (const c of batch.roles) if (!known(c.person) || this.roles.has(c.person)) throw new Error(`Invalid role: ${c.person}`);
+      const copy = clone(batch);
+      for (const p of copy.people) {
+        this.people.set(p.id, p);
+        this.undo(() => this.people.delete(p.id));
+      }
+      for (const j of copy.players) {
+        this.mapPlayers.set(j.person, j);
+        this.undo(() => this.mapPlayers.delete(j.person));
+      }
+      for (const c of copy.contracts) this.saveContract(c);
+      for (const c of copy.roles) {
+        this.roles.set(c.person, c);
+        this.undo(() => this.roles.delete(c.person));
+      }
+    });
+  }
+  updatePlayer(person: string, patch: PlayerPatch): void {
+    const before = this.mapPlayers.get(person);
+    if (!before) throw new Error(`Unknown player: ${person}`);
+    const next: PlayerRecord = { ...before };
+    if (patch.attributes) next.attributes = { ...patch.attributes };
+    if (patch.potential !== undefined) next.potential = patch.potential;
+    if (patch.positions) next.positions = patch.positions.map((x) => ({ ...x }));
+    if (patch.state) next.state = patch.state;
+    if (patch.club === null) delete next.club;
+    else if (patch.club !== undefined) next.club = patch.club;
+    this.mapPlayers.set(person, next);
+    this.undo(() => this.mapPlayers.set(person, before));
+  }
+  saveContract(c: ContractRecord): void {
+    if (!this.people.has(c.person)) throw new Error(`Contract without person: ${c.person}`);
+    this.contracts.push({ ...c });
+    this.undo(() => this.contracts.pop());
+  }
+  playersByState(state: PlayerState): PlayerRecord[] {
+    return [...this.mapPlayers.values()].filter((j) => j.state === state).sort((a, b) => cmp(a.person, b.person)).map((j) => clone(j));
   }
   peopleTotal(): number {
     return this.people.size;

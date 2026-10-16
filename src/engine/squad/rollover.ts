@@ -1,0 +1,237 @@
+/**
+ * Ciclo anual dos plantéis (RZ-117; RZ-147 em versão básica). Corre no fim da época, antes de a nova começar:
+ * 1. cada jogador envelhece: reforma-se ou desenvolve-se;
+ * 2. contratos que terminaram: o clube renova ou deixa partir (o clube do gamer renova sempre até haver ecrã de renovações);
+ * 3. formação: entram jovens do clube até ao plantel-alvo mais a folga;
+ * 4. os clubes com falta de jogadores contratam livres (por posição, perto da qualidade que procuram);
+ * 5. se não houver livre adequado, entra um jovem de emergência.
+ * Determinístico: cada jogador e cada clube têm o seu fluxo aleatório; os clubes processam-se por escalão e reputação.
+ */
+import { Rng, clamp } from "../random/rng";
+import { dayNumber } from "../calendar/dates";
+import type { Params, Tier } from "../config/parameters";
+import type { BaseCity, BaseClub, BaseData, ClubId } from "../data/types";
+import type { Repository } from "../persistence/repository";
+import type { ContractRecord, IsoDate, PlayerRecord, WorldBatchRecord } from "../persistence/types";
+import { currentQuality } from "../world/player";
+import { distributePositions } from "../world/generateWorld";
+import type { Attributes, Position } from "../world/types";
+import { developPlayer } from "./development";
+import { contractDates, createYouth, wageFor } from "./youth";
+
+export type RolloverSummary = { retired: number; developed: number; expired: number; renewed: number; released: number; signedFree: number; youth: number; emergencyYouth: number };
+
+export type RolloverInput = {
+  season: number;
+  /** Primeiro dia da nova época (os contratos que acabam antes disto expiraram). */
+  seasonStart: IsoDate;
+  /** Escalão de cada clube na época que vai começar. */
+  tiers: ReadonlyMap<ClubId, Tier>;
+  gamerClub?: ClubId;
+};
+
+const TIER_ORDER: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
+
+const ageAt = (birth: IsoDate, on: IsoDate): number => Math.floor((dayNumber(on) - dayNumber(birth)) / 365.25);
+
+const median = (xs: number[]): number => {
+  const s = [...xs].sort((a, b) => a - b);
+  return s.length === 0 ? 1 : (s[Math.floor(s.length / 2)] as number);
+};
+
+type Member = { record: PlayerRecord; position: Position; quality: number };
+
+const member = (record: PlayerRecord): Member => {
+  const position = (record.positions[0]?.pos ?? "CM") as Position;
+  return { record, position, quality: currentQuality(record.attributes as Attributes, position) };
+};
+
+export function retirementProbability(age: number, position: string, free: boolean, params: Params): number {
+  const r = params.squadCycle.retirement;
+  if (age >= r.maxAge) return 1;
+  const effective = age - (position === "GK" ? r.goalkeeperExtraYears : 0);
+  if (effective < r.fromAge) return 0;
+  return clamp((r.baseProbability + r.perYear * (effective - r.fromAge)) * (free ? r.freeMultiplier : 1), 0, 1);
+}
+
+export function renewalProbability(quality: number, tierMean: number, age: number, params: Params): number {
+  const c = params.squadCycle.contracts;
+  return clamp(c.renewBase + c.renewPerQualityPoint * (quality - tierMean) - c.renewPerOldYear * Math.max(0, age - c.oldAge), c.renewMin, c.renewMax);
+}
+
+export function rolloverSquads(repo: Repository, data: BaseData, params: Params, o: RolloverInput): RolloverSummary {
+  const seed = repo.meta("seed") ?? "?";
+  const sc = params.squadCycle;
+  const world = params.world;
+  const summary: RolloverSummary = { retired: 0, developed: 0, expired: 0, renewed: 0, released: 0, signedFree: 0, youth: 0, emergencyYouth: 0 };
+  if (repo.peopleTotal() === 0) return summary; // save sem mundo gerado (testes de calendário)
+  const date = o.seasonStart;
+  const rngOf = (path: string) => new Rng(seed, `rollover/${o.season}/${path}`);
+
+  // ---------- 1. envelhecer: reforma ou desenvolvimento
+  const squads = new Map<ClubId, Member[]>();
+  const retire = (j: PlayerRecord, was: ClubId | undefined) => {
+    repo.updatePlayer(j.person, { state: "retired", club: null });
+    repo.appendEvent({ type: "PLAYER_RETIRED", date, season: o.season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: j.person, roleKind: "player" }, ...(was ? [{ k: "club" as const, id: was }] : [])], data: { age: ageAt(repo.person(j.person)!.birth, date) } });
+    summary.retired++;
+  };
+  const age = (j: PlayerRecord) => ageAt((repo.person(j.person) as { birth: IsoDate }).birth, date);
+  const process = (j: PlayerRecord): Member | undefined => {
+    const rng = rngOf(`player/${j.person}`);
+    const a = age(j);
+    const free = j.club === undefined;
+    if (rng.derive("retire").prob(retirementProbability(a, j.positions[0]?.pos ?? "CM", free, params))) {
+      retire(j, j.club);
+      return undefined;
+    }
+    const position = (j.positions[0]?.pos ?? "CM") as Position;
+    const d = developPlayer(rng.derive("develop"), { attributes: j.attributes, potential: j.potential, position, age: a }, params);
+    repo.updatePlayer(j.person, { attributes: d.attributes, potential: d.potential });
+    summary.developed++;
+    return member({ ...j, attributes: d.attributes, potential: d.potential });
+  };
+  for (const club of [...data.clubs].sort((a, b) => (a.id < b.id ? -1 : 1))) {
+    const list: Member[] = [];
+    for (const j of repo.clubPlayers(club.id)) {
+      if (j.state !== "active") continue;
+      const m = process(j);
+      if (m) list.push(m);
+    }
+    squads.set(club.id, list);
+  }
+  const pool: Member[] = [];
+  for (const j of repo.playersByState("free")) {
+    const m = process(j);
+    if (m) pool.push(m);
+  }
+
+  // ---------- estatísticas por escalão (reputação normalizada, mediana de capital) para qualidade e ordenados
+  const byTier = new Map<Tier, BaseClub[]>();
+  for (const c of data.clubs) {
+    const t = o.tiers.get(c.id) ?? c.tier;
+    byTier.set(t, [...(byTier.get(t) ?? []), c]);
+  }
+  const tierStats = new Map<Tier, { repMin: number; repMax: number; medianFinances: number }>();
+  for (const [t, cs] of byTier) {
+    const reps = cs.map((c) => c.reputation);
+    tierStats.set(t, { repMin: Math.min(...reps), repMax: Math.max(...reps), medianFinances: median(cs.map((c) => c.finances)) });
+  }
+
+  // ---------- 2-5. clubes por escalão e reputação
+  const batch: WorldBatchRecord = { people: [], players: [], contracts: [], roles: [] };
+  let nextId = repo.peopleTotal();
+  const newId = () => `p${String(++nextId).padStart(6, "0")}`;
+  const citiesByDistrict = new Map<string, BaseCity[]>();
+  for (const c of data.cities) citiesByDistrict.set(c.district, [...(citiesByDistrict.get(c.district) ?? []), c]);
+
+  const order = [...data.clubs].sort((a, b) => {
+    const ta = TIER_ORDER.indexOf(o.tiers.get(a.id) ?? a.tier);
+    const tb = TIER_ORDER.indexOf(o.tiers.get(b.id) ?? b.tier);
+    return ta - tb || b.reputation - a.reputation || (a.id < b.id ? -1 : 1);
+  });
+  const years = (rng: Rng) => rng.integer(sc.contracts.yearsMin, sc.contracts.yearsMax);
+  const event = (type: string, j: string, club: ClubId, extra: Record<string, unknown>) =>
+    repo.appendEvent({ type, date, season: o.season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: j, roleKind: "player" }, { k: "club", id: club }], data: extra });
+
+  for (const club of order) {
+    const tier = o.tiers.get(club.id) ?? club.tier;
+    const stats = tierStats.get(tier) as { repMin: number; repMax: number; medianFinances: number };
+    const target = world.squad[tier];
+    const tq = world.targetQuality[tier];
+    const repNorm = stats.repMax > stats.repMin ? (club.reputation - stats.repMin) / (stats.repMax - stats.repMin) : 0.5;
+    const desired = clamp(tq.mean + world.qualityByReputation * (repNorm - 0.5), 1, 20);
+    const wageScale = clamp((club.finances / stats.medianFinances) ** 0.4, 0.4, 2.5);
+    const rng = rngOf(`club/${club.id}`);
+    const members = squads.get(club.id) ?? [];
+
+    // contratos que terminaram
+    const expired = (m: Member) => (repo.contract(m.record.person)?.end ?? "9999-12-31") < o.seasonStart;
+    const kept = members.filter((m) => !expired(m));
+    const expiring = members.filter(expired).sort((a, b) => b.quality - a.quality || (a.record.person < b.record.person ? -1 : 1));
+    for (const m of expiring) {
+      summary.expired++;
+      const wants = kept.length < target && (o.gamerClub === club.id || rng.derive(`renew/${m.record.person}`).prob(renewalProbability(m.quality, tq.mean, age(m.record), params)));
+      if (wants) {
+        const y = years(rng);
+        const wage = Math.max(50, Math.round((wageFor(params, tier, m.quality, wageScale) * sc.contracts.renewalWageFactor) / 10) * 10);
+        repo.saveContract({ person: m.record.person, club: club.id, monthlyWage: wage, ...contractDates(o.seasonStart, y) });
+        event("CONTRACT_RENEWED", m.record.person, club.id, { wage, years: y });
+        kept.push(m);
+        summary.renewed++;
+      } else {
+        repo.updatePlayer(m.record.person, { club: null, state: "free" });
+        event("CONTRACT_EXPIRED", m.record.person, club.id, {});
+        pool.push({ ...m, record: { ...m.record, state: "free" } });
+        summary.released++;
+      }
+    }
+
+    // posições em falta
+    const wanted = distributePositions(target, world.placesByPosition);
+    const counts = new Map<Position, number>();
+    for (const m of kept) counts.set(m.position, (counts.get(m.position) ?? 0) + 1);
+    const missing = (): Position[] => {
+      const left = new Map(counts);
+      const out: Position[] = [];
+      for (const p of wanted) {
+        const have = left.get(p) ?? 0;
+        if (have > 0) left.set(p, have - 1);
+        else out.push(p);
+      }
+      return out;
+    };
+    const cities = citiesByDistrict.get(club.district) ?? [];
+    const addYouth = (position: Position, emergency: boolean) => {
+      const y = years(rng);
+      const kit = createYouth(
+        rng.derive(`youth/${nextId + 1}`),
+        { id: newId(), club, tier, position, targetQuality: clamp(rng.gauss(desired + sc.youth.targetOffset, tq.deviation), 1, 20), wageScale, seasonStart: o.seasonStart, years: y, cities: data.cities, districtCities: cities },
+        params,
+      );
+      batch.people.push(kit.person);
+      batch.players.push(kit.player);
+      batch.contracts.push(kit.contract);
+      counts.set(position, (counts.get(position) ?? 0) + 1);
+      kept.push(member(kit.player));
+      if (emergency) summary.emergencyYouth++;
+      else summary.youth++;
+    };
+
+    // formação até ao alvo mais a folga
+    const intake = Math.min(sc.youth.perClub[tier], Math.max(0, target + sc.squad.slack - kept.length));
+    for (let i = 0; i < intake; i++) {
+      const need = missing();
+      addYouth(need.length > 0 ? rng.choose(need) : rng.weighted([...new Set(wanted)], (p) => world.placesByPosition[p]), false);
+    }
+
+    // livres para o que falta
+    for (const position of missing().slice(0, Math.max(0, target - kept.length))) {
+      let best = -1;
+      let bestGap = sc.squad.freeAgentTolerance + 1e-9;
+      pool.forEach((m, i) => {
+        if (m.position !== position) return;
+        const gap = Math.abs(m.quality - desired);
+        if (gap < bestGap || (gap === bestGap && best >= 0 && m.record.person < (pool[best] as Member).record.person)) {
+          best = i;
+          bestGap = gap;
+        }
+      });
+      if (best < 0) {
+        addYouth(position, true);
+        continue;
+      }
+      const [m] = pool.splice(best, 1) as [Member];
+      const y = years(rng);
+      const contract: ContractRecord = { person: m.record.person, club: club.id, monthlyWage: wageFor(params, tier, m.quality, wageScale), ...contractDates(o.seasonStart, y) };
+      repo.updatePlayer(m.record.person, { club: club.id, state: "active" });
+      repo.saveContract(contract);
+      event("PLAYER_SIGNED", m.record.person, club.id, { from: "free", wage: contract.monthlyWage, years: y });
+      counts.set(position, (counts.get(position) ?? 0) + 1);
+      kept.push(member({ ...m.record, club: club.id, state: "active" }));
+      summary.signedFree++;
+    }
+  }
+  if (batch.people.length > 0) repo.addPeople(batch);
+  repo.setMeta(`rollover.${o.season}`, JSON.stringify(summary));
+  return summary;
+}
