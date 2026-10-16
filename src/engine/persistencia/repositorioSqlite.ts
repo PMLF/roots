@@ -569,6 +569,17 @@ export class RepositorioSqlite implements Repositorio {
       .map((r) => ({ jogador: txt(r.jogador), jogo: txt(r.jogo), jornada: num(r.jornada), minuto: num(r.minuto), tipo: txt(r.tipo) as "CA" | "CV", extra: txt(r.extra) }));
   }
 
+  minutosJogados(jogadores: readonly string[], desde: Data, ate: Data): Map<string, number> {
+    const out = new Map<string, number>();
+    if (jogadores.length === 0) return out;
+    for (const r of this.d.todos(
+      `SELECT p.jogador, SUM(p.minutos) AS minutos FROM participacao p JOIN jogo j ON j.id = p.jogo
+       WHERE p.jogador IN (${jogadores.map(() => "?").join(",")}) AND j.data >= ? AND j.data < ? AND p.minutos > 0 GROUP BY p.jogador`,
+      [...jogadores, desde, ate],
+    )) out.set(txt(r.jogador), num(r.minutos));
+    return out;
+  }
+
   jornadasJogadas(clube: string, competicao: string, epoca: number): number[] {
     return this.d
       .todos("SELECT DISTINCT jornada FROM jogo WHERE competicao = ? AND epoca = ? AND (casa = ? OR fora = ?) ORDER BY jornada", [competicao, epoca, clube, clube])

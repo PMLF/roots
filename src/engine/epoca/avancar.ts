@@ -21,6 +21,7 @@ import { fecharMesesAte, lancar } from "../clube/financas";
 import { estaNaSegundaDistrital } from "./distritais";
 import { COMPETICAO_FINAL_CP, gerarFinalCp, gerarMeiasFinaisCp } from "./faseFinalCp";
 import { fecharEpoca, gerarFasePromocao, type ResumoEpoca } from "./fecharEpoca";
+import { formaDosJogadores } from "./formaFisica";
 import { eventoRival, motivoDeRival } from "./rivais";
 import { CHAVE_SESSAO, equipasDoJogo, guardarJogoVivo, linhasDoJogo, type EquipasVivo, type LinhaTabelaVivo } from "./jogoAoVivo";
 import { atualizarOfertas, estaDesempregado } from "./mercadoTreinadores";
@@ -65,18 +66,21 @@ export function estadoDoTempo(repo: Repositorio, base: DadosBase, params: Parame
   return { hoje, epoca, porJogar: pendentes.length, ...(proximo ? { proximoDiaDeJogos: proximo } : {}) };
 }
 
-function candidatosDoClube(repo: Repositorio, clube: string): CandidatoOnze[] {
-  return repo.jogadoresDoClube(clube).filter((j) => j.estado === "ativo").map((j) => ({ pessoa: j.pessoa, posicoes: j.posicoes, atributos: j.atributos, alturaCm: j.alturaCm }));
+/** Os jogadores ativos do clube como candidatos ao onze, já com a forma (cansaço) que têm em `hoje`. */
+export function candidatosDoClube(repo: Repositorio, clube: string, hoje: Data, params: Parametros): CandidatoOnze[] {
+  const ativos = repo.jogadoresDoClube(clube).filter((j) => j.estado === "ativo");
+  const forma = formaDosJogadores(repo, ativos.map((j) => j.pessoa), hoje, params);
+  return ativos.map((j) => ({ pessoa: j.pessoa, posicoes: j.posicoes, atributos: j.atributos, alturaCm: j.alturaCm, forma: forma.get(j.pessoa) ?? 1 }));
 }
 
 export function equipaParaJogo(repo: Repositorio, clube: string, competicao: string, epoca: number, jornada: number, hoje: Data, seed: string, params: Parametros, plano?: Plano): EquipaJogo {
-  const todos = candidatosDoClube(repo, clube);
+  const todos = candidatosDoClube(repo, clube, hoje, params);
   const fora = indisponiveis(repo, clube, todos.map((c) => c.pessoa), competicao, epoca, jornada, hoje, seed, params);
   const tatica = plano?.tatica ?? { ...TATICA_PADRAO };
-  const onze = onzeDoPlano(plano ?? { tatica }, todos, new Set(fora.keys()));
+  const onze = onzeDoPlano(plano ?? { tatica }, todos, new Set(fora.keys()), params);
   const emCampo = new Set(onze.map((j) => j.id));
   const disponiveis = todos.filter((c) => !emCampo.has(c.pessoa) && !fora.has(c.pessoa));
-  const banco = onzeAutomatico(disponiveis.length >= 7 ? disponiveis : todos.filter((c) => !emCampo.has(c.pessoa))).slice(0, 7);
+  const banco = onzeAutomatico(disponiveis.length >= 7 ? disponiveis : todos.filter((c) => !emCampo.has(c.pessoa)), undefined, params).slice(0, 7);
   return { clube, onze, tatica, banco };
 }
 

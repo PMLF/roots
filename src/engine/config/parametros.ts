@@ -207,6 +207,16 @@ export type Parametros = {
   localidade: { limiarVila: number; limiarCidade: number; histerese: number };
   /** Motor de jogo por oportunidades (RZ-104; docs/MOTOR_JOGO.md). Escalas de atributos: 1-20. */
   jogo: {
+    /**
+     * Jogar fora da posição natural (RZ-177): o jogador rende `minimo + (1 − minimo) × aptidão / 20` do que renderia; sem a
+     * posição registada vale `semRegisto` de aptidão. O guarda-redes tem a sua escala, muito mais dura.
+     */
+    aptidao: { minimo: number; semRegisto: number; minimoGR: number; semRegistoGR: number };
+    /**
+     * Cansaço por jogos (RZ-177): a forma cai com os minutos jogados nos últimos `janelaDias` dias acima de `cargaNormal`
+     * (um jogo por semana é normal): perde `perdaPor90` por cada 90 minutos a mais, até `minimo`. Nunca passa de 1.
+     */
+    forma: { janelaDias: number; cargaNormal: number; perdaPor90: number; minimo: number };
     /** Minutos regulares e acréscimos (total, sorteado por jogo). */
     duracao: number;
     acrescimos: { min: number; max: number };
@@ -581,6 +591,8 @@ export const PARAMETROS_PADRAO: Parametros = {
   },
   localidade: { limiarVila: 1500, limiarCidade: 8000, histerese: 0.1 },
   jogo: {
+    aptidao: { minimo: 0.55, semRegisto: 3, minimoGR: 0.15, semRegistoGR: 1 },
+    forma: { janelaDias: 7, cargaNormal: 90, perdaPor90: 0.03, minimo: 0.85 },
     duracao: 90,
     acrescimos: { min: 3, max: 8 },
     oportunidadesPorEquipa: 24,
@@ -696,6 +708,11 @@ export function derivados(p: Parametros) {
 /** Devolve a lista de problemas (vazia se os parâmetros forem coerentes). */
 export function validarParametros(p: Parametros): string[] {
   const erros: string[] = [];
+  const ap = p.jogo.aptidao;
+  if (!(ap.minimo > 0 && ap.minimo <= 1 && ap.minimoGR > 0 && ap.minimoGR <= 1)) erros.push("jogo.aptidao.minimo e minimoGR devem estar em (0, 1]");
+  if (!(ap.semRegisto >= 1 && ap.semRegisto <= 20 && ap.semRegistoGR >= 1 && ap.semRegistoGR <= 20)) erros.push("jogo.aptidao.semRegisto deve estar entre 1 e 20");
+  const fm = p.jogo.forma;
+  if (!(fm.janelaDias >= 1 && fm.cargaNormal >= 0 && fm.perdaPor90 >= 0 && fm.minimo > 0 && fm.minimo <= 1)) erros.push("jogo.forma inválida");
   const pos = (nome: string, v: number) => { if (!(v > 0)) erros.push(`${nome} deve ser > 0 (é ${v})`); };
   pos("premios.clube", p.premios.clube);
   pos("premios.cidade", p.premios.cidade);

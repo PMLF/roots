@@ -8,7 +8,7 @@
  */
 import { Rng, limitar } from "../aleatorio/rng";
 import type { Parametros } from "../config/parametros";
-import { forcaEquipa, type ForcaEquipa } from "./equipa";
+import { aptidaoNa, forcaEquipa, type ForcaEquipa } from "./equipa";
 import { riscoPor90, sortearLesao } from "../lesoes/lesao";
 import { TATICA_PADRAO, fadigaEm, multiplicadorFaltas } from "./formacoes";
 import { outroLado, type EntradaJogo, type EquipaJogo, type EstatLado, type EventoJogo, type JogadorEmCampo, type Lado, type Origem, type ResumoJogo, type Tatica } from "./tipos";
@@ -271,7 +271,7 @@ export class SimuladorJogo {
       (jogador.posicao === "GK" ? undefined : banco.filter((b) => b.posicao !== "GK").reduce<JogadorEmCampo | undefined>((a, b) => (!a || b.atributos.finalizacao + b.atributos.desarme + b.atributos.passe > a.atributos.finalizacao + a.atributos.desarme + a.atributos.passe ? b : a), undefined));
     const onze = eq.onze.filter((j) => j.id !== jogador.id);
     if (entra) {
-      onze.push({ ...entra, posicao: jogador.posicao });
+      onze.push({ ...entra, posicao: jogador.posicao, ...(entra.posicoes ? { aptidao: aptidaoNa(entra.posicoes, jogador.posicao, this.params) } : {}) });
       this.equipas[lado] = { ...eq, onze, banco: banco.filter((b) => b.id !== entra.id) };
       out.push({ tipo: "substituicao", minuto: m, lado, sai: jogador.id, entra: entra.id, motivo: "lesao" });
     } else {

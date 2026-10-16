@@ -221,6 +221,19 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       expect(r.statsJogador("A-12")[0]).toMatchObject({ jogos: 0, minutos: 0 }); // suplente não utilizado
     });
 
+    it("minutos jogados numa janela de datas (cansaço, RZ-177)", () => {
+      const r = criar();
+      const j1 = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 0, golosFora: 0, data: "2026-08-10" }, {});
+      const j2 = jogoSintetico("j2", { casa: "B", fora: "A", golosCasa: 0, golosFora: 0, jornada: 2, data: "2026-08-17" }, { cartoes: true });
+      r.registarJogo(j1.jogo, j1.factos, j1.part);
+      r.registarJogo(j2.jogo, j2.factos, j2.part);
+      const quem = ["A-1", "A-5", "A-12", "Z-1"];
+      expect(Object.fromEntries(r.minutosJogados(quem, "2026-08-10", "2026-08-18"))).toEqual({ "A-1": 180, "A-5": 160 });
+      expect(Object.fromEntries(r.minutosJogados(quem, "2026-08-11", "2026-08-18"))).toEqual({ "A-1": 90, "A-5": 70 });
+      expect(r.minutosJogados(quem, "2026-08-10", "2026-08-17").get("A-1")).toBe(90);
+      expect(r.minutosJogados([], "2026-08-01", "2026-09-01").size).toBe(0);
+    });
+
     it("estatísticas de uma competição: golos, cartões e nota média por jogador", () => {
       const r = criar();
       const j1 = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 2, golosFora: 1 }, { cartoes: true });

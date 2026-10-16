@@ -526,6 +526,16 @@ export class RepositorioMemoria implements Repositorio {
       );
   }
 
+  minutosJogados(jogadores: readonly string[], desde: Data, ate: Data): Map<string, number> {
+    const quem = new Set(jogadores);
+    const out = new Map<string, number>();
+    for (const r of this.jogos.values()) {
+      if (r.jogo.data < desde || r.jogo.data >= ate) continue;
+      for (const p of r.part) if (quem.has(p.jogador) && p.minutos > 0) out.set(p.jogador, (out.get(p.jogador) ?? 0) + p.minutos);
+    }
+    return out;
+  }
+
   jornadasJogadas(clube: string, competicao: string, epoca: number): number[] {
     const js = new Set<number>();
     for (const r of this.jogos.values()) if (r.jogo.competicao === competicao && r.jogo.epoca === epoca && (r.jogo.casa === clube || r.jogo.fora === clube)) js.add(r.jogo.jornada);

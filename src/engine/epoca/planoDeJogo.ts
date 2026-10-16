@@ -5,7 +5,7 @@
  */
 import type { Parametros } from "../config/parametros";
 import { suspensosDoClube } from "../disciplina/castigos";
-import { onzeAutomatico, type CandidatoOnze } from "../jogo/equipa";
+import { aptidaoNa, onzeAutomatico, type CandidatoOnze } from "../jogo/equipa";
 import { FORMACOES, TATICA_PADRAO, ESTILOS } from "../jogo/formacoes";
 import type { JogadorEmCampo, Tatica } from "../jogo/tipos";
 import { EVENTO_LESAO } from "../lesoes/estado";
@@ -71,11 +71,11 @@ export function indisponiveis(repo: Repositorio, clube: string, jogadores: reado
 }
 
 /** Aplica o plano aos candidatos: o onze escolhido, com os indisponíveis trocados pelo melhor disponível na posição. */
-export function onzeDoPlano(plano: Plano, candidatos: readonly CandidatoOnze[], fora: ReadonlySet<string>): JogadorEmCampo[] {
+export function onzeDoPlano(plano: Plano, candidatos: readonly CandidatoOnze[], fora: ReadonlySet<string>, params?: Parametros): JogadorEmCampo[] {
   const posicoes = FORMACOES[plano.tatica.formacao];
   const livres = candidatos.filter((c) => !fora.has(c.pessoa));
   const usar = livres.length >= 12 ? livres : [...candidatos]; // plantel desfalcado: joga quem houver
-  if (!plano.onze) return onzeAutomatico(usar, posicoes);
+  if (!plano.onze) return onzeAutomatico(usar, posicoes, params);
   const porId = new Map(candidatos.map((c) => [c.pessoa, c] as const));
   const onze: JogadorEmCampo[] = [];
   const ocupados = new Set<string>();
@@ -83,13 +83,13 @@ export function onzeDoPlano(plano: Plano, candidatos: readonly CandidatoOnze[], 
   for (const o of plano.onze) {
     const c = porId.get(o.jogador);
     if (c && (!fora.has(o.jogador) || usar === candidatos)) {
-      onze.push({ id: c.pessoa, posicao: o.posicao, atributos: c.atributos as Atributos, alturaCm: c.alturaCm, forma: 1 });
+      onze.push({ id: c.pessoa, posicao: o.posicao, atributos: c.atributos as Atributos, alturaCm: c.alturaCm, forma: c.forma ?? 1, ...(params ? { aptidao: aptidaoNa(c.posicoes, o.posicao, params), posicoes: c.posicoes } : {}) });
       ocupados.add(c.pessoa);
     } else vagas.push(o.posicao);
   }
   if (vagas.length > 0) {
     const restantes = usar.filter((c) => !ocupados.has(c.pessoa));
-    const extra = onzeAutomatico(restantes, vagas);
+    const extra = onzeAutomatico(restantes, vagas, params);
     onze.push(...extra);
   }
   return onze;
