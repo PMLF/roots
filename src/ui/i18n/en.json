@@ -626,7 +626,7 @@
   "jogo.lesao.2": "Bad news: {nome} goes down injured.",
   "jogo.inicio": "Kick-off.",
   "jogo.tabela": "Table",
-  "jogo.tabelaProvisoria": "Provisional: adds up the results in progress.",
+  "jogo.verSuplentes": "Show substitutes",
   "jogo.outrosJogos": "Other matches this round",
   "jogo.fimJogo": "FT",
   "jogo.col.pos": "#",

@@ -95,12 +95,13 @@ legend { padding: 0 6px; color: var(--suave); }
 .barra { position: relative; }
 .progresso-jogo { position: absolute; left: 0; right: 0; top: -1px; height: 2px; background: transparent; pointer-events: none; }
 .progresso-jogo i { display: block; height: 100%; background: var(--destaque); transition: width .25s linear; }
-.popup.intervalo-jogo { width: min(94vw, 880px); text-align: center; padding: 24px 28px; }
+.popup.intervalo-jogo { width: min(94vw, 760px); text-align: center; padding: 24px 28px; }
 .intervalo-jogo h2 { text-align: center; font-size: 18px; margin-bottom: 18px; }
-.intervalo-corpo { display: grid; gap: 28px; align-items: stretch; margin-bottom: 22px; }
-.intervalo-corpo > * { box-sizing: border-box; min-width: 0; padding: 14px 16px; border: 1px solid var(--linha); border-radius: var(--r-m); }
-.intervalo-corpo .estatisticas { display: grid; grid-template-columns: minmax(0, 1fr); align-content: space-between; gap: 10px; margin: 0; list-style: none; }
-@media (min-width: 640px) { .intervalo-corpo { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); } }
+.intervalo-corpo { display: grid; gap: 20px; align-items: stretch; margin-bottom: 22px; }
+.intervalo-corpo > .estatisticas, .intervalo-corpo > .intervalo-xg { box-sizing: border-box; min-width: 0; padding: 14px 16px; border: 1px solid var(--linha); border-radius: var(--r-m); }
+.intervalo-corpo .estatisticas { display: grid; grid-template-columns: minmax(0, 1fr); align-content: space-between; gap: 6px; margin: 0; list-style: none; }
+@media (min-width: 640px) { .intervalo-corpo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.intervalo-jogo .subs-resumo { margin: 4px 0 18px; }
 .intervalo-xg { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
 .grafico-xg-caixa { flex: 1; min-height: 180px; position: relative; }
 .grafico-xg-caixa .grafico-xg { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -616,7 +617,7 @@ button.dev { border-style: dashed; }
 .nota-vazia { opacity: 0.4; }
 
 /* Substituições (RZ-215) */
-.subs-resumo { display: flex; justify-content: center; margin: 6px 0 0; max-width: none; }
+.subs-resumo { display: flex; justify-content: center; margin: 6px 0 14px; max-width: none; }
 .contadores-subs { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; font-size: 12px; color: var(--suave); }
 .contador-subs { display: inline-flex; align-items: center; gap: 8px; }
 .contador-barras { display: inline-flex; gap: 3px; }
@@ -641,15 +642,15 @@ button.dev { border-style: dashed; }
 .subs-pares .ligacao-botao { margin-left: auto; }
 .subs-jogo .acoes { justify-content: center; gap: 12px; }
 
-/* Controlos do jogo fixos no canto de cima à direita */
-.controlos-fixos { position: fixed; top: 14px; right: 24px; z-index: 6; display: flex; align-items: center; gap: 6px; padding: 5px; background: color-mix(in srgb, var(--painel) 92%, transparent); backdrop-filter: blur(6px); border: 1px solid var(--linha-forte); border-radius: 999px; box-shadow: 0 6px 20px rgba(0, 0, 0, .22); }
+/* Controlos do jogo fixos no canto de baixo à direita */
+.controlos-fixos { position: fixed; bottom: 14px; right: 24px; z-index: 6; display: flex; align-items: center; gap: 6px; padding: 5px; background: color-mix(in srgb, var(--painel) 92%, transparent); backdrop-filter: blur(6px); border: 1px solid var(--linha-forte); border-radius: 999px; box-shadow: 0 6px 20px rgba(0, 0, 0, .22); }
 .controlos-fixos button { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; }
 .controlo-principal { padding: 6px 14px 6px 11px; }
 .velocidade-seg { display: inline-flex; padding: 2px; border-radius: 999px; background: var(--painel-2); }
 .velocidade-seg button { border: 0; background: none; padding: 3px 10px; font-size: 12px; color: var(--suave); font-variant-numeric: tabular-nums; }
 .velocidade-seg button[aria-checked="true"] { background: var(--destaque-fundo); color: var(--destaque-texto); font-weight: 600; }
 .controlo-saltar { border: 0; background: none; padding: 6px 8px; color: var(--suave); }
-@media (max-width: 760px) { .controlos-fixos { top: auto; bottom: 52px; right: 12px; } }
+@media (max-width: 760px) { .controlos-fixos { bottom: 10px; right: 12px; } }
 .controlos-jogo button .icone, .controlos-jogo button .ev-icone { width: 16px; height: 16px; margin-right: 6px; vertical-align: -3px; }
 .controlos-jogo button { display: inline-flex; align-items: center; }
 
@@ -667,3 +668,14 @@ button.dev { border-style: dashed; }
 .subs-jogador.apt-mau { border-color: color-mix(in srgb, #d32f2f 60%, transparent); background: color-mix(in srgb, #d32f2f 12%, transparent); }
 .subs-jogador[draggable="true"] { cursor: grab; }
 .subs-listas section:nth-child(2) .subs-jogador { grid-template-columns: 2.4rem minmax(0, 1fr) auto; }
+
+/* Durante o jogo o rodapé reduz-se ao fio de progresso */
+.barra-jogo { padding: 0; min-height: 0; height: 2px; border-top: 0; }
+.barra-jogo > :not(.progresso-jogo) { display: none; }
+.barra-jogo .progresso-jogo { top: 0; }
+.cartao-equipa-topo { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cartao-equipa-topo h2 { margin: 0; }
+.interruptor { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--suave); white-space: nowrap; }
+.interruptor input { margin: 0; width: auto; }
+.pagina-jogo { padding-bottom: 64px; }
+.info-cabecalho { margin: 2px 0 8px; }

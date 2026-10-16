@@ -91,7 +91,6 @@ export function TabelaViva({ jogo, meu }: { jogo: JogoVivo; meu?: string }) {
           ))}
         </tbody>
       </table>
-      {jogo.emCurso && <p className="suave">{t("jogo.tabelaProvisoria")}</p>}
     </section>
   );
 }
@@ -260,7 +259,7 @@ function LinhaJogador({ j }: { j: JogadorVivo }) {
  * O onze tal como está agora: quem entrou ocupa o lugar de quem saiu (com a seta verde e o minuto). Por baixo, o banco que
  * resta e os que já saíram.
  */
-function Onze({ jogo, lado }: { jogo: JogoVivo; lado: "casa" | "fora" }) {
+function Onze({ jogo, lado, comBanco }: { jogo: JogoVivo; lado: "casa" | "fora"; comBanco: boolean }) {
   const { t } = useT();
   const todos = jogo.equipas?.[lado] ?? [];
   const porId = new Map(todos.map((j) => [j.id, j] as const));
@@ -282,19 +281,24 @@ function Onze({ jogo, lado }: { jogo: JogoVivo; lado: "casa" | "fora" }) {
   return (
     <div className="equipa-vivo">
       <ul>{campo.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul>
-      {banco.length > 0 && <><h4>{t("jogo.banco")}</h4><ul>{banco.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
-      {saidos.length > 0 && <><h4>{t("jogo.saiuLista")}</h4><ul>{saidos.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
+      {comBanco && banco.length > 0 && <><h4>{t("jogo.banco")}</h4><ul>{banco.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
+      {comBanco && saidos.length > 0 && <><h4>{t("jogo.saiuLista")}</h4><ul>{saidos.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
     </div>
   );
 }
 
 /** Cartão de uma equipa: o onze com notas e indicadores, os que entraram e o banco (recolhido). */
 export function CartaoEquipa({ jogo, lado }: { jogo: JogoVivo; lado: "casa" | "fora" }) {
+  const { t } = useT();
+  const [comBanco, setComBanco] = useState(false);
   if (!jogo.equipas) return null;
   return (
     <section className="painel cartao-equipa" aria-label={jogo[lado].nome}>
-      <h2><AmostraClube cores={jogo.cores?.[jogo[lado].id]} /> <Ligacao k="clube" id={jogo[lado].id} semAmostra>{jogo[lado].nome}</Ligacao></h2>
-      <Onze jogo={jogo} lado={lado} />
+      <div className="cartao-equipa-topo">
+        <h2><AmostraClube cores={jogo.cores?.[jogo[lado].id]} /> <Ligacao k="clube" id={jogo[lado].id} semAmostra>{jogo[lado].nome}</Ligacao></h2>
+        <label className="interruptor"><input type="checkbox" checked={comBanco} onChange={(e) => setComBanco(e.target.checked)} /> {t("jogo.verSuplentes")}</label>
+      </div>
+      <Onze jogo={jogo} lado={lado} comBanco={comBanco} />
     </section>
   );
 }
