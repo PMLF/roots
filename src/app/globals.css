@@ -518,13 +518,27 @@ button.dev { border-style: dashed; }
 .jogo-grelha .ligacao, .placar .ligacao, .tabela-viva .ligacao, .outros-jogos .ligacao { color: inherit; }
 .jogo-grelha .ligacao:hover, .placar .ligacao:hover { text-decoration: underline; }
 
-/* Equipas ao vivo: separador no cartão do meio; um onze de cada vez, a rolar dentro do cartão */
-.painel-equipas .separadores { margin-bottom: 8px; }
-.alternar-equipa { display: flex; gap: 6px; margin-bottom: 8px; }
-.alternar-equipa button { flex: 1; min-width: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; padding: 4px 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.alternar-equipa button[aria-pressed="true"] { border-color: var(--destaque); font-weight: 600; }
-.onze-rolagem { max-height: min(58vh, 520px); overflow-y: auto; }
-.painel-equipas > p.suave { display: none; }
+/* Página de jogo: separadores; cartão de equipa com o onze a rolar */
+.pagina-jogo > .separadores { margin-top: 12px; }
+.cartao-equipa h2 { display: flex; align-items: center; gap: 8px; font-size: 15px; }
+.cartao-equipa .equipa-vivo { max-height: min(48vh, 440px); overflow-y: auto; }
+.grafico-xg { width: 100%; height: auto; display: block; }
+.xg-grelha { stroke: var(--linha); stroke-width: 1; }
+.xg-eixo { fill: var(--suave); font-size: 9px; font-variant-numeric: tabular-nums; }
+.xg-linha { fill: none; stroke-width: 2; stroke-linejoin: round; }
+.xg-linha.xg-casa { stroke: var(--destaque); }
+.xg-linha.xg-fora { stroke: var(--texto); stroke-dasharray: 5 3; }
+.xg-legenda { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 0; font-size: 13px; }
+.xg-chave { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--destaque); vertical-align: middle; margin-right: 4px; }
+.xg-chave.xg-fora { border-top: 2px dashed var(--texto); }
+.confrontos-resumo { margin: 0 0 8px; font-size: 14px; }
+.confrontos { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.confrontos li { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 8px; }
+.info-jogo { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; }
+.info-jogo dt { color: var(--suave); }
+.info-jogo dd { margin: 0; }
+.barra-ocupacao { display: block; height: 6px; margin-top: 4px; background: var(--linha); border-radius: 3px; overflow: hidden; }
+.barra-ocupacao i { display: block; height: 100%; background: var(--destaque); }
 .equipa-vivo h4 { font-size: 12px; margin: 8px 0 2px; font-weight: 600; opacity: 0.7; }
 .equipa-vivo ul { list-style: none; margin: 0; padding: 0; }
 .banco-vivo { margin-top: 8px; font-size: 12px; }

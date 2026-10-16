@@ -108,6 +108,34 @@ export type OutroJogoVivo = {
   golosFora: number;
 };
 
+/** Um jogo anterior entre as duas equipas (do ponto de vista de quem joga em casa agora não importa: guarda quem jogou onde). */
+export type ConfrontoVivo = { id: string; data: Data; competicao: string; epoca: number; casa: string; fora: string; golosCasa: number; golosFora: number };
+
+/** O que se sabe do jogo além do que acontece em campo. Árbitro e transmissão entram quando existirem (RZ-218, RZ-222). */
+export type InfoJogo = {
+  estadio: { nome: string; localidade: string; capacidade: number };
+  /** Adeptos no estádio (pré-visualização determinística; o valor registado é o mesmo). */
+  assistencia: number;
+  arbitro?: string;
+};
+
+/** xG acumulado de cada equipa em cada minuto (índice = minuto; o 0 é sempre 0). */
+export type CurvaXg = { casa: number[]; fora: number[] };
+
+/** Constrói a curva de xG até ao minuto `ate` a partir dos remates. */
+export function curvaXg(eventos: readonly EventoJogo[], ate: number): CurvaXg {
+  const n = Math.max(0, Math.floor(ate));
+  const casa = new Array<number>(n + 1).fill(0);
+  const fora = new Array<number>(n + 1).fill(0);
+  for (const e of eventos) {
+    if (e.tipo !== "remate") continue;
+    const m = Math.min(n, Math.max(0, Math.ceil(e.minuto)));
+    (e.lado === "casa" ? casa : fora)[m]! += e.xg;
+  }
+  for (const v of [casa, fora]) for (let i = 1; i <= n; i++) v[i] = Math.round((v[i]! + v[i - 1]!) * 1000) / 1000;
+  return { casa, fora };
+}
+
 export type JogoVivo = {
   id: string;
   competicao: string;
@@ -130,6 +158,12 @@ export type JogoVivo = {
   equipas?: EquipasVivo;
   /** Estatísticas do jogo (as finais num jogo guardado; as do minuto atual ao vivo). */
   resumo?: ResumoJogo;
+  /** Evolução do xG por minuto (até ao minuto atual ao vivo). */
+  xg?: CurvaXg;
+  /** Últimos jogos entre as duas equipas, mais recente primeiro. */
+  confrontos?: ConfrontoVivo[];
+  /** Estádio, assistência, árbitro, ... */
+  info?: InfoJogo;
   /** Quantos sobem e descem nesta competição (para as zonas da tabela). */
   zonas?: { promovidos: number; descidos: number };
   /** De que lado joga o clube do gamer. */

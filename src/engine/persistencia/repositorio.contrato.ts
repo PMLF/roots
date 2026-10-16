@@ -234,6 +234,17 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       expect(r.minutosJogados([], "2026-08-01", "2026-09-01").size).toBe(0);
     });
 
+    it("confrontos entre dois clubes: os mais recentes primeiro, em qualquer campo", () => {
+      const r = criar();
+      const j1 = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 2, golosFora: 1 }, {});
+      const j2 = jogoSintetico("j2", { casa: "B", fora: "A", golosCasa: 0, golosFora: 1, jornada: 2 }, {});
+      r.registarJogo(j1.jogo, j1.factos, j1.part);
+      r.registarJogo(j2.jogo, j2.factos, j2.part);
+      expect(r.confrontos("A", "B", 5).map((j) => j.id)).toEqual(["j2", "j1"]);
+      expect(r.confrontos("B", "A", 1).map((j) => j.id)).toEqual(["j2"]);
+      expect(r.confrontos("A", "Z", 5)).toEqual([]);
+    });
+
     it("estatísticas de uma competição: golos, cartões e nota média por jogador", () => {
       const r = criar();
       const j1 = jogoSintetico("j1", { casa: "A", fora: "B", golosCasa: 2, golosFora: 1 }, { cartoes: true });
