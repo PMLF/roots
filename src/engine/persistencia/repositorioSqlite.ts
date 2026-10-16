@@ -4,7 +4,7 @@
  */
 import type { DriverSql, LinhaSql, ValorSql } from "./driver";
 import { migrar, VERSAO_ESQUEMA } from "./esquema";
-import type { FiltroEventos, Repositorio } from "./repositorio";
+import type { FiltroEventos, FiltroRecentes, Repositorio } from "./repositorio";
 import type {
   AjusteClassificacao,
   CargoReg,
@@ -379,10 +379,26 @@ export class RepositorioSqlite implements Repositorio {
       onde.push("e.epoca <= ?");
       p.push(f.ateEpoca);
     }
+    if (f.depoisDe !== undefined) { onde.push("e.id > ?"); p.push(f.depoisDe); }
+    if (f.antesDe !== undefined) { onde.push("e.id < ?"); p.push(f.antesDe); }
     p.push(f.limite ?? -1);
     return this.paraEventos(
       this.d.todos(`SELECT e.* FROM evento_entidade x JOIN evento e ON e.id = x.evento WHERE ${onde.join(" AND ")} ORDER BY e.id DESC LIMIT ?`, p),
     );
+  }
+
+  eventosRecentes(f: FiltroRecentes = {}): Evento[] {
+    const onde: string[] = ["1 = 1"];
+    const p: ValorSql[] = [];
+    if (f.apenasPublicos) onde.push("vis = 0");
+    if (f.tipos) {
+      onde.push(`tipo IN (${f.tipos.map(() => "?").join(",") || "NULL"})`);
+      p.push(...f.tipos);
+    }
+    if (f.depoisDe !== undefined) { onde.push("id > ?"); p.push(f.depoisDe); }
+    if (f.antesDe !== undefined) { onde.push("id < ?"); p.push(f.antesDe); }
+    p.push(f.limite ?? -1);
+    return this.paraEventos(this.d.todos(`SELECT * FROM evento WHERE ${onde.join(" AND ")} ORDER BY id DESC LIMIT ?`, p));
   }
 
   contar(tipo: string, entidade?: Pick<EntidadeRef, "k" | "id">, i: { desdeEpoca?: number; ateEpoca?: number } = {}): number {

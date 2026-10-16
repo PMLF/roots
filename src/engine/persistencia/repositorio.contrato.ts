@@ -82,8 +82,26 @@ export function contratoRepositorio(nome: string, criar: () => Repositorio): voi
       expect(r.eventosDe(c, { vis: [] })).toEqual([]);
       expect(r.eventosDe(c, { tipo: "SUBIDA", limite: 1 }).map((e) => e.id)).toEqual([3]);
       expect(r.eventosDe(c, { desdeEpoca: 2, ateEpoca: 2 }).map((e) => e.id)).toEqual([2]);
+      expect(r.eventosDe(c, { depoisDe: 1 }).map((e) => e.id)).toEqual([3, 2]);
+      expect(r.eventosDe(c, { antesDe: 3, limite: 1 }).map((e) => e.id)).toEqual([2]);
       expect(r.eventosDe({ k: "clube", id: "ninguem" })).toEqual([]);
       expect(r.totalEventos()).toBe(4);
+    });
+
+    it("eventosRecentes: todo o mundo, mais recentes primeiro, com filtros e paginação", () => {
+      const r = criar();
+      const c = { k: "clube" as const, id: "c1" };
+      r.acrescentarEvento(ev("SUBIDA", { epoca: 1, entidades: [c] }));
+      r.acrescentarEvento(ev("LESAO", { epoca: 1, vis: "privado", entidades: [c] }));
+      r.acrescentarEvento(ev("GOLEADA", { epoca: 1, entidades: [{ k: "clube", id: "c9" }] }));
+      r.acrescentarEvento(ev("SUBIDA", { epoca: 2, entidades: [{ k: "clube", id: "c9" }] }));
+      expect(r.eventosRecentes().map((e) => e.id)).toEqual([4, 3, 2, 1]);
+      expect(r.eventosRecentes({ apenasPublicos: true }).map((e) => e.id)).toEqual([4, 3, 1]);
+      expect(r.eventosRecentes({ tipos: ["SUBIDA"] }).map((e) => e.id)).toEqual([4, 1]);
+      expect(r.eventosRecentes({ tipos: [] })).toEqual([]);
+      expect(r.eventosRecentes({ depoisDe: 2 }).map((e) => e.id)).toEqual([4, 3]);
+      expect(r.eventosRecentes({ antesDe: 3, limite: 1 }).map((e) => e.id)).toEqual([2]);
+      expect(r.eventosRecentes({ limite: 2 }).map((e) => e.id)).toEqual([4, 3]);
     });
 
     it("contar, ultimo e ultimos", () => {

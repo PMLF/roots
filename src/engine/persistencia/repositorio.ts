@@ -29,6 +29,17 @@ import type {
   Visibilidade,
 } from "./tipos";
 
+/** Eventos de todo o mundo, por ordem de id decrescente (as notícias e a caixa de entrada). */
+export type FiltroRecentes = {
+  tipos?: readonly string[];
+  apenasPublicos?: boolean;
+  /** Só eventos com id maior (por exemplo, os que chegaram depois da última leitura). */
+  depoisDe?: number;
+  /** Só eventos com id menor (para paginar). */
+  antesDe?: number;
+  limite?: number;
+};
+
 export type FiltroEventos = {
   /** Só eventos públicos (o que qualquer interessado pode ver). Atalho de `vis: ["publico"]`. */
   apenasPublicos?: boolean;
@@ -37,6 +48,9 @@ export type FiltroEventos = {
   tipo?: string;
   desdeEpoca?: number;
   ateEpoca?: number;
+  /** Só eventos com id maior / menor (paginação e «desde a última leitura»). */
+  depoisDe?: number;
+  antesDe?: number;
   limite?: number;
 };
 
@@ -67,6 +81,8 @@ export interface Repositorio {
   totalEventos(): number;
   /** Mais recentes primeiro. */
   eventosDe(entidade: Pick<EntidadeRef, "k" | "id">, filtro?: FiltroEventos): Evento[];
+  /** Os eventos mais recentes de qualquer entidade, mais recente primeiro. */
+  eventosRecentes(filtro?: FiltroRecentes): Evento[];
   contar(tipo: string, entidade?: Pick<EntidadeRef, "k" | "id">, intervalo?: { desdeEpoca?: number; ateEpoca?: number }): number;
   ultimo(tipo: string, entidade: Pick<EntidadeRef, "k" | "id">): Evento | undefined;
   /** Os `n` eventos mais recentes do tipo para a entidade (mais recente primeiro). Rege "3 derrotas seguidas", etc. */

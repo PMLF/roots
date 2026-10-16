@@ -6,6 +6,7 @@ import { LOCALES, type Chave } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { guardar, ler } from "@/ui/armazenamento";
 import { useModoDev, useVerTudo } from "@/ui/dev";
+import { useCaixaNaoLidas } from "@/ui/useCaixa";
 import { Icone, type NomeIcone } from "@/ui/components/Icone";
 import { Pesquisa } from "@/ui/components/Pesquisa";
 import { useTempo } from "@/ui/useTempo";
@@ -17,6 +18,8 @@ type ItemMenu = { chave: Chave; icone: NomeIcone; href?: string; ativoQuando: (c
 // Máximo 2 níveis (TOM_E_UX §3.5): secção no menu, separadores dentro da página. Sem href = ainda não existe.
 const MENU: ItemMenu[] = [
   { chave: "menu.hoje", icone: "hoje", href: "/", ativoQuando: (c) => c === "/" },
+  { chave: "menu.noticias", icone: "noticias", href: "/news/", ativoQuando: (c) => c.startsWith("/news") },
+  { chave: "menu.caixa", icone: "caixa", href: "/inbox/", ativoQuando: (c) => c.startsWith("/inbox") },
   { chave: "menu.competicoes", icone: "competicoes", href: "/competitions/", ativoQuando: (c) => c.startsWith("/competitions") },
   { chave: "menu.clube", icone: "clube", href: "/club/", ativoQuando: (c) => c.startsWith("/club") },
   { chave: "menu.plantel", icone: "plantel", href: "/squad/", ativoQuando: (c) => c.startsWith("/squad") },
@@ -140,6 +143,12 @@ export function Shell({ children }: { children: ReactNode }) {
   );
 }
 
+function DistintivoCaixa() {
+  const { t } = useT();
+  const naoLidas = useCaixaNaoLidas();
+  return naoLidas > 0 ? <span className="distintivo" aria-label={t("caixa.naoLidas", { n: naoLidas })}>{naoLidas > 99 ? "99+" : naoLidas}</span> : null;
+}
+
 function ItemDoMenu({ m, caminho }: { m: ItemMenu; caminho: string }) {
   const { t } = useT();
   const ativo = m.ativoQuando(caminho);
@@ -147,6 +156,7 @@ function ItemDoMenu({ m, caminho }: { m: ItemMenu; caminho: string }) {
     <>
       <Icone nome={m.icone} />
       {t(m.chave)}
+      {m.chave === "menu.caixa" && <DistintivoCaixa />}
     </>
   );
   return (

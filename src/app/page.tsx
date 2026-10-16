@@ -3,6 +3,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { CompetitionPage, FichaClubeDados, ResumoMundoCriado } from "@/engine/api/contratos";
+import type { Noticia } from "@/engine/noticias/noticias";
+import { ItemNoticia } from "@/ui/components/ItemNoticia";
 import { jogosDoClube } from "@/ui/jogosClube";
 import { Ligacao } from "@/ui/components/Ligacao";
 import { useMeuClube } from "@/ui/meuClube";
@@ -38,6 +40,13 @@ export default function Hoje() {
     })().catch(() => vivo && setClube(undefined));
     return () => { vivo = false; };
   }, [motor, meu, mundo, tempo.estado?.hoje]);
+  const [noticias, setNoticias] = useState<Noticia[]>([]);
+  useEffect(() => {
+    if (!motor || !mundo) return;
+    let vivo = true;
+    motor.chamar("noticias", { escopo: meu ? "liga" : "mundo", limite: 4 }).then((l) => vivo && setNoticias(l)).catch(() => undefined);
+    return () => { vivo = false; };
+  }, [motor, mundo, meu, tempo.estado?.hoje]);
   const resultados = (tempo.ultimo?.dias ?? []).flatMap((d) => d.jogos).filter((j) => (meu ? j.casa === meu || j.fora === meu : false) || (clube ? j.competicao === clube.ficha.liga : false)).slice(-12);
   const proximo = clube ? jogosDoClube(clube.liga, clube.ficha.id).find((j) => !j.bye && j.result === "") : undefined;
   const posicao = clube?.liga.table.find((r) => r.club === clube.ficha.id)?.position;
@@ -112,6 +121,17 @@ export default function Hoje() {
           </p>
           {tempo.erro && <p className="erro">{tempo.erro}</p>}
         </section>
+        {mundo && (
+          <section className="painel" aria-labelledby="h-noticias">
+            <h2 id="h-noticias">{t("noticias.ultimas")}</h2>
+            {noticias.length === 0 ? <p className="vazio">{t("noticias.vazio")}</p> : (
+              <ul className="ligacoes">
+                {noticias.map((n) => <li key={n.id}><ItemNoticia n={n} /></li>)}
+              </ul>
+            )}
+            <p><Link href="/news/">{t("noticias.verTodas")}</Link></p>
+          </section>
+        )}
       </div>
     </section>
   );

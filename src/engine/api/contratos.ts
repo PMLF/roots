@@ -3,6 +3,7 @@ import type { ResultadoPesquisa } from "../pesquisa/pesquisar";
 import type { CompetitionPage } from "../competicao/ficha";
 import type { CompeticaoResumo, JogoLab, LigaLab } from "../laboratorio/laboratorio";
 import type { FormacaoId, Tatica } from "../jogo/tipos";
+import type { EscopoNoticias, Mensagem as MensagemCaixa, Noticia } from "../noticias/noticias";
 import type { JogoVivo } from "../epoca/jogoAoVivo";
 import type { EstadoTempo, Modo, ResultadoAvanco } from "../epoca/avancar";
 import type { Plano } from "../epoca/planoDeJogo";
@@ -168,6 +169,11 @@ export type PedidosMotor = {
   /** O gamer demite-se do clube (RZ-157). Fica sem clube e recebe ofertas. */
   /** Linha do tempo do jogo do clube do gamer, para o ver minuto a minuto (RZ-130). Sem `id`, o último. */
   jogoAoVivo: { entrada: { id?: string }; saida: JogoVivo | null };
+  /** Notícias do clube do gamer, da liga dele ou do mundo (RZ-118), mais recentes primeiro. */
+  noticias: { entrada: { escopo: EscopoNoticias; limite?: number; antesDe?: number }; saida: Noticia[] };
+  /** Caixa de entrada do gamer: o que se passa com o clube e com ele. */
+  caixa: { entrada: { limite?: number; antesDe?: number }; saida: { mensagens: MensagemCaixa[]; naoLidas: number } };
+  marcarCaixaLida: { entrada: null; saida: null };
   demitir: { entrada: null; saida: { clube: string } };
   /** Ofertas de clubes quando o gamer está sem clube. */
   ofertas: { entrada: null; saida: { desempregado: boolean; anterior?: string; ofertas: OfertaDeClube[] } };
