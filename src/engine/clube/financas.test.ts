@@ -4,7 +4,8 @@ import type { ClubeBase } from "../dados/tipos";
 import { RepositorioMemoria } from "../persistencia/repositorioMemoria";
 import { premioDeRonda } from "../epoca/premiosCompeticao";
 import { assistenciaDoJogo } from "./assistencia";
-import { fatorReputacao, fecharMesesAte, lancar, mesDoClube, saldoDoClube } from "./financas";
+import { definirOrcamento, orcamentoDoClube, orcamentoPorDefeito } from "./orcamento";
+import { fatorReputacao, fecharMesesAte, lancar, liquidar, mesDoClube, saldoDoClube } from "./financas";
 
 const p = PARAMETROS_PADRAO;
 const clube = (id: string, escalao: ClubeBase["escalao"], reputacao: number, capacidade: number, rival = ""): ClubeBase => ({ id, nome: id, escalao, reputacao, financas: 100_000, rival, estadio: { capacidade } } as unknown as ClubeBase);
@@ -61,5 +62,34 @@ describe("prémio por ronda da Taça", () => {
     expect(premioDeRonda(1, p)).toBe(250_000);
     expect(premioDeRonda(2, p)).toBe(125_000);
     expect(premioDeRonda(30, p)).toBe(5_000);
+  });
+});
+
+describe("transferências e orçamento", () => {
+  it("o pagamento entre clubes é soma zero e vai para a categoria certa; recebe e paga no mesmo mês somam-se", () => {
+    const repo = new RepositorioMemoria();
+    const a = clube("a", "segundaLiga", 4650, 7000);
+    const b = clube("b", "terceiraLiga", 3000, 3900);
+    liquidar(repo, a, b, 300_000, "transferencias");
+    liquidar(repo, b, a, 50_000, "compensacoes");
+    expect(saldoDoClube(repo, a) + saldoDoClube(repo, b)).toBe(200_000);
+    expect(saldoDoClube(repo, a)).toBe(100_000 - 300_000 + 50_000);
+    expect(mesDoClube(repo, "a")).toEqual({ transferencias: -300_000, compensacoes: 50_000 });
+    liquidar(repo, a, b, 0, "transferencias");
+    expect(saldoDoClube(repo, a)).toBe(-150_000);
+  });
+  it("sem contratos a massa por defeito vem das receitas; o gamer redefine-a e a verba não passa da caixa", () => {
+    const repo = new RepositorioMemoria();
+    const a = { ...clube("a", "segundaLiga", 4650, 7000), financas: 2_000_000 };
+    const o = orcamentoPorDefeito(repo, a, p, 1);
+    expect(o.massaSalarialMax).toBeGreaterThan(0);
+    expect(o.transferencias).toBeGreaterThan(0);
+    expect(o.transferencias).toBeLessThan(2_000_000);
+    expect(orcamentoDoClube(repo, a, p, 1)).toEqual(o);
+    expect(definirOrcamento(repo, a, p, 1, { massaSalarialMax: 900_000, transferencias: 100_000 })).toMatchObject({ massaSalarialMax: 900_000, transferencias: 100_000 });
+    expect(orcamentoDoClube(repo, a, p, 1).massaSalarialMax).toBe(900_000);
+    expect(orcamentoDoClube(repo, a, p, 2).massaSalarialMax).not.toBe(900_000); // nova época: volta ao defeito
+    expect(() => definirOrcamento(repo, a, p, 1, { massaSalarialMax: 1, transferencias: 3_000_000 })).toThrow();
+    expect(() => definirOrcamento(repo, a, p, 1, { massaSalarialMax: -1, transferencias: 0 })).toThrow();
   });
 });

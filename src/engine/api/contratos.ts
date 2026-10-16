@@ -82,6 +82,8 @@ export type FinancasClube = {
   /** Sem erro de estimativa (o próprio clube). */
   exato: boolean;
   saldo?: number;
+  /** Só o teu clube: massa salarial máxima e verba de transferências (euros), e quanto já se gasta em salários por ano. */
+  orcamento?: { massaSalarialMax: number; transferencias: number; massaAtual: number; acima: boolean };
   ultimoFecho?: { data: string; receitas: number; despesas: number; porCategoria: Record<string, number> };
 };
 
@@ -231,6 +233,7 @@ export type PedidosMotor = {
   /** Avança `minutos` minutos do jogo a decorrer; no fim regista-o. */
   passoJogo: { entrada: { minutos: number }; saida: JogoVivo };
   /** Muda a tática do gamer durante o jogo, a partir do minuto seguinte. */
+  definirOrcamento: { entrada: { massaSalarialMax: number; transferencias: number }; saida: FinancasClube };
   taticaNoJogo: { entrada: { tatica: Tatica }; saida: JogoVivo };
   /** Marca uma mensagem como lida ou por ler. */
   marcarMensagem: { entrada: { id: number; lida: boolean }; saida: null };

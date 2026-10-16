@@ -1,4 +1,5 @@
-import { estadoFinanceiro, saldoDoClube } from "../clube/financas";
+import { definirOrcamento, orcamentoDoClube } from "../clube/orcamento";
+import { estadoFinanceiro, massaSalarialMensal, saldoDoClube } from "../clube/financas";
 import { criarData } from "../calendario/datas";
 import { PARAMETROS_PADRAO, type Parametros } from "../config/parametros";
 import { VERSAO_ESQUEMA as ESQUEMA_BD } from "../persistencia/esquema";
@@ -290,6 +291,14 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
       const { repositorio, dados, params } = await contexto(servicos);
       return passoSessao(repositorio, dados, params, m.entrada.minutos);
     }
+    case "definirOrcamento": {
+      const { repositorio, dados, params } = await contexto(servicos);
+      const id = repositorio.meta("clube.gamer");
+      const c = dados.clubes.find((x) => x.id === id);
+      if (!c) throw new Error("Sem clube");
+      definirOrcamento(repositorio, c, params, Number(repositorio.meta("epoca") ?? 1), m.entrada);
+      return financasDoClube(repositorio, dados, params, c, true);
+    }
     case "taticaNoJogo": {
       const { repositorio, dados, params } = await contexto(servicos);
       return mudarTaticaSessao(repositorio, dados, params, m.entrada.tatica);
@@ -449,6 +458,11 @@ function financasDoClube(repositorio: Repositorio, dados: DadosBase, params: Par
   const ultimo = repositorio.ultimo("FECHO_FINANCEIRO", { k: "clube", id: c.id });
   return {
     estado: e.estado, exato: true, saldo: saldoDoClube(repositorio, c),
+    orcamento: (() => {
+      const o = orcamentoDoClube(repositorio, c, params, Number(repositorio.meta("epoca") ?? 1));
+      const massaAtual = massaSalarialMensal(repositorio, c.id) * 12;
+      return { massaSalarialMax: o.massaSalarialMax, transferencias: o.transferencias, massaAtual, acima: massaAtual > o.massaSalarialMax };
+    })(),
     ...(ultimo ? { ultimoFecho: { data: ultimo.data, receitas: Number(ultimo.dados.receitas), despesas: Number(ultimo.dados.despesas), porCategoria: ultimo.dados.mes as Record<string, number> } } : {}),
   };
 }

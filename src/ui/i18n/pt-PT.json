@@ -968,5 +968,10 @@
   "jogo.ind.vermelho": "cartão vermelho",
   "jogo.ind.lesao": "lesionado",
   "jogo.ind.entrou": "Entrou aos {min}'",
-  "jogo.ind.saiu": "Saiu aos {min}'"
+  "jogo.ind.saiu": "Saiu aos {min}'",
+  "financas.massaAtual": "Massa salarial (por ano)",
+  "financas.acimaOrcamento": "acima do orçamento",
+  "financas.massaMax": "Massa salarial máxima (€/ano)",
+  "financas.verbaTransferencias": "Verba para transferências (€)",
+  "financas.guardarOrcamento": "Guardar orçamento"
 }
