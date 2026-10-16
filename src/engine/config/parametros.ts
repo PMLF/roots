@@ -150,6 +150,11 @@ export type Parametros = {
     tracoMax: number;
     memoria: { meiaVidaPositivaMeses: number; negativaBaseMeses: number; negativaPorPaciencia: number; maxPorPessoa: number };
   };
+  /**
+   * Que resultados do teu clube vão para a caixa de entrada (RZ-174): só os de rivais geográficos (mútuos, do mesmo concelho
+   * ou o rival principal) e os de rivais diretos na tabela (a poucos pontos ou a poucos lugares, depois de `minJogos`).
+   */
+  caixa: { rivalPontos: number; rivalLugares: number; rivalMinJogos: number };
   /** A cidade (concelho) e a sua evolução anual (RZ-133; docs/CIDADE.md §2, §11). */
   cidade: ParametrosCidade;
   /** Estatuto das localidades (RZ-136; docs/CIDADE.md §6b): limiares de população com histerese. */
@@ -452,6 +457,7 @@ export const PARAMETROS_PADRAO: Parametros = {
     tracoMax: 20,
     memoria: { meiaVidaPositivaMeses: 12, negativaBaseMeses: 6, negativaPorPaciencia: 0.6, maxPorPessoa: 40 },
   },
+  caixa: { rivalPontos: 3, rivalLugares: 3, rivalMinJogos: 3 },
   cidade: {
     eleicoesAutarquicasAnos: 4,
     mandatoDesde: 2025,
@@ -703,6 +709,7 @@ export function validarParametros(p: Parametros): string[] {
   const lo = p.localidade;
   if (!(lo.limiarVila > 0 && lo.limiarVila < lo.limiarCidade)) erros.push("localidade: 0 < limiarVila < limiarCidade");
   if (!(lo.histerese >= 0 && lo.histerese < 0.5)) erros.push("localidade.histerese entre 0 e 0.5");
+  if (!(p.caixa.rivalPontos >= 0 && p.caixa.rivalLugares >= 0 && p.caixa.rivalMinJogos >= 0)) erros.push("caixa: rivalPontos, rivalLugares e rivalMinJogos ≥ 0");
   const ci = p.cidade;
   if (!(ci.eleicoesAutarquicasAnos >= 1 && ci.mandatoDesde > 1900)) erros.push("cidade: eleicoesAutarquicasAnos ≥ 1 e mandatoDesde válido");
   if (!ci.niveis.every((x, i) => x > (ci.niveis[i - 1] ?? 0) && x < 100)) erros.push("cidade.niveis: quatro cortes crescentes entre 0 e 100");

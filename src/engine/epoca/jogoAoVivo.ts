@@ -64,6 +64,8 @@ export type JogoVivo = {
   cores?: Record<string, string>;
   /** Estatísticas do jogo (as finais num jogo guardado; as do minuto atual ao vivo). */
   resumo?: ResumoJogo;
+  /** Quantos sobem e descem nesta competição (para as zonas da tabela). */
+  zonas?: { promovidos: number; descidos: number };
   /** De que lado joga o clube do gamer. */
   ladoGamer?: Lado;
   /** Só ao vivo (RZ-170): o jogo está a decorrer, no minuto indicado, com esta tática do lado do gamer. */

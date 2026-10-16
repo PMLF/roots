@@ -59,3 +59,12 @@ export function estatisticasDoJogo(resumo: { casa: EstatLado; fora: EstatLado; p
     { chave: "lesoes", casa: casa.lesoes, fora: fora.lesoes, formato: "inteiro" },
   ];
 }
+
+/** Zona da tabela numa posição: campeão, subida ou descida (as mesmas regras das outras tabelas). */
+export function zonaDaPosicao(pos: number, total: number, zonas?: { promovidos: number; descidos: number }): "champion" | "promotion" | "relegation" | undefined {
+  if (!zonas) return pos === 1 ? "champion" : undefined;
+  if (pos === 1) return "champion";
+  if (pos <= zonas.promovidos) return "promotion";
+  if (zonas.descidos > 0 && pos > total - zonas.descidos) return "relegation";
+  return undefined;
+}

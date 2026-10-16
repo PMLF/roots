@@ -5,7 +5,7 @@ import type { Estilo, Nivel, Tatica } from "@/engine/jogo/tipos";
 import { AmostraClube } from "@/ui/components/AmostraClube";
 import type { Chave } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { estatisticasDoJogo, marcadorAo, tabelaAoVivo } from "@/ui/jogo/vistaJogo";
+import { estatisticasDoJogo, marcadorAo, tabelaAoVivo, zonaDaPosicao } from "@/ui/jogo/vistaJogo";
 
 type T = (c: Chave, v?: Record<string, string | number>) => string;
 const VARIANTES: Record<string, number> = { "jogo.golo.abre": 2, "jogo.golo.empata": 2, "jogo.golo.vira": 2, "jogo.golo.aumenta": 2, "jogo.golo.reduz": 2, "jogo.remate.defendido": 3, "jogo.remate.fora": 3, "jogo.remate.bloqueado": 3, "jogo.remate.golo": 3, "jogo.canto": 2, "jogo.penalti": 2, "jogo.amarelo": 2, "jogo.vermelho": 2, "jogo.lesao": 2 };
@@ -60,11 +60,11 @@ export function TabelaViva({ jogo, meu }: { jogo: JogoVivo; meu?: string }) {
   return (
     <section className="painel" aria-labelledby="h-tabela">
       <h2 id="h-tabela">{t("jogo.tabela")}</h2>
-      <table className="tabela-viva">
+      <table className="tabela-viva tabela">
         <thead><tr><th>{t("jogo.col.pos")}</th><th>{t("jogo.col.clube")}</th><th>{t("jogo.col.j")}</th><th>{t("jogo.col.dg")}</th><th>{t("jogo.col.p")}</th></tr></thead>
         <tbody>
           {tabela.map((l) => (
-            <tr key={l.clube} className={l.clube === meu ? "meu-clube" : emJogo.has(l.clube) ? "destaque" : l.aJogar ? "a-jogar" : undefined}>
+            <tr key={l.clube} className={[zonaDaPosicao(l.pos, tabela.length, jogo.zonas) ? `zona zona-${zonaDaPosicao(l.pos, tabela.length, jogo.zonas)}` : "", l.clube === meu ? "meu-clube" : emJogo.has(l.clube) ? "destaque" : l.aJogar ? "a-jogar" : ""].filter(Boolean).join(" ") || undefined}>
               <td>{l.pos}{l.pos < l.antes ? <span className="sobe" aria-label="▲"> ▲</span> : l.pos > l.antes ? <span className="desce" aria-label="▼"> ▼</span> : null}</td>
               <td className="nome-clube"><AmostraClube cores={jogo.cores?.[l.clube]} />{l.nome}</td><td>{l.jogos}</td><td>{l.dg > 0 ? `+${l.dg}` : l.dg}</td><td><b>{l.pontos}</b></td>
             </tr>
@@ -88,11 +88,12 @@ export function OutrosJogos({ jogo, meu }: { jogo: JogoVivo; meu?: string }) {
         {jogo.outros.map((o) => {
           const [a, b] = marcadorAo(o.golos, minuto);
           return (
-            <li key={o.id}>
-              <span className={`nome-clube${o.casa.id === meu ? " meu-clube" : ""}`}><AmostraClube cores={jogo.cores?.[o.casa.id]} />{o.casa.nome}</span>
-              <b className="marcador-pequeno">{a}</b>
-              <span className={`nome-clube${o.fora.id === meu ? " meu-clube" : ""}`}><AmostraClube cores={jogo.cores?.[o.fora.id]} />{o.fora.nome}</span>
-              <b className="marcador-pequeno">{b}</b>
+            <li key={o.id} className={o.casa.id === meu || o.fora.id === meu ? "meu-jogo" : undefined}>
+              <AmostraClube cores={jogo.cores?.[o.casa.id]} className="amostra-esq" />
+              <span className={`nome-clube nome-casa${o.casa.id === meu ? " meu-clube" : ""}`}>{o.casa.nome}</span>
+              <b className="marcador-pequeno">{a}–{b}</b>
+              <span className={`nome-clube nome-fora${o.fora.id === meu ? " meu-clube" : ""}`}>{o.fora.nome}</span>
+              <AmostraClube cores={jogo.cores?.[o.fora.id]} className="amostra-dir" />
               {minuto >= o.duracao && <span className="suave fim-jogo">{t("jogo.fimJogo")}</span>}
             </li>
           );
@@ -140,7 +141,6 @@ export function TaticaNoJogo({ tatica, aoMudar, aoFechar, ocupado }: { tatica: T
   useEffect(() => {
     const d = ref.current;
     if (d && !d.open) d.showModal();
-    return () => { if (d?.open) d.close(); };
   }, []);
   return (
     <dialog ref={ref} className="popup tatica-jogo" aria-labelledby="h-tatica-jogo" onClose={aoFechar} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>

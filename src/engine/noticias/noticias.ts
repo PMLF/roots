@@ -54,6 +54,8 @@ type Contexto = {
   liga?: string;
   /** O gamer já não está no clube: só vê o que sai na imprensa (nada de resultados nem lesões internas). */
   externo?: boolean;
+  /** Ids dos eventos JOGO_JOGADO contra rivais (RZ-174): só estes resultados vão para a caixa. */
+  rivais?: ReadonlySet<number>;
   nomeClube: (id: string) => string;
   nomePessoa: (id: string) => string;
 };
@@ -130,6 +132,7 @@ function construir(e: Evento, c: Contexto, soCaixa: boolean): Noticia | undefine
     }
     case "JOGO_JOGADO": {
       if (!soCaixa || !nosso || !c.clube) return undefined;
+      if (c.rivais && !c.rivais.has(e.id)) return undefined;
       const casa = papel(e, "clube", "casa");
       const fora = papel(e, "clube", "fora");
       if (!casa || !fora) return undefined;
@@ -210,7 +213,8 @@ export function caixa(repo: Repositorio, dados: DadosBase, opcoes: { limite?: nu
   // sem clube (demitido): a tua carreira e só o que a imprensa conta do clube que deixaste (sem pormenores internos)
   const alvo = c.clube ?? repo.meta("gamer.anterior");
   const externo = alvo !== undefined && alvo !== c.clube;
-  const cx: Contexto = externo ? { ...c, clube: alvo, externo: true } : c;
+  const rivais = new Set(repo.eventosDe({ k: "clube", id: alvo ?? "" }, { tipo: "JOGO_RIVAL" }).flatMap((e) => (e.causa !== undefined ? [e.causa] : [])));
+  const cx: Contexto = externo ? { ...c, clube: alvo, externo: true, rivais } : { ...c, rivais };
   const aceita = externo ? (n: Noticia) => n.ligacoes.some((l) => l.k === "clube" && l.id === alvo) : (n: Noticia) => n.doTeuClube;
   const fonte = { clubes: alvo ? [alvo] : [] };
   const todas = recolher(cx, EVENTOS_CAIXA, true, opcoes.limite ?? 40, opcoes.antesDe, aceita, fonte);

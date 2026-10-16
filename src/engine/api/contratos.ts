@@ -2,6 +2,7 @@ import type { Parametros } from "../config/parametros";
 import type { ResultadoPesquisa } from "../pesquisa/pesquisar";
 import type { CompetitionPage } from "../competicao/ficha";
 import type { CompeticaoResumo, JogoLab, LigaLab } from "../laboratorio/laboratorio";
+import type { EpocaDoClube } from "../competicao/clubeEpoca";
 import type { FormacaoId, Tatica } from "../jogo/tipos";
 import type { EscopoNoticias, Mensagem as MensagemCaixa, Noticia } from "../noticias/noticias";
 import type { JogoVivo } from "../epoca/jogoAoVivo";
@@ -97,6 +98,8 @@ export type FichaClubeDados = {
   historicoDivisoes: { epoca: number; label: string; escalao: Escalao; liga: string }[];
   /** Por jogador do plantel: fim de contrato e nível geral. */
   plantelExtra: Record<string, { contratoFim?: string; nivel?: NivelEstimado }>;
+  /** Estatísticas da época atual (jogadores do plantel e tops do clube). */
+  epoca?: EpocaDoClube;
   /** Por membro da equipa técnica: desde quando está no clube (contrato). */
   verdade?: { reputacao: number; financas: number; qualidadeStaff: Record<string, Record<string, number>>; plantelNivel: number };
 };
