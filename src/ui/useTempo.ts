@@ -39,15 +39,17 @@ export function useTempo() {
     return () => { vivo = false; window.removeEventListener(EVENTO, aoMudar); window.removeEventListener("raizes:mundo", aoMudar); };
   }, [motor]);
 
-  const avancar = useCallback(async (modo: Modo) => {
-    if (!motor || aAvancar) return;
+  const avancar = useCallback(async (modo: Modo): Promise<ResultadoAvanco | undefined> => {
+    if (!motor || aAvancar) return undefined;
     aAvancar = true;
     window.dispatchEvent(new Event(EVENTO));
     try {
       ultimo = await motor.chamar("avancar", { modo, ...(clube ? { clube } : {}) });
       setErro(undefined);
+      return ultimo;
     } catch (e) {
       setErro(e instanceof Error ? e.message : String(e));
+      return undefined;
     } finally {
       aAvancar = false;
       window.dispatchEvent(new Event(EVENTO));

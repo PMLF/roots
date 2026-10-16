@@ -57,7 +57,7 @@ export function Eventos({ jogo, soImportante }: { jogo: JogoVivo; soImportante: 
   return (
     <ol className="feed" reversed aria-label={t("jogo.eventos")}>
       {[...linhas].reverse().map((l, i) => (
-        <li key={`${l.minuto}-${l.tipo}-${linhas.length - i}`} className={`feed-${l.tipo}${l.importante ? " importante" : ""}`}>
+        <li key={`${l.minuto}-${l.tipo}-${linhas.length - i}`} className={`feed-${l.tipo}${l.tipo === "cartao" && l.cor ? ` feed-cartao-${l.cor}` : ""}${l.importante ? " importante" : ""}`}>
           <span className="feed-cab"><IconeEvento chave={chaveIcone(l)} {...(l.tipo === "cartao" && l.cor ? { cor: l.cor } : {})} /><b>{Math.floor(l.minuto)}'</b>{l.lado && <span className="feed-clube"><Ligacao k="clube" id={l.lado === "casa" ? jogo.casa.id : jogo.fora.id} semAmostra>{nomeDe(l.lado)}</Ligacao></span>}</span>
           <span className="feed-texto">{comLigacoes(textoDaLinha(l, t), l)}{l.tipo === "golo" && <b className="feed-marcador"> {l.golosCasa}–{l.golosFora}</b>}</span>
         </li>
@@ -194,22 +194,30 @@ export function Intervalo({ jogo, aoTatica, aoContinuar }: { jogo: JogoVivo; aoT
     const d = ref.current;
     if (d && !d.open) d.showModal();
   }, []);
-  const linhas = jogo.resumo ? estatisticasDoJogo(jogo.resumo).filter((l) => l.chave === "posse" || l.chave === "remates" || l.chave === "xg") : [];
+  const CHAVES = ["posse", "xg", "remates", "aBaliza", "oportunidades", "cantos", "faltas", "amarelos"];
+  const linhas = jogo.resumo ? estatisticasDoJogo(jogo.resumo).filter((l) => CHAVES.includes(l.chave)).sort((x, y) => CHAVES.indexOf(x.chave) - CHAVES.indexOf(y.chave)) : [];
   return (
     <dialog ref={ref} className="popup intervalo-jogo" aria-labelledby="h-intervalo" onCancel={(e) => { e.preventDefault(); aoContinuar(); }}>
       <h2 id="h-intervalo">{t("jogo.intervaloTitulo")}</h2>
-      <p className="intervalo-resultado">{jogo.casa.nome} <b>{jogo.golosCasa}–{jogo.golosFora}</b> {jogo.fora.nome}</p>
-      {linhas.length > 0 && (
-        <ul className="estatisticas">
-          {linhas.map((l) => (
-            <li key={l.chave}>
-              <span className="estat-valor estat-casa">{fmt(l.casa, l.formato)}</span>
-              <span className="estat-nome">{t(`jogo.stat.${l.chave}` as Chave)}</span>
-              <span className="estat-valor estat-fora">{fmt(l.fora, l.formato)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="intervalo-corpo">
+        {linhas.length > 0 && (
+          <ul className="estatisticas">
+            {linhas.map((l) => {
+              const total = l.casa + l.fora;
+              const pc = total > 0 ? (l.casa / total) * 100 : 50;
+              return (
+                <li key={l.chave}>
+                  <span className="estat-valor estat-casa">{fmt(l.casa, l.formato)}</span>
+                  <span className="estat-nome">{t(`jogo.stat.${l.chave}` as Chave)}</span>
+                  <span className="estat-valor estat-fora">{fmt(l.fora, l.formato)}</span>
+                  <span className="estat-barra" aria-hidden="true"><i style={{ width: `${pc}%` }} /></span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <div className="intervalo-xg"><GraficoXg jogo={jogo} semPainel /></div>
+      </div>
       <p className="acoes">
         <button type="button" onClick={aoTatica}>{t("jogo.intervaloTatica")}</button>
         <button type="button" className="primario" onClick={aoContinuar} autoFocus>{t("jogo.segundaParte")}</button>
@@ -222,18 +230,18 @@ const classeNota = (n: number) => (n >= 7.5 ? "nota-alta" : n >= 6.5 ? "nota-boa
 
 function LinhaJogador({ j }: { j: JogadorVivo }) {
   const { t } = useT();
-  const marcas = (n: number, glifo: string, chave: Chave) => (n > 0 ? <span className="ind" title={t(chave)} aria-label={`${n} ${t(chave)}`}>{glifo}{n > 1 ? `×${n}` : ""}</span> : null);
+  const marcas = (n: number, glifo: ReactNode, chave: Chave) => (n > 0 ? <span className="ind" title={t(chave)} aria-label={`${n} ${t(chave)}`}>{glifo}{n > 1 ? `×${n}` : ""}</span> : null);
   return (
     <li className={`jogador-vivo jv-${j.estado}`}>
       <b className={`nota ${j.nota !== undefined ? classeNota(j.nota) : "nota-vazia"}`} title={t("jogo.nota")}>{j.nota !== undefined ? j.nota.toFixed(1) : "–"}</b>
       <span className="pos">{siglaPosicao(t, j.posicao)}</span>
       <span className="jv-nome"><Ligacao k="pessoa" id={j.id}>{j.nome}</Ligacao></span>
       <span className="inds">
-        {marcas(j.golos, "⚽", "jogo.ind.golo")}
-        {marcas(j.assistencias, "🅰", "jogo.ind.assistencia")}
-        {marcas(j.amarelos, "🟨", "jogo.ind.amarelo")}
-        {j.vermelho && <span className="ind" title={t("jogo.ind.vermelho")} aria-label={t("jogo.ind.vermelho")}>🟥</span>}
-        {j.lesionado && <span className="ind" title={t("jogo.ind.lesao")} aria-label={t("jogo.ind.lesao")}>✚</span>}
+        {marcas(j.golos, <IconeEvento chave="golo" />, "jogo.ind.golo")}
+        {marcas(j.assistencias, <b className="ind-assist">A</b>, "jogo.ind.assistencia")}
+        {marcas(j.amarelos, <IconeEvento chave="cartao" cor="amarelo" />, "jogo.ind.amarelo")}
+        {j.vermelho && <span className="ind" title={t("jogo.ind.vermelho")} aria-label={t("jogo.ind.vermelho")}><IconeEvento chave="cartao" cor="vermelho" /></span>}
+        {j.lesionado && <span className="ind" title={t("jogo.ind.lesao")} aria-label={t("jogo.ind.lesao")}><IconeEvento chave="lesao" /></span>}
         {j.entrou !== undefined && <span className="ind sub-entra" title={t("jogo.ind.entrou", { min: Math.floor(j.entrou) })}>▲ {Math.floor(j.entrou)}'</span>}
         {j.saiu !== undefined && j.estado !== "expulso" && <span className="ind sub-sai" title={t("jogo.ind.saiu", { min: Math.floor(j.saiu) })}>▼ {Math.floor(j.saiu)}'</span>}
         {j.estado === "expulso" && j.saiu !== undefined && <span className="ind sub-sai">{Math.floor(j.saiu)}'</span>}
@@ -270,7 +278,7 @@ export function CartaoEquipa({ jogo, lado }: { jogo: JogoVivo; lado: "casa" | "f
 }
 
 /** Evolução do xG acumulado de cada equipa, minuto a minuto (degraus: o xG sobe quando há remate). */
-export function GraficoXg({ jogo }: { jogo: JogoVivo }) {
+export function GraficoXg({ jogo, semPainel = false }: { jogo: JogoVivo; semPainel?: boolean }) {
   const { t } = useT();
   const xg = jogo.xg;
   if (!xg || xg.casa.length < 2) return null;
@@ -286,9 +294,8 @@ export function GraficoXg({ jogo }: { jogo: JogoVivo }) {
   const marcas = [0, 15, 30, 45, 60, 75, 90].filter((n) => n <= fim);
   const nomes = { casa: jogo.casa.nome, fora: jogo.fora.nome };
   const cor = { casa: corPredominante(jogo.cores?.[jogo.casa.id]) ?? "var(--destaque)", fora: corPredominante(jogo.cores?.[jogo.fora.id]) ?? "var(--texto)" };
-  return (
-    <section className="painel" aria-labelledby="h-xg">
-      <h2 id="h-xg">{t("jogo.xg.titulo")}</h2>
+  const conteudo = (
+    <>
       <svg className="grafico-xg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("jogo.xg.aria", { casa: nomes.casa, a: xg.casa[ultimo]!.toFixed(2), fora: nomes.fora, b: xg.fora[ultimo]!.toFixed(2) })}>
         {[0, topo / 2, topo].map((v) => <g key={v}><line className="xg-grelha" x1={m.e} x2={W - m.d} y1={y(v)} y2={y(v)} /><text className="xg-eixo" x={m.e - 4} y={y(v) + 3} textAnchor="end">{v.toFixed(1)}</text></g>)}
         {marcas.map((n) => <text key={n} className="xg-eixo" x={x(n)} y={H - 6} textAnchor="middle">{n}'</text>)}
@@ -299,6 +306,13 @@ export function GraficoXg({ jogo }: { jogo: JogoVivo }) {
         <span><i className="xg-chave xg-casa" style={{ borderTopColor: cor.casa }} /> {nomes.casa} <b>{xg.casa[ultimo]!.toFixed(2)}</b></span>
         <span><i className="xg-chave xg-fora" style={{ borderTopColor: cor.fora }} /> {nomes.fora} <b>{xg.fora[ultimo]!.toFixed(2)}</b></span>
       </p>
+    </>
+  );
+  if (semPainel) return conteudo;
+  return (
+    <section className="painel" aria-labelledby="h-xg">
+      <h2 id="h-xg">{t("jogo.xg.titulo")}</h2>
+      {conteudo}
     </section>
   );
 }
