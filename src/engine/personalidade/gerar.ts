@@ -11,7 +11,7 @@ export type PersonRole = "player" | "coach" | "staff" | "president" | "mayor" | 
 export type Archetype = { name: string; traits: Partial<Personality> };
 
 export const ARCHETYPES: Record<string, Archetype> = {
-  common: { name: "Common", traits: {} },
+  common: { name: "Comum", traits: {} },
   leader: { name: "Líder de balneário", traits: { loyalty: 15, professionalism: 16, temperament: 8 } },
   star: { name: "Estrela caprichosa", traits: { vanity: 17, greed: 15, loyalty: 6 } },
   worker: { name: "Operário", traits: { professionalism: 17, ambition: 9, vanity: 6 } },

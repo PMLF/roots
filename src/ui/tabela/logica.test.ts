@@ -9,7 +9,7 @@ const lines: L[] = [
   { name: "alberto Sá", age: 24, pos: "ST" },
 ];
 const columns: Column<L>[] = [
-  { id: "name", title: "Name", value: (l) => l.name },
+  { id: "name", title: "Nome", value: (l) => l.name },
   { id: "age", title: "Idade", value: (l) => l.age, numeric: true },
   { id: "pos", title: "Posição", value: (l) => l.pos },
 ];

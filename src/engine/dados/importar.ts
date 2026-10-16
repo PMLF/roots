@@ -26,7 +26,7 @@ const TIERS: Record<string, Tier> = {
   "Segunda Liga": "secondLeague",
   "Terceira Liga": "thirdLeague",
   "Campeonato de Portugal": "cp",
-  District: "district",
+  Distrital: "district",
 };
 const ZONES: readonly Zone[] = ["centro", "perto", "periferia", "away"];
 const PROPERTIES: readonly Ownership[] = ["club", "municipal", "partilhada"];
@@ -37,7 +37,7 @@ const COLUMNS = {
   cities: ["concelho", "district", "population", "sector", "tag2", "hub", "island", "orcamento_municipal", "mayor", "ambition", "apoio_desporto", "vanity", "patience", "integrity", "cultura_futebol", "clubs"],
   localities: ["id", "name", "concelho", "district", "population", "status", "host", "clubs"],
   rivalries: ["clube_a", "clube_b", "mutual", "mesmo_concelho", "mesmo_distrito", "mesmo_polo", "mesma_divisao"],
-  districts: ["district", "serie_cp", "Primeira Liga", "Segunda Liga", "Terceira Liga", "Campeonato de Portugal", "District", "total"],
+  districts: ["district", "serie_cp", "Primeira Liga", "Segunda Liga", "Terceira Liga", "Campeonato de Portugal", "Distrital", "total"],
 } as const;
 
 /** Identificador estável: minúsculas, sem acentos, hífens. */
@@ -123,7 +123,7 @@ export function importData(sources: SourcesCsv, params: Params = DEFAULT_PARAMET
         secondLeague: por("Segunda Liga"),
         thirdLeague: por("Terceira Liga"),
         cp: por("Campeonato de Portugal"),
-        district: por("District"),
+        district: por("Distrital"),
       },
     };
     districts.push(fresh);
