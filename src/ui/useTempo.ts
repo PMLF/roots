@@ -16,6 +16,7 @@ export function useTempo() {
   const [, forcar] = useState(0);
   const [erro, setErro] = useState<string | undefined>(undefined);
   const [pausa, setPausa] = useState<{ jogo: string; adversario: string; emCasa: boolean } | undefined>(undefined);
+  const [proximoJogo, setProximoJogo] = useState<{ id: string; data: string; competicao: string; adversario: string; emCasa: boolean; confirmado: boolean } | undefined>(undefined);
 
   useEffect(() => {
     if (!motor) return;
@@ -27,6 +28,7 @@ export function useTempo() {
         // há jogo do teu clube hoje, por confirmar?
         const p = e ? await motor.chamar("plano", null) : null;
         const j = p?.proximoJogo;
+        if (vivo) setProximoJogo(e ? j : undefined);
         if (vivo) setPausa(e && j && j.data === e.hoje && !j.confirmado ? { jogo: j.id, adversario: j.adversario, emCasa: j.emCasa } : undefined);
       }).catch(() => vivo && setEstado(null));
     };
@@ -58,5 +60,5 @@ export function useTempo() {
     await avancar("dia");
   }, [motor, pausa, avancar]);
 
-  return { estado, ultimo, aAvancar, avancar, erro, pausa, confirmarEJogar };
+  return { estado, ultimo, aAvancar, avancar, erro, pausa, proximoJogo, confirmarEJogar };
 }

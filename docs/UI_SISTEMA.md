@@ -16,11 +16,11 @@ Calmo, claro e informativo; sem cores berrantes nem sombras (só nos pop-ups). T
 
 | Rota | O que é |
 |---|---|
-| `/` | **Hoje**: o que mudou · o que exige decisão · a seguir (ações a um clique; «Avançar» entra com o motor de jogo) |
+| `/` | **Início** (RZ-166): **A seguir** num cartão horizontal baixo no topo; por baixo, lado a lado, **Exige decisão** · **Caixa de entrada** · **Notícias**; no rodapé da página, a **fita de resultados** (resultados e marcadores do último avanço, a correr sem parar; só aparece se houver resultados) |
 | `/ficha/?k=<tipo>&id=<id>` | Ficha de qualquer entidade (`clube`, `pessoa`, `localidade`, `cidade`, `competicao`). Os dados vivem no motor, por isso a ficha é uma rota única com *query string* (uma rota por id não é possível numa exportação estática) |
 | `/mundo/` | Criar o mundo do save, **reiniciá-lo** (apaga o save e gera outro com seed nova, com confirmação) e diagnóstico técnico |
 
-Menu à esquerda com **no máximo 2 níveis** (secção no menu, separadores na página). Migalhas de pão e «← Voltar» em todas as páginas que não são «Hoje».
+Menu à esquerda com **no máximo 2 níveis** (secção no menu, separadores na página). Migalhas de pão e «← Voltar» em todas as páginas que não são o «Início». A **Caixa de entrada** deixou o menu: vive no «Início» (o contador de por ler está no item «Início»); a lista completa continua em `/inbox/`.
 
 ## 2. Componentes
 
@@ -70,3 +70,10 @@ O que se guarda está em **inglês** (posições GK, RB, CB, LB, DM, CM, AM, RW,
 ## 4. Fica para depois
 
 Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já existem e abrem uma ficha «em breve»; separadores *Jogos*, *Carreira*, *História* (precisam de jogos e eventos); conjuntos de colunas com nome; atalhos por secção; «Caixa»/jornal e barra inferior com dados (RZ-120).
+
+## 3e. «Avançar» e hierarquia das páginas (RZ-166, 16-10-2026)
+
+- **Avançar é global**: botão dividido em baixo à direita (barra de estado), em todas as páginas. Por defeito passa **um dia**; a seta escolhe **um dia, uma semana ou até ao próximo jogo** (a escolha fica guardada no browser). A **barra de espaço** conta como clicar, menos dentro de campos de texto, sobre botões e ligações, e na página do jogo. Sem clube não há «próximo jogo». Quando há jogo do teu clube por preparar, o botão passa a «Jogo de hoje» e leva à decisão (Confirmar e jogar): o tempo nunca passa por cima de uma decisão.
+- **Regra para todas as páginas**: o mais importante primeiro e em cima; o resto agrupado em cartões com função clara e em sítios previsíveis; ações no mesmo lugar em todo o lado; listas compactas com «Ver tudo» para a página completa. Antes de dar uma página por feita, perguntar «o que é que o gamer precisa de ver primeiro?».
+- **Fita de resultados**: só golos (sem cartões nem lesões); pára com o rato ou com o foco; com «reduzir movimento» fica estática e rola-se à mão.
+

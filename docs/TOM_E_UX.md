@@ -28,7 +28,7 @@ O FM26 tem muita informação mal organizada. Aqui a regra é **muita informaç�
 5. **Máximo 2 níveis de menu.** Menu à esquerda por secção; separadores dentro da página; nada escondido em menus de 4 níveis.
 6. **Uma só tabela.** Um componente de tabela denso com ordenação, filtros, conjuntos de colunas guardados e exportação; usado em todo o jogo.
 7. **O que sabes e o que não sabes é visível.** Valores exatos, estimativas (`≈ 14-16`) e dados desatualizados (`visto há 2 épocas`) têm aspeto diferente (ver `HISTORICO_EVENTOS` §5).
-8. **Página "Hoje".** O que mudou, o que exige decisão, o que vem a seguir; ações a um clique.
+8. **Página «Início» (antes «Hoje»).** O que vem a seguir em cima; por baixo, o que exige decisão, a caixa de entrada e as notícias; no rodapé, a fita de resultados. «Avançar» está sempre em baixo à direita (`docs/UI_SISTEMA.md` §3e).
 9. **Densidade ajustável** (compacta/normal) e teclado primeiro (atalhos, setas nas tabelas).
 10. **Textos sem excesso:** títulos curtos, números alinhados, cor só para estado (bom/mau/aviso).
 
