@@ -31,12 +31,17 @@ export function lerPlano(repo: Repositorio, clube: string): Plano {
 
 const nivelValido = (n: unknown) => Number.isInteger(n) && (n as number) >= 1 && (n as number) <= 5;
 
-/** Valida e guarda. Lança se a tática ou o onze não fizerem sentido. */
-export function guardarPlano(repo: Repositorio, clube: string, plano: Plano): void {
-  const t = plano.tatica;
+/** Lança se a tática não fizer sentido. */
+export function validarTatica(t: Tatica): void {
   if (!(t.formacao in FORMACOES)) throw new Error("Formação desconhecida");
   if (!ESTILOS.includes(t.estilo)) throw new Error("Estilo desconhecido");
   for (const k of ["intensidade", "linha", "ritmo", "fairPlay"] as const) if (!nivelValido(t[k])) throw new Error(`${k} deve ser de 1 a 5`);
+}
+
+/** Valida e guarda. Lança se a tática ou o onze não fizerem sentido. */
+export function guardarPlano(repo: Repositorio, clube: string, plano: Plano): void {
+  const t = plano.tatica;
+  validarTatica(t);
   if (plano.onze) {
     const plantel = new Set(repo.jogadoresDoClube(clube).filter((j) => j.estado === "ativo").map((j) => j.pessoa));
     if (plano.onze.length !== 11) throw new Error("O onze tem de ter 11 jogadores");

@@ -157,6 +157,8 @@ export type { ResultadoPesquisa, CompeticaoResumo, JogoLab, LigaLab, Competition
 
 /** O plano de jogo do clube do gamer, pronto para a página Tática. */
 export type PlanoVista = {
+  /** Nome do clube do gamer. */
+  clubeNome: string;
   tatica: Tatica;
   /** `true` enquanto o gamer não escolheu o onze: o que se mostra é a proposta automática. */
   automatico: boolean;
@@ -164,10 +166,10 @@ export type PlanoVista = {
   posicoesDaFormacao: Record<FormacaoId, Posicao[]>;
   onze: { jogador: string; nome: string; posicao: Posicao }[];
   plantel: { jogador: string; nome: string; posicoes: { pos: Posicao; aptidao: number }[]; indisponivel?: "lesao" | "suspenso"; jogosPorCumprir?: number }[];
-  proximoJogo?: { id: string; data: string; competicao: string; adversario: string; emCasa: boolean; confirmado: boolean };
+  proximoJogo?: { id: string; data: string; competicao: string; adversario: string; emCasa: boolean; confirmado: boolean; /** O jogo já começou e está a decorrer. */ emCurso: boolean; adversarioId: string; adversarioCores: string };
 };
 
-export type ClubeResumo = { id: string; nome: string; liga: string };
+export type ClubeResumo = { id: string; nome: string; liga: string; cores: string };
 
 /** Contrato entre a interface e o motor (que corre num Web Worker). Só dados serializáveis. */
 export type PedidosMotor = {
@@ -211,6 +213,14 @@ export type PedidosMotor = {
   /** Caixa de entrada do gamer: o que se passa com o clube e com ele. */
   caixa: { entrada: { limite?: number; antesDe?: number }; saida: { mensagens: MensagemCaixa[]; naoLidas: number } };
   marcarCaixaLida: { entrada: null; saida: null };
+  /** Começa o jogo do gamer (RZ-170): nada fica no histórico até ao apito final. */
+  iniciarJogo: { entrada: { jogo: string }; saida: JogoVivo };
+  /** Avança `minutos` minutos do jogo a decorrer; no fim regista-o. */
+  passoJogo: { entrada: { minutos: number }; saida: JogoVivo };
+  /** Muda a tática do gamer durante o jogo, a partir do minuto seguinte. */
+  taticaNoJogo: { entrada: { tatica: Tatica }; saida: JogoVivo };
+  /** Marca uma mensagem como lida ou por ler. */
+  marcarMensagem: { entrada: { id: number; lida: boolean }; saida: null };
   demitir: { entrada: null; saida: { clube: string } };
   /** Ofertas de clubes quando o gamer está sem clube. */
   ofertas: { entrada: null; saida: { desempregado: boolean; anterior?: string; ofertas: OfertaDeClube[] } };

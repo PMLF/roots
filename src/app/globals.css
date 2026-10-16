@@ -432,3 +432,49 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
   .barra > span:not(.avancar):nth-of-type(n+2) { display: none; }
   .barra { gap: 12px; }
 }
+
+/* Cores do clube (RZ-168): retângulo pequeno antes do nome, sem chamar a atenção */
+.amostra-clube { display: inline-block; width: 12px; height: 8px; margin-right: 6px; border-radius: 2px; box-shadow: 0 0 0 1px color-mix(in srgb, currentColor 22%, transparent); vertical-align: 0.05em; flex: none; }
+
+/* Ecrã do jogo (RZ-170): placar, três colunas (eventos | tabela | outros jogos + estatísticas) */
+.pagina-jogo .placar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 18px; margin: 4px 0; font-size: clamp(18px, 2.4vw, 26px); font-weight: 650; }
+.placar-equipa { display: inline-flex; align-items: center; min-width: 0; }
+.placar-equipa .amostra-clube { width: 22px; height: 14px; margin: 0 10px; border-radius: 3px; }
+.placar-golos { font-size: clamp(30px, 4.4vw, 48px); font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+.pagina-jogo .relogio { display: block; text-align: center; }
+.controlos-jogo label { display: inline-flex; align-items: center; gap: 6px; }
+.controlos-jogo input[type=checkbox] { margin: 0; width: auto; }
+.controlos-jogo { align-items: center; justify-content: center; }
+.velocidade select { width: auto; }
+.so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.jogo-grelha { grid-template-columns: minmax(0, 1fr); margin-top: 12px; }
+@media (min-width: 1000px) { .jogo-grelha { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 0.95fr); } }
+.jogo-coluna { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.jogo-coluna h2 { font-size: 15px; margin: 0 0 8px; }
+.jogo-coluna .feed { max-height: 68vh; overflow-y: auto; margin: 0; }
+.tabela-viva td, .tabela-viva th { padding: 0.12rem 0.3rem; font-size: 13px; }
+.tabela-viva .nome-clube, .outros-jogos .nome-clube { display: inline-flex; align-items: center; white-space: nowrap; }
+.outros-jogos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 13px; }
+.outros-jogos li { display: grid; grid-template-columns: minmax(0, 1fr) 1.6rem; grid-auto-flow: row; column-gap: 8px; row-gap: 2px; align-items: center; position: relative; }
+.outros-jogos li .nome-clube { overflow: hidden; text-overflow: ellipsis; }
+.outros-jogos .marcador-pequeno { text-align: right; }
+.outros-jogos .fim-jogo { grid-column: 1 / -1; font-size: 11px; }
+.marcador-pequeno { font-variant-numeric: tabular-nums; }
+.fim-jogo { font-size: 11px; }
+.estatisticas { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.estatisticas li { display: grid; grid-template-columns: 3.2rem 1fr 3.2rem; align-items: baseline; gap: 2px 6px; font-size: 13px; }
+.estat-valor { font-variant-numeric: tabular-nums; font-weight: 600; }
+.estat-fora { text-align: right; }
+.estat-nome { text-align: center; color: var(--suave, inherit); }
+.estat-barra { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: color-mix(in srgb, currentColor 14%, transparent); overflow: hidden; }
+.estat-barra i { display: block; height: 100%; background: color-mix(in srgb, currentColor 55%, transparent); }
+.tatica-jogo .formulario { display: grid; gap: 8px; }
+button.dev { border-style: dashed; }
+.prematch-cabecalho { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; justify-content: space-between; }
+.prematch-confronto { font-size: 20px; font-weight: 650; margin: 4px 0; }
+
+/* Caixa de entrada: marcar como lida/por ler (RZ-167) */
+.ponto-alternar { width: 10px; height: 10px; padding: 0; margin-right: 8px; border-radius: 50%; border: 1.5px solid var(--cor-destaque, #1a7f37); background: transparent; vertical-align: 0.05em; cursor: pointer; min-height: 0; }
+.ponto-alternar.por-ler { background: var(--cor-destaque, #1a7f37); }
+.ponto-alternar:hover { box-shadow: 0 0 0 3px color-mix(in srgb, var(--cor-destaque, #1a7f37) 25%, transparent); }
+.ligacao-botao { margin-left: 10px; padding: 0; border: 0; background: none; color: inherit; text-decoration: underline; font: inherit; font-size: 13px; cursor: pointer; min-height: 0; }

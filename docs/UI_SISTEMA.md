@@ -77,3 +77,10 @@ Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já 
 - **Regra para todas as páginas**: o mais importante primeiro e em cima; o resto agrupado em cartões com função clara e em sítios previsíveis; ações no mesmo lugar em todo o lado; listas compactas com «Ver tudo» para a página completa. Antes de dar uma página por feita, perguntar «o que é que o gamer precisa de ver primeiro?».
 - **Fita de resultados**: só golos (sem cartões nem lesões); pára com o rato ou com o foco; com «reduzir movimento» fica estática e rola-se à mão.
 
+## 3f. Jogo, pré-jogo, caixa e cores dos clubes (RZ-167 a RZ-171, 16-10-2026)
+- **Ir a jogo**: com jogo do teu clube por jogar, «Avançar» (e o botão do cartão «Exige decisão») passam a «Ir a jogo» e levam ao ecrã **pré-jogo** (`/prematch/`): confronto, botão «Confirmar e começar o jogo» e o mesmo editor de tática e onze da página «Tática» (`EditorTatica`). Já em jogo, o botão diz «Continuar jogo».
+- **Ecrã do jogo** (`/match/`): placar grande com cores dos clubes, relógio e controlos (começar/pausa, velocidade num seletor, «Alterar tática», «só os lances importantes»; «Ir para o fim» só no modo developer; espaço pausa/continua). Três colunas, para que **tabela** e **outros jogos** apareçam logo ao arrancar: eventos | tabela | outros jogos + estatísticas (14). Os outros jogos têm cartão próprio e nunca entram no feed. «Alterar tática» pausa o jogo ao abrir e devolve-o ao estado anterior ao fechar; a mudança conta a partir do minuto seguinte.
+- **Depois do jogo** a mesma página abre em modo consulta: resultado final, eventos, tabela, outros resultados e estatísticas; sem controlos de reprodução.
+- **Caixa de entrada**: cada mensagem tem o seu botão (lida/por ler) e há «Marcar todas como lidas» no topo; no cartão do Início, o ponto da mensagem faz de botão. Nada se marca sozinho.
+- **Cores dos clubes**: `AmostraClube` (retângulo 12×8 px, discreto) vem antes do nome em toda a `Ligacao` de clube; as cores vêm do motor uma só vez (`useCoresClubes`).
+

@@ -130,7 +130,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <button type="button" onClick={() => router.back()}>← {t("migalhas.voltar")}</button>
             <Link href="/">{t("menu.hoje")}</Link>
             <span aria-hidden="true">›</span>
-            <span aria-current="page">{t(caminho.startsWith("/profile") ? "migalhas.ficha" : caminho.startsWith("/match") ? "migalhas.jogo" : (MENU.find((m) => m.href && m.href !== "/" && m.ativoQuando(caminho))?.chave ?? "menu.mundo"))}</span>
+            <span aria-current="page">{t(caminho.startsWith("/profile") ? "migalhas.ficha" : caminho.startsWith("/match") ? "migalhas.jogo" : caminho.startsWith("/prematch") ? "prematch.titulo" : (MENU.find((m) => m.href && m.href !== "/" && m.ativoQuando(caminho))?.chave ?? "menu.mundo"))}</span>
           </nav>
         )}
         {children}

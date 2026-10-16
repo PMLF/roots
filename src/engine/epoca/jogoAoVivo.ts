@@ -3,7 +3,7 @@
  * (`vivo.<jogo>`; só os últimos jogos) para a interface a reproduzir minuto a minuto, com pausa e velocidade.
  * Os outros jogos só deixam o resumo público (golos, vermelhos, lesões, melhor em campo).
  */
-import type { EventoJogo, Lado, ResultadoRemate } from "../jogo/tipos";
+import type { EventoJogo, Lado, ResultadoRemate, ResumoJogo, Tatica } from "../jogo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
 
@@ -60,9 +60,22 @@ export type JogoVivo = {
   pontosVitoria: number;
   pontosEmpate: number;
   outros: OutroJogoVivo[];
+  /** Cores de cada clube que aparece no jogo (casa, fora e tabela). */
+  cores?: Record<string, string>;
+  /** Estatísticas do jogo (as finais num jogo guardado; as do minuto atual ao vivo). */
+  resumo?: ResumoJogo;
+  /** De que lado joga o clube do gamer. */
+  ladoGamer?: Lado;
+  /** Só ao vivo (RZ-170): o jogo está a decorrer, no minuto indicado, com esta tática do lado do gamer. */
+  emCurso?: boolean;
+  minuto?: number;
+  tatica?: Tatica;
 };
 
 const GUARDAR = 6;
+
+/** Chave do save onde fica o jogo do gamer que está a decorrer (RZ-170). */
+export const CHAVE_SESSAO = "sessao";
 
 /** Converte os eventos do motor no feed do jogo (sem os «lances» simples, que são ruído). */
 export function linhasDoJogo(eventos: readonly EventoJogo[], duracao: number, nome: (id: string) => string): LinhaVivo[] {

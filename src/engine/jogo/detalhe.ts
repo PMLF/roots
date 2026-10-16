@@ -69,6 +69,11 @@ function publico(r: RelatorioJogo): RelatorioPublico {
 /** Joga um jogo ao nível de detalhe indicado e devolve o que esse nível guarda. */
 export function jogarJogo(entrada: EntradaJogo, nivel: NivelDetalhe, meta: MetaJogo, params: Parametros): JogoResolvido {
   const { eventos, resumo } = simularJogo(entrada, params);
+  return resolverJogo(entrada, eventos, resumo, nivel, meta, params);
+}
+
+/** O que se guarda de um jogo já simulado (por inteiro, de uma vez ou aos poucos, com mudanças a meio). */
+export function resolverJogo(entrada: EntradaJogo, eventos: EventoJogo[], resumo: ResumoJogo, nivel: NivelDetalhe, meta: MetaJogo, params: Parametros): JogoResolvido {
   const completo = relatorioDoJogo(entrada, { casa: entrada.casa, fora: entrada.fora }, eventos, resumo, params);
   const registo = registoDoJogo(meta, entrada.casa, entrada.fora, eventos, resumo, completo);
   const historias = historiasDoJogo(meta, { casa: entrada.casa.clube, fora: entrada.fora.clube }, completo, params);

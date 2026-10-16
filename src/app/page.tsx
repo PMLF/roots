@@ -7,6 +7,7 @@ import type { Noticia } from "@/engine/noticias/noticias";
 import { BotaoDemitir, EscolherClubeInicial } from "@/ui/components/ComClube";
 import { FitaResultados } from "@/ui/components/FitaResultados";
 import { ItemNoticia } from "@/ui/components/ItemNoticia";
+import { AmostraClube } from "@/ui/components/AmostraClube";
 import { Ligacao } from "@/ui/components/Ligacao";
 import { useCaixaRecente } from "@/ui/useCaixa";
 import { useModoDev } from "@/ui/dev";
@@ -104,7 +105,7 @@ export default function Inicio() {
         {proximo && clube ? (
           <>
             <div className="inicio-jogo">
-              <p className="inicio-confronto">{casaFora[0]} <span className="suave">{t("inicio.vs")}</span> {casaFora[1]}</p>
+              <p className="inicio-confronto">{proximo.home ? <><AmostraClube id={clube.ficha.id} />{casaFora[0]}</> : <><AmostraClube id={pj?.adversarioId} />{casaFora[0]}</>} <span className="suave">{t("inicio.vs")}</span> {proximo.home ? <><AmostraClube id={pj?.adversarioId} />{casaFora[1]}</> : <><AmostraClube id={clube.ficha.id} />{casaFora[1]}</>}</p>
               <p className="suave">{t(proximo.home ? "inicio.emCasa" : "inicio.fora")} · {clube.ficha.liga} {proximo.round > 0 && <>· {t("inicio.jornada", { n: proximo.round })}</>}</p>
             </div>
             <dl className="inicio-factos">
@@ -131,9 +132,9 @@ export default function Inicio() {
           <h2 id="i-decisao">{t("hoje.decisao")}{decisoes > 0 && <span className="distintivo" aria-label={t("inicio.pendentes", { n: decisoes })}>{decisoes}</span>}</h2>
           {tempo.pausa && (
             <div className="decisao">
-              <p><b>{t("hoje.jogoHoje", { jogo: `${tempo.pausa.emCasa ? "" : "@ "}${tempo.pausa.adversario}` })}</b></p>
+              <p><b>{t(tempo.pausa.emCurso ? "hoje.jogoEmCurso" : "hoje.jogoHoje", { jogo: `${tempo.pausa.emCasa ? "" : "@ "}${tempo.pausa.adversario}` })}</b></p>
               <p className="acoes">
-                <button id="confirmar-jogo" type="button" className="primario" disabled={tempo.aAvancar} onClick={() => { const id = tempo.pausa?.jogo; void tempo.confirmarEJogar().then(() => id && router.push(`/match/?id=${encodeURIComponent(id)}`)); }}>{t("hoje.confirmarJogar")}</button>
+                <button id="confirmar-jogo" type="button" className="primario" disabled={tempo.aAvancar} onClick={() => router.push(tempo.pausa?.emCurso ? "/match/" : "/prematch/")}>{t(tempo.pausa.emCurso ? "hoje.continuarJogo" : "hoje.confirmarJogar")}</button>
                 <Link href="/tactics/">{t("hoje.verTatica")}</Link>
               </p>
             </div>
@@ -146,10 +147,10 @@ export default function Inicio() {
           <h2 id="i-caixa">{t("menu.caixa")}{caixa.naoLidas > 0 && <span className="distintivo" aria-label={t("caixa.naoLidas", { n: caixa.naoLidas })}>{caixa.naoLidas > 99 ? "99+" : caixa.naoLidas}</span>}</h2>
           {caixa.mensagens.length === 0 ? <p className="vazio">{t("caixa.vazio")}</p> : (
             <ul className="lista-compacta">
-              {caixa.mensagens.map((m) => <li key={m.id}><ItemNoticia n={m} naoLida={!m.lida} compacto /></li>)}
+              {caixa.mensagens.map((m) => <li key={m.id}><ItemNoticia n={m} naoLida={!m.lida} compacto aoAlternarLida={() => { void motor?.chamar("marcarMensagem", { id: m.id, lida: !m.lida }).then(() => window.dispatchEvent(new Event("raizes:caixa"))); }} /></li>)}
             </ul>
           )}
-          <p className="painel-rodape"><Link href="/inbox/">{t("inicio.verCaixa")}</Link></p>
+          <p className="painel-rodape"><Link href="/inbox/">{t("inicio.verCaixa")}</Link>{caixa.naoLidas > 0 && <button type="button" className="ligacao-botao" onClick={() => { void motor?.chamar("marcarCaixaLida", null).then(() => window.dispatchEvent(new Event("raizes:caixa"))); }}>{t("caixa.marcarLidas")}</button>}</p>
         </section>
 
         <section className="painel" aria-labelledby="i-noticias">

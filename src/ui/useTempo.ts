@@ -15,8 +15,8 @@ export function useTempo() {
   const [estado, setEstado] = useState<EstadoTempo | null | undefined>(undefined);
   const [, forcar] = useState(0);
   const [erro, setErro] = useState<string | undefined>(undefined);
-  const [pausa, setPausa] = useState<{ jogo: string; adversario: string; emCasa: boolean } | undefined>(undefined);
-  const [proximoJogo, setProximoJogo] = useState<{ id: string; data: string; competicao: string; adversario: string; emCasa: boolean; confirmado: boolean } | undefined>(undefined);
+  const [pausa, setPausa] = useState<{ jogo: string; adversario: string; emCasa: boolean; emCurso: boolean } | undefined>(undefined);
+  const [proximoJogo, setProximoJogo] = useState<{ id: string; data: string; competicao: string; adversario: string; emCasa: boolean; confirmado: boolean; emCurso: boolean; adversarioId: string; adversarioCores: string } | undefined>(undefined);
 
   useEffect(() => {
     if (!motor) return;
@@ -29,7 +29,7 @@ export function useTempo() {
         const p = e ? await motor.chamar("plano", null) : null;
         const j = p?.proximoJogo;
         if (vivo) setProximoJogo(e ? j : undefined);
-        if (vivo) setPausa(e && j && j.data === e.hoje && !j.confirmado ? { jogo: j.id, adversario: j.adversario, emCasa: j.emCasa } : undefined);
+        if (vivo) setPausa(e && j && j.data === e.hoje && !j.confirmado ? { jogo: j.id, adversario: j.adversario, emCasa: j.emCasa, emCurso: j.emCurso } : undefined);
       }).catch(() => vivo && setEstado(null));
     };
     const aoMudar = () => { forcar((n) => n + 1); carregar(); };
@@ -54,11 +54,5 @@ export function useTempo() {
     }
   }, [motor, clube]);
 
-  const confirmarEJogar = useCallback(async () => {
-    if (!pausa || !motor) return;
-    await motor.chamar("confirmarJogo", { jogo: pausa.jogo });
-    await avancar("dia");
-  }, [motor, pausa, avancar]);
-
-  return { estado, ultimo, aAvancar, avancar, erro, pausa, proximoJogo, confirmarEJogar };
+  return { estado, ultimo, aAvancar, avancar, erro, pausa, proximoJogo };
 }
