@@ -5,6 +5,7 @@ import { corPredominante } from "@/ui/cores";
 import type { Estilo, Nivel, Tatica } from "@/engine/jogo/tipos";
 import type { ReactNode } from "react";
 import { AmostraClube } from "@/ui/components/AmostraClube";
+import { IconeEvento, chaveIcone } from "@/ui/components/IconeEvento";
 import { Ligacao } from "@/ui/components/Ligacao";
 import type { Chave } from "@/ui/i18n";
 import { siglaPosicao } from "@/ui/i18n/posicao";
@@ -57,8 +58,8 @@ export function Eventos({ jogo, soImportante }: { jogo: JogoVivo; soImportante: 
     <ol className="feed" reversed aria-label={t("jogo.eventos")}>
       {[...linhas].reverse().map((l, i) => (
         <li key={`${l.minuto}-${l.tipo}-${linhas.length - i}`} className={`feed-${l.tipo}${l.importante ? " importante" : ""}`}>
-          <b>{Math.floor(l.minuto)}'</b> {l.lado && <span className="suave"><Ligacao k="clube" id={l.lado === "casa" ? jogo.casa.id : jogo.fora.id} semAmostra>{nomeDe(l.lado)}</Ligacao> · </span>}{comLigacoes(textoDaLinha(l, t), l)}
-          {l.tipo === "golo" && <b> {l.golosCasa}–{l.golosFora}</b>}
+          <span className="feed-cab"><IconeEvento chave={chaveIcone(l)} {...(l.tipo === "cartao" && l.cor ? { cor: l.cor } : {})} /><b>{Math.floor(l.minuto)}'</b>{l.lado && <span className="feed-clube"><Ligacao k="clube" id={l.lado === "casa" ? jogo.casa.id : jogo.fora.id} semAmostra>{nomeDe(l.lado)}</Ligacao></span>}</span>
+          <span className="feed-texto">{comLigacoes(textoDaLinha(l, t), l)}{l.tipo === "golo" && <b className="feed-marcador"> {l.golosCasa}–{l.golosFora}</b>}</span>
         </li>
       ))}
       {linhas.length === 0 && <li className="vazio">{t("jogo.arranque")}</li>}
@@ -181,6 +182,38 @@ export function TaticaNoJogo({ tatica, aoMudar, aoFechar, ocupado }: { tatica: T
       </div>
       <p className="suave">{t("jogo.taticaAviso")}</p>
       <p className="acoes"><button type="button" className="primario" onClick={() => ref.current?.close()}>{t("jogo.taticaFechar")}</button></p>
+    </dialog>
+  );
+}
+
+/** Popup do intervalo: o jogo está parado; resumo da primeira parte e as decisões possíveis (tática; substituições no RZ-215). */
+export function Intervalo({ jogo, aoTatica, aoContinuar }: { jogo: JogoVivo; aoTatica: () => void; aoContinuar: () => void }) {
+  const { t } = useT();
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const d = ref.current;
+    if (d && !d.open) d.showModal();
+  }, []);
+  const linhas = jogo.resumo ? estatisticasDoJogo(jogo.resumo).filter((l) => l.chave === "posse" || l.chave === "remates" || l.chave === "xg") : [];
+  return (
+    <dialog ref={ref} className="popup intervalo-jogo" aria-labelledby="h-intervalo" onCancel={(e) => { e.preventDefault(); aoContinuar(); }}>
+      <h2 id="h-intervalo">{t("jogo.intervaloTitulo")}</h2>
+      <p className="intervalo-resultado">{jogo.casa.nome} <b>{jogo.golosCasa}–{jogo.golosFora}</b> {jogo.fora.nome}</p>
+      {linhas.length > 0 && (
+        <ul className="estatisticas">
+          {linhas.map((l) => (
+            <li key={l.chave}>
+              <span className="estat-valor estat-casa">{fmt(l.casa, l.formato)}</span>
+              <span className="estat-nome">{t(`jogo.stat.${l.chave}` as Chave)}</span>
+              <span className="estat-valor estat-fora">{fmt(l.fora, l.formato)}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <p className="acoes">
+        <button type="button" onClick={aoTatica}>{t("jogo.intervaloTatica")}</button>
+        <button type="button" className="primario" onClick={aoContinuar} autoFocus>{t("jogo.segundaParte")}</button>
+      </p>
     </dialog>
   );
 }
@@ -312,14 +345,20 @@ export function InfoCabecalho({ jogo }: { jogo: JogoVivo }) {
   const meio = (m: "tv" | "streaming" | "radio") => t(`jogo.meio.${m}` as Chave);
   return (
     <div className="info-cabecalho">
-      <span className="info-estadio">{i.estadio.nome} · {i.estadio.localidade}</span>
-      <span className="info-adeptos" title={t("jogo.info.assistencia")}>
-        <b>{i.assistencia.toLocaleString("pt-PT")}</b> / {i.estadio.capacidade.toLocaleString("pt-PT")}
-        <span className="barra-ocupacao" role="img" aria-label={`${t("jogo.info.assistencia")}: ${pct}%`}><i style={{ width: `${pct}%` }} /></span>
-        {pct}%
-      </span>
-      {i.arbitro && <span>{t("jogo.info.arbitro")}: {i.arbitro}</span>}
-      {i.canais && i.canais.length > 0 && <span>{t("jogo.info.canais")}: {i.canais.map((c) => `${c.nome} (${meio(c.meio)})`).join(", ")}</span>}
+      <p>
+        <span>{i.estadio.nome} · {i.estadio.localidade}</span>
+        <span className="info-adeptos" title={t("jogo.info.assistencia")}>
+          <b>{i.assistencia.toLocaleString("pt-PT")}</b> / {i.estadio.capacidade.toLocaleString("pt-PT")}
+          <span className="barra-ocupacao" role="img" aria-label={`${t("jogo.info.assistencia")}: ${pct}%`}><i style={{ width: `${pct}%` }} /></span>
+          {pct}%
+        </span>
+      </p>
+      {((i.arbitro) || (i.canais && i.canais.length > 0)) && (
+        <p>
+          {i.arbitro && <span>{t("jogo.info.arbitro")}: {i.arbitro}</span>}
+          {i.canais && i.canais.length > 0 && <span>{t("jogo.info.canais")}: {i.canais.map((c) => `${c.nome} (${meio(c.meio)})`).join(", ")}</span>}
+        </p>
+      )}
     </div>
   );
 }

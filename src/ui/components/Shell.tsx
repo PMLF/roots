@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LOCALES, type Chave } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { guardar, ler } from "@/ui/armazenamento";
@@ -12,6 +12,7 @@ import { Icone, type NomeIcone } from "@/ui/components/Icone";
 import { Pesquisa } from "@/ui/components/Pesquisa";
 import { useTempo } from "@/ui/useTempo";
 import { SeletorClube, useClubes } from "@/ui/components/ComClube";
+import { ProgressoJogo, useJogoEmCurso } from "@/ui/components/ProgressoJogo";
 import { useMeuClube } from "@/ui/meuClube";
 
 type ItemMenu = { chave: Chave; icone: NomeIcone; href?: string; ativoQuando: (caminho: string) => boolean; /** Ferramenta de developer: só no modo dev (`ui/dev.ts`). */ soDev?: true; /** Não aparece no menu (tem lugar noutra página), mas continua a ter rota e migalhas. */ oculto?: true };
@@ -73,6 +74,7 @@ export function Shell({ children }: { children: ReactNode }) {
     guardar("raizes.densidade", nova);
   };
 
+  const jogoAMeio = useJogoEmCurso() && caminho.startsWith("/match");
   const itens = MENU.filter((m) => (!m.soDev || dev) && !m.oculto);
   return (
     <div className="shell">
@@ -107,25 +109,15 @@ export function Shell({ children }: { children: ReactNode }) {
             </ul>
           </div>
         )}
+        <Definicoes tema={tema} aoTema={alternarTema} densidade={densidade} aoDensidade={alternarDensidade} locale={locale} aoLocale={setLocale} />
       </nav>
-      <header className="topo">
-        <Pesquisa />
-        <span className="espaco" />
-        <button type="button" onClick={alternarTema} data-testid="tema" title={t("tema.rotulo")}>{t(`tema.${tema}` as Chave)}</button>
-        <button type="button" onClick={alternarDensidade} aria-pressed={densidade === "compacta"} data-testid="densidade">
-          {t(densidade === "compacta" ? "densidade.compacta" : "densidade.normal")}
-        </button>
-        <label className="idioma">
-          <span className="sr-so">{t("idioma.rotulo")}</span>
-          <select value={locale} aria-label={t("idioma.rotulo")} onChange={(e) => setLocale(e.target.value as (typeof LOCALES)[number])}>
-            {LOCALES.map((l) => (
-              <option key={l} value={l}>{t(`idioma.${l}`)}</option>
-            ))}
-          </select>
-        </label>
-      </header>
+      {!jogoAMeio && (
+        <header className="topo">
+          <Pesquisa />
+        </header>
+      )}
       <main className="centro">
-        {caminho !== "/" && (
+        {caminho !== "/" && !jogoAMeio && (
           <nav className="migalhas" aria-label={t("migalhas.rotulo")}>
             <button type="button" onClick={() => router.back()}>← {t("migalhas.voltar")}</button>
             <Link href="/">{t("menu.hoje")}</Link>
@@ -136,11 +128,46 @@ export function Shell({ children }: { children: ReactNode }) {
         {children}
       </main>
       <footer className="barra">
+        <ProgressoJogo />
         <span>{t("barra.data")}: <b>{tempo.estado ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${tempo.estado.hoje}T00:00:00Z`)) : t("barra.semDados")}</b></span>
         <span>{t("barra.orcamento")}: <b>{t("barra.semDados")}</b></span>
         <span>{t("barra.humor")}: <b>{t("barra.semDados")}</b></span>
         <BotaoAvancar />
       </footer>
+    </div>
+  );
+}
+
+/** Botão de definições no fundo do menu: abre um pequeno menu com tema, densidade e idioma. */
+function Definicoes({ tema, aoTema, densidade, aoDensidade, locale, aoLocale }: { tema: Tema; aoTema: () => void; densidade: Densidade; aoDensidade: () => void; locale: string; aoLocale: (l: (typeof LOCALES)[number]) => void }) {
+  const { t } = useT();
+  const [aberto, setAberto] = useState(false);
+  const caixa = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!aberto) return;
+    const fora = (e: MouseEvent) => { if (caixa.current && !caixa.current.contains(e.target as Node)) setAberto(false); };
+    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") setAberto(false); };
+    document.addEventListener("mousedown", fora);
+    document.addEventListener("keydown", tecla);
+    return () => { document.removeEventListener("mousedown", fora); document.removeEventListener("keydown", tecla); };
+  }, [aberto]);
+  return (
+    <div className="definicoes" ref={caixa}>
+      <button type="button" className="definicoes-botao" aria-expanded={aberto} aria-haspopup="true" aria-controls="menu-definicoes" onClick={() => setAberto((v) => !v)}>
+        <Icone nome="definicoes" />
+        <span>{t("definicoes.rotulo")}</span>
+      </button>
+      {aberto && (
+        <div className="definicoes-menu" id="menu-definicoes" role="group" aria-label={t("definicoes.rotulo")}>
+          <div className="definicoes-linha"><span>{t("tema.rotulo")}</span><button type="button" onClick={aoTema} data-testid="tema">{t(`tema.${tema}` as Chave)}</button></div>
+          <div className="definicoes-linha"><span>{t("definicoes.densidade")}</span><button type="button" onClick={aoDensidade} aria-pressed={densidade === "compacta"} data-testid="densidade">{t(densidade === "compacta" ? "densidade.compacta" : "densidade.normal")}</button></div>
+          <label className="definicoes-linha"><span>{t("idioma.rotulo")}</span>
+            <select value={locale} aria-label={t("idioma.rotulo")} onChange={(e) => aoLocale(e.target.value as (typeof LOCALES)[number])}>
+              {LOCALES.map((l) => <option key={l} value={l}>{t(`idioma.${l}`)}</option>)}
+            </select>
+          </label>
+        </div>
+      )}
     </div>
   );
 }
