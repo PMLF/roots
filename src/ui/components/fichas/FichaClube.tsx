@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { FichaClubeDados } from "@/engine/api/contratos";
 import type { PessoaVista } from "@/engine/vista/tipos";
 import { Chip } from "@/ui/components/Atributos";
-import { Cores } from "@/ui/components/Cores";
+import { AmostraClube } from "@/ui/components/AmostraClube";
 import { Cartao, Dados, Topo } from "@/ui/components/Cartao";
 import { Ficha } from "@/ui/components/Ficha";
 import { GraficoDivisoes } from "@/ui/components/GraficoDivisoes";
@@ -147,8 +147,8 @@ export function FichaClube({ d, verTudo, soPlantel = false }: { d: FichaClubeDad
   const dimensao = t(`reputacao.nivel.${d.nivelReputacao}` as Chave);
   const etiquetas = (
     <>
-      <Chip tom="destaque">{dimensao}</Chip>
-      <Chip><Ligacao k="competicao" id={d.liga}>{d.liga}</Ligacao></Chip>
+      <Chip>{dimensao}</Chip>
+      <Chip tom="destaque"><Ligacao k="competicao" id={d.liga}>{d.liga}</Ligacao>{d.epoca?.team ? ` · ${t("clube.lugar", { n: d.epoca.team.position })}` : ""}</Chip>
       <Chip tom="suave">{d.distrito}</Chip>
     </>
   );
@@ -157,7 +157,6 @@ export function FichaClube({ d, verTudo, soPlantel = false }: { d: FichaClubeDad
       linhas={[
         { rotulo: t("clube.localidade"), valor: <><Ligacao k="localidade" id={d.localidade.id}>{d.localidade.nome}</Ligacao> <span className="suave">({t(`estatuto.${d.localidade.estatuto}` as Chave).toLowerCase()})</span></> },
         { rotulo: t("clube.concelho"), valor: <Ligacao k="cidade" id={d.cidade.id}>{d.cidade.nome}</Ligacao> },
-        { rotulo: t("clube.cores"), valor: <Cores texto={d.cores} /> },
         { rotulo: t("clube.alcunha"), valor: `${d.alcunha} · ${d.mascote}` },
         ...(presidente ? [{ rotulo: t("clube.presidente"), valor: nome(presidente) }] : []),
         ...(d.rival ? [{ rotulo: t("clube.rival"), valor: <Ligacao k="clube" id={d.rival.id}>{d.rival.nome}</Ligacao> }] : []),
@@ -242,7 +241,7 @@ export function FichaClube({ d, verTudo, soPlantel = false }: { d: FichaClubeDad
     <Ficha
       tipo="clube"
       titulo={d.nome}
-      topo={<Topo titulo={d.nome} etiquetas={etiquetas} cartao={identidade} />}
+      topo={<Topo titulo={d.nome} emblema={<AmostraClube cores={d.cores} className="amostra-titulo" />} etiquetas={etiquetas} cartao={identidade} />}
       separadores={{
         resumo,
         plantel: d.plantel.length > 0 ? (

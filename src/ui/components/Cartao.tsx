@@ -25,11 +25,11 @@ export function Dados({ linhas }: { linhas: { rotulo: string; valor: ReactNode }
 }
 
 /** Ficha curta: nome ao lado de um cartão com os dados de identidade. */
-export function Topo({ titulo, etiquetas, cartao }: { titulo: string; etiquetas?: ReactNode; cartao?: ReactNode }) {
+export function Topo({ titulo, etiquetas, cartao, emblema }: { titulo: string; etiquetas?: ReactNode; cartao?: ReactNode; emblema?: ReactNode }) {
   return (
     <header className="ficha-topo">
       <div className="ficha-topo-nome">
-        <h1>{titulo}</h1>
+        <h1>{emblema}{titulo}</h1>
         {etiquetas && <p className="etiquetas">{etiquetas}</p>}
       </div>
       {cartao && <div className="ficha-topo-cartao">{cartao}</div>}

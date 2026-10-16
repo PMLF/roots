@@ -513,3 +513,7 @@ button.dev { border-style: dashed; }
 .tabela-viva.tabela th:nth-child(1), .tabela-viva.tabela td:nth-child(1) { width: 3.2rem; }
 .tabela-viva.tabela th:nth-child(n+3), .tabela-viva.tabela td:nth-child(n+3) { width: 2.4rem; text-align: right; }
 .tabela-viva td.nome-clube { max-width: none; }
+.ficha-topo-nome h1 { display: inline-flex; align-items: center; gap: 0.4em; }
+.ficha-topo-nome h1 .amostra-titulo { width: 1.1em; height: 0.8em; margin: 0; border-radius: 4px; }
+.jogo-grelha .ligacao, .placar .ligacao, .tabela-viva .ligacao, .outros-jogos .ligacao { color: inherit; }
+.jogo-grelha .ligacao:hover, .placar .ligacao:hover { text-decoration: underline; }
