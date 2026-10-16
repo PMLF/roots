@@ -278,11 +278,16 @@ function Onze({ jogo, lado, comBanco }: { jogo: JogoVivo; lado: "casa" | "fora";
   const campo = iniciais.map(ocupante);
   const banco = todos.filter((j) => j.estado === "banco");
   const saidos = todos.filter((j) => j.estado === "saiu");
+  // O banco sobrepõe-se ao onze na mesma caixa, por isso o cartão mantém sempre a altura do onze.
   return (
     <div className="equipa-vivo">
-      <ul>{campo.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul>
-      {comBanco && banco.length > 0 && <><h4>{t("jogo.banco")}</h4><ul>{banco.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
-      {comBanco && saidos.length > 0 && <><h4>{t("jogo.saiuLista")}</h4><ul>{saidos.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
+      <ul className="onze-campo" aria-hidden={comBanco} style={comBanco ? { visibility: "hidden" } : undefined}>{campo.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul>
+      {comBanco && (
+        <div className="onze-banco">
+          {banco.length > 0 && <><h4>{t("jogo.banco")}</h4><ul>{banco.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
+          {saidos.length > 0 && <><h4>{t("jogo.saiuLista")}</h4><ul>{saidos.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
+        </div>
+      )}
     </div>
   );
 }
@@ -296,7 +301,10 @@ export function CartaoEquipa({ jogo, lado }: { jogo: JogoVivo; lado: "casa" | "f
     <section className="painel cartao-equipa" aria-label={jogo[lado].nome}>
       <div className="cartao-equipa-topo">
         <h2><AmostraClube cores={jogo.cores?.[jogo[lado].id]} /> <Ligacao k="clube" id={jogo[lado].id} semAmostra>{jogo[lado].nome}</Ligacao></h2>
-        <label className="interruptor"><input type="checkbox" checked={comBanco} onChange={(e) => setComBanco(e.target.checked)} /> {t("jogo.verSuplentes")}</label>
+        <button type="button" role="switch" aria-checked={comBanco} className="alterna-banco" onClick={() => setComBanco((v) => !v)}>
+          <span className="alterna-pista" aria-hidden="true" />
+          {t("jogo.verSuplentes")}
+        </button>
       </div>
       <Onze jogo={jogo} lado={lado} comBanco={comBanco} />
     </section>
