@@ -228,10 +228,12 @@ export function avancar(repo: Repositorio, base: DadosBase, params: Parametros, 
       break;
     }
     // o jogo do gamer pode já ter sido jogado ao vivo (RZ-170): conta na mesma como «dia de jogo»
-    const jogaHoje = !!clubeGamer && repo.jogosDoDia(hoje).some((g) => g.casa === clubeGamer || g.fora === clubeGamer);
+    const doGamerHoje = clubeGamer ? repo.jogosDoDia(hoje).filter((g) => g.casa === clubeGamer || g.fora === clubeGamer) : [];
+    // se o jogo de hoje já foi jogado antes deste pedido (ao vivo), hoje não conta: o «próximo jogo» é o seguinte
+    const jaJogadoAntes = dias.length === 0 && doGamerHoje.length > 0 && doGamerHoje.every((g) => !!repo.jogo(g.id));
     const d = avancarDia(repo, base, params, clubeGamer);
     dias.push(d);
-    if (modo === "proximoJogo" && jogaHoje) break;
+    if (modo === "proximoJogo" && doGamerHoje.length > 0 && !jaJogadoAntes) break;
   }
   // A época fecha logo depois da última jornada, sem esperar por outro pedido.
   if (!resumoEpoca && !pausa) for (let i = 0; i < 2 && !resumoEpoca; i++) if (etapaDeEpoca() !== "gerou") break;

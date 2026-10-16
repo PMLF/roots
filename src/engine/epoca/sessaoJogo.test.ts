@@ -124,4 +124,14 @@ describe("jogo do gamer minuto a minuto (RZ-170)", () => {
     expect(ini.info!.arbitro).toMatch(/\S+ \S+/);
     expect(ini.info!.canais!.length).toBeGreaterThan(0);
   }, 120000);
+
+  it("depois de jogar o jogo, um só «avançar até ao próximo jogo» chega ao jogo seguinte", async () => {
+    const a = await ateAoJogo("sessao-4");
+    await tratar({ id: 50, tipo: "iniciarJogo", entrada: { jogo: a.pausa.jogo } }, a.s);
+    await tratar({ id: 51, tipo: "passoJogo", entrada: { minutos: 200 } }, a.s);
+    const r = await tratar({ id: 53, tipo: "avancar", entrada: { modo: "proximoJogo" } }, a.s);
+    expect(r.pausa).toBeDefined();
+    expect(r.pausa!.jogo).not.toBe(a.pausa.jogo);
+    expect(r.pausa!.data > a.pausa.data).toBe(true);
+  }, 120000);
 });

@@ -62,7 +62,8 @@ export function BotaoAvancar() {
       router.push(tempo.pausa.emCurso ? "/match/" : "/prematch/");
       return;
     }
-    if (!desativado) void tempo.avancar(efetivo);
+    // se o avanço pára num jogo do teu clube, um só clique leva-te ao pré-jogo
+    if (!desativado) void tempo.avancar(efetivo).then((r) => { if (r?.pausa) router.push(r.pausa.emCurso ? "/match/" : "/prematch/"); });
   };
   // a função mais recente fica numa referência para o atalho de teclado não ter de se registar a cada render
   const ultima = useRef(carregar);
