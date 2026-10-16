@@ -216,7 +216,7 @@ export type Parametros = {
      * Cansaço por jogos (RZ-177): a forma cai com os minutos jogados nos últimos `janelaDias` dias acima de `cargaNormal`
      * (um jogo por semana é normal): perde `perdaPor90` por cada 90 minutos a mais, até `minimo`. Nunca passa de 1.
      */
-    forma: { janelaDias: number; cargaNormal: number; perdaPor90: number; minimo: number };
+    forma: { janelaDias: number; cargaNormal: number; perdaPor90: number; minimo: number; /** Perda de ritmo ao regressar de lesão: forma no 1.º dia e ganho por dia até 1. */ regresso: { inicial: number; ganhoPorDia: number } };
     /** Minutos regulares e acréscimos (total, sorteado por jogo). */
     duracao: number;
     acrescimos: { min: number; max: number };
@@ -592,7 +592,7 @@ export const PARAMETROS_PADRAO: Parametros = {
   localidade: { limiarVila: 1500, limiarCidade: 8000, histerese: 0.1 },
   jogo: {
     aptidao: { minimo: 0.55, semRegisto: 3, minimoGR: 0.15, semRegistoGR: 1 },
-    forma: { janelaDias: 7, cargaNormal: 90, perdaPor90: 0.03, minimo: 0.85 },
+    forma: { janelaDias: 7, cargaNormal: 90, perdaPor90: 0.03, minimo: 0.85, regresso: { inicial: 0.88, ganhoPorDia: 0.01 } },
     duracao: 90,
     acrescimos: { min: 3, max: 8 },
     oportunidadesPorEquipa: 24,
@@ -713,6 +713,7 @@ export function validarParametros(p: Parametros): string[] {
   if (!(ap.semRegisto >= 1 && ap.semRegisto <= 20 && ap.semRegistoGR >= 1 && ap.semRegistoGR <= 20)) erros.push("jogo.aptidao.semRegisto deve estar entre 1 e 20");
   const fm = p.jogo.forma;
   if (!(fm.janelaDias >= 1 && fm.cargaNormal >= 0 && fm.perdaPor90 >= 0 && fm.minimo > 0 && fm.minimo <= 1)) erros.push("jogo.forma inválida");
+  if (!(fm.regresso.inicial > 0 && fm.regresso.inicial <= 1 && fm.regresso.ganhoPorDia >= 0)) erros.push("jogo.forma.regresso inválido");
   const pos = (nome: string, v: number) => { if (!(v > 0)) erros.push(`${nome} deve ser > 0 (é ${v})`); };
   pos("premios.clube", p.premios.clube);
   pos("premios.cidade", p.premios.cidade);

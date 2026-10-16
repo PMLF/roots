@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { PARAMETROS_PADRAO } from "../config/parametros";
-import { formaPorCarga } from "../epoca/formaFisica";
+import { formaDosJogadores, formaNoRegresso, formaPorCarga } from "../epoca/formaFisica";
+import { eventoLesao } from "../lesoes/estado";
+import { RepositorioMemoria } from "../persistencia/repositorioMemoria";
 import { aptidaoNa, fatorAptidao, forcaEquipa, onzeAutomatico, type CandidatoOnze } from "./equipa";
 import { simularJogo } from "./simulador";
 import { equipaSintetica } from "./teste-util";
@@ -58,5 +60,22 @@ describe("forma por cansaço (RZ-177)", () => {
     expect(formaPorCarga(180, p)).toBeCloseTo(0.97, 5);
     expect(formaPorCarga(270, p)).toBeCloseTo(0.94, 5);
     expect(formaPorCarga(5000, p)).toBe(p.jogo.forma.minimo);
+  });
+});
+
+describe("regresso de lesão: perda de ritmo (RZ-177)", () => {
+  it("volta com forma baixa e recupera dia a dia até 1", () => {
+    expect(formaNoRegresso("2026-10-15", "2026-10-15", p)).toBeCloseTo(p.jogo.forma.regresso.inicial, 6);
+    expect(formaNoRegresso("2026-10-20", "2026-10-15", p)).toBeCloseTo(p.jogo.forma.regresso.inicial + 5 * p.jogo.forma.regresso.ganhoPorDia, 6);
+    expect(formaNoRegresso("2026-12-01", "2026-10-15", p)).toBe(1);
+  });
+  it("só afeta quem regressou há pouco; lesionado ou sem lesão fica com a forma por carga", () => {
+    const r = new RepositorioMemoria();
+    r.acrescentarEvento(eventoLesao({ jogador: "p1", clube: "A", data: "2026-10-01", epoca: 1, lesao: { tipo: "muscular", gravidade: 2, dias: 14, recaida: false } }));
+    const f = (hoje: string) => formaDosJogadores(r, ["p1", "p2"], hoje, p);
+    expect(f("2026-10-15").get("p1")).toBeCloseTo(p.jogo.forma.regresso.inicial, 6);
+    expect(f("2026-10-15").get("p2")).toBe(1);
+    expect(f("2026-10-18").get("p1")!).toBeGreaterThan(f("2026-10-15").get("p1")!);
+    expect(f("2026-11-30").get("p1")).toBe(1);
   });
 });
