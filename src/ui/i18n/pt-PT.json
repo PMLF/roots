@@ -957,5 +957,16 @@
   "financas.estado.remediado": "Remediado",
   "financas.estado.estavel": "Estável",
   "financas.estado.modesto": "Modesto",
-  "financas.estado.pobre": "Pobre"
+  "financas.estado.pobre": "Pobre",
+  "jogo.equipas": "Equipas",
+  "jogo.nota": "Nota",
+  "jogo.banco": "Banco",
+  "jogo.entraram": "Entraram",
+  "jogo.ind.golo": "golo(s)",
+  "jogo.ind.assistencia": "assistência(s)",
+  "jogo.ind.amarelo": "cartão amarelo",
+  "jogo.ind.vermelho": "cartão vermelho",
+  "jogo.ind.lesao": "lesionado",
+  "jogo.ind.entrou": "Entrou aos {min}'",
+  "jogo.ind.saiu": "Saiu aos {min}'"
 }

@@ -3,7 +3,9 @@
  * (`vivo.<jogo>`; só os últimos jogos) para a interface a reproduzir minuto a minuto, com pausa e velocidade.
  * Os outros jogos só deixam o resumo público (golos, vermelhos, lesões, melhor em campo).
  */
-import type { EventoJogo, Lado, ResultadoRemate, ResumoJogo, Tatica } from "../jogo/tipos";
+import type { RelatorioJogo } from "../jogo/estatisticas";
+import type { EquipaJogo, EventoJogo, Lado, ResultadoRemate, ResumoJogo, Tatica } from "../jogo/tipos";
+import type { Posicao } from "../mundo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
 
@@ -32,6 +34,65 @@ export type LinhaVivo = {
   golosCasa: number;
   golosFora: number;
 };
+
+/**
+ * Um jogador no jogo (painel «Equipas»): o onze inicial e o banco, com a nota ao minuto, o que fez e quando entrou ou saiu.
+ * `estado`: em campo, no banco (ainda não entrou), substituído, ou expulso.
+ */
+export type JogadorVivo = {
+  id: string;
+  nome: string;
+  posicao: Posicao;
+  estado: "campo" | "banco" | "saiu" | "expulso";
+  /** Só quem já jogou. */
+  nota?: number;
+  golos: number;
+  assistencias: number;
+  amarelos: number;
+  vermelho: boolean;
+  lesionado: boolean;
+  /** Minuto em que entrou (suplentes). */
+  entrou?: number;
+  /** Minuto em que saiu (substituído, lesionado, expulso). */
+  saiu?: number;
+  /** Quem o substituiu / quem substituiu. */
+  trocaCom?: { id: string; nome: string };
+};
+export type EquipasVivo = { casa: JogadorVivo[]; fora: JogadorVivo[] };
+
+/** Constrói o painel das equipas no minuto a que `eventos` e `relatorio` chegam. */
+export function equipasDoJogo(equipas: { casa: EquipaJogo; fora: EquipaJogo }, eventos: readonly EventoJogo[], relatorio: RelatorioJogo, nome: (id: string) => string): EquipasVivo {
+  const stat = new Map(relatorio.jogadores.map((j) => [j.id, j] as const));
+  const entrou = new Map<string, number>();
+  const saiu = new Map<string, { minuto: number; expulso: boolean }>();
+  const troca = new Map<string, string>();
+  for (const e of eventos) {
+    if (e.tipo === "substituicao") {
+      entrou.set(e.entra, e.minuto);
+      saiu.set(e.sai, { minuto: e.minuto, expulso: false });
+      troca.set(e.sai, e.entra);
+      troca.set(e.entra, e.sai);
+    } else if (e.tipo === "cartao" && e.cor === "vermelho") saiu.set(e.jogador, { minuto: e.minuto, expulso: true });
+  }
+  const lado = (l: Lado): JogadorVivo[] =>
+    [...equipas[l].onze, ...(equipas[l].banco ?? [])].map((j, i) => {
+      const st = stat.get(j.id);
+      const inicial = i < equipas[l].onze.length;
+      const sai = saiu.get(j.id);
+      const ent = entrou.get(j.id);
+      const jogou = inicial || ent !== undefined;
+      const outro = troca.get(j.id);
+      return {
+        id: j.id, nome: nome(j.id), posicao: st?.posicao ?? j.posicao,
+        estado: sai ? (sai.expulso ? "expulso" : "saiu") : jogou ? "campo" : "banco",
+        ...(jogou && st ? { nota: st.nota } : {}),
+        golos: st?.golos ?? 0, assistencias: st?.assistencias ?? 0, amarelos: st?.amarelos ?? 0, vermelho: (st?.vermelhos ?? 0) > 0, lesionado: !!st?.lesao,
+        ...(ent !== undefined ? { entrou: ent } : {}), ...(sai ? { saiu: sai.minuto } : {}),
+        ...(outro ? { trocaCom: { id: outro, nome: nome(outro) } } : {}),
+      };
+    });
+  return { casa: lado("casa"), fora: lado("fora") };
+}
 
 /** Uma linha da tabela da competição antes dos jogos de hoje. */
 export type LinhaTabelaVivo = { clube: string; nome: string; jogos: number; pontos: number; golosMarcados: number; golosSofridos: number };
@@ -65,6 +126,8 @@ export type JogoVivo = {
   outros: OutroJogoVivo[];
   /** Cores de cada clube que aparece no jogo (casa, fora e tabela). */
   cores?: Record<string, string>;
+  /** As duas equipas: onze, banco, notas e o que cada jogador fez (ao minuto, ou as finais num jogo guardado). */
+  equipas?: EquipasVivo;
   /** Estatísticas do jogo (as finais num jogo guardado; as do minuto atual ao vivo). */
   resumo?: ResumoJogo;
   /** Quantos sobem e descem nesta competição (para as zonas da tabela). */

@@ -41,6 +41,18 @@ describe("jogo do gamer minuto a minuto (RZ-170)", () => {
     expect(v45.linhas.every((l) => l.minuto <= 45)).toBe(true);
     expect(v45.linhas.some((l) => l.tipo === "fim")).toBe(false);
     expect(v45.resumo?.minuto).toBe(45);
+    // equipas: onze + banco de cada lado, com nota ao minuto; o que já aconteceu aparece nos indicadores
+    for (const l of ["casa", "fora"] as const) {
+      const eq = v45.equipas![l];
+      expect(eq.length).toBeGreaterThanOrEqual(18);
+      const campo = eq.filter((j) => j.estado !== "banco" && j.entrou === undefined);
+      expect(campo).toHaveLength(11);
+      expect(campo.every((j) => j.nota !== undefined && j.nota >= 3 && j.nota <= 10)).toBe(true);
+      expect(eq.filter((j) => j.estado === "banco").every((j) => j.nota === undefined)).toBe(true);
+    }
+    const golos45 = v45.equipas!.casa.concat(v45.equipas!.fora).reduce((t, j) => t + j.golos, 0);
+    expect(golos45).toBe(v45.golosCasa + v45.golosFora);
+    expect(v0.equipas!.casa.every((j) => j.golos === 0 && j.entrou === undefined)).toBe(true);
     const meio = await tratar({ id: 14, tipo: "caixa", entrada: {} }, s);
     expect(meio.mensagens.length).toBe(antes.mensagens.length);
     // o ao-vivo continua a ser devolvido enquanto decorre
@@ -49,6 +61,13 @@ describe("jogo do gamer minuto a minuto (RZ-170)", () => {
     expect(fim.emCurso).toBeFalsy();
     expect(fim.linhas.at(-1)?.tipo).toBe("fim");
     expect(fim.resumo?.terminado).toBe(true);
+    // no fim, quem foi substituído tem o minuto de saída e o suplente o de entrada
+    const trocas = fim.linhas.filter((l) => l.tipo === "substituicao");
+    const todos = fim.equipas!.casa.concat(fim.equipas!.fora);
+    for (const tr of trocas) {
+      expect(todos.find((j) => j.id === tr.jogador)?.saiu).toBe(tr.minuto);
+      expect(todos.find((j) => j.id === tr.entraId)?.entrou).toBe(tr.minuto);
+    }
     const depois = await tratar({ id: 17, tipo: "caixa", entrada: {} }, s);
     // só os resultados contra rivais vão para a caixa (RZ-174): aqui pode ou não haver mensagem do jogo
     expect(depois.mensagens.length).toBeGreaterThanOrEqual(antes.mensagens.length);
