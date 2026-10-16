@@ -16,6 +16,7 @@ import type { Data } from "../persistencia/tipos";
 import { calendarioDoGrupo, classificarGrupo, formarGrupos, promovidosDoGrupo } from "./fasePromocao";
 import { aplicarMovimentos, SERIES, type Movimento } from "./movimentos";
 import { parametrosDoSave } from "./anoDoSave";
+import { anosSeguidos, premiadosPorDistrito, type ClubeClassificado } from "./premioEstado";
 import { dadosDaEpoca, guardarPiramide, lerPiramide, ligasDaPiramide } from "./piramideEpoca";
 import { nomeGrupoPromocao, gruposDaPromocao, prepararEpoca } from "./preparar";
 
@@ -78,12 +79,32 @@ export function fecharEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Par
   const ctx = { distritoDe: (c: string) => dados.clubes.find((x) => x.id === c)!.distrito, serieDoDistrito: serieDoDistrito(dados) };
   const r = aplicarMovimentos(atual, { primeira, segunda, terceira, cp, promovidosFasePromocao: promovidos }, params, ctx);
 
+  // Prémio do Estado (passo 2 do DESIGN_REGRAS §2): sobre as classificações finais, antes de qualquer movimento
+  const classificados: ClubeClassificado[] = [];
+  const competicoes = new Map([...ligas.values()].map((l) => [l.liga, l.escalao] as const));
+  for (const [competicao, escalao] of competicoes) {
+    for (const l of tabelaDaCompeticao(repo, competicao, epoca, escalao === "cp" || escalao === "distrital" ? "promocao" : "liga", params, { seed, reputacao: rep })) {
+      const cd = dados.clubes.find((x) => x.id === l.clube);
+      if (cd) classificados.push({ clube: l.clube, distrito: cd.distrito, escalao, posicao: l.posicao, jogos: l.jogos, pontos: l.pontos, diferenca: l.diferenca, golosMarcados: l.golosMarcados, reputacao: cd.reputacao });
+    }
+  }
+  const premiados = premiadosPorDistrito(classificados);
+  const cidadeDe0 = new Map(dados.clubes.map((c) => [c.id, c.cidade] as const));
+
   const campeoes = [primeira, segunda, terceira, ...SERIES.map((s) => cp[s])].map((t) => ({ liga: nomeLiga(t[0] as string), clube: t[0] as string, nome: nome.get(t[0] as string) ?? "" }));
   repo.transacao(() => {
     for (const c of campeoes) repo.acrescentarEvento({ tipo: "CAMPEAO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: c.clube, papel: "campeao" }, { k: "competicao", id: c.liga }], dados: { liga: c.liga } });
     for (const m of r.movimentos) {
       const para = m.para.startsWith("cp-") ? `CP Série ${m.para.slice(3)}` : m.para;
       repo.acrescentarEvento({ tipo: m.motivo === "descida" ? "DESCIDA" : "SUBIDA", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: m.clube }], dados: { de: m.de, para, motivo: m.motivo } });
+    }
+    for (const p of premiados) {
+      const chave = `premio.${p.distrito}`;
+      const anterior = repo.meta(chave) ? (JSON.parse(repo.meta(chave) as string) as { clube: string; seguidos: number }) : undefined;
+      const seguidos = anosSeguidos(anterior, p.clube);
+      repo.definirMeta(chave, JSON.stringify({ clube: p.clube, seguidos, epoca }));
+      const cidade = cidadeDe0.get(p.clube);
+      repo.acrescentarEvento({ tipo: "PREMIO_ESTADO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: p.clube, papel: "premiado" }, ...(cidade ? [{ k: "cidade" as const, id: cidade, papel: "camara" }] : [])], dados: { distrito: p.distrito, valorClube: params.premios.clube, valorCidade: params.premios.cidade, seguidos } });
     }
     // as cidades reagem aos resultados dos clubes e ao que lhes acontece (RZ-133)
     const cidadeDe = new Map(dados.clubes.map((c) => [c.id, c.cidade] as const));

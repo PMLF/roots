@@ -931,5 +931,9 @@
   "epoca.vde": "W / D / L",
   "epoca.golos": "Goals (for / against)",
   "epoca.pontos": "Points",
-  "clube.lugar": "Position {n}"
+  "clube.lugar": "Position {n}",
+  "noticia.premio_estado.1.titulo": "{clube} are the best in {distrito}",
+  "noticia.premio_estado.1.corpo": "The club receives the State Prize and the {cidade} council gets its share.",
+  "noticia.premio_estado.2.titulo": "State Prize for {clube}",
+  "noticia.premio_estado.2.corpo": "Best-placed club of {distrito} in the pyramid ({seguidos, plural, one {first year} other {# years running}})."
 }
