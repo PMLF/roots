@@ -11,6 +11,57 @@ export const CRITERIOS: readonly Criterio[] = ["pontos", "confrontoDireto", "dif
 
 export type Escalao = "primeiraLiga" | "segundaLiga" | "terceiraLiga" | "cp" | "distrital";
 
+
+/** Acontecimentos que mexem com uma cidade (ou com todas as de um polo) ao fim de cada época. */
+export type TipoEventoCidade =
+  | "fabrica_fecha" | "fabrica_abre" | "fundos_europeus" | "autoestrada" | "festival"
+  | "mau_ano_agricola" | "crise_regional" | "incendio" | "universidade" | "hotel_novo";
+export const TIPOS_EVENTO_CIDADE: readonly TipoEventoCidade[] = [
+  "fabrica_fecha", "fabrica_abre", "fundos_europeus", "autoestrada", "festival",
+  "mau_ano_agricola", "crise_regional", "incendio", "universidade", "hotel_novo",
+];
+export type EfeitosCidade = { emprego?: number; economia?: number; turismo?: number; orgulho?: number; notoriedade?: number; populacaoPct?: number };
+export type EventoCidadeCfg = {
+  /** Atinge todos os concelhos do polo (e não só um). */
+  regional: boolean;
+  /** Peso por setor (principal a 100 %, secundário a 50 %); `*` é o peso por omissão. */
+  peso: Record<string, number>;
+  efeitos: EfeitosCidade;
+};
+export type ParametrosCidade = {
+  eleicoesAutarquicasAnos: number;
+  /** Ano das últimas autárquicas antes do arranque: o mandato em curso conta a partir daqui. */
+  mandatoDesde: number;
+  /** Cortes (0-100) entre os cinco níveis em palavras: muito baixo … muito alto. */
+  niveis: [number, number, number, number];
+  /** Variação mínima (pontos) entre épocas para dizer que sobe ou desce. */
+  limiarTendencia: number;
+  /** Desvio de cada setor ao valor médio (50); o setor principal conta a 100 %, o secundário a 50 %. */
+  setores: Record<string, EfeitosCidade>;
+  inicial: {
+    base: number; ruido: number;
+    /** Pontos de economia/emprego por cada dez vezes mais população (acima de 15 000 habitantes). */
+    porDecadaEconomia: number; porDecadaEmprego: number;
+    orgulho: { base: number; porReputacao: number; ruido: number };
+    notoriedade: { base: number; porReputacao: number; porDecada: number; ruido: number };
+    /** Reputação máxima da escala dos clubes (para normalizar). */
+    reputacaoMax: number;
+  };
+  evolucao: {
+    /** Fração do desvio ao alvo que se corrige em cada época. */
+    regressao: number; ruido: number;
+    orgulho: { campeao: number; subida: number; descida: number };
+    notoriedade: { regressao: number; porOrgulho: number };
+    cultura: { porOrgulho: number; campeao: number; subida: number };
+    populacao: { porEconomia: number; porOrgulho: number; ruidoPct: number; maxPct: number };
+  };
+  eventos: {
+    /** Probabilidade anual de acontecer um acontecimento local numa cidade / regional num polo. */
+    probCidade: number; probPolo: number;
+    tipos: Record<TipoEventoCidade, EventoCidadeCfg>;
+  };
+};
+
 export type Parametros = {
   versao: 1;
   premios: {
@@ -99,7 +150,8 @@ export type Parametros = {
     tracoMax: number;
     memoria: { meiaVidaPositivaMeses: number; negativaBaseMeses: number; negativaPorPaciencia: number; maxPorPessoa: number };
   };
-  cidade: { eleicoesAutarquicasAnos: number };
+  /** A cidade (concelho) e a sua evolução anual (RZ-133; docs/CIDADE.md §2, §11). */
+  cidade: ParametrosCidade;
   /** Estatuto das localidades (RZ-136; docs/CIDADE.md §6b): limiares de população com histerese. */
   localidade: { limiarVila: number; limiarCidade: number; histerese: number };
   /** Motor de jogo por oportunidades (RZ-104; docs/MOTOR_JOGO.md). Escalas de atributos: 1-20. */
@@ -400,7 +452,59 @@ export const PARAMETROS_PADRAO: Parametros = {
     tracoMax: 20,
     memoria: { meiaVidaPositivaMeses: 12, negativaBaseMeses: 6, negativaPorPaciencia: 0.6, maxPorPessoa: 40 },
   },
-  cidade: { eleicoesAutarquicasAnos: 4 },
+  cidade: {
+    eleicoesAutarquicasAnos: 4,
+    mandatoDesde: 2025,
+    niveis: [20, 40, 60, 80],
+    limiarTendencia: 4,
+    setores: {
+      TUR: { emprego: 4, economia: 6, turismo: 30, populacaoPct: 0.2 },
+      MAR: { turismo: 12, populacaoPct: -0.2 },
+      IND: { emprego: 8, economia: 8, turismo: -8, populacaoPct: 0.2 },
+      AGR: { emprego: -4, economia: -6, turismo: -6, populacaoPct: -0.4 },
+      UNI: { emprego: 5, economia: 6, turismo: 4, populacaoPct: 0.6 },
+      LOG: { emprego: 6, economia: 6, populacaoPct: 0.3 },
+      PAT: { turismo: 20 },
+      INT: { emprego: -8, economia: -10, turismo: -4, populacaoPct: -0.8 },
+      FRO: { emprego: -2, economia: -2, populacaoPct: -0.3 },
+      TER: { turismo: 14 },
+      EMI: { emprego: -2, economia: 2, turismo: 4, populacaoPct: -0.3 },
+      DOR: { emprego: 2, turismo: -10, populacaoPct: 0.9 },
+      ENE: { emprego: 4, economia: 14, populacaoPct: 0.2 },
+      SER: { emprego: 8, economia: 10, turismo: 2, populacaoPct: 0.4 },
+      MUL: { populacaoPct: 0.8 },
+      ILH: { emprego: -2, economia: -2, turismo: 10 },
+    },
+    inicial: {
+      base: 50, ruido: 6, porDecadaEconomia: 8, porDecadaEmprego: 3,
+      orgulho: { base: 35, porReputacao: 40, ruido: 5 },
+      notoriedade: { base: 15, porReputacao: 55, porDecada: 8, ruido: 4 },
+      reputacaoMax: 10000,
+    },
+    evolucao: {
+      regressao: 0.2, ruido: 3,
+      orgulho: { campeao: 8, subida: 6, descida: -6 },
+      notoriedade: { regressao: 0.25, porOrgulho: 0.05 },
+      cultura: { porOrgulho: 0.03, campeao: 0.8, subida: 0.5 },
+      populacao: { porEconomia: 0.012, porOrgulho: 0.004, ruidoPct: 0.15, maxPct: 3 },
+    },
+    eventos: {
+      probCidade: 0.12,
+      probPolo: 0.1,
+      tipos: {
+        fabrica_fecha: { regional: false, peso: { "*": 0.4, IND: 3, LOG: 1, MAR: 1 }, efeitos: { emprego: -12, economia: -8, orgulho: -3, populacaoPct: -1.2 } },
+        fabrica_abre: { regional: false, peso: { "*": 0.4, IND: 2, LOG: 2, ENE: 2, SER: 1.5, UNI: 1 }, efeitos: { emprego: 10, economia: 7, populacaoPct: 1 } },
+        fundos_europeus: { regional: true, peso: { "*": 1, INT: 2, AGR: 1.5, FRO: 1.5 }, efeitos: { emprego: 3, economia: 6, turismo: 3 } },
+        autoestrada: { regional: true, peso: { "*": 0.5, INT: 2, FRO: 1.5 }, efeitos: { economia: 4, turismo: 5, populacaoPct: 0.5 } },
+        festival: { regional: false, peso: { "*": 0.3, TUR: 2, PAT: 2, MAR: 1.5, EMI: 1 }, efeitos: { turismo: 8, notoriedade: 4, orgulho: 2 } },
+        mau_ano_agricola: { regional: false, peso: { "*": 0, AGR: 3, TER: 1 }, efeitos: { economia: -7, emprego: -4 } },
+        crise_regional: { regional: true, peso: { "*": 1 }, efeitos: { economia: -6, emprego: -5 } },
+        incendio: { regional: false, peso: { "*": 0.1, INT: 2, AGR: 1.5, FRO: 1 }, efeitos: { turismo: -6, economia: -4, orgulho: -2, populacaoPct: -0.5 } },
+        universidade: { regional: false, peso: { "*": 0, UNI: 3 }, efeitos: { economia: 4, populacaoPct: 1.5, notoriedade: 2 } },
+        hotel_novo: { regional: false, peso: { "*": 0.2, TUR: 3, PAT: 1.5, TER: 1.5, MAR: 1 }, efeitos: { turismo: 6, emprego: 3 } },
+      },
+    },
+  },
   localidade: { limiarVila: 1500, limiarCidade: 8000, histerese: 0.1 },
   jogo: {
     duracao: 90,
@@ -599,6 +703,14 @@ export function validarParametros(p: Parametros): string[] {
   const lo = p.localidade;
   if (!(lo.limiarVila > 0 && lo.limiarVila < lo.limiarCidade)) erros.push("localidade: 0 < limiarVila < limiarCidade");
   if (!(lo.histerese >= 0 && lo.histerese < 0.5)) erros.push("localidade.histerese entre 0 e 0.5");
+  const ci = p.cidade;
+  if (!(ci.eleicoesAutarquicasAnos >= 1 && ci.mandatoDesde > 1900)) erros.push("cidade: eleicoesAutarquicasAnos ≥ 1 e mandatoDesde válido");
+  if (!ci.niveis.every((x, i) => x > (ci.niveis[i - 1] ?? 0) && x < 100)) erros.push("cidade.niveis: quatro cortes crescentes entre 0 e 100");
+  if (!(ci.evolucao.regressao > 0 && ci.evolucao.regressao <= 1)) erros.push("cidade.evolucao.regressao entre 0 e 1");
+  if (!(ci.evolucao.populacao.maxPct > 0)) erros.push("cidade.evolucao.populacao.maxPct > 0");
+  if (!(ci.eventos.probCidade >= 0 && ci.eventos.probCidade <= 1 && ci.eventos.probPolo >= 0 && ci.eventos.probPolo <= 1)) erros.push("cidade.eventos: probabilidades entre 0 e 1");
+  for (const t of TIPOS_EVENTO_CIDADE) if (!ci.eventos.tipos[t]) erros.push(`cidade.eventos.tipos.${t} em falta`);
+  for (const [t, e] of Object.entries(ci.eventos.tipos)) if (Object.values(e.peso).some((x) => x < 0)) erros.push(`cidade.eventos.tipos.${t}: pesos ≥ 0`);
   const m = p.mundo;
   if (!(m.talento.muIndice0 < m.talento.muIndice100 && m.talento.sigma > 0)) erros.push("mundo.talento: muIndice0 < muIndice100 e sigma > 0");
   if (!(m.talento.epsIndice0 > 0 && m.talento.epsIndice0 <= m.talento.epsIndice100 && m.talento.epsIndice100 < 1)) erros.push("mundo.talento: 0 < epsIndice0 ≤ epsIndice100 < 1 (a cauda nunca é zero)");

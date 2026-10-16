@@ -7,7 +7,7 @@ import { useT } from "@/ui/i18n/LocaleProvider";
 /** Uma notícia ou mensagem: título, frase de apoio e ligações para as fichas. O texto vem das chaves `noticia.<tipo>.<n>.*`. */
 export function ItemNoticia({ n, naoLida }: { n: Noticia; naoLida?: boolean }) {
   const { t } = useT();
-  const tipo = n.tipo === "resultado" ? `resultado.${n.valores.resultado}` : n.tipo;
+  const tipo = n.tipo === "resultado" ? `resultado.${n.valores.resultado}` : n.tipo === "cidade_evento" ? `cidade.${n.valores.evento}` : n.tipo;
   const valores = { ...n.valores } as Record<string, string | number>;
   if (n.tipo === "localidade") {
     valores.de = t(`estatuto.${valores.de}` as Chave).toLowerCase();

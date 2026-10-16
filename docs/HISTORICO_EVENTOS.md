@@ -357,3 +357,9 @@ Sem perguntas em aberto neste documento.
 ## Notícias e caixa de entrada (RZ-118)
 
 As notícias **não são guardadas**: derivam dos eventos públicos (`src/engine/noticias/noticias.ts`). Cada evento que dá notícia vira `{ tipo, variante, valores, ligacoes }`; a interface traduz com as chaves `noticia.<tipo>.<n>.titulo|corpo` (`resultado` usa `resultado.<vitoria|empate|derrota>`). A variante é `id do evento % nº de variantes`, por isso a mesma notícia lê-se sempre igual. A caixa de entrada é o subconjunto pessoal do clube do gamer (inclui o resultado de cada jogo e todas as lesões do plantel); o estado de leitura é o meta `caixa.lida` (último evento lido).
+
+## Cidades (RZ-133)
+
+- `CIDADE_EPOCA` (**privado**, uma por cidade e por fecho de época): `{ valida, populacao, emprego, economia, turismo, orgulho, notoriedade, culturaFutebol, acontecimentos[] }`, entidade `cidade`. É o estado verdadeiro; o estado de arranque (época 1) não se grava, reconstrói-se da seed. A interface nunca o lê: recebe níveis e tendências (`fichaCidade`).
+- `CIDADE_EVENTO` (**público**): `{ evento, regional, polo? }`, entidades `cidade` (várias nos regionais). Alimenta as notícias (`cidade_evento`) e a lista de acontecimentos da ficha.
+

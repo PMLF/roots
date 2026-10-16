@@ -8,6 +8,8 @@ import { proximoDiaDaSemana, somarDias } from "../calendario/datas";
 import { criarData } from "../calendario/datas";
 import type { Parametros } from "../config/parametros";
 import type { DadosBase, SerieCP } from "../dados/tipos";
+import { evoluirCidades } from "../cidade/cidades";
+import type { ResultadosClubes } from "../cidade/evolucao";
 import { tabelaDaCompeticao } from "../competicao/tabela";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
@@ -83,6 +85,16 @@ export function fecharEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Par
       const para = m.para.startsWith("cp-") ? `CP Série ${m.para.slice(3)}` : m.para;
       repo.acrescentarEvento({ tipo: m.motivo === "descida" ? "DESCIDA" : "SUBIDA", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: m.clube }], dados: { de: m.de, para, motivo: m.motivo } });
     }
+    // as cidades reagem aos resultados dos clubes e ao que lhes acontece (RZ-133)
+    const cidadeDe = new Map(dados.clubes.map((c) => [c.id, c.cidade] as const));
+    const resultados = new Map<string, ResultadosClubes>();
+    const somar = (clube: string, campo: keyof ResultadosClubes) => {
+      const cid = cidadeDe.get(clube);
+      if (cid) resultados.set(cid, { campeoes: 0, subidas: 0, descidas: 0, ...resultados.get(cid), [campo]: (resultados.get(cid)?.[campo] ?? 0) + 1 });
+    };
+    for (const c of campeoes) somar(c.clube, "campeoes");
+    for (const m of r.movimentos) somar(m.clube, m.motivo === "descida" ? "descidas" : "subidas");
+    evoluirCidades(repo, dados, params, epoca, hoje, resultados);
     guardarPiramide(repo, epoca + 1, r.piramide);
     repo.definirMeta("epoca", String(epoca + 1));
     repo.definirMeta("data.hoje", criarData(params.calendario.anoInicial + epoca, params.calendario.mesInicioEpoca, 1));
