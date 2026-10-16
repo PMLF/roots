@@ -152,6 +152,17 @@ describe("avançar no tempo", () => {
     for (const g of ["A", "B", "C", "D"]) expect(repo.jogosDaCompeticao(`Fase de Promoção ${g}`, 1).length).toBe(10);
     for (const g of ["A", "B", "C", "D"]) expect(ultima(`Fase de Promoção ${g}`) <= "2027-05-31").toBe(true);
     expect(resumo!.campeoes.length).toBe(7);
+    // as séries do CP acabam cedo e há meias-finais e final entre os quatro campeões, tudo até maio
+    for (const sr of ["A", "B", "C", "D"]) expect(ultima(`CP Série ${sr}`) <= "2027-04-26").toBe(true);
+    expect(repo.jogosDaCompeticao("CP Meias-Finais", 1)).toHaveLength(2);
+    expect(repo.jogosDaCompeticao("CP Final", 1)).toHaveLength(1);
+    expect(ultima("CP Final") <= "2027-05-31").toBe(true);
+    expect(ultima("CP Meias-Finais") < ultima("CP Final")).toBe(true);
+    const campeoesSeries = new Set(resumo!.campeoes.filter((x) => x.liga.startsWith("CP Série")).map((x) => x.clube));
+    for (const j of [...repo.jogosDaCompeticao("CP Meias-Finais", 1), ...repo.jogosDaCompeticao("CP Final", 1)].filter((x) => x.competicao === "CP Meias-Finais")) {
+      expect(campeoesSeries.has(j.casa) && campeoesSeries.has(j.fora)).toBe(true);
+    }
+    expect(repo.contar("CAMPEAO")).toBe(8); // sete campeões de liga/série e o campeão do CP
     // Prémio do Estado: um por distrito (20), pago ao melhor classificado da pirâmide, com o valor dos parâmetros
     expect(repo.contar("PREMIO_ESTADO")).toBe(20);
     const campeaoPrimeira = resumo!.campeoes.find((x) => x.liga === "Primeira Liga")!.clube;

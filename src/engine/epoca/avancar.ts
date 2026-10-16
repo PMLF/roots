@@ -15,6 +15,7 @@ import { indisponiveis, jogoConfirmado, lerPlano, onzeDoPlano, type Plano } from
 import type { EquipaJogo, ResumoJogo } from "../jogo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
+import { gerarFinalCp, gerarMeiasFinaisCp } from "./faseFinalCp";
 import { fecharEpoca, gerarFasePromocao, type ResumoEpoca } from "./fecharEpoca";
 import { eventoRival, motivoDeRival } from "./rivais";
 import { CHAVE_SESSAO, guardarJogoVivo, linhasDoJogo, type LinhaTabelaVivo } from "./jogoAoVivo";
@@ -174,6 +175,8 @@ export function avancar(repo: Repositorio, base: DadosBase, params: Parametros, 
     // A Fase de Promoção marca-se assim que acabam as distritais (cedo, para se jogar até maio), com as outras ligas ainda a decorrer.
     const distritais = new Set(dados.clubes.filter((c) => c.escalao === "distrital").map((c) => c.liga));
     if (!gruposDaPromocao(repo, epoca) && !pendentes.some((j) => distritais.has(j.competicao))) { gerarFasePromocao(repo, dados, params, epoca); return "gerou"; }
+    // Fase final do CP (meias-finais e final entre os campeões das séries): marca-se quando as séries acabam e a final quando as meias-finais se jogaram
+    if (gerarMeiasFinaisCp(repo, dados, params, epoca) || gerarFinalCp(repo, params, epoca)) return "gerou";
     if (pendentes.length > 0) return "livre";
     resumoEpoca = fecharEpoca(repo, dados, params, epoca);
     return "fechou";
