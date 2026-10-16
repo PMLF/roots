@@ -8,7 +8,7 @@ describe("parâmetros padrão", () => {
 
   it("batem com o Clubes_Raizes.xlsx › Parâmetros (prémios, distritais, CP, promoção)", () => {
     const p = PARAMETROS_PADRAO;
-    expect(p.premios).toEqual({ clube: 2_000_000, cidade: 1_000_000 });
+    expect({ clube: p.premios.clube, cidade: p.premios.cidade }).toEqual({ clube: 2_000_000, cidade: 1_000_000 });
     expect([p.distritais.alvo, p.distritais.min, p.distritais.max]).toEqual([10, 8, 14]);
     expect([p.piramide.cp.series, p.piramide.cp.clubesPorSerie, p.piramide.promocao.promovidosPorGrupo, p.piramide.distritos]).toEqual([4, 10, 2, 20]);
   });

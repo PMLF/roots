@@ -163,6 +163,8 @@ describe("avançar no tempo", () => {
       expect(campeoesSeries.has(j.casa) && campeoesSeries.has(j.fora)).toBe(true);
     }
     expect(repo.contar("CAMPEAO")).toBe(8); // sete campeões de liga/série e o campeão do CP
+    // prémios por vencer cada competição (RZ-216): 3 ligas + 4 séries + vencedor do CP + 20 distritais + 4 grupos da Fase de Promoção
+    expect(repo.contar("PREMIO_COMPETICAO")).toBe(32);
     // Prémio do Estado: um por distrito (20), pago ao melhor classificado da pirâmide, com o valor dos parâmetros
     expect(repo.contar("PREMIO_ESTADO")).toBe(20);
     const campeaoPrimeira = resumo!.campeoes.find((x) => x.liga === "Primeira Liga")!.clube;
