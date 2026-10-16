@@ -95,6 +95,8 @@ export interface Repositorio {
   // --- jogos (factos compactos) + derivadas
   registarJogo(jogo: JogoNovo, factos: JogoFacto[], participacoes: Participacao[]): { evento: number };
   jogo(id: string): Jogo | undefined;
+  /** Os jogos já jogados entre dois clubes (em qualquer dos campos), do mais recente para o mais antigo. */
+  confrontos(a: string, b: string, limite: number): Jogo[];
   marcadores(competicao: string, epoca: number, jornada: number): Marcador[];
   /** Cartões (CA, CV) destes jogadores nesta competição e época, por jornada, data, jogo e minuto. */
   cartoes(competicao: string, epoca: number, jogadores: readonly string[]): RegistoCartao[];

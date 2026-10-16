@@ -23,7 +23,7 @@ import { COMPETICAO_FINAL_CP, gerarFinalCp, gerarMeiasFinaisCp } from "./faseFin
 import { fecharEpoca, gerarFasePromocao, type ResumoEpoca } from "./fecharEpoca";
 import { formaDosJogadores } from "./formaFisica";
 import { eventoRival, motivoDeRival } from "./rivais";
-import { CHAVE_SESSAO, equipasDoJogo, guardarJogoVivo, linhasDoJogo, type EquipasVivo, type LinhaTabelaVivo } from "./jogoAoVivo";
+import { CHAVE_SESSAO, curvaXg, equipasDoJogo, guardarJogoVivo, linhasDoJogo, type ConfrontoVivo, type CurvaXg, type EquipasVivo, type InfoJogo, type LinhaTabelaVivo } from "./jogoAoVivo";
 import { atualizarOfertas, estaDesempregado } from "./mercadoTreinadores";
 import { dadosDaEpoca, epocaAtual } from "./piramideEpoca";
 import { gruposDaPromocao, jogosPorJogar, prepararEpoca } from "./preparar";
@@ -117,6 +117,16 @@ export function bilheteDoJogo(dados: DadosBase, params: Parametros, casa: string
   return { ...b, clube: cc };
 }
 
+/** Os últimos jogos entre os dois clubes e os dados do estádio, para a página do jogo. `excepto` é o próprio jogo. */
+export function contextoDoJogo(repo: Repositorio, dados: DadosBase, params: Parametros, casa: string, fora: string, competicao: string, excepto: string): { info?: InfoJogo; confrontos: ConfrontoVivo[] } {
+  const confrontos = repo.confrontos(casa, fora, 6).filter((j) => j.id !== excepto).slice(0, 5)
+    .map((j) => ({ id: j.id, data: j.data, competicao: j.competicao, epoca: j.epoca, casa: j.casa, fora: j.fora, golosCasa: j.golosCasa, golosFora: j.golosFora }));
+  const b = bilheteDoJogo(dados, params, casa, fora, competicao);
+  if (!b) return { confrontos };
+  const e = b.clube.estadio;
+  return { confrontos, info: { estadio: { nome: e.nome, localidade: b.clube.localidade, capacidade: e.capacidade }, assistencia: b.assistencia } };
+}
+
 /** Joga os jogos de `hoje` e passa ao dia seguinte. Tudo numa transação. */
 export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametros, clubeGamer?: string): ResumoDia {
   const dados = dadosDaEpoca(repo, base);
@@ -133,7 +143,7 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
       if (repo.jogo(g.id) || nivelDoJogo(g.casa, g.fora, clubeGamer) !== 0 || tabelas.has(g.competicao)) continue;
       tabelas.set(g.competicao, tabelaAntes(repo, g.competicao, epoca, nomeClube));
     }
-    const vivos: { id: string; competicao: string; jornada: number; casa: string; fora: string; duracao: number; golosCasa: number; golosFora: number; linhas: ReturnType<typeof linhasDoJogo>; resumo: ResumoJogo; equipas: EquipasVivo }[] = [];
+    const vivos: { id: string; competicao: string; jornada: number; casa: string; fora: string; duracao: number; golosCasa: number; golosFora: number; linhas: ReturnType<typeof linhasDoJogo>; resumo: ResumoJogo; equipas: EquipasVivo; xg: CurvaXg }[] = [];
     const duracoes = new Map<string, number>();
     for (const g of repo.jogosDoDia(hoje)) {
       if (repo.jogo(g.id)) continue;
@@ -150,7 +160,7 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
       for (const h of r.historias) repo.acrescentarEvento({ ...h, causa: evento });
       const rel = r.relatorio;
       duracoes.set(g.id, rel.duracao);
-      if (r.nivel === 0) vivos.push({ id: g.id, competicao: g.competicao, jornada: g.jornada, casa: g.casa, fora: g.fora, duracao: rel.duracao, golosCasa: rel.golosCasa, golosFora: rel.golosFora, linhas: linhasDoJogo(r.eventos, rel.duracao, nomePessoa), resumo: r.resumo, equipas: equipasDoJogo({ casa, fora }, r.eventos, r.relatorio, nomePessoa) });
+      if (r.nivel === 0) vivos.push({ id: g.id, competicao: g.competicao, jornada: g.jornada, casa: g.casa, fora: g.fora, duracao: rel.duracao, golosCasa: rel.golosCasa, golosFora: rel.golosFora, linhas: linhasDoJogo(r.eventos, rel.duracao, nomePessoa), resumo: r.resumo, equipas: equipasDoJogo({ casa, fora }, r.eventos, r.relatorio, nomePessoa), xg: curvaXg(r.eventos, rel.duracao) });
       const clubeDe = (lado: "casa" | "fora") => (lado === "casa" ? g.casa : g.fora);
       const homem = r.nivel === 1 ? { jogador: r.relatorio.homemDoJogo.id, nota: r.relatorio.homemDoJogo.nota } : (() => { const j = r.relatorio.jogadores.find((x) => x.id === r.relatorio.homemDoJogo); return j ? { jogador: j.id, nota: j.nota } : undefined; })();
       jogos.push({
@@ -167,7 +177,7 @@ export function avancarDia(repo: Repositorio, base: DadosBase, params: Parametro
         id: j.id, casa: { id: j.casa, nome: j.casaNome }, fora: { id: j.fora, nome: j.foraNome }, duracao: duracoes.get(j.id) ?? 90,
         golos: j.golos.map((x) => ({ minuto: x.minuto, lado: (x.clube === j.casa ? "casa" : "fora") as "casa" | "fora" })), golosCasa: j.golosCasa, golosFora: j.golosFora,
       }));
-      guardarJogoVivo(repo, { ...v, data: hoje, casa: { id: v.casa, nome: nomeClube.get(v.casa) ?? v.casa }, fora: { id: v.fora, nome: nomeClube.get(v.fora) ?? v.fora }, tabela: tabelas.get(v.competicao) ?? [], pontosVitoria: params.classificacao.pontosVitoria, pontosEmpate: params.classificacao.pontosEmpate, outros, cores: coresDos(dados, [v.casa, v.fora, ...(tabelas.get(v.competicao) ?? []).map((l) => l.clube)]), ladoGamer: v.casa === clubeGamer ? "casa" : "fora", zonas: zonasDa(dados, params, v.casa) });
+      guardarJogoVivo(repo, { ...v, ...contextoDoJogo(repo, dados, params, v.casa, v.fora, v.competicao, v.id), data: hoje, casa: { id: v.casa, nome: nomeClube.get(v.casa) ?? v.casa }, fora: { id: v.fora, nome: nomeClube.get(v.fora) ?? v.fora }, tabela: tabelas.get(v.competicao) ?? [], pontosVitoria: params.classificacao.pontosVitoria, pontosEmpate: params.classificacao.pontosEmpate, outros, cores: coresDos(dados, [v.casa, v.fora, ...(tabelas.get(v.competicao) ?? []).map((l) => l.clube)]), ladoGamer: v.casa === clubeGamer ? "casa" : "fora", zonas: zonasDa(dados, params, v.casa) });
     }
     const amanha = somarDias(hoje, 1);
     repo.definirMeta("data.hoje", amanha);

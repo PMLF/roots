@@ -6,15 +6,19 @@ import type { JogoVivo } from "@/engine/epoca/jogoAoVivo";
 import type { Tatica } from "@/engine/jogo/tipos";
 import { Ligacao } from "@/ui/components/Ligacao";
 import { AmostraClube } from "@/ui/components/AmostraClube";
-import { EquipasEEstatisticas, Eventos, OutrosJogos, TabelaViva, TaticaNoJogo } from "@/ui/components/jogo/PainelJogo";
+import { CartaoEquipa, Confrontos, Estatisticas, Eventos, GraficoXg, InfoDoJogo, OutrosJogos, TabelaViva, TaticaNoJogo } from "@/ui/components/jogo/PainelJogo";
 import { guardar, ler } from "@/ui/armazenamento";
 import { useModoDev } from "@/ui/dev";
+import type { Chave } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { useMeuClube } from "@/ui/meuClube";
 import { useMotor } from "@/ui/MotorProvider";
 
 /** Segundos de relógio por minuto de jogo em cada velocidade. */
 const VELOCIDADES = [{ rotulo: "1×", seg: 0.5 }, { rotulo: "2×", seg: 0.25 }, { rotulo: "4×", seg: 0.1 }] as const;
+const SEPARADORES = ["jogo", "estatisticas", "info"] as const;
+type Separador = (typeof SEPARADORES)[number];
+const eSeparador = (v: unknown): v is Separador => SEPARADORES.includes(v as Separador);
 const eVelocidade = (v: unknown): v is number => Number.isInteger(v) && (v as number) >= 0 && (v as number) < VELOCIDADES.length;
 
 function Conteudo() {
@@ -28,12 +32,14 @@ function Conteudo() {
   const [jogo, setJogo] = useState<JogoVivo | null | undefined>(undefined);
   const [aCorrer, setACorrer] = useState(false);
   const [vel, setVel] = useState(0);
+  const [separador, setSeparador] = useState<Separador>("jogo");
   const [soImportante, setSoImportante] = useState(false);
   const [taticaAberta, setTaticaAberta] = useState(false);
   const [aMudar, setAMudar] = useState(false);
   const [erro, setErro] = useState<string | undefined>(undefined);
   const corriaAntes = useRef(false);
 
+  useEffect(() => { setSeparador(ler("raizes.separadorJogo", eSeparador) ?? "jogo"); }, []);
   useEffect(() => { setVel(ler("raizes.velocidadeJogo", eVelocidade) ?? 0); }, []);
   useEffect(() => {
     if (!motor) return;
@@ -126,15 +132,32 @@ function Conteudo() {
       ) : null}
       {erro && <p className="erro" role="alert">{erro}</p>}
       {taticaAberta && emCurso && jogo.tatica && <TaticaNoJogo tatica={jogo.tatica} aoMudar={(x) => void mudarTatica(x)} aoFechar={fecharTatica} ocupado={aMudar} />}
-      <div className="jogo-grelha">
-        <div className="jogo-coluna">
-          <section className="painel" aria-label={t("jogo.eventos")}>
-            <h2>{t("jogo.eventos")}</h2>
-            <Eventos jogo={jogo} soImportante={soImportante} />
-          </section>
-        </div>
-        <div className="jogo-coluna"><EquipasEEstatisticas jogo={jogo} /></div>
-        <div className="jogo-coluna"><OutrosJogos jogo={jogo} meu={meu ?? undefined} /><TabelaViva jogo={jogo} meu={meu ?? undefined} /></div>
+      <div className="separadores" role="tablist" aria-label={t("jogo.separadores")}>
+        {SEPARADORES.map((x) => (
+          <button key={x} type="button" role="tab" id={`sep-${x}`} aria-selected={separador === x} aria-controls={`pn-${x}`} onClick={() => { setSeparador(x); guardar("raizes.separadorJogo", x); }}>{t(`jogo.tab.${x}` as Chave)}</button>
+        ))}
+      </div>
+      <div role="tabpanel" id={`pn-${separador}`} aria-labelledby={`sep-${separador}`}>
+        {separador === "jogo" && (
+          <div className="jogo-grelha">
+            <div className="jogo-coluna">
+              <section className="painel" aria-label={t("jogo.eventos")}>
+                <h2>{t("jogo.eventos")}</h2>
+                <Eventos jogo={jogo} soImportante={soImportante} />
+              </section>
+            </div>
+            <div className="jogo-coluna"><CartaoEquipa jogo={jogo} lado="casa" /><CartaoEquipa jogo={jogo} lado="fora" /></div>
+            <div className="jogo-coluna"><OutrosJogos jogo={jogo} meu={meu ?? undefined} /><TabelaViva jogo={jogo} meu={meu ?? undefined} /></div>
+          </div>
+        )}
+        {separador === "estatisticas" && (
+          <div className="jogo-grelha">
+            <div className="jogo-coluna"><Estatisticas jogo={jogo} /></div>
+            <div className="jogo-coluna"><GraficoXg jogo={jogo} /></div>
+            <div className="jogo-coluna"><Confrontos jogo={jogo} /></div>
+          </div>
+        )}
+        {separador === "info" && <div className="jogo-grelha"><div className="jogo-coluna"><InfoDoJogo jogo={jogo} /></div></div>}
       </div>
     </section>
   );

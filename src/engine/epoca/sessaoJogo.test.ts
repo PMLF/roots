@@ -105,4 +105,21 @@ describe("jogo do gamer minuto a minuto (RZ-170)", () => {
     const outra = v.tatica!.formacao === "4-4-2" ? "4-3-3" : "4-4-2";
     await expect(tratar({ id: 41, tipo: "taticaNoJogo", entrada: { tatica: { ...v.tatica!, formacao: outra } } }, s)).rejects.toThrow(/formação/i);
   }, 60000);
+
+  it("a página do jogo recebe a curva de xG até ao minuto atual, os confrontos e os dados do estádio", async () => {
+    const a = await ateAoJogo("sessao-3");
+    const ini = await tratar({ id: 40, tipo: "iniciarJogo", entrada: { jogo: a.pausa.jogo } }, a.s);
+    expect(ini.xg?.casa).toEqual([0]);
+    expect(ini.confrontos).toEqual([]);
+    expect(ini.info?.estadio.capacidade).toBeGreaterThan(0);
+    expect(ini.info!.assistencia).toBeGreaterThan(0);
+    expect(ini.info!.assistencia).toBeLessThanOrEqual(ini.info!.estadio.capacidade);
+    const meio = await tratar({ id: 41, tipo: "passoJogo", entrada: { minutos: 45 } }, a.s);
+    expect(meio.xg!.casa).toHaveLength(46);
+    expect(meio.xg!.casa.every((v, i, l) => i === 0 || v >= l[i - 1]!)).toBe(true);
+    const fim = await tratar({ id: 42, tipo: "passoJogo", entrada: { minutos: 200 } }, a.s);
+    expect(fim.xg!.casa.at(-1)).toBeCloseTo(fim.resumo!.casa.xg, 1);
+    expect(fim.xg!.fora.at(-1)).toBeCloseTo(fim.resumo!.fora.xg, 1);
+    expect(fim.info).toEqual(ini.info);
+  }, 120000);
 });

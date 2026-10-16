@@ -1,6 +1,6 @@
 "use client";
 import type { JogadorVivo, JogoVivo, LinhaVivo } from "@/engine/epoca/jogoAoVivo";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import type { Estilo, Nivel, Tatica } from "@/engine/jogo/tipos";
 import type { ReactNode } from "react";
 import { AmostraClube } from "@/ui/components/AmostraClube";
@@ -224,35 +224,104 @@ function Onze({ jogo, lado }: { jogo: JogoVivo; lado: "casa" | "fora" }) {
   );
 }
 
-/**
- * Painel do meio do jogo: separadores «Equipas» (um onze de cada vez, o do teu clube primeiro) e «Estatísticas». Ocupa o
- * lugar das estatísticas em vez de empurrar os restantes cartões para baixo; o onze rola dentro do cartão.
- */
-export function EquipasEEstatisticas({ jogo }: { jogo: JogoVivo }) {
-  const { t } = useT();
-  const tem = !!jogo.equipas;
-  const [aba, setAba] = useState<"equipas" | "estatisticas">("equipas");
-  const [lado, setLado] = useState<"casa" | "fora">(jogo.ladoGamer ?? "casa");
-  const atual = tem ? aba : "estatisticas";
+/** Cartão de uma equipa: o onze com notas e indicadores, os que entraram e o banco (recolhido). */
+export function CartaoEquipa({ jogo, lado }: { jogo: JogoVivo; lado: "casa" | "fora" }) {
+  if (!jogo.equipas) return null;
   return (
-    <section className="painel painel-equipas" aria-label={t("jogo.equipas")}>
-      <div className="separadores" role="tablist">
-        {tem && <button type="button" role="tab" aria-selected={atual === "equipas"} onClick={() => setAba("equipas")}>{t("jogo.equipas")}</button>}
-        {jogo.resumo && <button type="button" role="tab" aria-selected={atual === "estatisticas"} onClick={() => setAba("estatisticas")}>{t("jogo.estatisticas")}</button>}
-      </div>
-      {atual === "equipas" && tem ? (
+    <section className="painel cartao-equipa" aria-label={jogo[lado].nome}>
+      <h2><AmostraClube cores={jogo.cores?.[jogo[lado].id]} /> <Ligacao k="clube" id={jogo[lado].id} semAmostra>{jogo[lado].nome}</Ligacao></h2>
+      <Onze jogo={jogo} lado={lado} />
+    </section>
+  );
+}
+
+/** Evolução do xG acumulado de cada equipa, minuto a minuto (degraus: o xG sobe quando há remate). */
+export function GraficoXg({ jogo }: { jogo: JogoVivo }) {
+  const { t } = useT();
+  const xg = jogo.xg;
+  if (!xg || xg.casa.length < 2) return null;
+  const W = 320;
+  const H = 150;
+  const m = { e: 26, d: 8, c: 8, b: 20 };
+  const fim = Math.max(jogo.duracao, xg.casa.length - 1, 90);
+  const topo = Math.max(1, Math.ceil(Math.max(...xg.casa, ...xg.fora) * 2) / 2);
+  const x = (min: number) => m.e + (min / fim) * (W - m.e - m.d);
+  const y = (v: number) => H - m.b - (v / topo) * (H - m.b - m.c);
+  const degraus = (serie: number[]) => serie.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(serie[i - 1] ?? v).toFixed(1)} L${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
+  const ultimo = xg.casa.length - 1;
+  const marcas = [0, 15, 30, 45, 60, 75, 90].filter((n) => n <= fim);
+  const nomes = { casa: jogo.casa.nome, fora: jogo.fora.nome };
+  return (
+    <section className="painel" aria-labelledby="h-xg">
+      <h2 id="h-xg">{t("jogo.xg.titulo")}</h2>
+      <svg className="grafico-xg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("jogo.xg.aria", { casa: nomes.casa, a: xg.casa[ultimo]!.toFixed(2), fora: nomes.fora, b: xg.fora[ultimo]!.toFixed(2) })}>
+        {[0, topo / 2, topo].map((v) => <g key={v}><line className="xg-grelha" x1={m.e} x2={W - m.d} y1={y(v)} y2={y(v)} /><text className="xg-eixo" x={m.e - 4} y={y(v) + 3} textAnchor="end">{v.toFixed(1)}</text></g>)}
+        {marcas.map((n) => <text key={n} className="xg-eixo" x={x(n)} y={H - 6} textAnchor="middle">{n}'</text>)}
+        <path className="xg-linha xg-fora" d={degraus(xg.fora)} />
+        <path className="xg-linha xg-casa" d={degraus(xg.casa)} />
+      </svg>
+      <p className="xg-legenda">
+        <span><i className="xg-chave xg-casa" /> {nomes.casa} <b>{xg.casa[ultimo]!.toFixed(2)}</b></span>
+        <span><i className="xg-chave xg-fora" /> {nomes.fora} <b>{xg.fora[ultimo]!.toFixed(2)}</b></span>
+      </p>
+    </section>
+  );
+}
+
+/** Últimos jogos entre as duas equipas e quem ganhou mais vezes. */
+export function Confrontos({ jogo }: { jogo: JogoVivo }) {
+  const { t } = useT();
+  const lista = jogo.confrontos ?? [];
+  const nome = (id: string) => (id === jogo.casa.id ? jogo.casa.nome : id === jogo.fora.id ? jogo.fora.nome : id);
+  let a = 0;
+  let b = 0;
+  let e = 0;
+  for (const c of lista) {
+    if (c.golosCasa === c.golosFora) e++;
+    else if ((c.golosCasa > c.golosFora ? c.casa : c.fora) === jogo.casa.id) a++;
+    else b++;
+  }
+  return (
+    <section className="painel" aria-labelledby="h-conf">
+      <h2 id="h-conf">{t("jogo.confrontos.titulo")}</h2>
+      {lista.length === 0 ? <p className="vazio">{t("jogo.confrontos.sem")}</p> : (
         <>
-          <div className="alternar-equipa" role="group" aria-label={t("jogo.equipas")}>
-            {(["casa", "fora"] as const).map((l) => (
-              <button key={l} type="button" aria-pressed={lado === l} onClick={() => setLado(l)}>
-                <AmostraClube cores={jogo.cores?.[jogo[l].id]} /> {jogo[l].nome}
-              </button>
+          <p className="confrontos-resumo"><b>{a}</b> {jogo.casa.nome} · <b>{e}</b> {t("jogo.confrontos.empates")} · <b>{b}</b> {jogo.fora.nome}</p>
+          <ul className="confrontos">
+            {lista.map((c) => (
+              <li key={c.id}>
+                <span className="suave">{c.data}</span>
+                <span className="confronto-resultado">{nome(c.casa)} <b>{c.golosCasa}–{c.golosFora}</b> {nome(c.fora)}</span>
+              </li>
             ))}
-          </div>
-          <div className="onze-rolagem"><Onze jogo={jogo} lado={lado} /></div>
-          <p className="suave"><Ligacao k="clube" id={jogo[lado].id} semAmostra>{jogo[lado].nome}</Ligacao></p>
+          </ul>
         </>
-      ) : jogo.resumo ? <Estatisticas jogo={jogo} semPainel /> : null}
+      )}
+    </section>
+  );
+}
+
+/** Estádio, adeptos e o resto do que rodeia o jogo. */
+export function InfoDoJogo({ jogo }: { jogo: JogoVivo }) {
+  const { t } = useT();
+  const i = jogo.info;
+  const pct = i ? Math.round((i.assistencia / i.estadio.capacidade) * 100) : 0;
+  return (
+    <section className="painel" aria-labelledby="h-info">
+      <h2 id="h-info">{t("jogo.info.titulo")}</h2>
+      <dl className="info-jogo">
+        <dt>{t("jogo.info.competicao")}</dt><dd><Ligacao k="competicao" id={jogo.competicao}>{jogo.competicao}</Ligacao> · {t("jogo.jornada", { n: jogo.jornada })}</dd>
+        <dt>{t("jogo.info.data")}</dt><dd>{jogo.data}</dd>
+        {i && <>
+          <dt>{t("jogo.info.estadio")}</dt><dd>{i.estadio.nome} · {i.estadio.localidade}</dd>
+          <dt>{t("jogo.info.assistencia")}</dt>
+          <dd>
+            {i.assistencia.toLocaleString("pt-PT")} / {i.estadio.capacidade.toLocaleString("pt-PT")} ({pct}%)
+            <span className="barra-ocupacao" role="img" aria-label={`${pct}%`}><i style={{ width: `${pct}%` }} /></span>
+          </dd>
+        </>}
+        {i?.arbitro && <><dt>{t("jogo.info.arbitro")}</dt><dd>{i.arbitro}</dd></>}
+      </dl>
     </section>
   );
 }

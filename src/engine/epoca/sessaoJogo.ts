@@ -12,9 +12,9 @@ import { jogarJogo, resolverJogo } from "../jogo/detalhe";
 import type { EntradaJogo, EventoJogo, Lado, Tatica } from "../jogo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
-import { bilheteDoJogo, coresDos, equipaParaJogo, tabelaAntes, zonasDa } from "./avancar";
+import { bilheteDoJogo, contextoDoJogo, coresDos, equipaParaJogo, tabelaAntes, zonasDa } from "./avancar";
 import { lancar } from "../clube/financas";
-import { CHAVE_SESSAO, equipasDoJogo, guardarJogoVivo, linhasDoJogo, type JogoVivo, type LinhaTabelaVivo, type OutroJogoVivo } from "./jogoAoVivo";
+import { CHAVE_SESSAO, curvaXg, equipasDoJogo, type ConfrontoVivo, type InfoJogo, guardarJogoVivo, linhasDoJogo, type JogoVivo, type LinhaTabelaVivo, type OutroJogoVivo } from "./jogoAoVivo";
 import { dadosDaEpoca } from "./piramideEpoca";
 import { eventoRival, motivoDeRival } from "./rivais";
 import { lerPlano, validarTatica } from "./planoDeJogo";
@@ -37,6 +37,8 @@ export type SessaoGuardada = {
   pontosEmpate: number;
   cores: Record<string, string>;
   zonas?: { promovidos: number; descidos: number };
+  confrontos?: ConfrontoVivo[];
+  info?: InfoJogo;
 };
 
 export function lerSessao(repo: Repositorio): SessaoGuardada | undefined {
@@ -76,7 +78,7 @@ function vista(repo: Repositorio, s: SessaoGuardada, params: Parametros, nomes: 
     fora: { id: s.entrada.fora.clube, nome: nomes.get(s.entrada.fora.clube) ?? s.entrada.fora.clube },
     duracao: sim.duracao, golosCasa: resumo.casa.golos, golosFora: resumo.fora.golos, linhas,
     tabela: s.tabela, pontosVitoria: s.pontosVitoria, pontosEmpate: s.pontosEmpate, outros, cores: s.cores, ...(s.zonas ? { zonas: s.zonas } : {}),
-    resumo, equipas, ladoGamer: s.lado, emCurso: true, minuto: s.minuto, ...(ultima ? { tatica: ultima } : {}),
+    resumo, equipas, xg: curvaXg(eventos, s.minuto), ...(s.confrontos ? { confrontos: s.confrontos } : {}), ...(s.info ? { info: s.info } : {}), ladoGamer: s.lado, emCurso: true, minuto: s.minuto, ...(ultima ? { tatica: ultima } : {}),
   };
 }
 
@@ -112,6 +114,7 @@ export function iniciarSessao(repo: Repositorio, base: DadosBase, params: Parame
   const s: SessaoGuardada = {
     jogo: g.id, competicao: g.competicao, jornada: g.jornada, epoca, data: hoje, lado, entrada: { seed, id: g.id, casa, fora }, mudancas: [], minuto: 0,
     tabela, outros, pontosVitoria: params.classificacao.pontosVitoria, pontosEmpate: params.classificacao.pontosEmpate, cores: coresDos(dados, [g.casa, g.fora, ...tabela.map((l) => l.clube)]), zonas: zonasDa(dados, params, clubeGamer),
+    ...contextoDoJogo(repo, dados, params, g.casa, g.fora, g.competicao, g.id),
   };
   guardar(repo, s);
   return vista(repo, s, params, nomes);
@@ -170,7 +173,7 @@ function finalizar(repo: Repositorio, dados: DadosBase, params: Parametros, s: S
       fora: { id: s.entrada.fora.clube, nome: nomes.get(s.entrada.fora.clube) ?? s.entrada.fora.clube },
       duracao: r.relatorio.duracao, golosCasa: r.relatorio.golosCasa, golosFora: r.relatorio.golosFora,
       linhas: linhasDoJogo(r.eventos, r.relatorio.duracao, nomePessoa), tabela: s.tabela, pontosVitoria: s.pontosVitoria, pontosEmpate: s.pontosEmpate, outros: s.outros,
-      cores: s.cores, ...(s.zonas ? { zonas: s.zonas } : {}), resumo, equipas: equipasDoJogo(s.entrada, r.eventos, r.relatorio, nomePessoa), ladoGamer: s.lado,
+      cores: s.cores, ...(s.zonas ? { zonas: s.zonas } : {}), resumo, equipas: equipasDoJogo(s.entrada, r.eventos, r.relatorio, nomePessoa), xg: curvaXg(r.eventos, r.relatorio.duracao), ...(s.confrontos ? { confrontos: s.confrontos } : {}), ...(s.info ? { info: s.info } : {}), ladoGamer: s.lado,
     };
     guardarJogoVivo(repo, jogo);
     repo.definirMeta(CHAVE_SESSAO, "");
