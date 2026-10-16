@@ -3,6 +3,7 @@ import type { CompetitionPage } from "@/engine/api/contratos";
 import { Ligacao } from "@/ui/components/Ligacao";
 import { Tabela } from "@/ui/components/Tabela";
 import type { Chave } from "@/ui/i18n";
+import { useMeuClube } from "@/ui/meuClube";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import type { Coluna } from "@/ui/tabela/logica";
 
@@ -11,6 +12,7 @@ type Row = CompetitionPage["table"][number];
 /** Classificação de uma liga com as zonas de campeão, subida e descida coloridas. `compacta` reduz as colunas (cartões). */
 export function TabelaLiga({ page, compacta = false }: { page: CompetitionPage; compacta?: boolean }) {
   const { t } = useT();
+  const [meu] = useMeuClube();
   const todas: Coluna<Row>[] = [
     { id: "pos", titulo: t("lab.col.pos"), valor: (l) => l.position, numerica: true },
     { id: "club", titulo: t("lab.col.clube"), valor: (l) => l.name },
@@ -36,7 +38,7 @@ export function TabelaLiga({ page, compacta = false }: { page: CompetitionPage; 
         chave={(l) => l.club}
         celula={{ club: (l) => <Ligacao k="clube" id={l.club}>{l.name}</Ligacao> }}
         ordemInicial={{ coluna: "pos", direcao: "asc" }}
-        classeLinha={(l) => (l.zone ? `zona zona-${l.zone}` : undefined)}
+        classeLinha={(l) => [l.zone ? `zona zona-${l.zone}` : "", l.club === meu ? "meu-clube" : ""].filter(Boolean).join(" ") || undefined}
       />
       {zonas.size > 0 && (
         <ul className="legenda-zonas">

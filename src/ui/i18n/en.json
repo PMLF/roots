@@ -906,5 +906,6 @@
   "jogo.stat.amarelos": "Yellow cards",
   "jogo.stat.vermelhos": "Red cards",
   "jogo.stat.lesoes": "Injuries",
-  "jogo.comecar": "Start"
+  "jogo.comecar": "Start",
+  "avancar.inicio": "Back to Home"
 }
