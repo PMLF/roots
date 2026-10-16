@@ -931,5 +931,9 @@
   "epoca.vde": "V / E / D",
   "epoca.golos": "Golos (marcados / sofridos)",
   "epoca.pontos": "Pontos",
-  "clube.lugar": "{n}.º lugar"
+  "clube.lugar": "{n}.º lugar",
+  "noticia.premio_estado.1.titulo": "{clube} é o melhor do distrito de {distrito}",
+  "noticia.premio_estado.1.corpo": "O clube recebe o Prémio do Estado e a Câmara de {cidade} fica com a sua parte.",
+  "noticia.premio_estado.2.titulo": "Prémio do Estado para {clube}",
+  "noticia.premio_estado.2.corpo": "Melhor classificado do distrito de {distrito} na pirâmide ({seguidos, plural, one {primeiro ano} other {# anos seguidos}})."
 }

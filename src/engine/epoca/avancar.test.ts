@@ -152,6 +152,10 @@ describe("avançar no tempo", () => {
     for (const g of ["A", "B", "C", "D"]) expect(repo.jogosDaCompeticao(`Fase de Promoção ${g}`, 1).length).toBe(10);
     for (const g of ["A", "B", "C", "D"]) expect(ultima(`Fase de Promoção ${g}`) <= "2027-05-31").toBe(true);
     expect(resumo!.campeoes.length).toBe(7);
+    // Prémio do Estado: um por distrito (20), pago ao melhor classificado da pirâmide, com o valor dos parâmetros
+    expect(repo.contar("PREMIO_ESTADO")).toBe(20);
+    const campeaoPrimeira = resumo!.campeoes.find((x) => x.liga === "Primeira Liga")!.clube;
+    expect(repo.contar("PREMIO_ESTADO", { k: "clube", id: campeaoPrimeira })).toBe(1);
     expect(resumo!.movimentos.length).toBeGreaterThan(20);
     expect(repo.meta("epoca")).toBe("2");
     expect(repo.meta("piramide.2")).toBeDefined();
