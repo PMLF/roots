@@ -15,6 +15,11 @@ import type {
   CardRecord,
   PlayerRecord,
   PlayerPatch,
+  CompanyRecord,
+  CompanyPatch,
+  CompanyState,
+  SponsorshipRecord,
+  NewSponsorship,
   PlayerState,
   NewMatch,
   StandingsLine,
@@ -155,6 +160,23 @@ export interface Repository {
   contract(person: string): ContractRecord | undefined;
   role(person: string): RoleRecord | undefined;
   clubPlayers(club: string): PlayerRecord[];
+
+  // --- empresas e patrocínios (RZ-219, RZ-311)
+  /** Guarda as empresas de arranque. Recusa ids repetidos. */
+  saveCompanies(companies: readonly CompanyRecord[]): void;
+  company(id: string): CompanyRecord | undefined;
+  /** Empresas por id, opcionalmente de uma cidade ou num estado. */
+  companies(filter?: { city?: string; state?: CompanyState }): CompanyRecord[];
+  updateCompany(id: string, patch: CompanyPatch): void;
+  /** Novo contrato de patrocínio; devolve o id. */
+  addSponsorship(s: NewSponsorship): number;
+  /** Rescinde antes do fim (ou regista o fim antecipado) em `date`. */
+  endSponsorship(id: number, date: IsoDate): void;
+  /** Contratos vigentes do clube na data (por id); sem data devolve todos os não rescindidos. */
+  clubSponsorships(club: string, on?: IsoDate): SponsorshipRecord[];
+  companySponsorships(company: string, on?: IsoDate): SponsorshipRecord[];
+  /** Todos os contratos não rescindidos que ainda não terminaram na data. */
+  activeSponsorships(on: IsoDate): SponsorshipRecord[];
 
   // --- localidades (RZ-136)
   /** Guarda as localidades de arranque. Recusa se já existirem. */

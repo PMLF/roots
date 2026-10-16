@@ -19,6 +19,13 @@ import type {
   FactMatch,
   PlayerRecord,
   PlayerPatch,
+  CompanyRecord,
+  CompanyPatch,
+  CompanyState,
+  SponsorshipRecord,
+  SponsorshipKind,
+  NewSponsorship,
+  CompanyScale,
   PlayerState,
   NewMatch,
   StandingsLine,
@@ -185,6 +192,72 @@ export class SqliteRepository implements Repository {
       }
       onProgress?.(total, total);
     });
+  }
+  private companyOf(r: SqlLine): CompanyRecord {
+    return {
+      id: txt(r.id), name: txt(r.name), sector: txt(r.sector), scale: txt(r.scale) as CompanyScale, city: txt(r.city),
+      ...(r.owner !== null ? { owner: txt(r.owner) } : {}), capital: within(r.capital), founded: within(r.founded), state: txt(r.state) as CompanyState,
+    };
+  }
+  saveCompanies(companies: readonly CompanyRecord[]): void {
+    this.transaction(() => {
+      for (const c of companies) {
+        this.d.run("INSERT INTO company (id, name, sector, scale, city, owner, capital, founded, state) VALUES (?,?,?,?,?,?,?,?,?)", [c.id, c.name, c.sector, c.scale, c.city, c.owner ?? null, c.capital, c.founded, c.state]);
+      }
+    });
+  }
+  company(id: string): CompanyRecord | undefined {
+    const r = this.d.all("SELECT * FROM company WHERE id = ?", [id])[0];
+    return r ? this.companyOf(r) : undefined;
+  }
+  companies(filter: { city?: string; state?: CompanyState } = {}): CompanyRecord[] {
+    const where: string[] = [];
+    const args: (string | number | null)[] = [];
+    if (filter.city !== undefined) { where.push("city = ?"); args.push(filter.city); }
+    if (filter.state !== undefined) { where.push("state = ?"); args.push(filter.state); }
+    return this.d.all(`SELECT * FROM company ${where.length ? "WHERE " + where.join(" AND ") : ""} ORDER BY id`, args).map((r) => this.companyOf(r));
+  }
+  updateCompany(id: string, patch: CompanyPatch): void {
+    const before = this.company(id);
+    if (!before) throw new Error(`Unknown company: ${id}`);
+    const next: CompanyRecord = { ...before };
+    if (patch.capital !== undefined) next.capital = patch.capital;
+    if (patch.state) next.state = patch.state;
+    if (patch.scale) next.scale = patch.scale;
+    if (patch.owner === null) delete next.owner;
+    else if (patch.owner !== undefined) next.owner = patch.owner;
+    this.d.run("UPDATE company SET capital = ?, state = ?, scale = ?, owner = ? WHERE id = ?", [next.capital, next.state, next.scale, next.owner ?? null, id]);
+  }
+  private sponsorshipOf(r: SqlLine): SponsorshipRecord {
+    return {
+      id: within(r.id), company: txt(r.company), club: txt(r.club), kind: txt(r.kind) as SponsorshipKind, annualValue: within(r.annual_value),
+      start: txt(r.start_date), end: txt(r.end_date), ...(r.ended !== null ? { ended: txt(r.ended) } : {}),
+    };
+  }
+  addSponsorship(s: NewSponsorship): number {
+    this.d.run("INSERT INTO sponsorship (company, club, kind, annual_value, start_date, end_date) VALUES (?,?,?,?,?,?)", [s.company, s.club, s.kind, s.annualValue, s.start, s.end]);
+    return within(this.d.all("SELECT last_insert_rowid() AS id")[0]?.id);
+  }
+  endSponsorship(id: number, date: IsoDate): void {
+    if (this.d.all("SELECT id FROM sponsorship WHERE id = ?", [id]).length === 0) throw new Error(`Unknown sponsorship: ${id}`);
+    this.d.run("UPDATE sponsorship SET ended = ? WHERE id = ?", [date, id]);
+  }
+  private sponsorshipsWhere(column: "club" | "company" | null, value: string | null, on?: IsoDate): SponsorshipRecord[] {
+    const where: string[] = [];
+    const args: (string | number | null)[] = [];
+    if (column) { where.push(`${column} = ?`); args.push(value); }
+    if (on === undefined) where.push("ended IS NULL");
+    else { where.push("start_date <= ? AND ? <= end_date AND (ended IS NULL OR ? < ended)"); args.push(on, on, on); }
+    return this.d.all(`SELECT * FROM sponsorship WHERE ${where.join(" AND ")} ORDER BY id`, args).map((r) => this.sponsorshipOf(r));
+  }
+  clubSponsorships(club: string, on?: IsoDate): SponsorshipRecord[] {
+    return this.sponsorshipsWhere("club", club, on);
+  }
+  companySponsorships(company: string, on?: IsoDate): SponsorshipRecord[] {
+    return this.sponsorshipsWhere("company", company, on);
+  }
+  activeSponsorships(on: IsoDate): SponsorshipRecord[] {
+    return this.sponsorshipsWhere(null, null, on);
   }
   addPeople(batch: WorldBatchRecord): void {
     this.transaction(() => {

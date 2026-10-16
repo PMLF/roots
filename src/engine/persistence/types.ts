@@ -7,7 +7,7 @@
 export type IsoDate = string;
 
 export type Visibility = "exposed" | "private" | "secret";
-export type EntityType = "club" | "person" | "city" | "locality" | "competition" | "match";
+export type EntityType = "club" | "person" | "city" | "locality" | "competition" | "match" | "company";
 export type Origin = "match" | "generated";
 
 export type RefEntity = { k: EntityType; id: string; roleKind?: string };
@@ -200,6 +200,17 @@ export type LocalityStatus = "village" | "town" | "city";
 export type LocalityRecord = { id: string; name: string; city: string; population: number; status: LocalityStatus; since: IsoDate };
 /** Mudança de população/estatuto. Se o estatuto mudar, regista-se o evento público LOCALIDADE_ESTATUTO. */
 export type LocalityUpdate = { population: number; status: LocalityStatus; date: IsoDate; season: number; cause?: number };
+
+// ---------- empresas e patrocínios (RZ-219, RZ-311)
+export type CompanyScale = "local" | "regional" | "national" | "international";
+export type CompanyState = "active" | "closed";
+/** Empresa de uma cidade. `capital` é verdade oculta (a interface só vê palavras). */
+export type CompanyRecord = { id: string; name: string; sector: string; scale: CompanyScale; city: string; owner?: string; capital: number; founded: number; state: CompanyState };
+export type CompanyPatch = { capital?: number; state?: CompanyState; scale?: CompanyScale; owner?: string | null };
+export type SponsorshipKind = "shirt" | "stadium" | "youth";
+/** Contrato de patrocínio: vigente entre `start` e `end`, a não ser que tenha `ended` (rescindido antes). */
+export type SponsorshipRecord = { id: number; company: string; club: string; kind: SponsorshipKind; annualValue: number; start: IsoDate; end: IsoDate; ended?: IsoDate };
+export type NewSponsorship = Omit<SponsorshipRecord, "id" | "ended">;
 
 export type WorldBatchRecord = { people: PersonRecord[]; players: PlayerRecord[]; contracts: ContractRecord[]; roles: RoleRecord[] };
 

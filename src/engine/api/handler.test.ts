@@ -60,6 +60,8 @@ describe("handler do motor", () => {
     expect(fc.squad.length).toBeGreaterThanOrEqual(20);
     expect(fc.roles.map((c) => c.fn)).toContain("president");
     expect(fc.city.k).toBe("city");
+    expect(fc.sponsors.length).toBeGreaterThanOrEqual(1);
+    expect(fc.sponsors.every((x) => x.name.length > 0 && x.annualValue === undefined)).toBe(true); // o valor só é visto no clube do gamer
     expect(fc.season?.season).toBeGreaterThan(0);
     const player = fc.squad[0]!;
     const found = await handle({ id: 15, type: "find", input: { q: player.sportingName } }, s3);
@@ -108,7 +110,7 @@ describe("handler do motor", () => {
     expect(await handle({ id: 43, type: "worldState", input: null }, sl)).toMatchObject({ seed: "second", alreadyExisted: true });
     const after = await handle({ id: 44, type: "find", input: { q: "silva", limit: 50 } }, sl);
     // mesmos clubes e mesma quantidade de pessoas, mas pessoas diferentes: o índice não ficou preso ao mundo antigo
-    expect(b.people).toBe(a.people);
+    expect(Math.abs(b.people - a.people)).toBeLessThan(a.people * 0.01); // os donos de empresas novos variam com a seed
     expect(after.filter((x) => x.k === "person").map((x) => x.id)).not.toEqual(before.filter((x) => x.k === "person").map((x) => x.id));
     const { repository } = await sl.openRepository();
     expect(repository.localities().length).toBe(298);

@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import type { Repository } from "./repository";
 import { matchWinner } from "./types";
-import type { NewEvent, FactMatch, NewMatch, LocalityRecord, WorldBatchRecord, Appearance } from "./types";
+import type { NewEvent, FactMatch, NewMatch, LocalityRecord, WorldBatchRecord, CompanyRecord, Appearance } from "./types";
 
 export const ev = (type: string, extra: Partial<NewEvent> = {}): NewEvent => ({
   type,
@@ -544,6 +544,44 @@ export function repositoryContract(name: string, create: () => Repository): void
       })).toThrow("falha");
       expect(r.locality("matela@vimioso")?.status).toBe("village");
       expect(r.eventsTotal()).toBe(0);
+    });
+  });
+
+  describe(`Repositorio (${name}): empresas e patrocínios`, () => {
+    const companies = (): CompanyRecord[] => [
+      { id: "c1", name: "Construções Almeida", sector: "construction", scale: "regional", city: "porto", owner: "p9", capital: 900000, founded: 2026, state: "active" },
+      { id: "c2", name: "Mercearia do Vale", sector: "retail", scale: "local", city: "braga", capital: 40000, founded: 2026, state: "active" },
+    ];
+    it("guarda, filtra e atualiza empresas", () => {
+      const r = create();
+      r.saveCompanies(companies());
+      expect(r.company("c1")).toMatchObject({ name: "Construções Almeida", owner: "p9" });
+      expect(r.company("nada")).toBeUndefined();
+      expect(r.companies({ city: "braga" }).map((c) => c.id)).toEqual(["c2"]);
+      expect(() => r.saveCompanies(companies())).toThrow();
+      r.updateCompany("c1", { capital: 100, state: "closed", owner: null });
+      expect(r.company("c1")).toMatchObject({ capital: 100, state: "closed" });
+      expect(r.company("c1")?.owner).toBeUndefined();
+      expect(r.companies({ state: "active" }).map((c) => c.id)).toEqual(["c2"]);
+      expect(() => r.updateCompany("nada", { capital: 1 })).toThrow();
+    });
+    it("contratos de patrocínio: vigentes por data, rescisão e desfazer", () => {
+      const r = create();
+      r.saveCompanies(companies());
+      const a = r.addSponsorship({ company: "c1", club: "X", kind: "shirt", annualValue: 50000, start: "2026-07-01", end: "2029-06-30" });
+      const b = r.addSponsorship({ company: "c2", club: "X", kind: "youth", annualValue: 5000, start: "2026-07-01", end: "2027-06-30" });
+      expect(b).toBeGreaterThan(a);
+      expect(r.clubSponsorships("X", "2027-01-01").map((x) => x.id)).toEqual([a, b]);
+      expect(r.clubSponsorships("X", "2028-01-01").map((x) => x.id)).toEqual([a]);
+      expect(r.companySponsorships("c2").map((x) => x.id)).toEqual([b]);
+      r.endSponsorship(a, "2027-03-01");
+      expect(r.clubSponsorships("X", "2027-02-01").map((x) => x.id)).toEqual([a, b]);
+      expect(r.clubSponsorships("X", "2027-04-01").map((x) => x.id)).toEqual([b]);
+      expect(r.clubSponsorships("X").map((x) => x.id)).toEqual([b]);
+      expect(r.activeSponsorships("2027-04-01").map((x) => x.id)).toEqual([b]);
+      expect(() => r.addSponsorship({ company: "nada", club: "X", kind: "shirt", annualValue: 1, start: "2026-07-01", end: "2027-06-30" })).toThrow();
+      expect(() => r.transaction(() => { r.endSponsorship(b, "2027-01-01"); throw new Error("fail"); })).toThrow("fail");
+      expect(r.clubSponsorships("X").map((x) => x.id)).toEqual([b]);
     });
   });
 
