@@ -70,4 +70,21 @@ describe("notícias e caixa de entrada", () => {
     expect(cx.mensagens.map((m) => m.tipo)).toContain("demissao");
     expect(cx.naoLidas).toBe(1);
   }, 60000);
+
+  it("depois de demitido, a caixa só traz imprensa: nada de resultados nem lesões internas", async () => {
+    const s = servicos();
+    await tratar({ id: 1, tipo: "criarMundo", entrada: { seed: "demitido-imprensa" } }, s);
+    const clube = (await tratar({ id: 3, tipo: "clubes", entrada: null }, s))[5]!;
+    await tratar({ id: 4, tipo: "escolherClube", entrada: { id: clube.id } }, s);
+    for (let i = 0; i < 3; i++) {
+      const r = await tratar({ id: 10 + i * 3, tipo: "avancar", entrada: { modo: "proximoJogo" } }, s);
+      if (r.pausa) { await tratar({ id: 11 + i * 3, tipo: "confirmarJogo", entrada: { jogo: r.pausa.jogo } }, s); await tratar({ id: 12 + i * 3, tipo: "avancar", entrada: { modo: "dia" } }, s); }
+    }
+    const antes = await tratar({ id: 40, tipo: "caixa", entrada: {} }, s);
+    expect(antes.mensagens.some((m) => m.tipo === "resultado")).toBe(true);
+    await tratar({ id: 41, tipo: "demitir", entrada: null }, s);
+    const depois = await tratar({ id: 42, tipo: "caixa", entrada: {} }, s);
+    expect(depois.mensagens.map((m) => m.tipo)).toContain("demissao");
+    expect(depois.mensagens.some((m) => m.tipo === "resultado" || m.tipo === "lesao")).toBe(false);
+  }, 180000);
 });

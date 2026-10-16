@@ -52,6 +52,8 @@ type Contexto = {
   dados: DadosBase;
   clube?: string;
   liga?: string;
+  /** O gamer já não está no clube: só vê o que sai na imprensa (nada de resultados nem lesões internas). */
+  externo?: boolean;
   nomeClube: (id: string) => string;
   nomePessoa: (id: string) => string;
 };
@@ -73,7 +75,7 @@ const papel = (e: Evento, k: string, p?: string) => e.entidades.find((x) => x.k 
 
 function construir(e: Evento, c: Contexto, soCaixa: boolean): Noticia | undefined {
   const clubes = e.entidades.filter((x) => x.k === "clube");
-  const nosso = c.clube !== undefined && clubes.some((x) => x.id === c.clube);
+  const nosso = c.clube !== undefined && !c.externo && clubes.some((x) => x.id === c.clube);
   const base = (tipo: TipoNoticia, valores: Record<string, string | number>, ligacoes: LigacaoNoticia[]): Noticia => ({
     id: e.id, data: e.data, epoca: e.epoca, tipo, variante: (e.id % VARIANTES[tipo]) + 1, valores, ligacoes, doTeuClube: nosso,
   });
@@ -195,12 +197,15 @@ export function caixa(repo: Repositorio, dados: DadosBase, opcoes: { limite?: nu
   const c = contexto(repo, dados);
   if (!c.clube && !repo.meta("gamer.anterior")) return { mensagens: [], naoLidas: 0 };
   const lida = Number(repo.meta("caixa.lida") ?? 0);
-  // sem clube (demitido), ainda se vê o que houve com o clube que deixaste e com a tua carreira
+  // sem clube (demitido): a tua carreira e só o que a imprensa conta do clube que deixaste (sem pormenores internos)
   const alvo = c.clube ?? repo.meta("gamer.anterior");
-  const cx: Contexto = alvo && alvo !== c.clube ? { ...c, clube: alvo } : c;
-  const todas = recolher(cx, EVENTOS_CAIXA, true, opcoes.limite ?? 40, opcoes.antesDe, (n) => n.doTeuClube, alvo ? { clubes: [alvo] } : { clubes: [] });
+  const externo = alvo !== undefined && alvo !== c.clube;
+  const cx: Contexto = externo ? { ...c, clube: alvo, externo: true } : c;
+  const aceita = externo ? (n: Noticia) => n.ligacoes.some((l) => l.k === "clube" && l.id === alvo) : (n: Noticia) => n.doTeuClube;
+  const fonte = { clubes: alvo ? [alvo] : [] };
+  const todas = recolher(cx, EVENTOS_CAIXA, true, opcoes.limite ?? 40, opcoes.antesDe, aceita, fonte);
   const mensagens = todas.map((n): Mensagem => ({ ...n, lida: n.id <= lida }));
-  const naoLidas = recolher(cx, EVENTOS_CAIXA, true, 99, undefined, (n) => n.doTeuClube, alvo ? { clubes: [alvo] } : { clubes: [] }, lida).length;
+  const naoLidas = recolher(cx, EVENTOS_CAIXA, true, 99, undefined, aceita, fonte, lida).length;
   return { mensagens, naoLidas };
 }
 
