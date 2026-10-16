@@ -6,6 +6,7 @@ import type { Escalao, Parametros } from "../config/parametros";
 import type { DadosBase } from "../dados/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data, JogoAgendado } from "../persistencia/tipos";
+import { estaNaBolsa } from "./distritais";
 import { parametrosDoSave } from "./anoDoSave";
 import { epocaAtual, guardarPiramide, piramideInicial } from "./piramideEpoca";
 
@@ -13,7 +14,7 @@ export const nomeGrupoPromocao = (serie: string) => `Fase de Promoção ${serie}
 
 export const ligasDoMundo = (dados: DadosBase): DefinicaoLiga[] => {
   const m = new Map<string, DefinicaoLiga>();
-  for (const c of dados.clubes) (m.get(c.liga) ?? m.set(c.liga, { competicao: c.liga, escalao: c.escalao as Escalao, clubes: [] }).get(c.liga)!).clubes.push(c.id);
+  for (const c of dados.clubes) if (!estaNaBolsa(c.liga)) (m.get(c.liga) ?? m.set(c.liga, { competicao: c.liga, escalao: c.escalao as Escalao, clubes: [] }).get(c.liga)!).clubes.push(c.id);
   return [...m.values()];
 };
 
