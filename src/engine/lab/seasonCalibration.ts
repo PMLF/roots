@@ -111,7 +111,7 @@ export async function runSeasons(services: Servicos, seed: string, seasons: numb
     const leagues = new Map<string, Tier>();
     for (const c of worldCompetitions(pyramidData(repo, base, n))) leagues.set(c.league, c.tier as Tier);
     const measured = measureSeason(repo, n, leagues, capacity, injuriesBefore);
-    const cpLeft = summary.movements.filter((m) => m.de.startsWith("cp-")).length;
+    const cpLeft = summary.movements.filter((m) => m.from.startsWith("cp-")).length;
     const sizes = Object.values(readPyramid(repo, base, n + 1).districtLeagues).map((l) => l.length);
     const byTier = new Map<Tier, number[]>();
     const byDistrict = new Map<string, number[]>();

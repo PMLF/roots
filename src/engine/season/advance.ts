@@ -22,6 +22,7 @@ import { closeUntilMonths, post } from "../club/finances";
 import { isInSecondDistrict } from "./districts";
 import { CP_FINAL_COMPETITION, generateCpFinal, generateCpFinalSemi } from "./cpFinalPhase";
 import { advanceCompetitions } from "./competitions";
+import { NATIONAL_STADIUM, venueStadium, type Stadium } from "./venues";
 import { closeSeason, generatePromotionPhase, type SeasonSummary } from "./closeSeason";
 import { playersForm } from "./fitness";
 import { rivalEvent, rivalReason } from "./rivals";
@@ -56,7 +57,7 @@ export type Mode = "day" | "week" | "nextMatch";
 /** O avanço parou antes do jogo do clube do gamer: falta confirmar onze e tática. */
 export type Pause = { /** Já começou (há um jogo a decorrer): continuar em vez de preparar. */ ongoing: boolean; match: string; date: IsoDate; competition: string; round: number; home: string; away: string; homeName: string; awayName: string };
 
-export type AdvanceResult = { de: IsoDate; until: IsoDate; days: SummaryDay[]; seasonEnd: boolean; /** Preenchido quando a época fechou durante este avanço. */ seasonSummary?: SeasonSummary; state: TimeState; pause?: Pause };
+export type AdvanceResult = { from: IsoDate; until: IsoDate; days: SummaryDay[]; seasonEnd: boolean; /** Preenchido quando a época fechou durante este avanço. */ seasonSummary?: SeasonSummary; state: TimeState; pause?: Pause };
 
 const DAYS_MAX = 400;
 
@@ -120,14 +121,15 @@ export const inputFlags = (g: MatchFlags): { knockout?: true; neutral?: true } =
  * Assistência e bilheteira do jogo (RZ-114/115). A receita fica com o clube da casa; em campo neutro joga-se no estádio do
  * clube `venue` e a receita reparte-se pelos dois clubes (`shared`).
  */
-export function matchTicket(data: BaseData, params: Params, home: string, away: string, competition: string, flags: MatchFlags = {}): { attendance: number; revenue: number; club: BaseClub; /** O clube de cujo estádio se joga. */ host: BaseClub; shared?: [BaseClub, BaseClub] } | undefined {
+export function matchTicket(data: BaseData, params: Params, home: string, away: string, competition: string, flags: MatchFlags = {}): { attendance: number; revenue: number; club: BaseClub; /** O estádio onde se joga. */ stadium: Stadium; shared?: [BaseClub, BaseClub] } | undefined {
   const cc = data.clubs.find((x) => x.id === home);
   const cf = data.clubs.find((x) => x.id === away);
   if (!cc || !cf) return undefined;
-  const venue = flags.neutral && flags.venue ? data.clubs.find((x) => x.id === flags.venue) : undefined;
-  const host = venue ?? cc;
-  const b = matchAttendance({ home: venue ? { ...cc, stadium: venue.stadium } : cc, away: cf, footballCulture: data.cities.find((x) => x.id === host.city)?.footballCulture ?? 50, final: competition === CP_FINAL_COMPETITION || !!flags.neutral }, params);
-  return { ...b, club: cc, host, ...(flags.neutral ? { shared: [cc, cf] as [BaseClub, BaseClub] } : {}) };
+  const neutral = flags.neutral && flags.venue ? venueStadium(data, params, flags.venue) : undefined;
+  const stadium: Stadium = neutral ?? { name: cc.stadium.name, locality: cc.locality, capacity: cc.stadium.capacity };
+  const hostCity = flags.neutral && flags.venue && flags.venue !== NATIONAL_STADIUM ? data.clubs.find((x) => x.id === flags.venue)?.city : cc.city;
+  const b = matchAttendance({ home: neutral ? { ...cc, stadium: { ...cc.stadium, name: neutral.name, capacity: neutral.capacity } } : cc, away: cf, footballCulture: data.cities.find((x) => x.id === hostCity)?.footballCulture ?? 50, final: competition === CP_FINAL_COMPETITION || !!flags.neutral }, params);
+  return { ...b, club: cc, stadium, ...(flags.neutral ? { shared: [cc, cf] as [BaseClub, BaseClub] } : {}) };
 }
 
 /** Lança a receita de bilheteira nas tesourarias: tudo ao clube da casa ou, em campo neutro, metade a cada um. */
@@ -144,9 +146,9 @@ export function matchContext(repo: Repository, data: BaseData, params: Params, h
     .map((j) => ({ id: j.id, date: j.date, competition: j.competition, season: j.season, home: j.home, away: j.away, homeGoals: j.homeGoals, awayGoals: j.awayGoals }));
   const b = matchTicket(data, params, home, away, competition, flags);
   if (!b) return { meetings };
-  const e = b.host.stadium;
+  const e = b.stadium;
   const seed = repo.meta("seed") ?? "?";
-  return { meetings, info: { stadium: { name: e.name, locality: b.host.locality, capacity: e.capacity }, attendance: b.attendance, referee: matchReferee(seed, except), channels: matchChannels(b.club.tier, competition, seed, except) } };
+  return { meetings, info: { stadium: { name: e.name, locality: e.locality, capacity: e.capacity }, attendance: b.attendance, referee: matchReferee(seed, except), channels: matchChannels(b.club.tier, competition, seed, except) } };
 }
 
 /** Joga os jogos de `hoje` e passa ao dia seguinte. Tudo numa transação. */
@@ -260,5 +262,5 @@ export function advance(repo: Repository, base: BaseData, params: Params, mode: 
   // A época fecha logo depois da última jornada, sem esperar por outro pedido.
   if (!seasonSummary && !pause) for (let i = 0; i < 2 && !seasonSummary; i++) if (seasonStage() !== "generated") break;
   const state = timeState(repo, base, params);
-  return { de: start.today, until: state.today, days, seasonEnd: !!seasonSummary, ...(seasonSummary ? { seasonSummary } : {}), state, ...(pause ? { pause } : {}) };
+  return { from: start.today, until: state.today, days, seasonEnd: !!seasonSummary, ...(seasonSummary ? { seasonSummary } : {}), state, ...(pause ? { pause } : {}) };
 }

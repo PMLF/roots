@@ -46,7 +46,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   const data = [
     { label: t("person.birth"), value: `${p.birth} (${t("person.years", { n: p.age })})` },
     { label: t("column.country"), value: country(p.nationality) },
-    ...(d.naturalDe ? [{ label: t("person.naturalDe"), value: <EntityLink k="city" id={d.naturalDe.id}>{d.naturalDe.name}</EntityLink> }] : []),
+    ...(d.birthCity ? [{ label: t("person.birthCity"), value: <EntityLink k="city" id={d.birthCity.id}>{d.birthCity.name}</EntityLink> }] : []),
     ...(j ? [
       { label: t("person.body"), value: `${j.heightCm} cm · ${j.weightKg} kg` },
       { label: t("column.pe"), value: t(`pe.${j.pe}` as Key) },

@@ -62,10 +62,10 @@ type Context = {
 
 const LOCAL_TIER: Record<string, string> = { first: "firstLeague", second: "secondLeague", third: "thirdLeague" };
 
-/** Nome da divisão a partir do código de `movimentos.ts` (primeira, cp-A, distrital-Braga). */
+/** Nome da divisão a partir do código de `movimentos.ts` (primeira, cp-A, district-Braga). */
 export function localName(local: string, data: BaseData): string {
   if (local.startsWith("cp-")) return `CP Série ${local.slice(3)}`;
-  if (local.startsWith("distrital-")) {
+  if (local.startsWith("district-")) {
     const d = local.slice(10);
     return data.clubs.find((c) => c.tier === "district" && (c.district === d || c.league.endsWith(d)))?.league ?? `Distrital ${d}`;
   }
@@ -128,7 +128,7 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
     case "SECOND_DISTRICT_RELEGATION": case "DISTRICT_RETURN":
       return club ? base(e.type === "DISTRICT_RETURN" ? "district_return" : "second_district", { club: c.clubName(club.id), district: String(d.district ?? "") }, [lc(club.id)]) : undefined;
     case "PROMOTION": case "RELEGATION":
-      return club ? base(e.type === "PROMOTION" ? "promotion" : "relegation", { club: c.clubName(club.id), league: localName(String(d.para ?? ""), c.data) }, [lc(club.id)]) : undefined;
+      return club ? base(e.type === "PROMOTION" ? "promotion" : "relegation", { club: c.clubName(club.id), league: localName(String(d.to ?? ""), c.data) }, [lc(club.id)]) : undefined;
     case "CITY_EVENT": {
       const cities = e.entities.filter((x) => x.k === "city");
       if (cities.length === 0) return undefined;
@@ -141,7 +141,7 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
       const l = roleKind(e, "locality");
       if (!l) return undefined;
       const name = c.data.localities.find((x) => x.id === l.id)?.name ?? l.id;
-      return base("locality", { locality: name, de: String(d.de ?? ""), para: String(d.para ?? "") }, [{ k: "locality", id: l.id, name }]);
+      return base("locality", { locality: name, from: String(d.from ?? ""), to: String(d.to ?? "") }, [{ k: "locality", id: l.id, name }]);
     }
     case "MATCH_PLAYED": {
       if (!inboxOnly || !our || !c.club) return undefined;

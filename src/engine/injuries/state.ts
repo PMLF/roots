@@ -3,7 +3,7 @@
  * Dados do evento: `{ tipo, gravidade, dias, ate, recaida, jogo?, minuto? }`; `ate` = primeiro dia em que já pode jogar.
  */
 import { compare, addDays } from "../calendar/dates";
-import { forDays } from "../calendar/dates";
+import { dayNumber } from "../calendar/dates";
 import type { Params } from "../config/parameters";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate, HistoryEvent, NewEvent } from "../persistence/types";
@@ -57,8 +57,8 @@ export function physicalState(repo: Repository, player: string, today: IsoDate, 
   const active = injuries.filter((l) => compare(l.until, today) > 0).at(-1);
   const last = injuries.at(-1);
   const out: PhysicalState = { player, injuriesInHistory: injuries.length };
-  if (active) out.injured = { ...active, remainingDays: forDays(active.until) - forDays(today) };
-  else if (last && forDays(today) - forDays(last.until) < params.injuries.relapseWindow) out.returnedNewly = { type: last.type, returnedIn: last.until };
+  if (active) out.injured = { ...active, remainingDays: dayNumber(active.until) - dayNumber(today) };
+  else if (last && dayNumber(today) - dayNumber(last.until) < params.injuries.relapseWindow) out.returnedNewly = { type: last.type, returnedIn: last.until };
   return out;
 }
 

@@ -1,7 +1,7 @@
 /** Forma de um jogador a partir do calendário (RZ-107): jogos e minutos recentes, descanso e regresso de lesão. */
 import { clamp } from "../random/rng";
 import type { Params } from "../config/parameters";
-import { forDays } from "../calendar/dates";
+import { dayNumber } from "../calendar/dates";
 import type { IsoDate } from "../persistence/types";
 
 export type RecentHistory = {
@@ -18,16 +18,16 @@ export type RecentHistory = {
  */
 export function playerForm(h: RecentHistory, params: Params): number {
   const f = params.injuries.form;
-  const today = forDays(h.today);
-  const recent = h.matches.filter((j) => today - forDays(j.date) > 0 && today - forDays(j.date) <= f.window);
+  const today = dayNumber(h.today);
+  const recent = h.matches.filter((j) => today - dayNumber(j.date) > 0 && today - dayNumber(j.date) <= f.window);
   let form = f.base;
   if (recent.length > 0) {
-    const last = Math.max(...recent.map((j) => forDays(j.date)));
+    const last = Math.max(...recent.map((j) => dayNumber(j.date)));
     const loss = recent.reduce((s, j) => s + f.byRecentMatch + (f.por90 * j.minutes) / 90, 0);
     form -= Math.max(0, loss - f.recoveryByDay * (today - last));
   }
   if (h.returnedIn) {
-    const days = today - forDays(h.returnedIn);
+    const days = today - dayNumber(h.returnedIn);
     if (days >= 0) form = Math.min(form, f.onReturn + f.recoveryByDay * days);
   }
   return clamp(form, f.min, f.max);

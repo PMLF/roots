@@ -94,7 +94,7 @@ describe("handler do motor", () => {
     expect(repository.localities().length).toBe(298);
     repository.updateLocality("matela@vimioso", { population: 1700, status: "town", date: "2031-06-30", season: 5 });
     const f = (await handle({ id: 31, type: "localityProfile", input: { id: "matela@vimioso" } }, sl))!;
-    expect(f).toMatchObject({ status: "town", population: 1700, since: "2031-06-30", history: [{ de: "village", para: "town", population: 1700 }] });
+    expect(f).toMatchObject({ status: "town", population: 1700, since: "2031-06-30", history: [{ from: "village", to: "town", population: 1700 }] });
     const c = (await handle({ id: 32, type: "clubProfile", input: { id: "cd-matelense" } }, sl))!;
     expect(c.locality.status).toBe("town");
   });

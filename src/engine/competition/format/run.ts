@@ -27,7 +27,7 @@ export type Step = { state: RunState; fixtures: Fixture[]; events: StageEvent[] 
 
 function startStage(def: CompetitionDef, stage: number, entrants: readonly Entrant[], ctx: RunContext, lateWaves?: readonly (readonly Entrant[])[]): { state: StageState; fixtures: Fixture[]; events: StageEvent[] } {
   const s = def.stages[stage];
-  if (!s) throw new Error(`${def.id}: fase ${stage} não existe`);
+  if (!s) throw new Error(`${def.id}: stage ${stage} does not exist`);
   if (s.kind === "knockout") return startKnockout(s, stage, entrants, ctx, lateWaves);
   if (s.kind === "groups") return startGroups(s, stage, entrants, ctx);
   return startLeaguePhase(s, stage, entrants, ctx);

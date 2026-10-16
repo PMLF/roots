@@ -3,8 +3,9 @@ import { describe, expect, it } from "vitest";
 import { handle, type Servicos } from "../api/handler";
 import { MemoryRepository } from "../persistence/repositoryMemory";
 import { matchWinner } from "../persistence/types";
-import { weekDay } from "../calendar/dates";
-import { CUP, SUPERCUP, districtCupName } from "./competitions";
+import { weekDay, dayNumber as toDays } from "../calendar/dates";
+import { CUP, SUPERCUP, districtCupName, districtSupercupName } from "./competitions";
+import { NATIONAL_STADIUM } from "./venues";
 
 const read = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
 const servicos = (now = new Date(2026, 9, 15)): Servicos => {
@@ -166,40 +167,66 @@ describe("avançar no tempo", () => {
       expect(seriesChampions.has(j.home) && seriesChampions.has(j.away)).toBe(true);
     }
     expect(repo.count("CHAMPION")).toBe(9); // sete campeões de liga/série, o campeão do CP e o vencedor da Taça
-    // Taça (RZ-140): jogo único, só jogos com vencedor, final em campo neutro e último jogo interno da época
+    // Taça (RZ-140): jogo único, só jogos com vencedor, final no Estádio Nacional e último jogo interno da época
     const cupMatches = repo.competitionMatches(CUP, 1);
-    expect(cupMatches.length).toBeGreaterThan(250); // uma eliminatória por clube que sai: N − 1
     expect(cupMatches.every((j) => matchWinner(j) !== undefined)).toBe(true);
     const cupCalendar = repo.calendar(CUP, 1).matches;
     const cupFinal = cupCalendar.reduce((a, b) => (b.date > a.date ? b : a));
     expect(cupCalendar.filter((j) => j.date === cupFinal.date)).toHaveLength(1);
     expect(cupFinal.neutral).toBe(true);
-    expect(cupFinal.venue && cupFinal.venue !== cupFinal.home && cupFinal.venue !== cupFinal.away).toBe(true);
+    expect(cupFinal.venue).toBe(NATIONAL_STADIUM);
     expect(cupCalendar.every((j) => j.knockout === true)).toBe(true);
-    const everyLeague = [...(await handle({ id: 10, type: "competitions", input: null }, s)).map((c) => c.league), "CP Meias-Finais", "CP Final", ...["A", "B", "C", "D"].map((g) => `Fase de Promoção ${g}`)];
+    const comps = await handle({ id: 10, type: "competitions", input: null }, s);
+    const everyLeague = [...comps.map((c) => c.league), "CP Meias-Finais", "CP Final", ...["A", "B", "C", "D"].map((g) => `Fase de Promoção ${g}`)];
     for (const c of everyLeague) expect(last(c) < cupFinal.date, c).toBe(true);
-    // as rondas da Taça jogam-se a meio da semana, em dias sem jogos das ligas
+    // a final do CP também é no Estádio Nacional
+    expect(repo.calendar("CP Final", 1).matches[0]!.venue).toBe(NATIONAL_STADIUM);
+    // as rondas da Taça são fins de semana de taça (domingo) em que as ligas param, a nível nacional
     const leagueDays = new Set(everyLeague.flatMap((c) => repo.competitionMatches(c, 1).map((j) => j.date)));
-    for (const j of cupCalendar.filter((x) => x.date !== cupFinal.date)) {
+    for (const j of cupCalendar) {
       expect(leagueDays.has(j.date), j.date).toBe(false);
-      expect(weekDay(j.date)).toBe(3);
+      expect(weekDay(j.date)).toBe(0);
     }
-    // os clubes da Primeira Liga só entram na última vaga: ninguém dela joga na primeira ronda se houver ronda anterior
     const rounds = [...new Set(cupCalendar.map((j) => j.round))].sort((a, b) => a - b);
-    expect(rounds.length).toBeGreaterThanOrEqual(7);
-    const firstLeague = new Set(repo.calendar((await handle({ id: 11, type: "competitions", input: null }, s)).find((c) => c.tier === "firstLeague")!.league, 1).matches.flatMap((j) => [j.home, j.away]));
+    expect(rounds.length).toBeGreaterThanOrEqual(6);
+    // das distritais só entram os campeões de cada distrito e o vencedor da taça distrital (na 1.ª época: os de maior reputação)
+    const inCup = new Set(cupCalendar.flatMap((j) => [j.home, j.away]));
+    const districtClubs = comps.filter((c) => c.tier === "district").flatMap((c) => repo.calendar(c.league, 1).matches.flatMap((j) => [j.home, j.away]));
+    const districtInCup = [...new Set(districtClubs)].filter((c) => inCup.has(c));
+    expect(districtInCup.length).toBeGreaterThan(0);
+    expect(districtInCup.length).toBeLessThanOrEqual(40);
+    // os clubes da Primeira Liga só entram na última vaga
+    const firstLeague = new Set(repo.calendar(comps.find((c) => c.tier === "firstLeague")!.league, 1).matches.flatMap((j) => [j.home, j.away]));
     expect(cupCalendar.filter((j) => j.round === rounds[0]).some((j) => firstLeague.has(j.home) || firstLeague.has(j.away))).toBe(false);
     expect(cupCalendar.some((j) => firstLeague.has(j.home) || firstLeague.has(j.away))).toBe(true);
-    // Taças Distritais (RZ-142): uma por distrito, só com clubes desse distrito
-    const districtCups = (await handle({ id: 12, type: "competitions", input: null }, s)).filter((c) => c.tier === "district").map((c) => districtCupName(c.league.replace(/^Distrital /, "")));
-    for (const c of districtCups) {
-      const ms = repo.competitionMatches(c, 1);
-      expect(ms.length, c).toBeGreaterThanOrEqual(5);
+    // Taças Distritais (RZ-142): uma por distrito, só com clubes desse distrito; a final num estádio do distrito que não é de nenhum dos finalistas
+    const districts = comps.filter((c) => c.tier === "district").map((c) => c.league.replace(/^Distrital /, ""));
+    for (const d of districts) {
+      const name = districtCupName(d);
+      const ms = repo.competitionMatches(name, 1);
+      expect(ms.length, name).toBeGreaterThanOrEqual(5);
       expect(ms.every((j) => matchWinner(j) !== undefined)).toBe(true);
+      const cal = repo.calendar(name, 1).matches;
+      const final = cal.reduce((a, b) => (b.date > a.date ? b : a));
+      expect(final.neutral, name).toBe(true);
+      expect(final.venue && final.venue !== NATIONAL_STADIUM && final.venue !== final.home && final.venue !== final.away, name).toBe(true);
+      expect(weekDay(final.date)).toBe(0);
     }
+    // descanso: nenhum clube joga duas vezes com menos de 3 dias de diferença, em nenhuma competição
+    const byClub = new Map<string, string[]>();
+    for (const c of [...everyLeague, CUP, ...districts.map(districtCupName)]) for (const j of repo.competitionMatches(c, 1)) for (const club of [j.home, j.away]) byClub.set(club, [...(byClub.get(club) ?? []), j.date]);
+    let tight = 0;
+    for (const [club, dates] of byClub) {
+      const sorted = [...dates].sort();
+      for (let i = 1; i < sorted.length; i++) if (toDays(sorted[i]!) - toDays(sorted[i - 1]!) < 3) { tight++; if (tight < 5) console.log("DESCANSO", club, sorted[i - 1], sorted[i]); }
+    }
+    expect(tight).toBe(0);
     // prémios por vencer cada competição (RZ-216): 3 ligas + 4 séries + vencedor do CP + 20 distritais + 4 grupos da Fase de Promoção;
     // taças: vencedor e finalista de 21 taças, mais um prémio por cada eliminatória ganha na Taça antes da final
     expect(repo.count("COMPETITION_PRIZE")).toBe(32 + 2 * 21 + (cupMatches.length - 1));
+    // fecho da época: qualificados para a Taça seguinte e supertaças distritais fixadas
+    expect(JSON.parse(repo.meta("cupQualifiers.2")!).length).toBeGreaterThanOrEqual(20);
+    expect(Object.keys(JSON.parse(repo.meta("districtSupercup.2")!)).length).toBe(20);
     // Prémio do Estado: um por distrito (20), pago ao melhor classificado da pirâmide, com o valor dos parâmetros
     expect(repo.count("STATE_PRIZE")).toBe(20);
     const firstChampion = summary!.champions.find((x) => x.league === "Primeira Liga")!.club;
@@ -226,7 +253,7 @@ describe("avançar no tempo", () => {
     expect(old!.table.every((l) => l.played === 38)).toBe(true);
     const current = await handle({ id: 6, type: "competitionPage", input: { league: "Primeira Liga" } }, s);
     expect(current!.gamesPlayed).toBe(0);
-    const rose = summary!.movements.find((m) => m.reason !== "relegation" && m.para === "first");
+    const rose = summary!.movements.find((m) => m.reason !== "relegation" && m.to === "first");
     if (rose) expect(current!.table.some((l) => l.club === rose.club)).toBe(true);
   }, 600000);
 });
@@ -280,7 +307,17 @@ describe("Supertaça (RZ-141)", () => {
     expect([game!.home, game!.away].sort()).toEqual([champion, expected].sort());
     expect(game!.knockout).toBe(true);
     expect(game!.neutral).toBe(true);
-    expect(game!.venue && game!.venue !== game!.home && game!.venue !== game!.away).toBe(true);
+    expect(game!.venue).toBe(NATIONAL_STADIUM);
+    expect(weekDay(game!.date)).toBe(0);
+    // supertaças distritais: uma por distrito, uma semana antes, num estádio do distrito
+    const districtSupers = Object.entries(JSON.parse(repo.meta("districtSupercup.2")!) as Record<string, [string, string]>);
+    expect(districtSupers.length).toBeGreaterThan(10);
+    for (const [district, pair] of districtSupers) {
+      const [m] = repo.calendar(districtSupercupName(district), 2).matches;
+      expect([m!.home, m!.away].sort()).toEqual([...pair].sort());
+      expect(m!.neutral && m!.venue && m!.venue !== m!.home && m!.venue !== m!.away).toBeTruthy();
+      expect(m!.date < game!.date).toBe(true);
+    }
     const firstLeague = (await handle({ id: 3, type: "competitions", input: null }, s)).find((c) => c.tier === "firstLeague")!.league;
     const firstRound = repo.calendar(firstLeague, 2).matches.map((j) => j.date).sort()[0]!;
     expect(game!.date < firstRound).toBe(true);

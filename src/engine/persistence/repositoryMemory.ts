@@ -154,7 +154,7 @@ export class MemoryRepository implements Repository {
         type: "LOCALITY_STATUS", date: a.date, season: a.season, visibility: "exposed",
         entities: [{ k: "locality", id }, { k: "city", id: before.city }],
         ...(a.cause !== undefined ? { cause: a.cause } : {}),
-        data: { de: before.status, para: a.status, population: a.population },
+        data: { from: before.status, to: a.status, population: a.population },
       });
       this.locals.set(id, { ...before, population: a.population, status: a.status, since: a.date });
       return { event };
@@ -211,7 +211,7 @@ export class MemoryRepository implements Repository {
     const club = j?.club ?? c?.club;
     return {
       id: p.id, name: p.name, sportingName: p.sportingName, birth: p.birth, nationality: p.nationality,
-      ...(p.naturalDe !== undefined ? { naturalDe: p.naturalDe } : {}),
+      ...(p.birthCity !== undefined ? { birthCity: p.birthCity } : {}),
       roles: [...p.roles],
       ...(club !== undefined ? { club } : {}),
       ...(c ? { fn: c.fn } : {}),

@@ -139,7 +139,7 @@ export class SqliteRepository implements Repository {
         type: "LOCALITY_STATUS", date: a.date, season: a.season, visibility: "exposed",
         entities: [{ k: "locality", id }, { k: "city", id: before.city }],
         ...(a.cause !== undefined ? { cause: a.cause } : {}),
-        data: { de: before.status, para: a.status, population: a.population },
+        data: { from: before.status, to: a.status, population: a.population },
       });
       this.d.run("UPDATE locality SET population = ?, status = ?, since = ? WHERE id = ?", [a.population, a.status, a.date, id]);
       return { event };
@@ -157,7 +157,7 @@ export class SqliteRepository implements Repository {
       };
       for (const p of batch.people) {
         this.d.run("INSERT INTO person (id, name, sporting_name, birth, nationality, native_of, roles, personality, archetype, lod) VALUES (?,?,?,?,?,?,?,?,?,?)", [
-          p.id, p.name, p.sportingName, p.birth, p.nationality, p.naturalDe ?? null, JSON.stringify(p.roles), JSON.stringify(p.personality), p.archetype, p.lod,
+          p.id, p.name, p.sportingName, p.birth, p.nationality, p.birthCity ?? null, JSON.stringify(p.roles), JSON.stringify(p.personality), p.archetype, p.lod,
         ]);
         tick();
       }
@@ -204,7 +204,7 @@ export class SqliteRepository implements Repository {
       sportingName: txt(r.sporting_name),
       birth: txt(r.birth),
       nationality: txt(r.nationality),
-      ...(r.native_of !== null && r.native_of !== undefined ? { naturalDe: txt(r.native_of) } : {}),
+      ...(r.native_of !== null && r.native_of !== undefined ? { birthCity: txt(r.native_of) } : {}),
       roles: JSON.parse(txt(r.roles)) as string[],
       ...(club !== null && club !== undefined ? { club: txt(club) } : {}),
       ...(r.role_function !== null && r.role_function !== undefined ? { fn: txt(r.role_function) } : {}),
@@ -238,7 +238,7 @@ export class SqliteRepository implements Repository {
     if (!r) return undefined;
     return {
       id: txt(r.id), name: txt(r.name), sportingName: txt(r.sporting_name), birth: txt(r.birth), nationality: txt(r.nationality),
-      ...(r.native_of !== null ? { naturalDe: txt(r.native_of) } : {}),
+      ...(r.native_of !== null ? { birthCity: txt(r.native_of) } : {}),
       roles: JSON.parse(txt(r.roles)) as string[], personality: JSON.parse(txt(r.personality)) as Record<string, number>,
       archetype: txt(r.archetype), lod: within(r.lod) as 1 | 2 | 3,
     };
@@ -508,22 +508,22 @@ export class SqliteRepository implements Repository {
 
     type Acc = { club: string; player: string; matches: number; minutes: number; goals: number; assist: number; am: number; see: number };
     const acc = new Map<string, Acc>();
-    const de = (player: string, club: string): Acc => {
+    const line = (player: string, club: string): Acc => {
       const k = `${player}\u0000${club}`;
       let a = acc.get(k);
       if (!a) acc.set(k, (a = { club, player, matches: 0, minutes: 0, goals: 0, assist: 0, am: 0, see: 0 }));
       return a;
     };
     for (const p of appearances) {
-      const a = de(p.player, p.club);
+      const a = line(p.player, p.club);
       a.matches += p.minutes > 0 ? 1 : 0;
       a.minutes += p.minutes;
     }
     for (const f of facts) {
-      if (f.type === "G" && f.extra !== "auto") de(f.player, f.club).goals++;
-      else if (f.type === "A") de(f.player, f.club).assist++;
-      else if (f.type === "CA") de(f.player, f.club).am++;
-      else if (f.type === "CV") de(f.player, f.club).see++;
+      if (f.type === "G" && f.extra !== "auto") line(f.player, f.club).goals++;
+      else if (f.type === "A") line(f.player, f.club).assist++;
+      else if (f.type === "CA") line(f.player, f.club).am++;
+      else if (f.type === "CV") line(f.player, f.club).see++;
     }
     for (const a of acc.values())
       this.d.run(

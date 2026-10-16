@@ -73,7 +73,7 @@ function drawnCity(rng: Rng, xs: readonly BaseCity[]): BaseCity {
   return rng.weighted(xs, (c) => Math.sqrt(c.population));
 }
 
-function createPerson(c: Ctx, rng: Rng, o: { country: Country; age: number; roleKind: PersonRole; lod: 1 | 2 | 3; naturalDe?: string; ctx?: Parameters<typeof generatePersonality>[2] }): NewPerson {
+function createPerson(c: Ctx, rng: Rng, o: { country: Country; age: number; roleKind: PersonRole; lod: 1 | 2 | 3; birthCity?: string; ctx?: Parameters<typeof generatePersonality>[2] }): NewPerson {
   let name = generateName(rng, o.country.familyNames);
   const birth = addDays(c.start, -Math.round(o.age * 365.25));
   for (let i = 0; i < 10 && c.seen.has(`${name.full}|${birth}`); i++) name = generateName(rng, o.country.familyNames);
@@ -89,7 +89,7 @@ function createPerson(c: Ctx, rng: Rng, o: { country: Country; age: number; role
     personality,
     archetype,
     lod: o.lod,
-    ...(o.naturalDe !== undefined ? { naturalDe: o.naturalDe } : {}),
+    ...(o.birthCity !== undefined ? { birthCity: o.birthCity } : {}),
   };
   c.batch.people.push(p);
   return p;
@@ -128,14 +128,14 @@ function createPlayer(
   const m = c.params.world;
   const age = playerAge(rng, m);
   const country = chooseCountry(c, rng, o.tier, o.foreignerP, o.targetQ);
-  const naturalDe = hometown(c, rng, country, o.club);
-  const natural = naturalDe !== undefined && naturalDe === o.club?.city;
+  const birthCity = hometown(c, rng, country, o.club);
+  const natural = birthCity !== undefined && birthCity === o.club?.city;
   const person = createPerson(c, rng, {
     country,
     age,
     roleKind: "player",
     lod: o.lod,
-    ...(naturalDe !== undefined ? { naturalDe } : {}),
+    ...(birthCity !== undefined ? { birthCity } : {}),
     ctx: { cityNatural: natural, hardOrigin: country.index < 30 },
   });
   const { current, potential } = potentialEQuality(rng, o.targetQ, age, m);
@@ -167,21 +167,21 @@ function createPlayer(
   }
 }
 
-function createRole(c: Ctx, rng: Rng, fn: RoleFunction, roleKind: PersonRole, meanAge: number, o: { club?: string; city?: string; country?: Country; quality?: Record<string, number>; ctx?: Parameters<typeof generatePersonality>[2]; naturalDe?: string }): NewPerson {
+function createRole(c: Ctx, rng: Rng, fn: RoleFunction, roleKind: PersonRole, meanAge: number, o: { club?: string; city?: string; country?: Country; quality?: Record<string, number>; ctx?: Parameters<typeof generatePersonality>[2]; birthCity?: string }): NewPerson {
   const age = clamp(rng.gauss(meanAge, 8), 24, 75);
-  const person = createPerson(c, rng, { country: o.country ?? portugalCountry(c), age, roleKind, lod: 2, ...(o.ctx ? { ctx: o.ctx } : {}), ...(o.naturalDe ? { naturalDe: o.naturalDe } : {}) });
+  const person = createPerson(c, rng, { country: o.country ?? portugalCountry(c), age, roleKind, lod: 2, ...(o.ctx ? { ctx: o.ctx } : {}), ...(o.birthCity ? { birthCity: o.birthCity } : {}) });
   const role: NewRole = { person: person.id, fn, ...(o.club ? { club: o.club } : {}), ...(o.city ? { city: o.city } : {}), ...(o.quality ? { quality: o.quality } : {}) };
   c.batch.roles.push(role);
   return person;
 }
 
 const STAFF_FUNCTIONS: { fn: RoleFunction; areas: string[] }[] = [
-  { fn: "coach", areas: ["tactics", "formacaoJovens", "motivacao"] },
-  { fn: "adjunto", areas: ["tactics", "motivacao"] },
+  { fn: "coach", areas: ["tactics", "youthDevelopment", "motivation"] },
+  { fn: "assistant", areas: ["tactics", "motivation"] },
   { fn: "scout", areas: ["scouting"] },
-  { fn: "medical", areas: ["medicina"] },
-  { fn: "fisio", areas: ["medicina", "preparacaoFisica"] },
-  { fn: "comunidade", areas: ["relacaoAdeptos"] },
+  { fn: "medical", areas: ["medicine"] },
+  { fn: "physio", areas: ["medicine", "fitnessTraining"] },
+  { fn: "community", areas: ["fanRelations"] },
 ];
 
 function median(xs: number[]): number {
@@ -253,7 +253,7 @@ export function generateWorld(e: WorldInput): WorldBatch {
         ctx: fn === "coach" ? { veteran: rng.prob(0.3) } : {},
       });
     });
-    createRole(c, rng, "president", "president", 56, { club: cl.id, city: cl.city, naturalDe: cl.city });
+    createRole(c, rng, "president", "president", 56, { club: cl.id, city: cl.city, birthCity: cl.city });
   });
   progress("clubs", clubs.length, clubs.length);
 
@@ -262,7 +262,7 @@ export function generateWorld(e: WorldInput): WorldBatch {
   cities.forEach((cd, i) => {
     progress("cities", i, cities.length);
     const rng = c.seed.derive(`cidade/${cd.id}`);
-    createRole(c, rng, "mayor", "mayor", 54, { city: cd.id, naturalDe: cd.id, ctx: { fixed: cd.mayor.traits } });
+    createRole(c, rng, "mayor", "mayor", 54, { city: cd.id, birthCity: cd.id, ctx: { fixed: cd.mayor.traits } });
   });
   progress("cities", cities.length, cities.length);
 
@@ -272,11 +272,11 @@ export function generateWorld(e: WorldInput): WorldBatch {
     for (let i = 0; i < n; i++) {
       const cd = byCity ? drawnCity(othersRng, cities) : undefined;
       const country = othersRng.prob(foreigner) ? othersRng.weighted(foreigners, (p) => birthWeight(p) * p.portugalAffinity) : undefined;
-      createRole(c, othersRng, fn, roleKind, age, { ...(cd ? { city: cd.id, naturalDe: cd.id } : {}), ...(country ? { country } : {}) });
+      createRole(c, othersRng, fn, roleKind, age, { ...(cd ? { city: cd.id, birthCity: cd.id } : {}), ...(country ? { country } : {}) });
     }
   };
   generateSeveral(othersN.businesspeople, "businessperson", "businessperson", 50, true);
-  generateSeveral(othersN.fansOfficials, "dirigenteAdeptos", "fan", 46, true);
+  generateSeveral(othersN.fansOfficials, "fanLeader", "fan", 46, true);
   generateSeveral(othersN.agents, "agent", "agent", 44, false, 0.3);
   generateSeveral(othersN.referees, "referee", "referee", 34, false);
   generateSeveral(othersN.journalists, "journalist", "journalist", 40, false);

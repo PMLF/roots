@@ -163,7 +163,7 @@ export type PersonRecord = {
   sportingName: string;
   birth: IsoDate;
   nationality: string;
-  naturalDe?: string;
+  birthCity?: string;
   roles: string[];
   /** Verdade oculta. */
   personality: Record<string, number>;
@@ -201,7 +201,7 @@ export type PublicPerson = {
   sportingName: string;
   birth: IsoDate;
   nationality: string;
-  naturalDe?: string;
+  birthCity?: string;
   roles: string[];
   club?: string;
   fn?: string;

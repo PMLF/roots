@@ -8,7 +8,7 @@ import type { Params } from "../config/parameters";
 import type { Repository } from "../persistence/repository";
 import type { EventsFilter } from "../persistence/repository";
 import type { IsoDate, RefEntity, HistoryEvent, Match, StandingsLine, PlayerStatLine, Scorer, Observation, PublicPerson } from "../persistence/types";
-import { forDays } from "../calendar/dates";
+import { dayNumber } from "../calendar/dates";
 import type { Target, Knowledge, Estimate, PersonProfile, Freshness, ViewPerson, Label, ObservedValues } from "./types";
 
 /** Só o que a Vista usa do repositório: leitura de factos públicos e de observações. */
@@ -60,7 +60,7 @@ export class View {
 
   // ---------- pessoas
   private withAge(p: PublicPerson): ViewPerson {
-    return { ...p, age: Math.floor((forDays(this.ctx.date) - forDays(p.birth)) / 365.25) };
+    return { ...p, age: Math.floor((dayNumber(this.ctx.date) - dayNumber(p.birth)) / 365.25) };
   }
   /** Factos públicos de uma pessoa (nome, idade, clube, posição, corpo). */
   person(id: string): ViewPerson | undefined {

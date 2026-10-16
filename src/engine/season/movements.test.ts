@@ -58,11 +58,11 @@ describe("movimentos entre escalões", () => {
   it("o CP desce promovidos + descidos da Terceira − 1 por série e as distritais recebem-nos", () => {
     const { current, ctx } = world();
     const r = applyMovements(current, final(current, ctx), DEFAULT_PARAMETERS, ctx);
-    const cpDrops = r.movements.filter((m) => m.de.startsWith("cp-") && m.para.startsWith("distrital-"));
+    const cpDrops = r.movements.filter((m) => m.from.startsWith("cp-") && m.to.startsWith("district-"));
     expect(cpDrops).toHaveLength(8);
     // série A: 2 promovidos + os descidos da Terceira nessa série − 1
     const t20 = ["t17", "t18", "t19", "t20"].filter((c) => seriesOf(ctx.districtOf(c)) === "A").length;
-    expect(cpDrops.filter((m) => m.de === "cp-A")).toHaveLength(2 + t20 - 1);
+    expect(cpDrops.filter((m) => m.from === "cp-A")).toHaveLength(2 + t20 - 1);
     expect(r.pyramid.districtLeagues["dA1"]).toContain("cpA-10");
     expect(r.pyramid.districtLeagues["dA3"]).not.toContain("dA3-c1");
   });

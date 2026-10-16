@@ -80,14 +80,14 @@ describe("gerarMundo (300 clubes)", () => {
     }
   });
   it("jogadores naturais da cidade do clube são mais leais (+3)", () => {
-    const naturalDe = new Map(batch.people.map((p) => [p.id, p] as const));
+    const birthCity = new Map(batch.people.map((p) => [p.id, p] as const));
     const cityOf = new Map(data.clubs.map((c) => [c.id, c.city] as const));
     const a: number[] = [];
     const b: number[] = [];
     for (const j of batch.players) {
       if (!j.club) continue;
-      const p = naturalDe.get(j.person)!;
-      (p.naturalDe === cityOf.get(j.club) ? a : b).push(p.personality.loyalty);
+      const p = birthCity.get(j.person)!;
+      (p.birthCity === cityOf.get(j.club) ? a : b).push(p.personality.loyalty);
     }
     const m = (xs: number[]) => xs.reduce((s, x) => s + x, 0) / xs.length;
     expect(m(a)).toBeGreaterThan(m(b) + 1.5);

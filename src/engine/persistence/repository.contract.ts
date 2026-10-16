@@ -1,6 +1,6 @@
 /**
  * Bateria de testes comum a todos os adaptadores de `Repositorio` (RZ-128).
- * Cada adaptador chama `contratoRepositorio(nome, criar)` no seu ficheiro de testes.
+ * Cada adaptador chama `repositoryContract(nome, criar)` no seu ficheiro de testes.
  */
 import { describe, expect, it } from "vitest";
 import type { Repository } from "./repository";
@@ -530,7 +530,7 @@ export function repositoryContract(name: string, create: () => Repository): void
       expect(event).toBeDefined();
       expect(r.locality("matela@vimioso")).toMatchObject({ population: 1700, status: "town", since: "2031-06-30" });
       const e = r.event(event!)!;
-      expect(e).toMatchObject({ type: "LOCALITY_STATUS", visibility: "exposed", season: 5, data: { de: "village", para: "town", population: 1700 } });
+      expect(e).toMatchObject({ type: "LOCALITY_STATUS", visibility: "exposed", season: 5, data: { from: "village", to: "town", population: 1700 } });
       expect(r.eventsOf({ k: "locality", id: "matela@vimioso" }).map((x) => x.id)).toEqual([event]);
       expect(r.eventsOf({ k: "city", id: "vimioso" }, { publicOnly: true }).map((x) => x.id)).toEqual([event]);
     });
@@ -550,7 +550,7 @@ export function repositoryContract(name: string, create: () => Repository): void
   describe(`Repositorio (${name}): pessoas`, () => {
     const batch = (): WorldBatchRecord => ({
       people: [
-        { id: "p1", name: "João Pedro Silva", sportingName: "João Silva", birth: "2000-03-01", nationality: "pt", naturalDe: "porto", roles: ["player"], personality: { loyalty: 15, ambition: 9 }, archetype: "leader", lod: 1 },
+        { id: "p1", name: "João Pedro Silva", sportingName: "João Silva", birth: "2000-03-01", nationality: "pt", birthCity: "porto", roles: ["player"], personality: { loyalty: 15, ambition: 9 }, archetype: "leader", lod: 1 },
         { id: "p2", name: "Ana Costa", sportingName: "Ana Costa", birth: "1975-05-05", nationality: "pt", roles: ["president"], personality: { loyalty: 10 }, archetype: "common", lod: 2 },
         { id: "p3", name: "Luca Rossi", sportingName: "Luca Rossi", birth: "1998-01-01", nationality: "it", roles: ["player"], personality: { loyalty: 5 }, archetype: "mercenary", lod: 2 },
       ],
@@ -577,7 +577,7 @@ export function repositoryContract(name: string, create: () => Repository): void
       const r = create();
       r.saveWorld(batch());
       const f = r.publicPerson("p1")!;
-      expect(f).toMatchObject({ sportingName: "João Silva", club: "X", naturalDe: "porto", player: { position: "CM", heightCm: 180, pe: "D", state: "active" } });
+      expect(f).toMatchObject({ sportingName: "João Silva", club: "X", birthCity: "porto", player: { position: "CM", heightCm: 180, pe: "D", state: "active" } });
       const text = JSON.stringify(f);
       for (const banned of ["potential", "attributes", "personality", "loyalty", "aptitude", "archetype", "wage"]) expect(text).not.toContain(banned);
       expect(r.publicPerson("p3")?.player?.state).toBe("free");

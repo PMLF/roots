@@ -52,7 +52,7 @@ export function backgroundColours({ fallback, segments }: ClubColours): string {
   if (fallback === "plain") return segments[0]?.colour ?? "transparent";
   if (fallback === "split") {
     let acc = 0;
-    return `linear-gradient(90deg, ${segments.map((s) => { const de = acc; acc += s.weight; return `${s.colour} ${de}% ${acc}%`; }).join(", ")})`;
+    return `linear-gradient(90deg, ${segments.map((s) => { const start = acc; acc += s.weight; return `${s.colour} ${start}% ${acc}%`; }).join(", ")})`;
   }
   const step = 3; // px por risca
   const strips = segments.map((s, i) => `${s.colour} ${i * step}px ${(i + 1) * step}px`).join(", ");

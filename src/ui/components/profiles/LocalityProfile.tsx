@@ -39,7 +39,7 @@ export function LocalityProfile({ d }: { d: LocalityProfileData }) {
         story: d.history.length > 0 ? (
           <ul>
             {d.history.map((h, i) => (
-              <li key={i}>{t("locality.changed", { date: h.date, de: status(h.de), para: status(h.para), population: h.population })}</li>
+              <li key={i}>{t("locality.changed", { date: h.date, from: status(h.from), to: status(h.to), population: h.population })}</li>
             ))}
           </ul>
         ) : (

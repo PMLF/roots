@@ -19,7 +19,7 @@ const letter = (i: number) => String.fromCharCode(65 + i);
 
 export function startGroups(def: GroupsStage, stage: number, entrants: readonly Entrant[], ctx: RunContext): { state: GroupsState; fixtures: Fixture[]; events: StageEvent[] } {
   const n = entrants.length;
-  if (def.groups < 1 || n % def.groups !== 0 || n / def.groups < 2) throw new Error(`Fase de grupos: ${n} clubes não dividem por ${def.groups} grupos de pelo menos 2`);
+  if (def.groups < 1 || n % def.groups !== 0 || n / def.groups < 2) throw new Error(`Group stage: ${n} clubs do not split into ${def.groups} groups of at least 2`);
   const size = n / def.groups;
   const rng = new Rng(ctx.seed, `${ctx.idPrefix}/s${stage}/groups`);
   const sorted = [...entrants].sort((a, b) => a.seed - b.seed || (a.club < b.club ? -1 : 1));

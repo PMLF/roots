@@ -99,7 +99,7 @@ export type Params = {
       firstLeague: number; secondLeague: number; thirdLeague: number;
       cpSeries: number; cpWinner: number;
       district: number; promotionPhase: number;
-      portugalCup: number; superCup: number; districtCup: number;
+      portugalCup: number; superCup: number; districtCup: number; districtSuperCup: number;
     };
     /** Fração do prémio do vencedor que recebe o finalista vencido (taças). */
     beatenFinalist: number;
@@ -146,7 +146,7 @@ export type Params = {
     /** Escalões que acabam mais cedo que `ultimaJornadaAte` (as distritais, para dar tempo à Fase de Promoção até maio). */
     lastRoundPerTier: Partial<Record<Tier, { month: number; day: number }>>;
     /** Fins de semana sem jogos (inclusivo). `de` em agosto-dezembro é do ano em que a época começa; em janeiro-julho, do seguinte. */
-    pauses: { reason: string; de: { month: number; day: number }; until: { month: number; day: number } }[];
+    pauses: { reason: string; from: { month: number; day: number }; until: { month: number; day: number } }[];
     /** Dias da semana de jogo por escalão (0 = domingo … 6 = sábado); os jogos de uma jornada repartem-se por eles. */
     matchDays: Record<Tier, number[]>;
     /** As últimas N jornadas jogam-se todas no mesmo dia. */
@@ -155,28 +155,34 @@ export type Params = {
     cpFinalPhase: { seriesAfterDays: number; roundsBetweenDays: number };
   };
   /**
-   * Taças (RZ-140/141/142). Datas a meio da semana, sempre em dias sem jogos das ligas; a final da Taça é o último jogo
-   * interno da época; a Supertaça joga-se antes de começarem as ligas.
+   * Taças (RZ-140/141/142), como na vida real: as rondas jogam-se em fins de semana de taça (domingo), em que as ligas
+   * respetivas param; as finais, em estádios neutros depois de tudo; as supertaças, antes de começarem as ligas.
    */
   cups: {
     cup: {
-      /** Vaga em que entra cada escalão (0 = logo na primeira ronda; as vagas seguintes entram mais tarde). */
+      /** Vaga em que entra cada escalão (0 = logo na primeira ronda; as seguintes entram mais tarde). As distritais só entram com o vencedor da taça e o campeão do distrito. */
       wave: Record<Tier, number>;
-      /** Primeira ronda não antes deste dia (do ano em que a época começa). */
+      /** Primeira ronda não antes deste dia. */
       firstRound: { month: number; day: number };
+      /** As rondas (menos a final) jogam-se até este dia. */
+      lastRound: { month: number; day: number };
       /** A final joga-se no primeiro domingo que está pelo menos estes dias depois do último jogo interno das restantes competições. */
       finalDaysAfterLeagues: number;
-      /** Dias da semana preferidos para as rondas, por ordem (0 = domingo … 6 = sábado): quarta, depois terça e quinta. */
-      weekdays: number[];
+      /** Vagas nominais por distrito quando ainda não há história: os clubes de maior reputação do distrito. */
+      qualifiersPerDistrictWithoutHistory: number;
     };
-    /** A Supertaça joga-se este número de dias antes da primeira jornada das ligas. */
+    /** A Supertaça joga-se este número de dias antes da primeira jornada das ligas; a distrital, uma semana antes dessa. */
     supercupDaysBeforeFirstRound: number;
     districtCup: {
       /** Primeira ronda não antes deste dia. */
       firstRound: { month: number; day: number };
-      /** A final joga-se este número de dias depois do fim das distritais (antes da Fase de Promoção). */
+      /** A final joga-se no primeiro domingo este número de dias depois do fim das distritais (antes da Fase de Promoção). */
       finalDaysAfterDistrictsEnd: number;
     };
+    /** Estádio neutro das finais nacionais (Taça, Supertaça e final do CP). */
+    nationalStadium: { name: string; locality: string; capacity: number };
+    /** Descanso mínimo entre dois jogos do mesmo clube, em dias entre datas (3 = dois dias de intervalo). */
+    minRestDays: number;
   };
   saves: { daysAutosave: number; rotatingAutosaves: number; saveAtSeasonStart: boolean };
   fairPlay: { levels: number; fallback: number };
@@ -470,7 +476,7 @@ export const DEFAULT_PARAMETERS: Params = {
   version: 1,
   prizes: {
     club: 2_000_000, city: 1_000_000,
-    competitions: { firstLeague: 10_000_000, secondLeague: 2_000_000, thirdLeague: 500_000, cpSeries: 100_000, cpWinner: 100_000, district: 5_000, promotionPhase: 10_000, portugalCup: 2_000_000, superCup: 500_000, districtCup: 5_000 },
+    competitions: { firstLeague: 10_000_000, secondLeague: 2_000_000, thirdLeague: 500_000, cpSeries: 100_000, cpWinner: 100_000, district: 5_000, promotionPhase: 10_000, portugalCup: 2_000_000, superCup: 500_000, districtCup: 5_000, districtSuperCup: 2_500 },
     beatenFinalist: 0.25,
     portugalCupPerRound: { semi: 500_000, factor: 0.5, min: 5_000 },
     districtFactor: { min: 0.4, max: 2.5 },
@@ -513,20 +519,22 @@ export const DEFAULT_PARAMETERS: Params = {
     lastRoundUntil: { month: 5, day: 18 },
     lastRoundPerTier: { district: { month: 4, day: 5 }, cp: { month: 4, day: 25 } },
     pauses: [
-      { reason: "seleções (setembro)", de: { month: 9, day: 4 }, until: { month: 9, day: 10 } },
-      { reason: "seleções (outubro)", de: { month: 10, day: 9 }, until: { month: 10, day: 15 } },
-      { reason: "seleções (novembro)", de: { month: 11, day: 13 }, until: { month: 11, day: 19 } },
-      { reason: "Natal", de: { month: 12, day: 22 }, until: { month: 1, day: 2 } },
-      { reason: "seleções (março)", de: { month: 3, day: 20 }, until: { month: 3, day: 26 } },
+      { reason: "seleções (setembro)", from: { month: 9, day: 4 }, until: { month: 9, day: 10 } },
+      { reason: "seleções (outubro)", from: { month: 10, day: 9 }, until: { month: 10, day: 15 } },
+      { reason: "seleções (novembro)", from: { month: 11, day: 13 }, until: { month: 11, day: 19 } },
+      { reason: "Natal", from: { month: 12, day: 22 }, until: { month: 1, day: 2 } },
+      { reason: "seleções (março)", from: { month: 3, day: 20 }, until: { month: 3, day: 26 } },
     ],
     matchDays: { firstLeague: [6, 0], secondLeague: [6, 0], thirdLeague: [6, 0], cp: [0], district: [0] },
     simultaneousFinalRounds: 1,
     cpFinalPhase: { seriesAfterDays: 7, roundsBetweenDays: 7 },
   },
   cups: {
-    cup: { wave: { district: 0, cp: 0, thirdLeague: 1, secondLeague: 1, firstLeague: 2 }, firstRound: { month: 9, day: 1 }, finalDaysAfterLeagues: 5, weekdays: [3, 2, 4] },
+    cup: { wave: { district: 0, cp: 0, thirdLeague: 1, secondLeague: 1, firstLeague: 2 }, firstRound: { month: 9, day: 12 }, lastRound: { month: 5, day: 3 }, finalDaysAfterLeagues: 5, qualifiersPerDistrictWithoutHistory: 2 },
     supercupDaysBeforeFirstRound: 6,
-    districtCup: { firstRound: { month: 10, day: 1 }, finalDaysAfterDistrictsEnd: 4 },
+    districtCup: { firstRound: { month: 10, day: 1 }, finalDaysAfterDistrictsEnd: 6 },
+    nationalStadium: { name: "Estádio Nacional", locality: "Oeiras", capacity: 38_000 },
+    minRestDays: 3,
   },
   saves: { daysAutosave: 7, rotatingAutosaves: 3, saveAtSeasonStart: true },
   fairPlay: { levels: 5, fallback: 3 },
@@ -776,7 +784,7 @@ export function validateParameters(p: Params): string[] {
 
   const c = p.calendar;
   const okDate = (d: { month: number; day: number }) => d.month >= 1 && d.month <= 12 && d.day >= 1 && d.day <= 31;
-  for (const d of [c.firstRound, c.lastRoundUntil, ...Object.values(c.lastRoundPerTier), ...c.pauses.flatMap((x) => [x.de, x.until])]) if (!okDate(d)) errors.push("calendario: datas com mês 1-12 e dia 1-31");
+  for (const d of [c.firstRound, c.lastRoundUntil, ...Object.values(c.lastRoundPerTier), ...c.pauses.flatMap((x) => [x.from, x.until])]) if (!okDate(d)) errors.push("calendario: datas com mês 1-12 e dia 1-31");
   for (const [tier, days] of Object.entries(c.matchDays))
     if (days.length === 0 || days.some((x) => x < 0 || x > 6)) errors.push(`calendario.diasDeJogo.${tier}: dias entre 0 e 6, pelo menos um`);
   if (c.cpFinalPhase.seriesAfterDays < 1 || c.cpFinalPhase.roundsBetweenDays < 1) errors.push("calendario: faseFinalCp com intervalos ≥ 1 dia");
@@ -785,8 +793,9 @@ export function validateParameters(p: Params): string[] {
   if (!(p.match.extraTime.minutes > 0 && p.match.extraTime.stoppage.min >= 0 && p.match.extraTime.stoppage.min <= p.match.extraTime.stoppage.max)) errors.push("match.extraTime: minutes > 0 e 0 ≤ stoppage.min ≤ max");
   const cup = p.cups.cup;
   for (const [tier, w] of Object.entries(cup.wave)) if (!Number.isInteger(w) || w < 0 || w > 2) errors.push(`cups.cup.wave.${tier}: vaga entre 0 e 2`);
-  if (!(cup.finalDaysAfterLeagues >= 1) || cup.weekdays.length === 0 || cup.weekdays.some((x) => x < 0 || x > 6)) errors.push("cups.cup: finalDaysAfterLeagues ≥ 1 e weekdays entre 0 e 6");
-  if (!(p.cups.supercupDaysBeforeFirstRound >= 1) || !(p.cups.districtCup.finalDaysAfterDistrictsEnd >= 1)) errors.push("cups: intervalos ≥ 1 dia");
+  if (!(cup.finalDaysAfterLeagues >= 1) || !(cup.qualifiersPerDistrictWithoutHistory >= 1)) errors.push("cups.cup: finalDaysAfterLeagues ≥ 1 e qualifiersPerDistrictWithoutHistory ≥ 1");
+  if (!(p.cups.supercupDaysBeforeFirstRound >= 1) || !(p.cups.districtCup.finalDaysAfterDistrictsEnd >= 1) || !(p.cups.minRestDays >= 1)) errors.push("cups: intervalos ≥ 1 dia");
+  if (!(p.cups.nationalStadium.capacity > 0)) errors.push("cups.nationalStadium.capacity > 0");
   if (c.simultaneousFinalRounds < 0) errors.push("calendario: jornadasFinaisSimultaneas ≥ 0");
   for (const m of [c.seasonStartMonth, c.seasonEndMonth]) if (m < 1 || m > 12) errors.push("calendario: meses entre 1 e 12");
   if (c.windows.length === 0) errors.push("calendario: tem de existir pelo menos uma janela de transferências");

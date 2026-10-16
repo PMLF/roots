@@ -22,7 +22,7 @@ export type NewPerson = {
   /** id do país (`data/countries.csv`). */
   nationality: string;
   /** Concelho de naturalidade (portugueses nascidos cá). */
-  naturalDe?: string;
+  birthCity?: string;
   roles: PersonRole[];
   personality: Personality;
   archetype: string;
@@ -45,7 +45,7 @@ export type NewPlayer = {
 
 export type NewContract = { person: string; club: string; monthlyWage: number; start: IsoDate; end: IsoDate };
 
-export type RoleFunction = "president" | "mayor" | "coach" | "adjunto" | "scout" | "medical" | "fisio" | "comunidade" | "businessperson" | "dirigenteAdeptos" | "agent" | "referee" | "journalist";
+export type RoleFunction = "president" | "mayor" | "coach" | "assistant" | "scout" | "medical" | "physio" | "community" | "businessperson" | "fanLeader" | "agent" | "referee" | "journalist";
 export type NewRole = { person: string; fn: RoleFunction; club?: string; city?: string; quality?: Record<string, number> };
 
 export type WorldBatch = {

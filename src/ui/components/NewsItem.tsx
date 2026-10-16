@@ -10,8 +10,8 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead }: { n: NewsIt
   const type = n.type === "outcome" ? `outcome.${n.values.outcome}` : n.type === "city_event" ? `city.${n.values.event}` : n.type;
   const values = { ...n.values } as Record<string, string | number>;
   if (n.type === "locality") {
-    values.de = t(`status.${values.de}` as Key).toLowerCase();
-    values.para = t(`status.${values.para}` as Key).toLowerCase();
+    values.from = t(`status.${values.from}` as Key).toLowerCase();
+    values.to = t(`status.${values.to}` as Key).toLowerCase();
   }
   const base = `newsItem.${type}.${n.variant}`;
   if (compact) {

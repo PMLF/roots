@@ -20,10 +20,10 @@ type Edge = { home: ClubId; away: ClubId };
 export function leaguePhaseEdges(def: LeaguePhaseStage, entrants: readonly Entrant[], rng: Rng): Edge[] {
   const P = def.pots;
   const n = entrants.length / P;
-  if (!Number.isInteger(n) || n < 2) throw new Error(`Fase de liga: ${entrants.length} clubes não dividem em ${P} potes`);
-  if (def.perPot % 2 !== 0 || def.perPot < 2) throw new Error("Fase de liga: perPot tem de ser par e ≥ 2");
-  if (def.perPot > n) throw new Error(`Fase de liga: perPot ${def.perPot} é demais para potes de ${n} clubes`);
-  if (def.perPot / 2 > Math.floor((n - 1) / 2)) throw new Error(`Fase de liga: perPot ${def.perPot} é demais para jogar dentro de um pote de ${n} clubes`);
+  if (!Number.isInteger(n) || n < 2) throw new Error(`League phase: ${entrants.length} clubs do not split into ${P} pots`);
+  if (def.perPot % 2 !== 0 || def.perPot < 2) throw new Error("League phase: perPot must be even and ≥ 2");
+  if (def.perPot > n) throw new Error(`League phase: perPot ${def.perPot} is too many for pots of ${n} clubs`);
+  if (def.perPot / 2 > Math.floor((n - 1) / 2)) throw new Error(`League phase: perPot ${def.perPot} is too many to play inside a pot of ${n} clubs`);
   const sorted = [...entrants].sort((a, b) => a.seed - b.seed || (a.club < b.club ? -1 : 1));
   const pots = Array.from({ length: P }, (_, i) => rng.derive(`pot${i}`).shuffle(sorted.slice(i * n, (i + 1) * n)).map((e) => e.club));
   const edges: Edge[] = [];
@@ -111,7 +111,7 @@ export function colourEdges(edges: readonly Edge[], rng: Rng): number[] {
       const result = tryColour(edges, rounds + extra, r.shuffle(edges.map((_, i) => i)), r.derive("k"));
       if (result) return result;
     }
-  throw new Error("Fase de liga: não foi possível distribuir os jogos por jornadas");
+  throw new Error("League phase: could not spread the matches over rounds");
 }
 
 export function startLeaguePhase(def: LeaguePhaseStage, stage: number, entrants: readonly Entrant[], ctx: RunContext): { state: LeaguePhaseState; fixtures: Fixture[]; events: StageEvent[] } {

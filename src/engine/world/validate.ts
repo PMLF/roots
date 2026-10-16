@@ -24,7 +24,7 @@ export function validateWorld(batch: WorldBatch, data: BaseData, countries: read
     if (ids.has(x.id)) errors.push(`id repetido: ${x.id}`);
     ids.add(x.id);
     if (!countryIds.has(x.nationality)) errors.push(`${x.id}: país desconhecido ${x.nationality}`);
-    if (x.naturalDe !== undefined && !cityIds.has(x.naturalDe)) errors.push(`${x.id}: concelho desconhecido ${x.naturalDe}`);
+    if (x.birthCity !== undefined && !cityIds.has(x.birthCity)) errors.push(`${x.id}: concelho desconhecido ${x.birthCity}`);
     if (isBlocked(x.name) || isBlocked(x.sportingName)) errors.push(`${x.id}: nome na lista de bloqueio (${x.name})`);
   }
   const playerOf = new Map<string, (typeof batch.players)[number]>();

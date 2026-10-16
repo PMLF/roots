@@ -65,7 +65,7 @@ export type ClubOffer = { id: string; name: string; league: string; tier: Tier; 
 export type PersonProfileData = {
   profile: PersonProfile;
   club?: EntityRef;
-  naturalDe?: EntityRef;
+  birthCity?: EntityRef;
   /** Factos de jogo por época e competição (públicos). */
   stats: PlayerStatLine[];
   /** Ano em que começa a época 1 do save (2026 → «2026/27»). */
@@ -130,7 +130,7 @@ export type LocalityProfileData = {
   district: string;
   clubs: (EntityRef & { league: string })[];
   /** Mudanças de estatuto, da mais recente para a mais antiga. */
-  history: { date: string; de: LocalityStatus; para: LocalityStatus; population: number }[];
+  history: { date: string; from: LocalityStatus; to: LocalityStatus; population: number }[];
 };
 
 /** Ficha de uma cidade (concelho; RZ-133): só o que qualquer pessoa pode saber. Os números verdadeiros ficam no motor; aqui vão níveis em palavras e tendências. */

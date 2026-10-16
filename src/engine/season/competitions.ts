@@ -1,51 +1,67 @@
 /**
- * Taças da época (RZ-140, RZ-141, RZ-142): liga o motor genérico de competições (`competition/format`) ao jogo.
+ * Taças da época (RZ-140, RZ-141, RZ-142), como na vida real e sobre o motor genérico de competições (`competition/format`).
  *
- *  - **Taça de Portugal**: todos os clubes da pirâmide, a jogo único; os escalões altos entram mais tarde (`cups.cup.wave`);
- *    o clube de escalão inferior joga em casa; a final, em campo neutro, é o último jogo interno da época.
- *  - **Supertaça**: campeão da Primeira Liga contra o vencedor da Taça (ou o finalista vencido, se for o mesmo clube); joga-se
- *    antes de começarem as ligas, em campo neutro. Os dois clubes ficam decididos no fecho da época anterior.
- *  - **Taças Distritais**: uma por distrito, só com os clubes das distritais desse distrito.
+ *  - **Taça de Portugal**: os clubes das ligas nacionais (Primeira Liga, Segunda Liga, Terceira Liga e CP) entram por vagas
+ *    (`cups.cup.wave`); das distritais só entram o vencedor da taça de cada distrito e o campeão de cada liga distrital da
+ *    época anterior (podem ser o mesmo clube, ou já ter subido de divisão). A jogo único; joga em casa o de escalão inferior.
+ *    A final é no Estádio Nacional e é o último jogo interno da época.
+ *  - **Supertaça**: campeão da Primeira Liga contra o vencedor da Taça (ou o finalista vencido, se o campeão ganhou a Taça),
+ *    no Estádio Nacional antes de começarem as ligas.
+ *  - **Taça Distrital** e **Supertaça Distrital** de cada distrito, com a mesma lógica: clubes das distritais desse distrito,
+ *    finais num dos maiores estádios do distrito.
  *
- * Cada competição é uma «corrida» (`RunState`) guardada no save; os jogos de cada ronda marcam-se quando a anterior acaba.
- * Para criar outra competição (fase de grupos, fase de liga…) basta uma `CompetitionDef` nova e um registo em `kindOf`.
+ * As rondas jogam-se em fins de semana de taça (domingo) em que as ligas respetivas param: as datas fixam-se antes de gerar
+ * os calendários (`planCups`). Cada taça é uma «corrida» (`RunState`) guardada no save; os jogos de cada ronda marcam-se quando
+ * a anterior acaba. Outra competição (grupos, fase de liga…) é só uma `CompetitionDef` nova e um registo em `cupKind`.
  */
-import { addDays, compare, createDate, nextWeekday, weekDay } from "../calendar/dates";
+import { addDays, compare, createDate, nextWeekday } from "../calendar/dates";
+import { seasonWeekends } from "../calendar/calendar";
+import { planKnockout } from "../competition/format/knockoutPlan";
 import { roundKey, type CompetitionDef, type DrawRules, type Entrant, type Fixture, type Played, type Results, type RunContext, type StageEvent } from "../competition/format/types";
 import { startRun, stepRun, type RunState } from "../competition/format/run";
 import { post } from "../club/finances";
 import type { Params, Tier } from "../config/parameters";
+import { Rng } from "../random/rng";
 import type { BaseClub, BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate, ScheduledMatch } from "../persistence/types";
 import { districtFactors, finalistValue, prizeValue, roundPrize } from "./competitionPrizes";
 import { finalPhaseDates } from "./cpFinalPhase";
 import { isInSecondDistrict } from "./districts";
+import { districtVenue, NATIONAL_STADIUM } from "./venues";
 
 export const CUP = "Taça de Portugal";
 export const SUPERCUP = "Supertaça";
 export const DISTRICT_CUP_PREFIX = "Taça Distrital ";
+export const DISTRICT_SUPERCUP_PREFIX = "Supertaça Distrital ";
 export const districtCupName = (district: string) => `${DISTRICT_CUP_PREFIX}${district}`;
+export const districtSupercupName = (district: string) => `${DISTRICT_SUPERCUP_PREFIX}${district}`;
 
-export type CupKind = "cup" | "supercup" | "districtCup";
-export const cupKind = (competition: string): CupKind | undefined => (competition === CUP ? "cup" : competition === SUPERCUP ? "supercup" : competition.startsWith(DISTRICT_CUP_PREFIX) ? "districtCup" : undefined);
+export type CupKind = "cup" | "supercup" | "districtCup" | "districtSupercup";
+export const cupKind = (competition: string): CupKind | undefined =>
+  competition === CUP ? "cup" : competition === SUPERCUP ? "supercup" : competition.startsWith(DISTRICT_CUP_PREFIX) ? "districtCup" : competition.startsWith(DISTRICT_SUPERCUP_PREFIX) ? "districtSupercup" : undefined;
 /** É uma competição a eliminar gerida aqui (sem tabela). */
 export const isCup = (competition: string): boolean => cupKind(competition) !== undefined;
+const districtOfCup = (competition: string): string => competition.slice((competition.startsWith(DISTRICT_CUP_PREFIX) ? DISTRICT_CUP_PREFIX : DISTRICT_SUPERCUP_PREFIX).length);
 
 /** Número do escalão nos sorteios: 0 = Primeira Liga … 4 = distritais. */
 export const TIER_NUMBER: Record<Tier, number> = { firstLeague: 0, secondLeague: 1, thirdLeague: 2, cp: 3, district: 4 };
 
 const DRAW: DrawRules = { pairing: "random", advantage: "lowerTier" };
 
-/** A definição de cada tipo de taça: uma só fase a eliminar, a jogo único. */
-export function cupDef(kind: CupKind, competition: string, lateWaves?: Entrant[][]): CompetitionDef {
-  return { id: competition, stages: [{ kind: "knockout", name: competition, legs: 1, rules: DRAW, finalNeutral: kind !== "districtCup", ...(lateWaves ? { lateWaves } : {}) }] };
+/** A definição de cada tipo de taça: uma só fase a eliminar, a jogo único, com final em campo neutro. */
+export function cupDef(competition: string, lateWaves?: Entrant[][]): CompetitionDef {
+  return { id: competition, stages: [{ kind: "knockout", name: competition, legs: 1, rules: DRAW, finalNeutral: true, ...(lateWaves ? { lateWaves } : {}) }] };
 }
 
 const slug = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 const runKey = (season: number, competition: string) => `cup.${season}.${competition}`;
 const listKey = (season: number) => `cups.${season}`;
+const planKey = (season: number) => `cupPlan.${season}`;
+const blockedKey = (season: number) => `cupBlocked.${season}`;
 const supercupKey = (season: number) => `supercup.${season}`;
+const districtSupercupKey = (season: number) => `districtSupercup.${season}`;
+const qualifiersKey = (season: number) => `cupQualifiers.${season}`;
 
 /** As taças desta época, pela ordem em que foram criadas. */
 export function activeCompetitions(repo: Repository, season: number): string[] {
@@ -72,143 +88,209 @@ export function supercupEntrants(repo: Repository, season: number): [string, str
   return raw ? (JSON.parse(raw) as [string, string]) : undefined;
 }
 
+/** Campeão contra vencedor da taça; se forem o mesmo clube, contra o finalista vencido. */
+function supercupPair(champion: string | undefined, cup: { winner?: string; runnerUp?: string; done: boolean }): [string, string] | undefined {
+  if (!champion || !cup.done || !cup.winner) return undefined;
+  const other = cup.winner === champion ? cup.runnerUp : cup.winner;
+  return other && other !== champion ? [champion, other] : undefined;
+}
+
 /**
- * Fixa a Supertaça da época seguinte (chamado no fecho da época `season`): o campeão da Primeira Liga contra o vencedor da
- * Taça — ou o finalista vencido, se o campeão ganhou a Taça. Sem Taça acabada ou sem campeão, não há Supertaça.
+ * Prepara a época seguinte a partir da que fecha (chamado no fecho de `season`): a Supertaça (campeão da Primeira Liga contra
+ * o vencedor da Taça), as Supertaças Distritais (campeão de cada distrito contra o vencedor da taça do distrito) e quem entra
+ * na Taça de Portugal vindo das distritais (o vencedor de cada taça distrital e o campeão de cada liga distrital).
  */
-export function planSupercup(repo: Repository, season: number, firstLeagueChampion: string | undefined): [string, string] | undefined {
-  const cup = cupResult(repo, season, CUP);
-  if (!firstLeagueChampion || !cup.done || !cup.winner) return undefined;
-  const other = cup.winner === firstLeagueChampion ? cup.runnerUp : cup.winner;
-  if (!other || other === firstLeagueChampion) return undefined;
-  const pair: [string, string] = [firstLeagueChampion, other];
-  repo.setMeta(supercupKey(season + 1), JSON.stringify(pair));
-  return pair;
+export function planNextSeasonCups(repo: Repository, season: number, firstLeagueChampion: string | undefined, districtChampions: Readonly<Record<string, string>>): void {
+  const pair = supercupPair(firstLeagueChampion, cupResult(repo, season, CUP));
+  if (pair) repo.setMeta(supercupKey(season + 1), JSON.stringify(pair));
+  const supers: Record<string, [string, string]> = {};
+  const qualifiers = new Set<string>(Object.values(districtChampions));
+  for (const competition of activeCompetitions(repo, season)) {
+    if (cupKind(competition) !== "districtCup") continue;
+    const district = districtOfCup(competition);
+    const result = cupResult(repo, season, competition);
+    if (result.winner) qualifiers.add(result.winner);
+    const p = supercupPair(districtChampions[district], result);
+    if (p) supers[district] = p;
+  }
+  repo.setMeta(districtSupercupKey(season + 1), JSON.stringify(supers));
+  repo.setMeta(qualifiersKey(season + 1), JSON.stringify([...qualifiers].sort()));
 }
 
 // ---------- datas ----------
 
 type Cal = Params["calendar"];
 const calendarDate = (season: number, d: { month: number; day: number }, c: Cal): IsoDate => createDate(d.month >= c.seasonStartMonth ? c.initialYear + season - 1 : c.initialYear + season, d.month, d.day);
+const monthDay = (d: IsoDate) => ({ month: Number(d.slice(5, 7)), day: Number(d.slice(8, 10)) });
+const later = (a: IsoDate, b: IsoDate) => (compare(a, b) >= 0 ? a : b);
 
-/** Quando acabam as ligas, incluindo a Fase de Promoção e a fase final do CP (que se marcam à medida que a época avança). */
-export function leaguesEnd(season: number, params: Params): IsoDate {
+/** Datas da Fase de Promoção: sábados a partir do fim das distritais, saltando os fins de semana de taça. */
+export function promotionDates(rounds: number, season: number, params: Params, blocked: ReadonlySet<IsoDate>): IsoDate[] {
   const c = params.calendar;
-  const dEnd = calendarDate(season, c.lastRoundPerTier.district ?? c.lastRoundUntil, c);
+  const districtsEnd = calendarDate(season, c.lastRoundPerTier.district ?? c.lastRoundUntil, c);
+  const out: IsoDate[] = [];
+  for (let d = nextWeekday(addDays(districtsEnd, 8), 6); out.length < rounds; d = addDays(d, 7)) if (!blocked.has(addDays(d, 1))) out.push(d);
+  return out;
+}
+
+/** Domingos de taça (rondas nacionais antes da final e final distrital) em que a Fase de Promoção e a fase final do CP não jogam. */
+export function blockedSundays(repo: Repository, season: number): Set<IsoDate> {
+  const raw = repo.meta(blockedKey(season));
+  return new Set(raw ? (JSON.parse(raw) as IsoDate[]) : []);
+}
+
+/** Quando acaba tudo o resto: ligas, Fase de Promoção e fase final do CP (que se marcam à medida que a época avança). */
+export function leaguesEnd(season: number, params: Params, blocked: ReadonlySet<IsoDate>): IsoDate {
+  const c = params.calendar;
   const promo = params.pyramid.promotion;
   const n = promo.championsPerGroup;
   const rounds = (n % 2 === 1 ? n : n - 1) * promo.legs;
-  const promotionEnd = addDays(nextWeekday(addDays(dEnd, 8), 6), 7 * (rounds - 1));
-  const cpEnd = finalPhaseDates(calendarDate(season, c.lastRoundPerTier.cp ?? c.lastRoundUntil, c), params).final;
-  return [calendarDate(season, c.lastRoundUntil, c), promotionEnd, cpEnd].reduce((a, b) => (compare(a, b) >= 0 ? a : b));
+  const promotionEnd = promotionDates(rounds, season, params, blocked).at(-1) as IsoDate;
+  const cpEnd = finalPhaseDates(calendarDate(season, c.lastRoundPerTier.cp ?? c.lastRoundUntil, c), params, blocked).final;
+  return [calendarDate(season, c.lastRoundUntil, c), promotionEnd, cpEnd].reduce(later);
 }
 
 /** `m` índices entre 0 e `total−1`, igualmente espaçados e crescentes. */
 const spaced = (total: number, m: number): number[] => (m <= 0 ? [] : m === 1 ? [0] : Array.from({ length: m }, (_, i) => Math.round((i * (total - 1)) / (m - 1))));
 
+// ---------- entradas ----------
+
+const rankedEntrants = (clubs: readonly BaseClub[]): Entrant[] =>
+  [...clubs].sort((a, b) => b.reputation - a.reputation || (a.id < b.id ? -1 : 1)).map((c, i) => ({ club: c.id, seed: i + 1, tier: TIER_NUMBER[c.tier] }));
+
+/** Quem passa das distritais à Taça de Portugal: a lista fixada no fecho da época anterior ou, na primeira época, os de maior reputação de cada distrito. */
+function districtQualifiers(repo: Repository, data: BaseData, params: Params, season: number): Set<string> {
+  const raw = repo.meta(qualifiersKey(season));
+  if (raw) return new Set(JSON.parse(raw) as string[]);
+  const byDistrict = new Map<string, BaseClub[]>();
+  for (const c of data.clubs) if (c.tier === "district" && !isInSecondDistrict(c.league)) byDistrict.set(c.district, [...(byDistrict.get(c.district) ?? []), c]);
+  return new Set([...byDistrict.values()].flatMap((cs) => rankedEntrants(cs).slice(0, params.cups.cup.qualifiersPerDistrictWithoutHistory).map((e) => e.club)));
+}
+
+/** Entradas da Taça de Portugal, por vaga (as vagas vazias saem). */
+export function nationalEntrants(repo: Repository, data: BaseData, params: Params, season: number): Entrant[][] {
+  const qualifiers = districtQualifiers(repo, data, params, season);
+  const clubs = data.clubs.filter((c) => !isInSecondDistrict(c.league) && (c.tier !== "district" || qualifiers.has(c.id)));
+  const all = rankedEntrants(clubs);
+  const tierOf = new Map(clubs.map((c) => [c.id, c.tier] as const));
+  return [0, 1, 2].map((w) => all.filter((e) => params.cups.cup.wave[tierOf.get(e.club) as Tier] === w)).filter((w) => w.length > 0);
+}
+
+const districtMembers = (data: BaseData): Map<string, BaseClub[]> => {
+  const out = new Map<string, BaseClub[]>();
+  for (const c of data.clubs) if (c.tier === "district" && !isInSecondDistrict(c.league)) out.set(c.district, [...(out.get(c.district) ?? []), c]);
+  return new Map([...out].sort(([a], [b]) => (a < b ? -1 : 1)));
+};
+
+// ---------- plano de datas ----------
+
+export type CupPlan = {
+  /** Domingos das rondas nacionais, a última é a final. */
+  national: IsoDate[];
+  /** Domingos das rondas de cada taça distrital, a última é a final. */
+  district: Record<string, IsoDate[]>;
+  supercup: IsoDate;
+  districtSupercup: IsoDate;
+};
+
+export function readCupPlan(repo: Repository, season: number): CupPlan | undefined {
+  const raw = repo.meta(planKey(season));
+  return raw ? (JSON.parse(raw) as CupPlan) : undefined;
+}
+
 /**
- * `count` datas para as rondas: as primeiras espalhadas entre `from` e a semana antes de `final`, nos dias da semana preferidos
- * (primeiro só o preferido; se faltarem dias, juntam-se os seguintes) que não tenham jogos das ligas nem pausas; a última é `final`.
+ * Fixa as datas das taças da época (uma só vez), antes de gerar os calendários das ligas: as ligas param nos fins de semana de
+ * taça. Rondas nacionais: fins de semana de todos os escalões; rondas distritais: fins de semana só das distritais.
  */
-export function cupDates(count: number, from: IsoDate, final: IsoDate, weekdays: readonly number[], blocked: (d: IsoDate) => boolean): IsoDate[] {
-  if (count <= 0) return [];
-  const before = count - 1;
-  const last = addDays(final, -6);
-  const days: IsoDate[] = [];
-  for (let d = from; compare(d, last) <= 0; d = addDays(d, 1)) if (!blocked(d)) days.push(d);
-  let pool: IsoDate[] = [];
-  for (let k = 1; k <= weekdays.length && pool.length < before; k++) pool = days.filter((d) => weekdays.slice(0, k).includes(weekDay(d)));
-  if (pool.length < before) throw new Error(`Taça: só há ${pool.length} datas livres para ${before} rondas antes da final`);
-  return [...spaced(pool.length, before).map((i) => pool[i] as IsoDate), final];
+export function planCups(repo: Repository, data: BaseData, params: Params, season: number): CupPlan {
+  const existing = readCupPlan(repo, season);
+  if (existing) return existing;
+  const c = params.calendar;
+  const cfg = params.cups;
+  const saturdays = seasonWeekends(season, c);
+  const between = (from: IsoDate, to: IsoDate, taken: ReadonlySet<IsoDate> = new Set()) => saturdays.filter((d) => compare(d, from) >= 0 && compare(d, to) <= 0 && !taken.has(d));
+  const sundayOf = (saturday: IsoDate) => addDays(saturday, 1);
+
+  const natRounds = planKnockout(nationalEntrants(repo, data, params, season).map((w) => w.length)).length;
+  const natPool = between(calendarDate(season, cfg.cup.firstRound, c), calendarDate(season, cfg.cup.lastRound, c));
+  if (natPool.length < natRounds - 1) throw new Error(`Cup: only ${natPool.length} free weekends for ${natRounds - 1} rounds`);
+  const natSaturdays = spaced(natPool.length, natRounds - 1).map((i) => natPool[i] as IsoDate);
+  const natSundays = natSaturdays.map(sundayOf);
+  const districtsEnd = calendarDate(season, c.lastRoundPerTier.district ?? c.lastRoundUntil, c);
+  let districtFinal = nextWeekday(addDays(districtsEnd, cfg.districtCup.finalDaysAfterDistrictsEnd), 0);
+  while (natSundays.includes(districtFinal)) districtFinal = addDays(districtFinal, 7);
+  // domingos em que nada mais se joga: as rondas nacionais e a final distrital (a Fase de Promoção e a fase final do CP desviam-se)
+  const blocked = new Set([...natSundays, districtFinal]);
+  const final = nextWeekday(addDays(leaguesEnd(season, params, blocked), cfg.cup.finalDaysAfterLeagues), 0);
+  const members = districtMembers(data);
+  const rounds = new Map([...members].filter(([, m]) => m.length >= 2).map(([d, m]) => [d, planKnockout([m.length]).length] as const));
+  const most = Math.max(1, ...rounds.values());
+  const distPool = between(calendarDate(season, cfg.districtCup.firstRound, c), addDays(districtsEnd, -7), new Set(natSaturdays));
+  if (distPool.length < most - 1) throw new Error(`District cup: only ${distPool.length} free weekends for ${most - 1} rounds`);
+  const shared = spaced(distPool.length, most - 1).map((i) => sundayOf(distPool[i] as IsoDate));
+  const district: Record<string, IsoDate[]> = {};
+  for (const [d, r] of rounds) district[d] = [...shared.slice(shared.length - (r - 1)), districtFinal];
+
+  const first = saturdays[0] as IsoDate;
+  const plan: CupPlan = { national: [...natSundays, final], district, supercup: addDays(first, -cfg.supercupDaysBeforeFirstRound), districtSupercup: addDays(first, -cfg.supercupDaysBeforeFirstRound - 7) };
+  repo.setMeta(planKey(season), JSON.stringify(plan));
+  repo.setMeta(blockedKey(season), JSON.stringify([...blocked].sort()));
+  return plan;
+}
+
+/** Pausas que as taças impõem às ligas de cada escalão (para os calendários): fins de semana de taça. */
+export function cupPauses(plan: CupPlan, tier: Tier): Cal["pauses"] {
+  const sundays = [...plan.national.slice(0, -1), ...(tier === "district" ? [...new Set(Object.values(plan.district).flatMap((d) => d.slice(0, -1)))] : [])];
+  return sundays.map((s) => ({ reason: "cup weekend", from: monthDay(addDays(s, -1)), until: monthDay(s) }));
 }
 
 // ---------- criação ----------
-
-type Setup = { busy: Set<IsoDate>; firstLeagueDate: IsoDate | undefined; pauses: { from: IsoDate; until: IsoDate }[] };
-
-function setupOf(repo: Repository, data: BaseData, params: Params, season: number): Setup {
-  const busy = new Set<IsoDate>();
-  let firstLeagueDate: IsoDate | undefined;
-  for (const league of new Set(data.clubs.filter((c) => !isInSecondDistrict(c.league)).map((c) => c.league))) {
-    for (const m of repo.calendar(league, season).matches) {
-      busy.add(m.date);
-      if (!firstLeagueDate || compare(m.date, firstLeagueDate) < 0) firstLeagueDate = m.date;
-    }
-  }
-  const c = params.calendar;
-  const pauses = c.pauses.map((p) => ({ from: calendarDate(season, p.de, c), until: calendarDate(season, p.until, c) }));
-  return { busy, firstLeagueDate, pauses };
-}
-
-const blockedOn = (s: Setup) => (d: IsoDate) => s.busy.has(d) || s.pauses.some((p) => compare(d, p.from) >= 0 && compare(d, p.until) <= 0);
-
-/** Estádio neutro: o maior que não seja de nenhum dos dois finalistas. */
-function neutralVenue(data: BaseData, a: string, b: string): string | undefined {
-  return data.clubs.filter((c) => c.id !== a && c.id !== b && !isInSecondDistrict(c.league)).sort((x, y) => y.stadium.capacity - x.stadium.capacity || (x.id < y.id ? -1 : 1))[0]?.id;
-}
-
-function contextOf(repo: Repository, data: BaseData, params: Params, season: number, competition: string, allocateDates: RunContext["allocateDates"]): RunContext {
-  return { seed: `${repo.meta("seed") ?? "?"}|${competition}|${season}`, competition, season, params, idPrefix: `e${season}-${slug(competition)}`, allocateDates, neutralVenue: (a, b) => neutralVenue(data, a, b) };
-}
-const noDates: RunContext["allocateDates"] = () => {
-  throw new Error("As datas da taça já estão fixadas");
-};
 
 const toScheduled = (competition: string, season: number, f: Fixture): ScheduledMatch => ({
   id: f.id, competition, season, round: f.round, date: f.date, home: f.home, away: f.away,
   ...(f.knockout ? { knockout: true } : {}), ...(f.neutral ? { neutral: true } : {}), ...(f.venue ? { venue: f.venue } : {}), ...(f.firstLeg ? { firstLeg: f.firstLeg } : {}),
 });
 
-/** Entradas de um conjunto de clubes: o melhor tem `seed` 1 (pela reputação). */
-function entrantsOf(clubs: readonly BaseClub[]): Entrant[] {
-  return [...clubs].sort((a, b) => b.reputation - a.reputation || (a.id < b.id ? -1 : 1)).map((c, i) => ({ club: c.id, seed: i + 1, tier: TIER_NUMBER[c.tier] }));
+function contextOf(repo: Repository, data: BaseData, params: Params, season: number, competition: string, allocateDates: RunContext["allocateDates"]): RunContext {
+  const seed = `${repo.meta("seed") ?? "?"}|${competition}|${season}`;
+  const kind = cupKind(competition);
+  const neutralVenue = kind === "districtCup" || kind === "districtSupercup" ? (a: string, b: string) => districtVenue(data, districtOfCup(competition), a, b, new Rng(seed, "venue")) : () => NATIONAL_STADIUM;
+  return { seed, competition, season, params, idPrefix: `e${season}-${slug(competition)}`, allocateDates, neutralVenue };
 }
+const noDates: RunContext["allocateDates"] = () => {
+  throw new Error("The cup dates are already fixed");
+};
 
-function begin(repo: Repository, data: BaseData, params: Params, season: number, kind: CupKind, competition: string, entrants: Entrant[], lateWaves: Entrant[][], dates: (count: number) => IsoDate[]): void {
-  const def = cupDef(kind, competition, lateWaves);
-  const ctx = contextOf(repo, data, params, season, competition, (_stage, count) => dates(count));
+function begin(repo: Repository, data: BaseData, params: Params, season: number, competition: string, entrants: Entrant[], lateWaves: Entrant[][], dates: IsoDate[]): void {
+  const def = cupDef(competition, lateWaves);
+  const ctx = contextOf(repo, data, params, season, competition, (_stage, count) => {
+    if (dates.length !== count) throw new Error(`${competition}: ${count} dates needed, ${dates.length} planned`);
+    return dates;
+  });
   const step = startRun(def, entrants, ctx);
   saveRun(repo, step.state);
   if (step.fixtures.length > 0) repo.saveCalendar(step.fixtures.map((f) => toScheduled(competition, season, f)), []);
-  announce(repo, data, params, season, kind, competition, step.state, step.events);
+  announce(repo, data, params, season, cupKind(competition) as CupKind, competition, step.state, step.events);
   repo.setMeta(listKey(season), JSON.stringify([...activeCompetitions(repo, season), competition]));
 }
 
 /** Cria as taças da época, uma só vez: depende dos calendários das ligas, por isso corre depois deles. Idempotente. */
 export function ensureCompetitions(repo: Repository, data: BaseData, params: Params, season: number): void {
   if (repo.meta(listKey(season)) !== undefined) return;
-  const setup = setupOf(repo, data, params, season);
-  if (!setup.firstLeagueDate) return;
-  const blocked = blockedOn(setup);
-  const clubs = data.clubs.filter((c) => !isInSecondDistrict(c.league));
-  const today = (repo.meta("date.today") as IsoDate | undefined) ?? "";
-  const notBefore = (d: IsoDate) => (today && compare(d, addDays(today, 2)) < 0 ? addDays(today, 2) : d);
-  const cfg = params.cups;
+  const plan = planCups(repo, data, params, season);
+  const known = (id: string) => data.clubs.some((c) => c.id === id && !isInSecondDistrict(c.league));
+  const seeded = (pair: [string, string]): Entrant[] => pair.map((id, i) => ({ club: id, seed: i + 1, tier: TIER_NUMBER[data.clubs.find((c) => c.id === id)!.tier] }));
   repo.transaction(() => {
     repo.setMeta(listKey(season), "[]");
-    // Supertaça: antes de começarem as ligas
     const pair = supercupEntrants(repo, season);
-    if (pair && pair.every((id) => clubs.some((c) => c.id === id))) {
-      const date = addDays(setup.firstLeagueDate as IsoDate, -cfg.supercupDaysBeforeFirstRound);
-      const entrants = pair.map((id, i): Entrant => ({ club: id, seed: i + 1, tier: TIER_NUMBER[clubs.find((c) => c.id === id)!.tier] }));
-      begin(repo, data, params, season, "supercup", SUPERCUP, entrants, [], () => [date]);
-    }
-    // Taça: a final é o último jogo interno da época
-    const cup = cfg.cup;
-    const final = nextWeekday(addDays(leaguesEnd(season, params), cup.finalDaysAfterLeagues), 0);
-    const all = entrantsOf(clubs);
-    const byWave = [0, 1, 2].map((w) => all.filter((e) => cup.wave[clubs.find((c) => c.id === e.club)!.tier] === w)).filter((w) => w.length > 0);
-    begin(repo, data, params, season, "cup", CUP, byWave[0] ?? [], byWave.slice(1), (count) => cupDates(count, notBefore(calendarDate(season, cup.firstRound, params.calendar)), final, cup.weekdays, blocked));
-    // Taças Distritais: uma por distrito
-    const c = params.calendar;
-    const districtsEnd = calendarDate(season, c.lastRoundPerTier.district ?? c.lastRoundUntil, c);
-    let districtFinal = nextWeekday(addDays(districtsEnd, cfg.districtCup.finalDaysAfterDistrictsEnd), cup.weekdays[0] ?? 3);
-    while (blocked(districtFinal)) districtFinal = addDays(districtFinal, 7);
-    const byDistrict = new Map<string, BaseClub[]>();
-    for (const club of clubs) if (club.tier === "district") byDistrict.set(club.district, [...(byDistrict.get(club.district) ?? []), club]);
-    for (const [district, members] of [...byDistrict].sort(([a], [b]) => (a < b ? -1 : 1))) {
-      if (members.length < 2) continue;
-      begin(repo, data, params, season, "districtCup", districtCupName(district), entrantsOf(members), [], (count) => cupDates(count, notBefore(calendarDate(season, cfg.districtCup.firstRound, c)), districtFinal, cup.weekdays, blocked));
+    if (pair && pair.every(known)) begin(repo, data, params, season, SUPERCUP, seeded(pair), [], [plan.supercup]);
+    const supers = JSON.parse(repo.meta(districtSupercupKey(season)) ?? "{}") as Record<string, [string, string]>;
+    for (const [district, p] of Object.entries(supers).sort(([a], [b]) => (a < b ? -1 : 1))) if (p.every(known)) begin(repo, data, params, season, districtSupercupName(district), seeded(p), [], [plan.districtSupercup]);
+    const [first = [], ...late] = nationalEntrants(repo, data, params, season);
+    begin(repo, data, params, season, CUP, first, late, plan.national);
+    for (const [district, members] of districtMembers(data)) {
+      const dates = plan.district[district];
+      if (dates) begin(repo, data, params, season, districtCupName(district), rankedEntrants(members), [], dates);
     }
   });
 }
@@ -234,7 +316,7 @@ export function advanceCompetitions(repo: Repository, data: BaseData, params: Pa
     if (!run || run.done || !kind) continue;
     const ctx = contextOf(repo, data, params, season, competition, noDates);
     const before = JSON.stringify(run);
-    const step = stepRun(cupDef(kind, competition), run, results, ctx);
+    const step = stepRun(cupDef(competition), run, results, ctx);
     if (step.events.length === 0 && step.fixtures.length === 0 && JSON.stringify(step.state) === before) continue;
     repo.transaction(() => {
       saveRun(repo, step.state);
@@ -252,16 +334,16 @@ export function advanceCompetitions(repo: Repository, data: BaseData, params: Pa
 function announce(repo: Repository, data: BaseData, params: Params, season: number, kind: CupKind, competition: string, run: RunState, events: readonly StageEvent[]): void {
   const today = (repo.meta("date.today") as IsoDate | undefined) ?? createDate(params.calendar.initialYear + season - 1, params.calendar.seasonStartMonth, 1);
   const byId = new Map(data.clubs.map((c) => [c.id, c] as const));
-  const district = kind === "districtCup" ? competition.slice(DISTRICT_CUP_PREFIX.length) : undefined;
+  const district = kind === "districtCup" || kind === "districtSupercup" ? districtOfCup(competition) : undefined;
   const factor = district ? districtFactors(data.cities, params).get(district) ?? 1 : 1;
   const prize = (club: string, type: string, value: number, extra: Record<string, unknown> = {}) => {
     const cb = byId.get(club);
     if (!cb || value <= 0) return;
     post(repo, cb, "prizes", value);
     const city = cb.city;
-    repo.appendEvent({ type: "COMPETITION_PRIZE", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "premiado" }, { k: "competition", id: competition }, ...(city ? [{ k: "city" as const, id: city, roleKind: "host" }] : [])], data: { competition, type, value, ...(district ? { districtFactor: factor } : {}), ...extra } });
+    repo.appendEvent({ type: "COMPETITION_PRIZE", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "awarded" }, { k: "competition", id: competition }, ...(city ? [{ k: "city" as const, id: city, roleKind: "host" }] : [])], data: { competition, type, value, ...(district ? { districtFactor: factor } : {}), ...extra } });
   };
-  const finalType = kind === "cup" ? "portugalCup" : kind === "supercup" ? "superCup" : "districtCup";
+  const finalType: "portugalCup" | "superCup" | "districtCup" | "districtSupercup" = kind === "cup" ? "portugalCup" : kind === "supercup" ? "superCup" : kind === "districtCup" ? "districtCup" : "districtSupercup";
   for (const e of events) {
     if (e.type !== "roundPlayed") continue;
     const key = roundKey(e.label);
@@ -269,11 +351,11 @@ function announce(repo: Repository, data: BaseData, params: Params, season: numb
       const winner = byId.get(t.winner);
       const loser = byId.get(t.loser);
       if (e.label.fromEnd === 0) {
-        const value = prizeValue(finalType, params, factor);
+        const value = prizeValue(finalType === "districtSupercup" ? "districtSuperCup" : finalType, params, factor);
         prize(t.winner, finalType, value, { position: 1, round: key });
         prize(t.loser, finalType, finalistValue(value, params), { position: 2, round: key });
-        // as taças distritais ficam no histórico (prémio) sem notícia para o mundo: são vinte por época
-        if (kind !== "districtCup") repo.appendEvent({ type: "CHAMPION", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: t.winner, roleKind: "champion" }, { k: "competition", id: competition }], data: { league: competition, cup: true, runnerUp: t.loser } });
+        // as taças distritais ficam no histórico (prémio) sem notícia para o mundo: são dezenas por época
+        if (kind === "cup" || kind === "supercup") repo.appendEvent({ type: "CHAMPION", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: t.winner, roleKind: "champion" }, { k: "competition", id: competition }], data: { league: competition, cup: true, runnerUp: t.loser } });
       } else if (kind === "cup") {
         prize(t.winner, "portugalCupRound", roundPrize(Math.max(0, e.label.fromEnd - 1), params), { round: key });
       }

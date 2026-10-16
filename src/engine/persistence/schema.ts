@@ -46,8 +46,8 @@ CREATE TABLE match_fact (
   match TEXT NOT NULL REFERENCES match(id), minute INTEGER NOT NULL, type TEXT NOT NULL,
   player TEXT NOT NULL, club TEXT NOT NULL, extra TEXT NOT NULL DEFAULT ''
 );
-CREATE INDEX ix_facto_match ON match_fact(match);
-CREATE INDEX ix_facto_player ON match_fact(player, type);
+CREATE INDEX ix_fact_match ON match_fact(match);
+CREATE INDEX ix_fact_player ON match_fact(player, type);
 
 CREATE TABLE appearance (
   match TEXT NOT NULL REFERENCES match(id), player TEXT NOT NULL, club TEXT NOT NULL,

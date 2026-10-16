@@ -104,7 +104,7 @@ export function stepKnockout(def: KnockoutStage, state: KnockoutState, results: 
     for (const t of state.current.ties) {
       const rs = played.get(t.fixtures[0] as string) as Played[];
       const w = tieWinner(t.a, t.b, rs);
-      if (!w) throw new Error(`Eliminatória sem vencedor: ${t.fixtures.join(", ")}`);
+      if (!w) throw new Error(`Tie without a winner: ${t.fixtures.join(", ")}`);
       const loser = w.winner === t.a ? t.b : t.a;
       survivors.push(w.winner);
       outThisRound.push(loser);

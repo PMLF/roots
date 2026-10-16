@@ -11,6 +11,7 @@ import { competitionTable } from "../competition/table";
 import type { Repository } from "../persistence/repository";
 import { matchWinner, type IsoDate, type ScheduledMatch } from "../persistence/types";
 import { SERIES } from "./movements";
+import { NATIONAL_STADIUM } from "./venues";
 
 export const CP_FINAL_SEMI_COMPETITION = "CP Meias-Finais";
 export const CP_FINAL_COMPETITION = "CP Final";
@@ -33,10 +34,15 @@ export function finalSemiPair(champions: readonly SeriesChampion[]): [{ home: Cl
 }
 
 /** Datas: meias-finais no primeiro domingo `diasAposSeries` depois do último jogo das séries; a final `diasEntreRondas` depois. */
-export function finalPhaseDates(seriesLastMatch: IsoDate, params: Params): { finalSemi: IsoDate; final: IsoDate } {
+export function finalPhaseDates(seriesLastMatch: IsoDate, params: Params, blocked: ReadonlySet<IsoDate> = new Set()): { finalSemi: IsoDate; final: IsoDate } {
   const c = params.calendar.cpFinalPhase;
-  const finalSemi = nextWeekday(addDays(seriesLastMatch, c.seriesAfterDays), 0);
-  return { finalSemi, final: nextWeekday(addDays(finalSemi, c.roundsBetweenDays), 0) };
+  const free = (d: IsoDate) => {
+    let x = nextWeekday(d, 0);
+    while (blocked.has(x)) x = addDays(x, 7);
+    return x;
+  };
+  const finalSemi = free(addDays(seriesLastMatch, c.seriesAfterDays));
+  return { finalSemi, final: free(addDays(finalSemi, c.roundsBetweenDays)) };
 }
 
 const seriesNames = SERIES.map((s) => `CP Série ${s}`);
@@ -59,7 +65,7 @@ export function generateCpFinalSemi(repo: Repository, data: BaseData, params: Pa
     champions.push({ series, club: line.club, matches: line.matches, points: line.points, difference: line.difference, scoredGoals: line.scoredGoals, reputation: rep.get(line.club) ?? 0 });
   }
   const [m1, m2] = finalSemiPair(champions);
-  const dates = finalPhaseDates(last, params);
+  const dates = finalPhaseDates(last, params, new Set(JSON.parse(repo.meta(`cupBlocked.${season}`) ?? "[]") as IsoDate[]));
   const match = (id: string, home: ClubId, away: ClubId, date: IsoDate): ScheduledMatch => ({ id, competition: CP_FINAL_SEMI_COMPETITION, season, round: 1, date, home, away, knockout: true });
   repo.transaction(() => {
     repo.saveCalendar([match(finalPhaseMatchId(season, "semi1"), m1.home, m1.away, dates.finalSemi), match(finalPhaseMatchId(season, "semi2"), m2.home, m2.away, dates.finalSemi)], []);
@@ -88,7 +94,7 @@ export function generateCpFinal(repo: Repository, season: number): boolean {
   if (!pair) return false;
   const { champions, final } = JSON.parse(raw) as { champions: ClubId[]; final: IsoDate };
   const [home, away] = champions.indexOf(pair[0]) <= champions.indexOf(pair[1]) ? pair : ([pair[1], pair[0]] as [ClubId, ClubId]);
-  repo.saveCalendar([{ id: finalPhaseMatchId(season, "final"), competition: CP_FINAL_COMPETITION, season, round: 1, date: final, home, away, knockout: true }], []);
+  repo.saveCalendar([{ id: finalPhaseMatchId(season, "final"), competition: CP_FINAL_COMPETITION, season, round: 1, date: final, home, away, knockout: true, neutral: true, venue: NATIONAL_STADIUM }], []);
   return true;
 }
 

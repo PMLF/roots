@@ -46,7 +46,7 @@ export type Origin = "openPlay" | "corner" | "free" | "penalty";
 export type ShotResult = "goal" | "saved" | "away" | "blocked";
 
 export type MatchEvent =
-  | { type: "lance"; minute: number; side: Side; player: string }
+  | { type: "play"; minute: number; side: Side; player: string }
   | { type: "shot"; minute: number; side: Side; player: string; assistant?: string; xg: number; outcome: ShotResult; origin: Origin; goalkeeper?: string }
   | { type: "corner"; minute: number; side: Side }
   | { type: "foul"; minute: number; side: Side; player: string; penalty: boolean }

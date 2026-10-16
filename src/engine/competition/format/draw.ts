@@ -29,7 +29,7 @@ const sameOrigin = (pairs: readonly [Entrant, Entrant][]) => pairs.filter(([a, b
 
 /** Emparelha os que jogam (número par). */
 export function pairUp(playing: readonly Entrant[], rules: DrawRules, rng: Rng): Pair[] {
-  if (playing.length % 2 !== 0) throw new Error(`Sorteio com ${playing.length} clubes: tem de ser par`);
+  if (playing.length % 2 !== 0) throw new Error(`Draw with ${playing.length} clubs: must be even`);
   const build = (): [Entrant, Entrant][] => {
     const out: [Entrant, Entrant][] = [];
     if (rules.pairing === "random") {

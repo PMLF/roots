@@ -29,9 +29,9 @@ export type FinalStandings = {
   promotionPhasePromoted: { club: ClubId; series: CpSeries }[];
 };
 
-export type Local = "first" | "second" | "third" | `cp-${CpSeries}` | `distrital-${DistrictId}`;
+export type Local = "first" | "second" | "third" | `cp-${CpSeries}` | `district-${DistrictId}`;
 
-export type Movement = { club: ClubId; de: Local; para: Local; reason: "rise" | "relegation" | "promotion" };
+export type Movement = { club: ClubId; from: Local; to: Local; reason: "rise" | "relegation" | "promotion" };
 
 export type MovementsResult = { pyramid: Pyramid; movements: Movement[]; warnings: string[] };
 
@@ -42,7 +42,7 @@ export function applyMovements(current: Pyramid, final: FinalStandings, params: 
   const { firstLeague, secondLeague, thirdLeague, cp } = params.pyramid;
   const warnings: string[] = [];
   const movements: Movement[] = [];
-  const move = (club: ClubId, de: Local, para: Local, reason: Movement["reason"]) => movements.push({ club, de, para, reason });
+  const move = (club: ClubId, from: Local, to: Local, reason: Movement["reason"]) => movements.push({ club, from, to, reason });
   const lastN = (list: readonly ClubId[], n: number) => (n > 0 ? list.slice(-n) : []);
   const first = (list: readonly ClubId[], n: number) => list.slice(0, n);
 
@@ -82,8 +82,8 @@ export function applyMovements(current: Pyramid, final: FinalStandings, params: 
   }
   for (const c of champions) move(c.club, `cp-${c.series}`, "third", "rise");
   for (const c of tDrops) move(c, "third", `cp-${seriesOf(c)}`, "relegation");
-  for (const c of cpDrops) move(c.club, `cp-${c.series}`, `distrital-${ctx.districtOf(c.club)}`, "relegation");
-  for (const p of final.promotionPhasePromoted) move(p.club, `distrital-${ctx.districtOf(p.club)}`, `cp-${p.series}`, "promotion");
+  for (const c of cpDrops) move(c.club, `cp-${c.series}`, `district-${ctx.districtOf(c.club)}`, "relegation");
+  for (const p of final.promotionPhasePromoted) move(p.club, `district-${ctx.districtOf(p.club)}`, `cp-${p.series}`, "promotion");
 
   const promoExpected = derived(params).promotedAtCp;
   if (final.promotionPhasePromoted.length !== promoExpected) warnings.push(`a Fase de Promoção devia ter ${promoExpected} promovidos e tem ${final.promotionPhasePromoted.length}`);
@@ -92,8 +92,8 @@ export function applyMovements(current: Pyramid, final: FinalStandings, params: 
   const leave = new Map<Local, Set<ClubId>>();
   const enter = new Map<Local, ClubId[]>();
   for (const m of movements) {
-    (leave.get(m.de) ?? leave.set(m.de, new Set()).get(m.de)!).add(m.club);
-    (enter.get(m.para) ?? enter.set(m.para, []).get(m.para)!).push(m.club);
+    (leave.get(m.from) ?? leave.set(m.from, new Set()).get(m.from)!).add(m.club);
+    (enter.get(m.to) ?? enter.set(m.to, []).get(m.to)!).push(m.club);
   }
   const compose = (local: Local, base: readonly ClubId[]) => [...base.filter((c) => !leave.get(local)?.has(c)), ...(enter.get(local) ?? [])];
   const fresh: Pyramid = {
@@ -101,7 +101,7 @@ export function applyMovements(current: Pyramid, final: FinalStandings, params: 
     second: compose("second", current.second),
     third: compose("third", current.third),
     cp: Object.fromEntries(SERIES.map((s) => [s, compose(`cp-${s}`, current.cp[s])])) as Record<CpSeries, ClubId[]>,
-    districtLeagues: Object.fromEntries(Object.entries(current.districtLeagues).map(([d, l]) => [d, compose(`distrital-${d}`, l)])),
+    districtLeagues: Object.fromEntries(Object.entries(current.districtLeagues).map(([d, l]) => [d, compose(`district-${d}`, l)])),
   };
 
   const sizes: [string, number, number][] = [

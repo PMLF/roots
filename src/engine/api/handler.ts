@@ -110,8 +110,8 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (m.input.seeAll) output.truth = personTruth(repository, m.input.id);
       const club = profile.exposed.club ? data.clubs.find((c) => c.id === profile.exposed.club) : undefined;
       if (club) output.club = { k: "club", id: club.id, name: club.name };
-      const city = profile.exposed.naturalDe ? data.cities.find((c) => c.id === profile.exposed.naturalDe) : undefined;
-      if (city) output.naturalDe = { k: "city", id: city.id, name: city.name };
+      const city = profile.exposed.birthCity ? data.cities.find((c) => c.id === profile.exposed.birthCity) : undefined;
+      if (city) output.birthCity = { k: "city", id: city.id, name: city.name };
       return output;
     }
     case "clubProfile": {
@@ -166,7 +166,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const city = data.cities.find((x) => x.id === base.city);
       const history = repository
         .eventsOf({ k: "locality", id: base.id }, { publicOnly: true, type: "LOCALITY_STATUS" })
-        .map((e) => ({ date: e.date, de: e.data.de as LocalityStatus, para: e.data.para as LocalityStatus, population: Number(e.data.population) }));
+        .map((e) => ({ date: e.date, from: e.data.from as LocalityStatus, to: e.data.to as LocalityStatus, population: Number(e.data.population) }));
       const output: LocalityProfileData = {
         id: base.id, name: base.name, status: current.status, population: current.population, since: current.since, host: base.host,
         city: { k: "city", id: base.city, name: city?.name ?? base.city }, district: base.district,

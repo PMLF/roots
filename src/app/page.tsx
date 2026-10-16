@@ -18,7 +18,7 @@ import { useEngine } from "@/ui/EngineProvider";
 import { useTime } from "@/ui/useTime";
 
 const DAY_MS = 86_400_000;
-const betweenDays = (de: string, until: string) => Math.round((Date.parse(`${until}T00:00:00Z`) - Date.parse(`${de}T00:00:00Z`)) / DAY_MS);
+const betweenDays = (from: string, until: string) => Math.round((Date.parse(`${until}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS);
 
 /**
  * Página inicial (TOM_E_UX §3.8, RZ-166), por hierarquia: o que vem a seguir em cima, num cartão baixo; por baixo, lado a lado,

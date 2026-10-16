@@ -28,11 +28,11 @@ const seasonDate = (season: number, d: { month: number; day: number }, c: Schedu
 type Slot = { date: IsoDate; weekend: boolean };
 
 /** Sábados disponíveis na época (sem pausas e com o domingo ainda dentro do limite). */
-export function seasonDaWeekEnds(season: number, c: Schedule, tier?: Tier): IsoDate[] {
+export function seasonWeekends(season: number, c: Schedule, tier?: Tier): IsoDate[] {
   const start = nextWeekday(seasonDate(season, c.firstRound, c), 6);
   const end = seasonDate(season, (tier && c.lastRoundPerTier[tier]) || c.lastRoundUntil, c);
-  const pauses = c.pauses.map((p) => ({ de: seasonDate(season, p.de, c), until: seasonDate(season, p.until, c) }));
-  const inPause = (d: IsoDate) => pauses.some((p) => compare(d, p.de) >= 0 && compare(d, p.until) <= 0);
+  const pauses = c.pauses.map((p) => ({ from: seasonDate(season, p.from, c), until: seasonDate(season, p.until, c) }));
+  const inPause = (d: IsoDate) => pauses.some((p) => compare(d, p.from) >= 0 && compare(d, p.until) <= 0);
   const out: IsoDate[] = [];
   for (let s = start; compare(addDays(s, 1), end) <= 0; s = addDays(s, 7)) if (!inPause(s) && !inPause(addDays(s, 1))) out.push(s);
   return out;
@@ -47,10 +47,10 @@ function split(total: number, m: number): number[] {
 
 /** As `rondas` datas-base de uma liga: fins de semana espaçados e, se faltarem, quartas-feiras antes de um fim de semana. */
 export function leagueSlots(pairings: number, season: number, c: Schedule, tier?: Tier): Slot[] {
-  const W = seasonDaWeekEnds(season, c, tier);
+  const W = seasonWeekends(season, c, tier);
   if (pairings <= W.length) return split(W.length, pairings).map((i) => ({ date: W[i] as IsoDate, weekend: true }));
-  const pauses = c.pauses.map((p) => ({ de: seasonDate(season, p.de, c), until: seasonDate(season, p.until, c) }));
-  const free = (d: IsoDate) => !pauses.some((p) => compare(d, p.de) >= 0 && compare(d, p.until) <= 0);
+  const pauses = c.pauses.map((p) => ({ from: seasonDate(season, p.from, c), until: seasonDate(season, p.until, c) }));
+  const free = (d: IsoDate) => !pauses.some((p) => compare(d, p.from) >= 0 && compare(d, p.until) <= 0);
   const candidate = W.map((s, i) => ({ i, wednesday: addDays(s, -3) })).filter(({ i, wednesday }) => i > 0 && i < W.length - 1 && free(wednesday));
   const extra = pairings - W.length;
   if (extra > candidate.length) throw new Error(`Calendário impossível: ${pairings} jornadas, só cabem ${W.length + candidate.length}`);
@@ -92,8 +92,8 @@ export function generateLeagueCalendar(def: LeagueDefinition, season: number, c:
 }
 
 /** Calendários de várias ligas da mesma época; cada liga tem o seu fluxo aleatório, por isso acrescentar uma não muda as outras. */
-export function generateSeasonCalendars(leagues: readonly LeagueDefinition[], season: number, c: Schedule, rng: Rng): LeagueCalendar[] {
-  return leagues.map((l) => generateLeagueCalendar(l, season, c, rng.derive(`epoca/${season}`)));
+export function generateSeasonCalendars(leagues: readonly LeagueDefinition[], season: number, c: Schedule, rng: Rng, extraPauses: (tier: Tier) => Schedule["pauses"] = () => []): LeagueCalendar[] {
+  return leagues.map((l) => generateLeagueCalendar(l, season, { ...c, pauses: [...c.pauses, ...extraPauses(l.tier)] }, rng.derive(`epoca/${season}`)));
 }
 
 /** Verifica um calendário; devolve a lista de problemas (vazia se estiver certo). */

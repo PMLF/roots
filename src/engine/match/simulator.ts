@@ -269,7 +269,7 @@ export class MatchSimulator {
     const shotP = sigmoide(logit(this.p.baseShotP) + (this.p.sensitivity.shot * d) / 10);
     if (!r.prob(shotP)) {
       const driver = chooseWeighted(r, eq.lineup, (j) => this.p.attendanceWeight[j.position] ?? 0);
-      out.push({ type: "lance", minute: m, side, player: driver.id });
+      out.push({ type: "play", minute: m, side, player: driver.id });
       if (r.prob(this.p.corners.pIfBlocked)) this.corner(r, m, side, out, 0);
       return;
     }

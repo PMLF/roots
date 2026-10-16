@@ -8,7 +8,7 @@ import type { Repository } from "../persistence/repository";
 import type { IsoDate, ScheduledMatch } from "../persistence/types";
 import { isInSecondDistrict } from "./districts";
 import { CP_FINAL_PHASE_COMPETITIONS } from "./cpFinalPhase";
-import { ensureCompetitions, pendingCupMatches } from "./competitions";
+import { cupPauses, ensureCompetitions, pendingCupMatches, planCups } from "./competitions";
 import { saveParameters } from "./saveYear";
 import { currentSeason, savePyramid, initialPyramid } from "./seasonPyramid";
 
@@ -30,7 +30,9 @@ export function prepareSeason(repo: Repository, data: BaseData, paramsBase: Para
   if (first && repo.calendar(first.competition, season).matches.length === 0) {
     const seed = repo.meta("seed") ?? "?";
     repo.transaction(() => {
-      for (const cal of generateSeasonCalendars(leagues, season, params.calendar, new Rng(`${seed}|cal`))) {
+      // as ligas param nos fins de semana de taça
+      const plan = planCups(repo, data, params, season);
+      for (const cal of generateSeasonCalendars(leagues, season, params.calendar, new Rng(`${seed}|cal`), (tier) => cupPauses(plan, tier))) {
         const { matches, byes } = forRepository(cal);
         repo.saveCalendar(matches, byes);
       }
