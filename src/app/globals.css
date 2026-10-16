@@ -360,3 +360,14 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .noticia.do-teu-clube { border-left-color: var(--cor-destaque, #1a7f37); }
 .noticia.nao-lida h3 { font-weight: 800; }
 .noticia .ponto { display: inline-block; width: 0.5rem; height: 0.5rem; margin-right: 0.4rem; border-radius: 50%; background: var(--cor-destaque, #1a7f37); }
+
+/* Cidade (RZ-133): níveis em palavras com barra de cinco segmentos e tendência */
+.nivel-linha { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.nivel-barra { display: inline-flex; gap: 2px; }
+.nivel-barra > span { width: 10px; height: 8px; border-radius: 2px; background: var(--linha); }
+.nivel-barra > span.cheio { background: var(--destaque); }
+.tendencia { font-variant-numeric: tabular-nums; color: var(--suave); }
+.tendencia-sobe { color: var(--destaque-texto); }
+.tendencia-desce { color: var(--aviso); }
+.so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.lista-simples { margin: 0; padding-left: 18px; display: grid; gap: 4px; }

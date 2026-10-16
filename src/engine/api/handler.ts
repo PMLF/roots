@@ -16,6 +16,7 @@ import { parametrosDoSave, anoDaEpocaQueContem, anoInicialDoSave, nomeDaEpoca } 
 import { dadosDaEpoca, dadosDaPiramide, epocaAtual, historicoDeDivisoes } from "../epoca/piramideEpoca";
 import { vistaDoPlano } from "../epoca/vistaDoPlano";
 import { confirmarJogo, guardarPlano } from "../epoca/planoDeJogo";
+import { fichaCidade } from "../cidade/ficha";
 import { competitionPage } from "../competicao/ficha";
 import { nivelDeReputacao } from "../clube/reputacao";
 import { nivelGeral } from "../mundo/nivel";
@@ -169,6 +170,10 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
         historico,
       };
       return saida;
+    }
+    case "fichaCidade": {
+      const { repositorio, dados, base, params } = await contexto(servicos);
+      return fichaCidade(repositorio, dados, base, params, vistaDoGamer(repositorio), m.entrada.id);
     }
     case "competicoes":
       return competicoesDoMundo((await contexto(servicos)).dados);

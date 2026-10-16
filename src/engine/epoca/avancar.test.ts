@@ -158,6 +158,17 @@ describe("avançar no tempo", () => {
     const nova = await tratar({ id: 4, tipo: "estadoTempo", entrada: null }, s);
     expect(nova.epoca).toBe(2);
     expect(nova.porJogar).toBeGreaterThan(3000);
+    // as cidades mudaram: um estado novo por concelho, só em palavras para a interface, e os acontecimentos viram notícia
+    const primeiro = (await tratar({ id: 20, tipo: "clubes", entrada: null }, s))[0]!;
+    const fc = (await tratar({ id: 21, tipo: "fichaClube", entrada: { id: primeiro.id } }, s))!;
+    const cidade = (await tratar({ id: 22, tipo: "fichaCidade", entrada: { id: fc.cidade.id } }, s))!;
+    expect(cidade.populacaoHistorico.map((p) => p.label)).toEqual(["2026/27", "2027/28"]);
+    expect(cidade.indicadores).toHaveLength(6);
+    for (const i of cidade.indicadores) { expect(i.nivel).toBeGreaterThanOrEqual(1); expect(i.nivel).toBeLessThanOrEqual(5); expect(i.historico).toHaveLength(2); }
+    expect(cidade.clubes.some((c) => c.ref.id === primeiro.id)).toBe(true);
+    expect(repo.contar("CIDADE_EPOCA")).toBe(276);
+    const mundo = await tratar({ id: 23, tipo: "noticias", entrada: { escopo: "mundo", limite: 300 } }, s);
+    expect(mundo.some((n) => n.tipo === "cidade_evento")).toBe(true);
     const antiga = await tratar({ id: 5, tipo: "competitionPage", entrada: { league: "Primeira Liga", season: 1 } }, s);
     expect(antiga!.gamesPlayed).toBe(380);
     expect(antiga!.table.every((l) => l.played === 38)).toBe(true);

@@ -1,12 +1,12 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import type { FichaClubeDados, CompetitionPage, FichaLocalidadeDados, FichaPessoaDados } from "@/engine/api/contratos";
+import type { FichaClubeDados, CompetitionPage, FichaCidadeDados, FichaLocalidadeDados, FichaPessoaDados } from "@/engine/api/contratos";
+import { FichaCidade } from "@/ui/components/fichas/FichaCidade";
 import { FichaClube } from "@/ui/components/fichas/FichaClube";
 import { FichaCompeticao } from "@/ui/components/fichas/FichaCompeticao";
 import { FichaLocalidade } from "@/ui/components/fichas/FichaLocalidade";
 import { FichaPessoa } from "@/ui/components/fichas/FichaPessoa";
-import { Ficha } from "@/ui/components/Ficha";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { lerFicha } from "@/ui/ligacoes";
 import { useVerTudo } from "@/ui/dev";
@@ -15,11 +15,11 @@ import { useMotor } from "@/ui/MotorProvider";
 type Estado =
   | { fase: "a-carregar" }
   | { fase: "nao-encontrada" }
-  | { fase: "em-breve" }
   | { fase: "erro"; erro: string }
   | { fase: "clube"; d: FichaClubeDados }
   | { fase: "pessoa"; d: FichaPessoaDados }
   | { fase: "localidade"; d: FichaLocalidadeDados }
+  | { fase: "cidade"; d: FichaCidadeDados }
   | { fase: "competicao"; d: CompetitionPage };
 
 function Conteudo() {
@@ -46,10 +46,13 @@ function Conteudo() {
         } else if (k === "localidade") {
           const d = await motor.chamar("fichaLocalidade", { id });
           if (vivo) setEstado(d ? { fase: "localidade", d } : { fase: "nao-encontrada" });
+        } else if (k === "cidade") {
+          const d = await motor.chamar("fichaCidade", { id });
+          if (vivo) setEstado(d ? { fase: "cidade", d } : { fase: "nao-encontrada" });
         } else if (k === "competicao") {
           const d = await motor.chamar("competitionPage", { league: id });
           if (vivo) setEstado(d ? { fase: "competicao", d } : { fase: "nao-encontrada" });
-        } else if (vivo) setEstado({ fase: "em-breve" }); // cidade (RZ-133): ainda sem ficha
+        }
       } catch (e) {
         if (vivo) setEstado({ fase: "erro", erro: e instanceof Error ? e.message : String(e) });
       }
@@ -62,10 +65,10 @@ function Conteudo() {
     case "a-carregar": return <p data-testid="ficha-estado">{t("ficha.aCarregar")}</p>;
     case "nao-encontrada": return <p data-testid="ficha-estado" className="erro">{t("ficha.naoEncontrada")}</p>;
     case "erro": return <p className="erro">{estado.erro}</p>;
-    case "em-breve": return <Ficha tipo={alvo.k} titulo={alvo.id} numeros={[]} separadores={{ resumo: <p className="vazio">{t("ficha.embreve")}</p> }} />;
     case "clube": return <FichaClube d={estado.d} verTudo={verTudo} />;
     case "pessoa": return <FichaPessoa d={estado.d} verTudo={verTudo} />;
     case "localidade": return <FichaLocalidade d={estado.d} />;
+    case "cidade": return <FichaCidade d={estado.d} />;
     case "competicao": return <FichaCompeticao d={estado.d} />;
   }
 }

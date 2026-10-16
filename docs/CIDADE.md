@@ -147,3 +147,15 @@ No MVP, os **patrocínios dependem do setor** da cidade (sem empresas individuai
 | F3 | Modelo completo (RZ-301), sinergias (302), infraestruturas (303-304), propriedade e licenciamento (305, 315), pessoas e reuniões (306), prémio e Câmara (307), política (308), novo estádio com escolha do local (314), efeitos cidade ↔ clube (309-310) |
 | Depois do MVP, prioridade alta | Empresários e patrocínios locais (311) |
 | P3 | Mapa visual da cidade do gamer (506), regiões como atores |
+
+## 11. A cidade no MVP (RZ-133) — decisões do Pedro a 16-10-2026
+
+- **Visibilidade:** os números verdadeiros (0-100) ficam escondidos, como as finanças dos rivais. A interface vê **cinco níveis em palavras** (muito baixo … muito alto), a **tendência** face à época anterior (sobe, estável, desce) e o histórico por época. A **população é pública** (número exato). O orçamento da Câmara aparece em palavras, relativo às outras cidades (por habitante).
+- **Variáveis acompanhadas:** população, economia, emprego, turismo, orgulho no clube, notoriedade e cultura de futebol. Transportes, estacionamento e valor do solo ficam para os projetos (RZ-303/304).
+- **Evolução anual, para as 276 cidades**, no fecho de época (a 1 de julho começa a seguinte): cada indicador regride 20 % para um **alvo** (setor, tamanho e melhor clube da terra) com ruído; **título**, **subida** e **descida** de clubes da terra mexem no orgulho e na cultura de futebol; a população varia por setor, economia e orgulho, no máximo ±3 % ao ano. Parâmetros em `parametros.cidade`.
+- **Acontecimentos aleatórios já no MVP** (probabilidade anual por cidade e por polo; pesos por setor): fecho e abertura de fábricas, fundos europeus, autoestrada nova, festival, mau ano agrícola, crise regional, incêndios, expansão da universidade e hotel novo. Os **regionais** atingem todos os concelhos do polo. Cada um é um evento público `CIDADE_EVENTO` (vira notícia) e mexe nos indicadores desse ano. Efeitos diretos nos clubes (patrocínios, assistência) ficam para RZ-310.
+- **Autarca:** nome, mandato e atitude em palavras (apoio ao desporto; «vaidoso», «discreto», «ambicioso» só como reputação pública). Os traços finos descobrem-se por conversas e reuniões (RZ-165). **Mandato fixo** (2025-2029) até haver eleições (RZ-308), que têm de chegar antes de 2029.
+- **Outras cidades:** a ficha é igual para todas e só mostra o que é público; nada de finanças do clube nem relações internas (coerente com a demissão, RZ-118).
+- **Armazenamento:** sem tabela nova. O estado de cada cidade é o último evento **privado** `CIDADE_EPOCA` (números verdadeiros, `valida` = época a que se aplica); antes do primeiro fecho, o estado de arranque reconstrói-se da seed. Tudo reconstruível a partir do log.
+- **Fora do MVP, por decisão:** localidades dentro do concelho continuam com a evolução própria (RZ-309); a população do concelho e a das localidades ainda não estão ligadas.
+

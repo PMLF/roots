@@ -118,6 +118,41 @@ export type FichaLocalidadeDados = {
   historico: { data: string; de: EstatutoLocalidade; para: EstatutoLocalidade; populacao: number }[];
 };
 
+/** Ficha de uma cidade (concelho; RZ-133): só o que qualquer pessoa pode saber. Os números verdadeiros ficam no motor; aqui vão níveis em palavras e tendências. */
+export type NivelCidadeVista = 1 | 2 | 3 | 4 | 5;
+export type FichaCidadeDados = {
+  id: string;
+  nome: string;
+  distrito: string;
+  polo: string;
+  ilha: boolean;
+  setor: string;
+  setorSecundario: string;
+  /** Habitantes (dado público). */
+  populacao: number;
+  populacaoHistorico: { epoca: number; label: string; populacao: number }[];
+  indicadores: {
+    id: "economia" | "emprego" | "turismo" | "orgulho" | "notoriedade" | "culturaFutebol";
+    nivel: NivelCidadeVista;
+    tendencia: "sobe" | "estavel" | "desce";
+    historico: { epoca: number; label: string; nivel: NivelCidadeVista }[];
+  }[];
+  /** Orçamento municipal por habitante, em relação às outras cidades. */
+  orcamento: NivelCidadeVista;
+  autarca?: {
+    pessoa: RefEntidade;
+    mandatoDesde: number;
+    mandatoAte: number;
+    apoioDesporto: NivelCidadeVista;
+    /** Reputação pública: só o que se diz dele na cidade. */
+    perfil: ("vaidoso" | "discreto" | "ambicioso")[];
+  };
+  localidades: { ref: RefEntidade; estatuto: EstatutoLocalidade; populacao: number }[];
+  clubes: { ref: RefEntidade; liga: string; escalao: string; estadio: { nome: string; capacidade: number; propriedade: "clube" | "municipal" | "partilhada" } }[];
+  /** Acontecimentos que marcaram a cidade, do mais recente para o mais antigo. */
+  acontecimentos: { data: string; epoca: number; label: string; tipo: string; regional: boolean; polo?: string }[];
+};
+
 export type { ResultadoPesquisa, CompeticaoResumo, JogoLab, LigaLab, CompetitionPage };
 
 /** O plano de jogo do clube do gamer, pronto para a página Tática. */
@@ -151,6 +186,8 @@ export type PedidosMotor = {
   fichaPessoa: { entrada: { id: string; verTudo?: boolean }; saida: FichaPessoaDados | null };
   fichaClube: { entrada: { id: string; verTudo?: boolean }; saida: FichaClubeDados | null };
   fichaLocalidade: { entrada: { id: string }; saida: FichaLocalidadeDados | null };
+  /** Ficha de uma cidade (concelho): variáveis em palavras, autarca, clubes e acontecimentos (RZ-133). */
+  fichaCidade: { entrada: { id: string }; saida: FichaCidadeDados | null };
   /** Apaga o save atual e gera um mundo novo com esta seed (RZ-137). Emite progresso como `criarMundo`. */
   reiniciarMundo: { entrada: { seed: string }; saida: ResumoMundoCriado };
   /** Laboratório (RZ-139): as ligas e séries do mundo. */
