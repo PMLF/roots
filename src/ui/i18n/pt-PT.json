@@ -982,16 +982,15 @@
   "jogo.separadores": "Secções do jogo",
   "jogo.tab.jogo": "Jogo",
   "jogo.tab.estatisticas": "Estatísticas",
-  "jogo.tab.info": "Informação",
   "jogo.xg.titulo": "Evolução do xG",
   "jogo.xg.aria": "xG acumulado: {casa} {a}, {fora} {b}",
   "jogo.confrontos.titulo": "Últimos confrontos",
   "jogo.confrontos.sem": "Ainda não se defrontaram.",
   "jogo.confrontos.empates": "empates",
-  "jogo.info.titulo": "Informação do jogo",
-  "jogo.info.competicao": "Competição",
-  "jogo.info.data": "Data",
-  "jogo.info.estadio": "Estádio",
   "jogo.info.assistencia": "Adeptos no estádio",
-  "jogo.info.arbitro": "Árbitro"
+  "jogo.info.arbitro": "Árbitro",
+  "jogo.info.canais": "Transmissão",
+  "jogo.meio.tv": "TV",
+  "jogo.meio.streaming": "streaming",
+  "jogo.meio.radio": "rádio"
 }

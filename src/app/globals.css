@@ -526,18 +526,23 @@ button.dev { border-style: dashed; }
 .xg-grelha { stroke: var(--linha); stroke-width: 1; }
 .xg-eixo { fill: var(--suave); font-size: 9px; font-variant-numeric: tabular-nums; }
 .xg-linha { fill: none; stroke-width: 2; stroke-linejoin: round; }
-.xg-linha.xg-casa { stroke: var(--destaque); }
-.xg-linha.xg-fora { stroke: var(--texto); stroke-dasharray: 5 3; }
+.xg-linha.xg-fora { stroke-dasharray: 5 3; }
 .xg-legenda { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 6px 0 0; font-size: 13px; }
-.xg-chave { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--destaque); vertical-align: middle; margin-right: 4px; }
-.xg-chave.xg-fora { border-top: 2px dashed var(--texto); }
+.xg-chave { display: inline-block; width: 22px; height: 0; border-top: 3px solid; vertical-align: middle; margin-right: 4px; }
+.xg-chave.xg-fora { border-top-style: dashed; }
 .confrontos-resumo { margin: 0 0 8px; font-size: 14px; }
 .confrontos { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-size: 13px; }
 .confrontos li { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: 8px; }
-.info-jogo { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; }
-.info-jogo dt { color: var(--suave); }
-.info-jogo dd { margin: 0; }
-.barra-ocupacao { display: block; height: 6px; margin-top: 4px; background: var(--linha); border-radius: 3px; overflow: hidden; }
+.info-cabecalho { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 2px 18px; margin: 0 0 12px; font-size: 13px; color: var(--suave); text-align: center; }
+.info-adeptos { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; }
+.info-adeptos b { color: var(--texto); font-weight: 600; }
+.painel-eventos { margin-top: 12px; padding-bottom: 10px; }
+.painel-eventos h2 { font-size: 15px; margin: 0 0 8px; }
+.painel-eventos .feed { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; max-height: none; margin: 0; padding: 0 0 6px; list-style: none; }
+.painel-eventos .feed > li { flex: 0 0 auto; width: clamp(180px, 22vw, 260px); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 6px 10px; font-size: 13px; line-height: 1.35; max-height: 4.6em; overflow: hidden; }
+.painel-eventos .feed > li.importante { border-color: var(--linha-forte); }
+.painel-eventos .feed > li.vazio { width: auto; border: 0; padding: 0; }
+.barra-ocupacao { display: inline-block; width: 90px; height: 6px; background: var(--linha); border-radius: 3px; overflow: hidden; }
 .barra-ocupacao i { display: block; height: 100%; background: var(--destaque); }
 .equipa-vivo h4 { font-size: 12px; margin: 8px 0 2px; font-weight: 600; opacity: 0.7; }
 .equipa-vivo ul { list-style: none; margin: 0; padding: 0; }

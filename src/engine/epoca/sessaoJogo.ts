@@ -12,6 +12,7 @@ import { jogarJogo, resolverJogo } from "../jogo/detalhe";
 import type { EntradaJogo, EventoJogo, Lado, Tatica } from "../jogo/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
+import { arbitroDoJogo } from "../jogo/contextoDoJogo";
 import { bilheteDoJogo, contextoDoJogo, coresDos, equipaParaJogo, tabelaAntes, zonasDa } from "./avancar";
 import { lancar } from "../clube/financas";
 import { CHAVE_SESSAO, curvaXg, equipasDoJogo, type ConfrontoVivo, type InfoJogo, guardarJogoVivo, linhasDoJogo, type JogoVivo, type LinhaTabelaVivo, type OutroJogoVivo } from "./jogoAoVivo";
@@ -162,7 +163,7 @@ function finalizar(repo: Repositorio, dados: DadosBase, params: Parametros, s: S
     const gamer = repo.meta("clube.gamer");
     const rival = gamer ? motivoDeRival(repo, dados, params, s.competicao, s.epoca, gamer, s.entrada.casa.clube === gamer ? s.entrada.fora.clube : s.entrada.casa.clube) : undefined;
     const bilhete = bilheteDoJogo(dados, params, s.entrada.casa.clube, s.entrada.fora.clube, s.competicao);
-    const { evento } = repo.registarJogo(bilhete ? { ...r.registo.jogo, assistencia: bilhete.assistencia, receita: bilhete.receita } : r.registo.jogo, r.registo.factos, r.registo.participacoes);
+    const { evento } = repo.registarJogo({ ...r.registo.jogo, arbitro: arbitroDoJogo(s.entrada.seed, s.jogo), ...(bilhete ? { assistencia: bilhete.assistencia, receita: bilhete.receita } : {}) }, r.registo.factos, r.registo.participacoes);
     if (bilhete) lancar(repo, bilhete.clube, "bilheteira", bilhete.receita);
     if (rival) repo.acrescentarEvento(eventoRival(s.jogo, s.entrada.casa.clube, s.entrada.fora.clube, s.data, s.epoca, s.jornada, evento, rival));
     for (const l of r.registo.lesoes) repo.acrescentarEvento({ ...l, causa: evento });

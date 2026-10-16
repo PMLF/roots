@@ -58,3 +58,17 @@ export function fundoCores({ padrao, segmentos }: CoresClube): string {
   const faixas = segmentos.map((s, i) => `${s.cor} ${i * passo}px ${(i + 1) * passo}px`).join(", ");
   return `repeating-linear-gradient(${padrao === "riscas-verticais" ? "90deg" : "180deg"}, ${faixas})`;
 }
+
+const luminancia = (hex: string): number => {
+  const v = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  return 0.2126 * (v[0] ?? 0) + 0.7152 * (v[1] ?? 0) + 0.0722 * (v[2] ?? 0);
+};
+
+/** A cor que mais pesa no clube e que se vê em fundo claro e escuro (evita o branco e o quase preto, se houver outra). Para linhas de gráficos. */
+export function corPredominante(texto: string | undefined): string | undefined {
+  if (!texto) return undefined;
+  const segs = lerCores(texto).segmentos;
+  const porPeso = [...segs].sort((a, b) => b.peso - a.peso);
+  const legivel = porPeso.find((s) => /^#[0-9a-f]{6}$/i.test(s.cor) && luminancia(s.cor) > 0.1 && luminancia(s.cor) < 0.85);
+  return (legivel ?? porPeso[0])?.cor;
+}

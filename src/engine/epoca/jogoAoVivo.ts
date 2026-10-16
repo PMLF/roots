@@ -117,6 +117,8 @@ export type InfoJogo = {
   /** Adeptos no estádio (pré-visualização determinística; o valor registado é o mesmo). */
   assistencia: number;
   arbitro?: string;
+  /** Quem transmite o jogo (televisão, streaming, rádio). */
+  canais?: { nome: string; meio: "tv" | "streaming" | "radio" }[];
 };
 
 /** xG acumulado de cada equipa em cada minuto (índice = minuto; o 0 é sempre 0). */
