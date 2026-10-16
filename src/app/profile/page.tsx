@@ -1,82 +1,82 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import type { FichaClubeDados, CompetitionPage, FichaCidadeDados, FichaLocalidadeDados, FichaPessoaDados } from "@/engine/api/contratos";
-import { FichaCidade } from "@/ui/components/fichas/FichaCidade";
-import { FichaClube } from "@/ui/components/fichas/FichaClube";
-import { FichaCompeticao } from "@/ui/components/fichas/FichaCompeticao";
-import { FichaLocalidade } from "@/ui/components/fichas/FichaLocalidade";
-import { FichaPessoa } from "@/ui/components/fichas/FichaPessoa";
+import type { ClubProfileData, CompetitionPage, CityProfileData, LocalityProfileData, PersonProfileData } from "@/engine/api/contracts";
+import { CityProfile } from "@/ui/components/profiles/CityProfile";
+import { ClubProfile } from "@/ui/components/profiles/ClubProfile";
+import { CompetitionProfile } from "@/ui/components/profiles/CompetitionProfile";
+import { LocalityProfile } from "@/ui/components/profiles/LocalityProfile";
+import { PersonProfile } from "@/ui/components/profiles/PersonProfile";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { lerFicha } from "@/ui/ligacoes";
-import { useVerTudo } from "@/ui/dev";
-import { useMotor } from "@/ui/MotorProvider";
+import { readProfile } from "@/ui/links";
+import { useSeeAll } from "@/ui/dev";
+import { useEngine } from "@/ui/EngineProvider";
 
-type Estado =
-  | { fase: "a-carregar" }
-  | { fase: "nao-encontrada" }
-  | { fase: "erro"; erro: string }
-  | { fase: "clube"; d: FichaClubeDados }
-  | { fase: "pessoa"; d: FichaPessoaDados }
-  | { fase: "localidade"; d: FichaLocalidadeDados }
-  | { fase: "cidade"; d: FichaCidadeDados }
-  | { fase: "competicao"; d: CompetitionPage };
+type State =
+  | { phase: "loading" }
+  | { phase: "not-found" }
+  | { phase: "error"; error: string }
+  | { phase: "club"; d: ClubProfileData }
+  | { phase: "person"; d: PersonProfileData }
+  | { phase: "locality"; d: LocalityProfileData }
+  | { phase: "city"; d: CityProfileData }
+  | { phase: "competition"; d: CompetitionPage };
 
-function Conteudo() {
+function Content() {
   const { t } = useT();
-  const motor = useMotor();
-  const alvo = lerFicha(useSearchParams());
-  const [estado, setEstado] = useState<Estado>({ fase: "a-carregar" });
-  const [verTudo] = useVerTudo();
-  const k = alvo?.k;
-  const id = alvo?.id;
+  const engine = useEngine();
+  const target = readProfile(useSearchParams());
+  const [state, setState] = useState<State>({ phase: "loading" });
+  const [seeAll] = useSeeAll();
+  const k = target?.k;
+  const id = target?.id;
 
   useEffect(() => {
-    if (!motor || !k || !id) return;
-    let vivo = true;
-    setEstado({ fase: "a-carregar" });
+    if (!engine || !k || !id) return;
+    let live = true;
+    setState({ phase: "loading" });
     (async () => {
       try {
-        if (k === "clube") {
-          const d = await motor.chamar("fichaClube", { id, verTudo });
-          if (vivo) setEstado(d ? { fase: "clube", d } : { fase: "nao-encontrada" });
-        } else if (k === "pessoa") {
-          const d = await motor.chamar("fichaPessoa", { id, verTudo });
-          if (vivo) setEstado(d ? { fase: "pessoa", d } : { fase: "nao-encontrada" });
-        } else if (k === "localidade") {
-          const d = await motor.chamar("fichaLocalidade", { id });
-          if (vivo) setEstado(d ? { fase: "localidade", d } : { fase: "nao-encontrada" });
-        } else if (k === "cidade") {
-          const d = await motor.chamar("fichaCidade", { id });
-          if (vivo) setEstado(d ? { fase: "cidade", d } : { fase: "nao-encontrada" });
-        } else if (k === "competicao") {
-          const d = await motor.chamar("competitionPage", { league: id });
-          if (vivo) setEstado(d ? { fase: "competicao", d } : { fase: "nao-encontrada" });
+        if (k === "club") {
+          const d = await engine.call("clubProfile", { id, seeAll });
+          if (live) setState(d ? { phase: "club", d } : { phase: "not-found" });
+        } else if (k === "person") {
+          const d = await engine.call("personProfile", { id, seeAll });
+          if (live) setState(d ? { phase: "person", d } : { phase: "not-found" });
+        } else if (k === "locality") {
+          const d = await engine.call("localityProfile", { id });
+          if (live) setState(d ? { phase: "locality", d } : { phase: "not-found" });
+        } else if (k === "city") {
+          const d = await engine.call("cityProfile", { id });
+          if (live) setState(d ? { phase: "city", d } : { phase: "not-found" });
+        } else if (k === "competition") {
+          const d = await engine.call("competitionPage", { league: id });
+          if (live) setState(d ? { phase: "competition", d } : { phase: "not-found" });
         }
       } catch (e) {
-        if (vivo) setEstado({ fase: "erro", erro: e instanceof Error ? e.message : String(e) });
+        if (live) setState({ phase: "error", error: e instanceof Error ? e.message : String(e) });
       }
     })();
-    return () => { vivo = false; };
-  }, [motor, k, id, verTudo]);
+    return () => { live = false; };
+  }, [engine, k, id, seeAll]);
 
-  if (!alvo) return <p className="erro">{t("ficha.invalida")}</p>;
-  switch (estado.fase) {
-    case "a-carregar": return <p data-testid="ficha-estado">{t("ficha.aCarregar")}</p>;
-    case "nao-encontrada": return <p data-testid="ficha-estado" className="erro">{t("ficha.naoEncontrada")}</p>;
-    case "erro": return <p className="erro">{estado.erro}</p>;
-    case "clube": return <FichaClube d={estado.d} verTudo={verTudo} />;
-    case "pessoa": return <FichaPessoa d={estado.d} verTudo={verTudo} />;
-    case "localidade": return <FichaLocalidade d={estado.d} />;
-    case "cidade": return <FichaCidade d={estado.d} />;
-    case "competicao": return <FichaCompeticao d={estado.d} />;
+  if (!target) return <p className="erro">{t("profile.invalida")}</p>;
+  switch (state.phase) {
+    case "loading": return <p data-testid="ficha-estado">{t("profile.loading")}</p>;
+    case "not-found": return <p data-testid="ficha-estado" className="erro">{t("profile.notFound")}</p>;
+    case "error": return <p className="erro">{state.error}</p>;
+    case "club": return <ClubProfile d={state.d} seeAll={seeAll} />;
+    case "person": return <PersonProfile d={state.d} seeAll={seeAll} />;
+    case "locality": return <LocalityProfile d={state.d} />;
+    case "city": return <CityProfile d={state.d} />;
+    case "competition": return <CompetitionProfile d={state.d} />;
   }
 }
 
-export default function PaginaFicha() {
+export default function ProfilePage() {
   return (
     <Suspense fallback={null}>
-      <Conteudo />
+      <Content />
     </Suspense>
   );
 }

@@ -2,168 +2,168 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { LOCALES, type Chave } from "@/ui/i18n";
+import { LOCALES, type Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { guardar, ler } from "@/ui/armazenamento";
-import { useModoDev, useVerTudo } from "@/ui/dev";
-import { useCaixaNaoLidas } from "@/ui/useCaixa";
-import { BotaoAvancar } from "@/ui/components/BotaoAvancar";
-import { Icone, type NomeIcone } from "@/ui/components/Icone";
-import { Pesquisa } from "@/ui/components/Pesquisa";
-import { useTempo } from "@/ui/useTempo";
-import { SeletorClube, useClubes } from "@/ui/components/ComClube";
-import { ProgressoJogo, useJogoEmCurso } from "@/ui/components/ProgressoJogo";
-import { useMeuClube } from "@/ui/meuClube";
+import { save, read } from "@/ui/storage";
+import { useDevMode, useSeeAll } from "@/ui/dev";
+import { useInboxUnread } from "@/ui/useCash";
+import { AdvanceButton } from "@/ui/components/AdvanceButton";
+import { Icon, type IconName } from "@/ui/components/Icon";
+import { Search } from "@/ui/components/Search";
+import { useTime } from "@/ui/useTime";
+import { ClubSelector, useClubs } from "@/ui/components/WithClub";
+import { MatchProgress, useOngoingMatch } from "@/ui/components/GameProgress";
+import { useOwnClub } from "@/ui/myClub";
 
-type ItemMenu = { chave: Chave; icone: NomeIcone; href?: string; ativoQuando: (caminho: string) => boolean; /** Ferramenta de developer: só no modo dev (`ui/dev.ts`). */ soDev?: true; /** Não aparece no menu (tem lugar noutra página), mas continua a ter rota e migalhas. */ oculto?: true };
+type ItemMenu = { rowKey: Key; icon: IconName; href?: string; whenActive: (path: string) => boolean; /** Ferramenta de developer: só no modo dev (`ui/dev.ts`). */ devOnly?: true; /** Não aparece no menu (tem lugar noutra página), mas continua a ter rota e migalhas. */ hidden?: true };
 
 // Máximo 2 níveis (TOM_E_UX §3.5): secção no menu, separadores dentro da página. Sem href = ainda não existe.
 const MENU: ItemMenu[] = [
-  { chave: "menu.hoje", icone: "hoje", href: "/", ativoQuando: (c) => c === "/" },
-  { chave: "menu.noticias", icone: "noticias", href: "/news/", ativoQuando: (c) => c.startsWith("/news") },
-  { chave: "menu.caixa", icone: "caixa", href: "/inbox/", ativoQuando: (c) => c.startsWith("/inbox"), oculto: true },
-  { chave: "menu.competicoes", icone: "competicoes", href: "/competitions/", ativoQuando: (c) => c.startsWith("/competitions") },
-  { chave: "menu.clube", icone: "clube", href: "/club/", ativoQuando: (c) => c.startsWith("/club") },
-  { chave: "menu.plantel", icone: "plantel", href: "/squad/", ativoQuando: (c) => c.startsWith("/squad") },
-  { chave: "menu.tatica", icone: "tatica", href: "/tactics/", ativoQuando: (c) => c.startsWith("/tactics") },
-  { chave: "menu.jogos", icone: "jogos", href: "/fixtures/", ativoQuando: (c) => c.startsWith("/fixtures") },
-  { chave: "menu.cidade", icone: "cidade", href: "/city/", ativoQuando: (c) => c.startsWith("/city") },
-  { chave: "menu.mundo", icone: "mundo", href: "/world/", ativoQuando: (c) => c.startsWith("/world"), soDev: true },
-  { chave: "menu.laboratorio", icone: "laboratorio", href: "/lab/", ativoQuando: (c) => c.startsWith("/lab"), soDev: true },
+  { rowKey: "menu.today", icon: "today", href: "/", whenActive: (c) => c === "/" },
+  { rowKey: "menu.news", icon: "news", href: "/news/", whenActive: (c) => c.startsWith("/news") },
+  { rowKey: "menu.inbox", icon: "inbox", href: "/inbox/", whenActive: (c) => c.startsWith("/inbox"), hidden: true },
+  { rowKey: "menu.competitions", icon: "competitions", href: "/competitions/", whenActive: (c) => c.startsWith("/competitions") },
+  { rowKey: "menu.club", icon: "club", href: "/club/", whenActive: (c) => c.startsWith("/club") },
+  { rowKey: "menu.squad", icon: "squad", href: "/squad/", whenActive: (c) => c.startsWith("/squad") },
+  { rowKey: "menu.tactic", icon: "tactic", href: "/tactics/", whenActive: (c) => c.startsWith("/tactics") },
+  { rowKey: "menu.matches", icon: "matches", href: "/fixtures/", whenActive: (c) => c.startsWith("/fixtures") },
+  { rowKey: "menu.city", icon: "city", href: "/city/", whenActive: (c) => c.startsWith("/city") },
+  { rowKey: "menu.world", icon: "world", href: "/world/", whenActive: (c) => c.startsWith("/world"), devOnly: true },
+  { rowKey: "menu.lab", icon: "lab", href: "/lab/", whenActive: (c) => c.startsWith("/lab"), devOnly: true },
 ];
 
-type Tema = "auto" | "claro" | "escuro";
-const eTema = (v: unknown): v is Tema => v === "auto" || v === "claro" || v === "escuro";
-const PROXIMO_TEMA: Record<Tema, Tema> = { auto: "claro", claro: "escuro", escuro: "auto" };
+type Theme = "auto" | "light" | "dark";
+const isTheme = (v: unknown): v is Theme => v === "auto" || v === "light" || v === "dark";
+const NEXT_THEME: Record<Theme, Theme> = { auto: "light", light: "dark", dark: "auto" };
 
-type Densidade = "normal" | "compacta";
-const eDensidade = (v: unknown): v is Densidade => v === "normal" || v === "compacta";
+type Density = "normal" | "compact";
+const isDensity = (v: unknown): v is Density => v === "normal" || v === "compact";
 
-/** Estrutura base (docs/TOM_E_UX.md): menu à esquerda, página ao centro, caixa à direita, barra em baixo. */
+/** Estrutura base (docs/TONE_AND_UX.md): menu à esquerda, página ao centro, caixa à direita, barra em baixo. */
 export function Shell({ children }: { children: ReactNode }) {
   const { t, locale, setLocale } = useT();
-  const tempo = useTempo();
-  const clubes = useClubes();
-  const [meuClube, escolherClube] = useMeuClube();
-  const caminho = usePathname() ?? "/";
+  const time = useTime();
+  const clubs = useClubs();
+  const [ownClub, chooseClub] = useOwnClub();
+  const path = usePathname() ?? "/";
   const router = useRouter();
-  const dev = useModoDev();
-  const [verTudo, definirVerTudo] = useVerTudo();
-  const [densidade, setDensidade] = useState<Densidade>("normal");
-  const [tema, setTema] = useState<Tema>("auto");
+  const dev = useDevMode();
+  const [seeAll, setSeeAll] = useSeeAll();
+  const [density, setDensity] = useState<Density>("normal");
+  const [theme, setTheme] = useState<Theme>("auto");
 
   useEffect(() => {
-    setDensidade(ler("raizes.densidade", eDensidade) ?? "normal");
-    setTema(ler("raizes.tema", eTema) ?? "auto");
+    setDensity(read("raizes.density", isDensity) ?? "normal");
+    setTheme(read("raizes.theme", isTheme) ?? "auto");
   }, []);
   useEffect(() => {
-    document.documentElement.dataset.densidade = densidade;
-  }, [densidade]);
+    document.documentElement.dataset.density = density;
+  }, [density]);
   useEffect(() => {
-    if (tema === "auto") delete document.documentElement.dataset.tema;
-    else document.documentElement.dataset.tema = tema;
-  }, [tema]);
-  const alternarTema = () => {
-    const novo = PROXIMO_TEMA[tema];
-    setTema(novo);
-    guardar("raizes.tema", novo);
+    if (theme === "auto") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = theme;
+  }, [theme]);
+  const toggleTheme = () => {
+    const fresh = NEXT_THEME[theme];
+    setTheme(fresh);
+    save("raizes.theme", fresh);
   };
-  const alternarDensidade = () => {
-    const nova: Densidade = densidade === "normal" ? "compacta" : "normal";
-    setDensidade(nova);
-    guardar("raizes.densidade", nova);
+  const toggleDensity = () => {
+    const fresh: Density = density === "normal" ? "compact" : "normal";
+    setDensity(fresh);
+    save("raizes.density", fresh);
   };
 
-  const jogoAMeio = useJogoEmCurso() && caminho.startsWith("/match");
-  const itens = MENU.filter((m) => (!m.soDev || dev) && !m.oculto);
+  const matchInProgress = useOngoingMatch() && path.startsWith("/match");
+  const items = MENU.filter((m) => (!m.devOnly || dev) && !m.hidden);
   return (
     <div className="shell">
       <nav className="menu" aria-label="Menu">
         <div className="marca">
-          <span className="marca-sinal"><Icone nome="raiz" /></span>
+          <span className="marca-sinal"><Icon name="root" /></span>
           <div>
-            <strong>{t("app.nome")}</strong>
-            <small>{t("app.subtitulo")}</small>
+            <strong>{t("app.name")}</strong>
+            <small>{t("app.subtitle")}</small>
           </div>
         </div>
         <ul>
-          {itens.filter((m) => !m.soDev).map((m) => <ItemDoMenu key={m.chave} m={m} caminho={caminho} />)}
+          {items.filter((m) => !m.devOnly).map((m) => <ItemDoMenu key={m.rowKey} m={m} path={path} />)}
         </ul>
         {dev && (
           <div>
             <p className="menu-grupo">{t("menu.developer")}</p>
             <ul>
-              {itens.filter((m) => m.soDev).map((m) => <ItemDoMenu key={m.chave} m={m} caminho={caminho} />)}
-              {clubes && (
-                <li className="menu-clube-dev" title={t("dev.clube.dica")}>
-                  <SeletorClube clubes={clubes} aberto0={false} {...(meuClube ? { atual: meuClube } : {})} aoEscolher={(id) => void escolherClube(id, true)} />
+              {items.filter((m) => m.devOnly).map((m) => <ItemDoMenu key={m.rowKey} m={m} path={path} />)}
+              {clubs && (
+                <li className="menu-clube-dev" title={t("dev.club.hint")}>
+                  <ClubSelector clubs={clubs} isOpen0={false} {...(ownClub ? { current: ownClub } : {})} onChoose={(id) => void chooseClub(id, true)} />
                 </li>
               )}
               <li className="menu-interruptor">
-                <button type="button" onClick={() => definirVerTudo(!verTudo)} role="switch" aria-checked={verTudo} title={t("dev.verTudo.dica")} data-testid="ver-tudo">
-                  <Icone nome="olho" />
-                  {t("dev.verTudo.rotulo")}
+                <button type="button" onClick={() => setSeeAll(!seeAll)} role="switch" aria-checked={seeAll} title={t("dev.seeAll.hint")} data-testid="ver-tudo">
+                  <Icon name="eye" />
+                  {t("dev.seeAll.label")}
                   <span className="interruptor" aria-hidden="true" />
                 </button>
               </li>
             </ul>
           </div>
         )}
-        <Definicoes tema={tema} aoTema={alternarTema} densidade={densidade} aoDensidade={alternarDensidade} locale={locale} aoLocale={setLocale} />
+        <Settings theme={theme} onTheme={toggleTheme} density={density} onDensity={toggleDensity} locale={locale} aoLocale={setLocale} />
       </nav>
-      {!jogoAMeio && (
+      {!matchInProgress && (
         <header className="topo">
-          <Pesquisa />
+          <Search />
         </header>
       )}
       <main className="centro">
-        {caminho !== "/" && !jogoAMeio && (
-          <nav className="migalhas" aria-label={t("migalhas.rotulo")}>
-            <button type="button" onClick={() => router.back()}>← {t("migalhas.voltar")}</button>
-            <Link href="/">{t("menu.hoje")}</Link>
+        {path !== "/" && !matchInProgress && (
+          <nav className="migalhas" aria-label={t("breadcrumbs.label")}>
+            <button type="button" onClick={() => router.back()}>← {t("breadcrumbs.back")}</button>
+            <Link href="/">{t("menu.today")}</Link>
             <span aria-hidden="true">›</span>
-            <span aria-current="page">{t(caminho.startsWith("/profile") ? "migalhas.ficha" : caminho.startsWith("/match") ? "migalhas.jogo" : caminho.startsWith("/prematch") ? "prematch.titulo" : (MENU.find((m) => m.href && m.href !== "/" && m.ativoQuando(caminho))?.chave ?? "menu.mundo"))}</span>
+            <span aria-current="page">{t(path.startsWith("/profile") ? "breadcrumbs.profile" : path.startsWith("/match") ? "breadcrumbs.match" : path.startsWith("/prematch") ? "prematch.title" : (MENU.find((m) => m.href && m.href !== "/" && m.whenActive(path))?.rowKey ?? "menu.world"))}</span>
           </nav>
         )}
         {children}
       </main>
-      <footer className={jogoAMeio ? "barra barra-jogo" : "barra"}>
-        <ProgressoJogo />
-        <span>{t("barra.data")}: <b>{tempo.estado ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${tempo.estado.hoje}T00:00:00Z`)) : t("barra.semDados")}</b></span>
-        <span>{t("barra.orcamento")}: <b>{t("barra.semDados")}</b></span>
-        <span>{t("barra.humor")}: <b>{t("barra.semDados")}</b></span>
-        <BotaoAvancar />
+      <footer className={matchInProgress ? "barra barra-jogo" : "barra"}>
+        <MatchProgress />
+        <span>{t("bar.date")}: <b>{time.state ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${time.state.today}T00:00:00Z`)) : t("bar.noData")}</b></span>
+        <span>{t("bar.budget")}: <b>{t("bar.noData")}</b></span>
+        <span>{t("bar.mood")}: <b>{t("bar.noData")}</b></span>
+        <AdvanceButton />
       </footer>
     </div>
   );
 }
 
 /** Botão de definições no fundo do menu: abre um pequeno menu com tema, densidade e idioma. */
-function Definicoes({ tema, aoTema, densidade, aoDensidade, locale, aoLocale }: { tema: Tema; aoTema: () => void; densidade: Densidade; aoDensidade: () => void; locale: string; aoLocale: (l: (typeof LOCALES)[number]) => void }) {
+function Settings({ theme, onTheme, density, onDensity, locale, aoLocale }: { theme: Theme; onTheme: () => void; density: Density; onDensity: () => void; locale: string; aoLocale: (l: (typeof LOCALES)[number]) => void }) {
   const { t } = useT();
-  const [aberto, setAberto] = useState(false);
-  const caixa = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const inbox = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (!aberto) return;
-    const fora = (e: MouseEvent) => { if (caixa.current && !caixa.current.contains(e.target as Node)) setAberto(false); };
-    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") setAberto(false); };
-    document.addEventListener("mousedown", fora);
-    document.addEventListener("keydown", tecla);
-    return () => { document.removeEventListener("mousedown", fora); document.removeEventListener("keydown", tecla); };
-  }, [aberto]);
+    if (!isOpen) return;
+    const away = (e: MouseEvent) => { if (inbox.current && !inbox.current.contains(e.target as Node)) setIsOpen(false); };
+    const hotkey = (e: KeyboardEvent) => { if (e.key === "Escape") setIsOpen(false); };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", hotkey);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", hotkey); };
+  }, [isOpen]);
   return (
-    <div className="definicoes" ref={caixa}>
-      <button type="button" className="definicoes-botao" aria-expanded={aberto} aria-haspopup="true" aria-controls="menu-definicoes" onClick={() => setAberto((v) => !v)}>
-        <Icone nome="definicoes" />
-        <span>{t("definicoes.rotulo")}</span>
+    <div className="definicoes" ref={inbox}>
+      <button type="button" className="definicoes-botao" aria-expanded={isOpen} aria-haspopup="true" aria-controls="menu-definicoes" onClick={() => setIsOpen((v) => !v)}>
+        <Icon name="settings" />
+        <span>{t("settings.label")}</span>
       </button>
-      {aberto && (
-        <div className="definicoes-menu" id="menu-definicoes" role="group" aria-label={t("definicoes.rotulo")}>
-          <div className="definicoes-linha"><span>{t("tema.rotulo")}</span><button type="button" onClick={aoTema} data-testid="tema">{t(`tema.${tema}` as Chave)}</button></div>
-          <div className="definicoes-linha"><span>{t("definicoes.densidade")}</span><button type="button" onClick={aoDensidade} aria-pressed={densidade === "compacta"} data-testid="densidade">{t(densidade === "compacta" ? "densidade.compacta" : "densidade.normal")}</button></div>
-          <label className="definicoes-linha"><span>{t("idioma.rotulo")}</span>
-            <select value={locale} aria-label={t("idioma.rotulo")} onChange={(e) => aoLocale(e.target.value as (typeof LOCALES)[number])}>
-              {LOCALES.map((l) => <option key={l} value={l}>{t(`idioma.${l}`)}</option>)}
+      {isOpen && (
+        <div className="definicoes-menu" id="menu-definicoes" role="group" aria-label={t("settings.label")}>
+          <div className="definicoes-linha"><span>{t("theme.label")}</span><button type="button" onClick={onTheme} data-testid="theme">{t(`theme.${theme}` as Key)}</button></div>
+          <div className="definicoes-linha"><span>{t("settings.density")}</span><button type="button" onClick={onDensity} aria-pressed={density === "compact"} data-testid="density">{t(density === "compact" ? "density.compact" : "density.normal")}</button></div>
+          <label className="definicoes-linha"><span>{t("language.label")}</span>
+            <select value={locale} aria-label={t("language.label")} onChange={(e) => aoLocale(e.target.value as (typeof LOCALES)[number])}>
+              {LOCALES.map((l) => <option key={l} value={l}>{t(`language.${l}`)}</option>)}
             </select>
           </label>
         </div>
@@ -172,25 +172,25 @@ function Definicoes({ tema, aoTema, densidade, aoDensidade, locale, aoLocale }: 
   );
 }
 
-function DistintivoCaixa() {
+function InboxBadge() {
   const { t } = useT();
-  const naoLidas = useCaixaNaoLidas();
-  return naoLidas > 0 ? <span className="distintivo" aria-label={t("caixa.naoLidas", { n: naoLidas })}>{naoLidas > 99 ? "99+" : naoLidas}</span> : null;
+  const unread = useInboxUnread();
+  return unread > 0 ? <span className="distintivo" aria-label={t("inbox.unread", { n: unread })}>{unread > 99 ? "99+" : unread}</span> : null;
 }
 
-function ItemDoMenu({ m, caminho }: { m: ItemMenu; caminho: string }) {
+function ItemDoMenu({ m, path }: { m: ItemMenu; path: string }) {
   const { t } = useT();
-  const ativo = m.ativoQuando(caminho);
-  const conteudo = (
+  const active = m.whenActive(path);
+  const content = (
     <>
-      <Icone nome={m.icone} />
-      {t(m.chave)}
-      {m.chave === "menu.hoje" && <DistintivoCaixa />}
+      <Icon name={m.icon} />
+      {t(m.rowKey)}
+      {m.rowKey === "menu.today" && <InboxBadge />}
     </>
   );
   return (
-    <li aria-current={ativo ? "page" : undefined} className={ativo ? "ativo" : m.href ? undefined : "inativo"} title={m.href ? undefined : t("menu.brevemente")}>
-      {m.href ? <Link href={m.href}>{conteudo}</Link> : <span>{conteudo}</span>}
+    <li aria-current={active ? "page" : undefined} className={active ? "active" : m.href ? undefined : "inativo"} title={m.href ? undefined : t("menu.soon")}>
+      {m.href ? <Link href={m.href}>{content}</Link> : <span>{content}</span>}
     </li>
   );
 }

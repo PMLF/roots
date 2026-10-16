@@ -1,14 +1,14 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { LOCALES, LOCALE_PADRAO, traduzir, type Chave, type Locale } from "./index";
+import { LOCALES, DEFAULT_LOCALE, translate, type Key, type Locale } from "./index";
 
-type Ctx = { locale: Locale; setLocale: (l: Locale) => void; t: (chave: Chave, valores?: Record<string, string | number>) => string };
+type Ctx = { locale: Locale; setLocale: (l: Locale) => void; t: (rowKey: Key, values?: Record<string, string | number>) => string };
 const LocaleCtx = createContext<Ctx | null>(null);
-const CHAVE_ARMAZENAMENTO = "raizes.locale";
+const STORAGE_KEY = "raizes.locale";
 
-function lerGuardado(): Locale | null {
+function readSaved(): Locale | null {
   try {
-    const v = window.localStorage.getItem(CHAVE_ARMAZENAMENTO);
+    const v = window.localStorage.getItem(STORAGE_KEY);
     return v && (LOCALES as readonly string[]).includes(v) ? (v as Locale) : null;
   } catch {
     return null;
@@ -16,11 +16,11 @@ function lerGuardado(): Locale | null {
 }
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(LOCALE_PADRAO);
+  const [locale, setLocaleState] = useState<Locale>(DEFAULT_LOCALE);
 
   useEffect(() => {
-    const guardado = lerGuardado();
-    if (guardado) setLocaleState(guardado);
+    const saved = readSaved();
+    if (saved) setLocaleState(saved);
   }, []);
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -28,11 +28,11 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
   const setLocale = useCallback((l: Locale) => {
     setLocaleState(l);
-    try { window.localStorage.setItem(CHAVE_ARMAZENAMENTO, l); } catch { /* armazenamento indisponível: só não se lembra */ }
+    try { window.localStorage.setItem(STORAGE_KEY, l); } catch { /* armazenamento indisponível: só não se lembra */ }
   }, []);
-  const t = useCallback((chave: Chave, valores?: Record<string, string | number>) => traduzir(locale, chave, valores), [locale]);
-  const valor = useMemo(() => ({ locale, setLocale, t }), [locale, setLocale, t]);
-  return <LocaleCtx.Provider value={valor}>{children}</LocaleCtx.Provider>;
+  const t = useCallback((rowKey: Key, values?: Record<string, string | number>) => translate(locale, rowKey, values), [locale]);
+  const value = useMemo(() => ({ locale, setLocale, t }), [locale, setLocale, t]);
+  return <LocaleCtx.Provider value={value}>{children}</LocaleCtx.Provider>;
 }
 
 export function useT(): Ctx {

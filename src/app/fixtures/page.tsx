@@ -1,55 +1,55 @@
 "use client";
 import { Suspense, useEffect, useMemo, useState } from "react";
-import type { CompetitionPage } from "@/engine/api/contratos";
-import { Cartao } from "@/ui/components/Cartao";
-import { ComClube } from "@/ui/components/ComClube";
-import { Ligacao } from "@/ui/components/Ligacao";
-import { Tabela } from "@/ui/components/Tabela";
+import type { CompetitionPage } from "@/engine/api/contracts";
+import { Card } from "@/ui/components/Card";
+import { WithClub } from "@/ui/components/WithClub";
+import { EntityLink } from "@/ui/components/Link";
+import { Table } from "@/ui/components/Table";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useMotor } from "@/ui/MotorProvider";
-import { jogosDoClube, type LinhaJogo as Linha } from "@/ui/jogosClube";
-import type { Coluna } from "@/ui/tabela/logica";
+import { useEngine } from "@/ui/EngineProvider";
+import { clubMatches, type MatchLine as Line } from "@/ui/clubMatches";
+import type { Column } from "@/ui/table/logic";
 
-function Conteudo({ clube }: { clube: string }) {
-  const motor = useMotor();
+function Content({ club }: { club: string }) {
+  const engine = useEngine();
   const { t } = useT();
   const [page, setPage] = useState<CompetitionPage | null | undefined>(undefined);
   useEffect(() => {
-    if (!motor) return;
-    let vivo = true;
+    if (!engine) return;
+    let live = true;
     (async () => {
-      const c = await motor.chamar("fichaClube", { id: clube });
-      const p = c ? await motor.chamar("competitionPage", { league: c.liga }) : null;
-      if (vivo) setPage(p);
-    })().catch(() => vivo && setPage(null));
-    return () => { vivo = false; };
-  }, [motor, clube]);
-  const linhas = useMemo(() => (page ? jogosDoClube(page, clube) : []), [page, clube]);
-  const colunas: Coluna<Linha>[] = [
-    { id: "round", titulo: t("jogos.jornada"), valor: (l) => l.round, numerica: true },
-    { id: "date", titulo: t("jogos.data"), valor: (l) => l.date },
-    { id: "venue", titulo: t("jogos.local"), valor: (l) => (l.bye ? "" : l.home ? t("jogos.casa") : t("jogos.fora")) },
-    { id: "opponent", titulo: t("jogos.adversario"), valor: (l) => (l.bye ? t("jogos.folga") : l.opponentName) },
-    { id: "result", titulo: t("jogos.resultado"), valor: (l) => l.result },
+      const c = await engine.call("clubProfile", { id: club });
+      const p = c ? await engine.call("competitionPage", { league: c.league }) : null;
+      if (live) setPage(p);
+    })().catch(() => live && setPage(null));
+    return () => { live = false; };
+  }, [engine, club]);
+  const lines = useMemo(() => (page ? clubMatches(page, club) : []), [page, club]);
+  const columns: Column<Line>[] = [
+    { id: "round", title: t("matches.round"), value: (l) => l.round, numeric: true },
+    { id: "date", title: t("matches.date"), value: (l) => l.date },
+    { id: "venue", title: t("matches.local"), value: (l) => (l.bye ? "" : l.home ? t("matches.home") : t("matches.away")) },
+    { id: "opponent", title: t("matches.opponent"), value: (l) => (l.bye ? t("matches.bye") : l.opponentName) },
+    { id: "result", title: t("matches.outcome"), value: (l) => l.result },
   ];
-  if (page === undefined) return <p>{t("ficha.aCarregar")}</p>;
-  if (page === null) return <p className="erro">{t("ficha.naoEncontrada")}</p>;
+  if (page === undefined) return <p>{t("profile.loading")}</p>;
+  if (page === null) return <p className="erro">{t("profile.notFound")}</p>;
   return (
     <>
-      {page.preview && <p className="aviso-previa">{t("competicao.previa")}</p>}
-      <Cartao titulo={<Ligacao k="competicao" id={page.league}>{page.league}</Ligacao>} larga>
-        <Tabela
-          id="jogos-clube" nomeFicheiro={`fixtures-${clube}`} colunas={colunas} linhas={linhas} chave={(l) => l.id}
-          ordemInicial={{ coluna: "round", direcao: "asc" }}
-          celula={{ opponent: (l) => (l.bye ? t("jogos.folga") : <Ligacao k="clube" id={l.opponent}>{l.opponentName}</Ligacao>), result: (l) => l.result || "—" }}
+      {page.preview && <p className="aviso-previa">{t("competition.preview")}</p>}
+      <Card title={<EntityLink k="competition" id={page.league}>{page.league}</EntityLink>} wide>
+        <Table
+          id="jogos-clube" fileName={`fixtures-${club}`} columns={columns} lines={lines} rowKey={(l) => l.id}
+          initialOrder={{ column: "round", direction: "asc" }}
+          cell={{ opponent: (l) => (l.bye ? t("matches.bye") : <EntityLink k="club" id={l.opponent}>{l.opponentName}</EntityLink>), result: (l) => l.result || "—" }}
         />
-      </Cartao>
+      </Card>
     </>
   );
 }
 
 /** Jogos (RZ-145): calendário e resultados do clube do gamer (relatório de um jogo chega com o ciclo de dias). */
-export default function PaginaJogos() {
+export default function MatchesPage() {
   const { t } = useT();
-  return <Suspense fallback={null}><ComClube titulo={t("menu.jogos")}>{(c) => <Conteudo clube={c} />}</ComClube></Suspense>;
+  return <Suspense fallback={null}><WithClub title={t("menu.matches")}>{(c) => <Content club={c} />}</WithClub></Suspense>;
 }

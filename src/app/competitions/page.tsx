@@ -1,136 +1,136 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import type { CompetitionPage, CompeticaoResumo } from "@/engine/api/contratos";
-import { Cartao } from "@/ui/components/Cartao";
-import { TabelaLiga } from "@/ui/components/competicao/TabelaLiga";
-import { Ligacao } from "@/ui/components/Ligacao";
-import { guardar, ler } from "@/ui/armazenamento";
-import type { Chave } from "@/ui/i18n";
+import type { CompetitionPage, SummaryCompetition } from "@/engine/api/contracts";
+import { Card } from "@/ui/components/Card";
+import { LeagueTable } from "@/ui/components/competition/LeagueTable";
+import { EntityLink } from "@/ui/components/Link";
+import { save, read } from "@/ui/storage";
+import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useMotor } from "@/ui/MotorProvider";
+import { useEngine } from "@/ui/EngineProvider";
 
-const GRUPOS: { chave: Chave; escaloes: readonly string[]; colunas?: true }[] = [
-  { chave: "competicoes.profissionais", escaloes: ["primeiraLiga", "segundaLiga", "terceiraLiga"] },
-  { chave: "escalao.cp", escaloes: ["cp"], colunas: true },
-  { chave: "escalao.distrital", escaloes: ["distrital"], colunas: true },
+const GROUPS: { rowKey: Key; tiers: readonly string[]; columns?: true }[] = [
+  { rowKey: "competitions.professionals", tiers: ["firstLeague", "secondLeague", "thirdLeague"] },
+  { rowKey: "tier.cp", tiers: ["cp"], columns: true },
+  { rowKey: "tier.district", tiers: ["district"], columns: true },
 ];
-const CHAVE = "raizes.competitions.selected";
-const PADRAO = ["Primeira Liga", "Segunda Liga", "Terceira Liga"];
-const MINIMO = 3;
-const eLista = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
+const KEY = "raizes.competitions.selected";
+const DEFAULT = ["Primeira Liga", "Segunda Liga", "Terceira Liga"];
+const MIN = 3;
+const isList = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
 
-function Destaques({ p }: { p: CompetitionPage }) {
+function Highlights({ p }: { p: CompetitionPage }) {
   const { t } = useT();
   const h = p.highlights;
-  const linha = (rotulo: string, valor: React.ReactNode) => (
-    <li><span className="suave">{rotulo}</span><span>{valor}</span></li>
+  const line = (label: string, value: React.ReactNode) => (
+    <li><span className="suave">{label}</span><span>{value}</span></li>
   );
-  const jog = (x: CompetitionPage["highlights"]["topScorers"][number] | undefined, fmt?: (v: number) => string) =>
-    x ? <><Ligacao k="pessoa" id={x.player}>{x.name}</Ligacao> <b>{fmt ? fmt(x.value) : x.value}</b></> : "—";
-  const clube = (x: { club: string; name: string; value: number } | undefined) => (x ? <><Ligacao k="clube" id={x.club}>{x.name}</Ligacao> <b>{x.value}</b></> : "—");
+  const player = (x: CompetitionPage["highlights"]["topScorers"][number] | undefined, fmt?: (v: number) => string) =>
+    x ? <><EntityLink k="person" id={x.player}>{x.name}</EntityLink> <b>{fmt ? fmt(x.value) : x.value}</b></> : "—";
+  const club = (x: { club: string; name: string; value: number } | undefined) => (x ? <><EntityLink k="club" id={x.club}>{x.name}</EntityLink> <b>{x.value}</b></> : "—");
   return (
     <ul className="destaques-mini">
-      {linha(t("competicoes.melhorMarcador"), jog(h.topScorers[0]))}
-      {linha(t("competicoes.melhorJogador"), jog(h.bestRated[0], (v) => v.toFixed(2)))}
-      {linha(t("competicoes.melhorAtaque"), clube(h.bestAttack))}
-      {linha(t("competicoes.melhorDefesa"), clube(h.bestDefence))}
+      {line(t("competitions.bestScorer"), player(h.topScorers[0]))}
+      {line(t("competitions.bestPlayer"), player(h.bestRated[0], (v) => v.toFixed(2)))}
+      {line(t("competitions.bestAttack"), club(h.bestAttack))}
+      {line(t("competitions.bestDefence"), club(h.bestDefence))}
     </ul>
   );
 }
 
 /** Competições (RZ-145): as classificações das ligas escolhidas, cada uma com os seus destaques. */
-export default function PaginaCompeticoes() {
+export default function CompetitionsPage() {
   const { t } = useT();
-  const motor = useMotor();
-  const [lista, setLista] = useState<CompeticaoResumo[] | null | undefined>(undefined);
-  const [escolhidas, setEscolhidas] = useState<string[]>(PADRAO);
-  const [aberto, setAberto] = useState(false);
-  const seletor = useRef<HTMLDivElement>(null);
-  const [paginas, setPaginas] = useState<Record<string, CompetitionPage>>({});
+  const engine = useEngine();
+  const [list, setList] = useState<SummaryCompetition[] | null | undefined>(undefined);
+  const [chosen, setChosen] = useState<string[]>(DEFAULT);
+  const [isOpen, setIsOpen] = useState(false);
+  const selector = useRef<HTMLDivElement>(null);
+  const [pages, setPages] = useState<Record<string, CompetitionPage>>({});
   /** Época escolhida; sem escolha mostra-se a época atual (o momento de agora). */
-  const [epoca, setEpoca] = useState<number | undefined>(undefined);
-  const chavePagina = (liga: string) => `${liga}|${epoca ?? "atual"}`;
+  const [season, setSeason] = useState<number | undefined>(undefined);
+  const pageKey = (league: string) => `${league}|${season ?? "current"}`;
 
   useEffect(() => {
-    const guardadas = ler(CHAVE, eLista);
-    setEscolhidas(guardadas && guardadas.length >= MINIMO ? guardadas : PADRAO);
+    const saved = read(KEY, isList);
+    setChosen(saved && saved.length >= MIN ? saved : DEFAULT);
   }, []);
   useEffect(() => {
-    if (!aberto) return;
-    const fora = (e: MouseEvent) => { if (!seletor.current?.contains(e.target as Node)) setAberto(false); };
-    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setAberto(false); };
-    document.addEventListener("mousedown", fora);
-    document.addEventListener("keydown", esc);
-    return () => { document.removeEventListener("mousedown", fora); document.removeEventListener("keydown", esc); };
-  }, [aberto]);
+    if (!isOpen) return;
+    const away = (e: MouseEvent) => { if (!selector.current?.contains(e.target as Node)) setIsOpen(false); };
+    const tier = (e: KeyboardEvent) => { if (e.key === "Escape") setIsOpen(false); };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", tier);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", tier); };
+  }, [isOpen]);
   useEffect(() => {
-    if (!motor) return;
-    let vivo = true;
-    motor.chamar("estadoMundo", null).then((m) => (m ? motor.chamar("competicoes", null) : null)).then((c) => vivo && setLista(c)).catch(() => vivo && setLista(null));
-    return () => { vivo = false; };
-  }, [motor]);
+    if (!engine) return;
+    let live = true;
+    engine.call("worldState", null).then((m) => (m ? engine.call("competitions", null) : null)).then((c) => live && setList(c)).catch(() => live && setList(null));
+    return () => { live = false; };
+  }, [engine]);
   useEffect(() => {
-    if (!motor || !lista) return;
-    let vivo = true;
+    if (!engine || !list) return;
+    let live = true;
     (async () => {
-      for (const liga of escolhidas) {
-        if (paginas[chavePagina(liga)] || !lista.some((c) => c.liga === liga)) continue;
-        const p = await motor.chamar("competitionPage", epoca ? { league: liga, season: epoca } : { league: liga });
-        if (vivo && p) setPaginas((antes) => ({ ...antes, [chavePagina(liga)]: p }));
+      for (const league of chosen) {
+        if (pages[pageKey(league)] || !list.some((c) => c.league === league)) continue;
+        const p = await engine.call("competitionPage", season ? { league: league, season: season } : { league: league });
+        if (live && p) setPages((before) => ({ ...before, [pageKey(league)]: p }));
       }
     })().catch(() => undefined);
-    return () => { vivo = false; };
+    return () => { live = false; };
     // as páginas já carregadas não voltam a pedir-se
-  }, [motor, lista, escolhidas, epoca]);
+  }, [engine, list, chosen, season]);
 
-  const definir = (novas: string[]) => {
-    setEscolhidas(novas);
-    guardar(CHAVE, novas);
+  const set = (fresh: string[]) => {
+    setChosen(fresh);
+    save(KEY, fresh);
   };
-  const alternar = (liga: string) => {
-    if (escolhidas.includes(liga)) {
-      if (escolhidas.length > MINIMO) definir(escolhidas.filter((x) => x !== liga));
-    } else definir([...escolhidas, liga]);
+  const toggle = (league: string) => {
+    if (chosen.includes(league)) {
+      if (chosen.length > MIN) set(chosen.filter((x) => x !== league));
+    } else set([...chosen, league]);
   };
-  const epocas = Object.values(paginas)[0]?.seasons ?? [];
-  const visiveis = lista ? lista.filter((c) => escolhidas.includes(c.liga)) : [];
+  const seasons = Object.values(pages)[0]?.seasons ?? [];
+  const visible = list ? list.filter((c) => chosen.includes(c.league)) : [];
 
   return (
     <section>
-      <h1>{t("competicoes.titulo")}</h1>
-      {lista === null && <p className="vazio">{t("hoje.semMundo")}</p>}
-      {lista && (
+      <h1>{t("competitions.title")}</h1>
+      {list === null && <p className="vazio">{t("today.noWorld")}</p>}
+      {list && (
         <>
-          {epocas.length > 1 && (
+          {seasons.length > 1 && (
             <label className="seletor-epoca">
-              <span className="suave">{t("competicoes.epoca")}</span>{" "}
-              <select value={epoca ?? epocas[epocas.length - 1]!.season} onChange={(e) => { const v = Number(e.target.value); setEpoca(v === epocas[epocas.length - 1]!.season ? undefined : v); }}>
-                {[...epocas].reverse().map((x, i) => <option key={x.season} value={x.season}>{i === 0 ? t("competicoes.epocaAtual", { epoca: x.label }) : x.label}</option>)}
+              <span className="suave">{t("competitions.season")}</span>{" "}
+              <select value={season ?? seasons[seasons.length - 1]!.season} onChange={(e) => { const v = Number(e.target.value); setSeason(v === seasons[seasons.length - 1]!.season ? undefined : v); }}>
+                {[...seasons].reverse().map((x, i) => <option key={x.season} value={x.season}>{i === 0 ? t("competitions.currentSeason", { season: x.label }) : x.label}</option>)}
               </select>
             </label>
           )}
-          <div className="seletor-ligas" ref={seletor}>
-            <button type="button" aria-expanded={aberto} aria-haspopup="true" onClick={() => setAberto((v) => !v)}>
-              {t("competicoes.escolher")} ({escolhidas.length}/{lista.length}) <span aria-hidden="true">▾</span>
+          <div className="seletor-ligas" ref={selector}>
+            <button type="button" aria-expanded={isOpen} aria-haspopup="true" onClick={() => setIsOpen((v) => !v)}>
+              {t("competitions.choose")} ({chosen.length}/{list.length}) <span aria-hidden="true">▾</span>
             </button>
-            {aberto && (
-              <div className="seletor-painel" role="group" aria-label={t("competicoes.escolher")}>
+            {isOpen && (
+              <div className="seletor-painel" role="group" aria-label={t("competitions.choose")}>
                 <div className="seletor-acoes">
-                  <button type="button" onClick={() => definir(lista.map((c) => c.liga))}>{t("competicoes.todas")}</button>
-                  <button type="button" onClick={() => definir(PADRAO)}>{t("competicoes.padrao")}</button>
-                  <span className="suave">{t("competicoes.minimo", { n: MINIMO })}</span>
+                  <button type="button" onClick={() => set(list.map((c) => c.league))}>{t("competitions.all")}</button>
+                  <button type="button" onClick={() => set(DEFAULT)}>{t("competitions.fallback")}</button>
+                  <span className="suave">{t("competitions.min", { n: MIN })}</span>
                 </div>
-                {GRUPOS.map((g) => {
-                  const ligas = lista.filter((c) => (g.escaloes as readonly string[]).includes(c.escalao));
-                  return ligas.length === 0 ? null : (
-                    <fieldset key={g.chave} className={g.colunas ? "seletor-colunas" : undefined}>
-                      <legend>{t(g.chave)}</legend>
-                      {ligas.map((c) => {
-                        const marcada = escolhidas.includes(c.liga);
+                {GROUPS.map((g) => {
+                  const leagues = list.filter((c) => (g.tiers as readonly string[]).includes(c.tier));
+                  return leagues.length === 0 ? null : (
+                    <fieldset key={g.rowKey} className={g.columns ? "seletor-colunas" : undefined}>
+                      <legend>{t(g.rowKey)}</legend>
+                      {leagues.map((c) => {
+                        const scheduled = chosen.includes(c.league);
                         return (
-                          <label key={c.liga}>
-                            <input type="checkbox" checked={marcada} disabled={marcada && escolhidas.length <= MINIMO} onChange={() => alternar(c.liga)} />
-                            <span>{c.liga}</span>
+                          <label key={c.league}>
+                            <input type="checkbox" checked={scheduled} disabled={scheduled && chosen.length <= MIN} onChange={() => toggle(c.league)} />
+                            <span>{c.league}</span>
                           </label>
                         );
                       })}
@@ -140,22 +140,22 @@ export default function PaginaCompeticoes() {
               </div>
             )}
           </div>
-          {visiveis.length === 0 && <p className="vazio">{t("competicoes.semSelecao")}</p>}
+          {visible.length === 0 && <p className="vazio">{t("competitions.noSelection")}</p>}
           <div className="ligas-grelha">
-            {visiveis.map((c) => {
-              const p = paginas[chavePagina(c.liga)];
+            {visible.map((c) => {
+              const p = pages[pageKey(c.league)];
               return (
-                <Cartao key={c.liga} titulo={<Ligacao k="competicao" id={c.liga}>{c.liga}</Ligacao>}>
-                  <p className="suave cartao-sub">{t("competicoes.clubes", { n: c.clubes })}</p>
+                <Card key={c.league} title={<EntityLink k="competition" id={c.league}>{c.league}</EntityLink>}>
+                  <p className="suave cartao-sub">{t("competitions.clubs", { n: c.clubs })}</p>
                   {p ? (
                     <>
-                      <Destaques p={p} />
-                      <TabelaLiga page={p} compacta />
+                      <Highlights p={p} />
+                      <LeagueTable page={p} compact />
                     </>
                   ) : (
-                    <p className="vazio">{t("ficha.aCarregar")}</p>
+                    <p className="vazio">{t("profile.loading")}</p>
                   )}
-                </Cartao>
+                </Card>
               );
             })}
           </div>

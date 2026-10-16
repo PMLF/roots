@@ -14,7 +14,7 @@ pnpm build      # exportação estática para out/
 pnpm run ci         # tudo o que corre na integração contínua
 ```
 
-Dados em `data/` (regenerar com `python3 tools/build_dados.py`).
+Dados em `data/` (regenerar com `python3 tools/build_data.py`).
 
 ## Estrutura
 

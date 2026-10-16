@@ -1,377 +1,377 @@
-import { definirOrcamento, orcamentoDoClube } from "../clube/orcamento";
-import { estadoFinanceiro, massaSalarialMensal, saldoDoClube } from "../clube/financas";
-import { criarData } from "../calendario/datas";
-import { PARAMETROS_PADRAO, type Parametros } from "../config/parametros";
-import { VERSAO_ESQUEMA as ESQUEMA_BD } from "../persistencia/esquema";
-import type { Repositorio } from "../persistencia/repositorio";
-import { importarDados } from "../dados/importar";
-import type { ClubeBase, DadosBase, FontesCsv } from "../dados/tipos";
-import { gerarMundo } from "../mundo/gerarMundo";
-import { importarPaises, type Pais } from "../mundo/paises";
-import { validarMundo } from "../mundo/validar";
-import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio";
-import { caixa, marcarCaixaLida, marcarMensagem, noticias } from "../noticias/noticias";
-import { epocaDoClube } from "../competicao/clubeEpoca";
-import { lerJogoVivo } from "../epoca/jogoAoVivo";
-import { iniciarSessao, mudarTaticaSessao, passoSessao, sessaoAtual, substituirSessao } from "../epoca/sessaoJogo";
-import { estaNaSegundaDistrital } from "../epoca/distritais";
-import { aceitarOferta, demitir, estaDesempregado, ofertasDoGamer } from "../epoca/mercadoTreinadores";
-import { avancar, estadoDoTempo } from "../epoca/avancar";
-import { parametrosDoSave, anoDaEpocaQueContem, anoInicialDoSave, nomeDaEpoca } from "../epoca/anoDoSave";
-import { dadosDaEpoca, dadosDaPiramide, epocaAtual, historicoDeDivisoes } from "../epoca/piramideEpoca";
-import { vistaDoPlano } from "../epoca/vistaDoPlano";
-import { confirmarJogo, guardarPlano } from "../epoca/planoDeJogo";
-import { fichaCidade } from "../cidade/ficha";
-import { competitionPage } from "../competicao/ficha";
-import { nivelDeReputacao } from "../clube/reputacao";
-import { nivelGeral } from "../mundo/nivel";
-import { CHAVE } from "../mundo/jogador";
-import type { Atributo, Posicao } from "../mundo/tipos";
-import { Vista } from "../vista/vista";
-import { indexar, pesquisar, type EntradaIndice, type Indexada } from "../pesquisa/pesquisar";
-import type { NivelEstimado, VerdadePessoa, ClubeResumo, DiagnosticoBd, FichaClubeDados, FinancasClube, FichaLocalidadeDados, FichaPessoaDados, RefEntidade, EstatutoLocalidade, Mensagem, PedidosMotor, ProgressoMundo, ResumoMundoCriado, TipoPedido } from "./contratos";
+import { setBudget, clubBudget } from "../club/budget";
+import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
+import { createDate } from "../calendar/dates";
+import { DEFAULT_PARAMETERS, type Params } from "../config/parameters";
+import { SCHEMA_VERSION as DB_SCHEMA } from "../persistence/schema";
+import type { Repository } from "../persistence/repository";
+import { importData } from "../data/importData";
+import type { BaseClub, BaseData, SourcesCsv } from "../data/types";
+import { generateWorld } from "../world/generateWorld";
+import { importCountries, type Country } from "../world/countries";
+import { validateWorld } from "../world/validate";
+import { worldCompetitions, labMatch, labLeague } from "../lab/lab";
+import { inbox, markInboxRead, markMessage, news } from "../news/news";
+import { clubSeason } from "../competition/clubSeason";
+import { readLiveMatch } from "../season/liveMatch";
+import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
+import { isInSecondDistrict } from "../season/districts";
+import { acceptOffer, resign, isUnemployed, gamerOffers } from "../season/coachMarket";
+import { advance, timeState } from "../season/advance";
+import { saveParameters, seasonYearContaining, saveInitialYear, seasonName } from "../season/saveYear";
+import { seasonData, pyramidData, currentSeason, divisionsHistory } from "../season/seasonPyramid";
+import { planView } from "../season/planView";
+import { confirmMatch, savePlan } from "../season/gamePlan";
+import { cityProfile } from "../city/profile";
+import { competitionPage } from "../competition/profile";
+import { reputationLevel } from "../club/reputation";
+import { generalLevel } from "../world/level";
+import { KEY } from "../world/player";
+import type { Attribute, Position } from "../world/types";
+import { View } from "../view/view";
+import { buildIndex, find, type InputIndex, type Indexed } from "../search/search";
+import type { EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
-export const VERSAO_MOTOR = "0.1.0";
-export const VERSAO_ESQUEMA = ESQUEMA_BD;
+export const ENGINE_VERSION = "0.1.0";
+export const SCHEMA_VERSION = DB_SCHEMA;
 
 /** O que o motor precisa do exterior. O worker fornece o SQLite do browser; os testes, memória. */
 export type Servicos = {
   /** Texto dos CSV de `data/` (o worker vai buscá-los a /dados/; os testes lêem do disco). */
-  carregarDados(): Promise<FontesCsv & { paises: string }>;
-  abrirRepositorio(): Promise<{
-    repositorio: Repositorio;
-    backend: DiagnosticoBd["backend"];
-    versaoSqlite: string;
-    motivoMemoria?: string;
+  loadData(): Promise<SourcesCsv & { countries: string }>;
+  openRepository(): Promise<{
+    repository: Repository;
+    backend: DbDiagnostics["backend"];
+    sqliteVersion: string;
+    memoryReason?: string;
   }>;
   /** A data real de agora; define a época 1 do save (RZ-160). Por omissão o relógio do sistema. */
-  agora?(): Date;
+  now?(): Date;
 };
 
 /** Trata um pedido. Sem DOM nem worker, para ser testada diretamente. */
-export async function tratar<K extends TipoPedido>(m: Mensagem<K>, servicos: Servicos, aoProgredir?: (p: ProgressoMundo) => void): Promise<PedidosMotor[K]["saida"]>;
-export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: ProgressoMundo) => void = () => undefined): Promise<unknown> {
-  switch (m.tipo) {
+export async function handle<K extends RequestType>(m: Message<K>, servicos: Servicos, onProgress?: (p: WorldProgress) => void): Promise<EngineRequests[K]["output"]>;
+export async function handle(m: Message, servicos: Servicos, onProgress: (p: WorldProgress) => void = () => undefined): Promise<unknown> {
+  switch (m.type) {
     case "ping":
-      return { eco: m.entrada.eco, relogioMs: Date.now() };
-    case "versao":
-      return { motor: VERSAO_MOTOR, esquema: VERSAO_ESQUEMA };
-    case "parametros":
-      return PARAMETROS_PADRAO;
-    case "bd": {
-      const a = await servicos.abrirRepositorio();
-      const r = a.repositorio;
-      r.acrescentarEvento({ tipo: "DIAGNOSTICO", data: new Date().toISOString().slice(0, 10), epoca: 0, vis: "privado", entidades: [], dados: {} });
-      const saida: DiagnosticoBd = {
+      return { echo: m.input.echo, clockMs: Date.now() };
+    case "version":
+      return { engine: ENGINE_VERSION, schema: SCHEMA_VERSION };
+    case "parameters":
+      return DEFAULT_PARAMETERS;
+    case "db": {
+      const a = await servicos.openRepository();
+      const r = a.repository;
+      r.appendEvent({ type: "DIAGNOSTIC", date: new Date().toISOString().slice(0, 10), season: 0, visibility: "private", entities: [], data: {} });
+      const output: DbDiagnostics = {
         backend: a.backend,
-        persistente: a.backend === "opfs",
-        ...(a.motivoMemoria !== undefined ? { motivoMemoria: a.motivoMemoria } : {}),
-        sqlite: a.versaoSqlite,
-        esquema: r.versaoEsquema,
-        aberturas: r.contar("DIAGNOSTICO"),
-        eventos: r.totalEventos(),
+        persistent: a.backend === "opfs",
+        ...(a.memoryReason !== undefined ? { memoryReason: a.memoryReason } : {}),
+        sqlite: a.sqliteVersion,
+        schema: r.schemaVersion,
+        openings: r.count("DIAGNOSTIC"),
+        events: r.eventsTotal(),
       };
-      return saida;
+      return output;
     }
-    case "clubes": {
-      const { dados } = await contexto(servicos);
-      return dados.clubes.map((c): ClubeResumo => ({ id: c.id, nome: c.nome, liga: c.liga, cores: c.cores }));
+    case "clubs": {
+      const { data } = await context(servicos);
+      return data.clubs.map((c): SummaryClub => ({ id: c.id, name: c.name, league: c.league, colours: c.colours }));
     }
-    case "estadoMundo": {
-      const { repositorio, dados } = await contexto(servicos);
-      if (repositorio.totalPessoas() === 0) return null;
-      completarLocalidades(repositorio, dados);
-      return resumoExistente(repositorio, dados);
+    case "worldState": {
+      const { repository, data } = await context(servicos);
+      if (repository.peopleTotal() === 0) return null;
+      completeLocalities(repository, data);
+      return existingSummary(repository, data);
     }
-    case "criarMundo":
-      return criarMundo(m.entrada.seed, servicos, aoProgredir);
-    case "reiniciarMundo": {
-      const { repositorio } = await servicos.abrirRepositorio();
-      repositorio.reiniciar();
-      indices.delete(repositorio);
-      return criarMundo(m.entrada.seed, servicos, aoProgredir);
+    case "createWorld":
+      return createWorld(m.input.seed, servicos, onProgress);
+    case "restartWorld": {
+      const { repository } = await servicos.openRepository();
+      repository.restart();
+      indices.delete(repository);
+      return createWorld(m.input.seed, servicos, onProgress);
     }
-    case "paises":
-      return (await dadosDoJogo(servicos)).paises.map((p) => ({ id: p.id, nome: p.nome }));
-    case "pesquisar": {
-      const { repositorio, dados: atuais } = await contexto(servicos);
-      return pesquisar(m.entrada.q, indiceDePesquisa(repositorio, atuais), m.entrada.limite ?? 12);
+    case "countries":
+      return (await matchData(servicos)).countries.map((p) => ({ id: p.id, name: p.name }));
+    case "find": {
+      const { repository, data: current } = await context(servicos);
+      return find(m.input.q, searchIndex(repository, current), m.input.limit ?? 12);
     }
-    case "fichaPessoa": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      const ficha = vistaDoGamer(repositorio).ficha(m.entrada.id);
-      if (!ficha) return null;
-      const vista = vistaDoGamer(repositorio);
-      const saida: FichaPessoaDados = { ficha, stats: vista.statsJogador(m.entrada.id), anoInicial: params.calendario.anoInicial };
-      const contrato = repositorio.contrato(m.entrada.id);
-      if (contrato) saida.contrato = { inicio: contrato.inicio, fim: contrato.fim };
-      const nivel = nivelDoJogador(repositorio, m.entrada.id, ficha.publico.jogador?.posicao, ficha.atributos?.campos, m.entrada.verTudo === true);
-      if (nivel) saida.nivel = nivel;
-      if (m.entrada.verTudo) saida.verdade = verdadeDaPessoa(repositorio, m.entrada.id);
-      const clube = ficha.publico.clube ? dados.clubes.find((c) => c.id === ficha.publico.clube) : undefined;
-      if (clube) saida.clube = { k: "clube", id: clube.id, nome: clube.nome };
-      const cidade = ficha.publico.naturalDe ? dados.cidades.find((c) => c.id === ficha.publico.naturalDe) : undefined;
-      if (cidade) saida.naturalDe = { k: "cidade", id: cidade.id, nome: cidade.nome };
-      return saida;
+    case "personProfile": {
+      const { repository, data, params } = await context(servicos);
+      const profile = gamerView(repository).profile(m.input.id);
+      if (!profile) return null;
+      const view = gamerView(repository);
+      const output: PersonProfileData = { profile, stats: view.playerStats(m.input.id), initialYear: params.calendar.initialYear };
+      const contract = repository.contract(m.input.id);
+      if (contract) output.contract = { start: contract.start, end: contract.end };
+      const level = playerLevel(repository, m.input.id, profile.exposed.player?.position, profile.attributes?.fields, m.input.seeAll === true);
+      if (level) output.level = level;
+      if (m.input.seeAll) output.truth = personTruth(repository, m.input.id);
+      const club = profile.exposed.club ? data.clubs.find((c) => c.id === profile.exposed.club) : undefined;
+      if (club) output.club = { k: "club", id: club.id, name: club.name };
+      const city = profile.exposed.naturalDe ? data.cities.find((c) => c.id === profile.exposed.naturalDe) : undefined;
+      if (city) output.naturalDe = { k: "city", id: city.id, name: city.name };
+      return output;
     }
-    case "fichaClube": {
-      const { repositorio, dados, base, params } = await contexto(servicos);
-      const c = dados.clubes.find((x) => x.id === m.entrada.id);
+    case "clubProfile": {
+      const { repository, data, base, params } = await context(servicos);
+      const c = data.clubs.find((x) => x.id === m.input.id);
       if (!c) return null;
-      const verTudo = m.entrada.verTudo === true;
-      const vista = vistaDoGamer(repositorio);
-      const cidade = dados.cidades.find((x) => x.id === c.cidade);
-      const rival = dados.clubes.find((x) => x.id === c.rival);
-      const loc = repositorio.localidade(c.localidadeId);
-      const saida: FichaClubeDados = {
-        id: c.id, nome: c.nome, liga: c.liga,
-        localidade: { k: "localidade", id: c.localidadeId, nome: c.localidade, estatuto: loc?.estatuto ?? dados.localidades.find((x) => x.id === c.localidadeId)?.estatuto ?? "vila" },
-        cidade: { k: "cidade", id: c.cidade, nome: cidade?.nome ?? c.cidade },
-        distrito: c.distrito, cores: c.cores, alcunha: c.alcunha, mascote: c.mascote, reputacao: c.reputacao,
-        ...(rival ? { rival: { k: "clube", id: rival.id, nome: rival.nome } as RefEntidade } : {}),
-        estadio: { nome: c.estadio.nome, capacidade: c.estadio.capacidade },
-        plantel: vista.plantel(c.id),
-        cargos: vista.cargos({ clube: c.id }),
-        escalao: c.escalao,
-        nivelReputacao: nivelDeReputacao(c.reputacao, params),
-        financas: financasDoClube(repositorio, dados, params, c, repositorio.meta("clube.gamer") === c.id || verTudo),
-        estadioDetalhe: { propriedade: c.estadio.propriedade, zona: c.estadio.localizacao.zona, distanciaCentroKm: c.estadio.localizacao.distanciaCentroKm, transportes: c.estadio.localizacao.transportes, acessoRodoviario: c.estadio.localizacao.acessoRodoviario, estacionamento: c.estadio.localizacao.estacionamento, terrenoExpansao: c.estadio.localizacao.terrenoExpansao },
-        historicoDivisoes: historicoDeDivisoes(repositorio, base, c.id).map((h) => ({ ...h, label: nomeDaEpoca(h.epoca, params.calendario.anoInicial) })),
-        plantelExtra: {},
-        ...(epocaDoClube(repositorio, dados, params, c.id) ? { epoca: epocaDoClube(repositorio, dados, params, c.id) as NonNullable<ReturnType<typeof epocaDoClube>> } : {}),
+      const seeAll = m.input.seeAll === true;
+      const view = gamerView(repository);
+      const city = data.cities.find((x) => x.id === c.city);
+      const rival = data.clubs.find((x) => x.id === c.rival);
+      const locality = repository.locality(c.localityId);
+      const output: ClubProfileData = {
+        id: c.id, name: c.name, league: c.league,
+        locality: { k: "locality", id: c.localityId, name: c.locality, status: locality?.status ?? data.localities.find((x) => x.id === c.localityId)?.status ?? "town" },
+        city: { k: "city", id: c.city, name: city?.name ?? c.city },
+        district: c.district, colours: c.colours, nickname: c.nickname, mascot: c.mascot, reputation: c.reputation,
+        ...(rival ? { rival: { k: "club", id: rival.id, name: rival.name } as EntityRef } : {}),
+        stadium: { name: c.stadium.name, capacity: c.stadium.capacity },
+        squad: view.squad(c.id),
+        roles: view.roles({ club: c.id }),
+        tier: c.tier,
+        levelReputation: reputationLevel(c.reputation, params),
+        finances: clubFinances(repository, data, params, c, repository.meta("gamer.club") === c.id || seeAll),
+        detailStadium: { ownership: c.stadium.ownership, zone: c.stadium.location.zone, centreDistanceKm: c.stadium.location.centreDistanceKm, transport: c.stadium.location.transport, roadAccess: c.stadium.location.roadAccess, parking: c.stadium.location.parking, expansionTerrain: c.stadium.location.expansionTerrain },
+        divisionsHistory: divisionsHistory(repository, base, c.id).map((h) => ({ ...h, label: seasonName(h.season, params.calendar.initialYear) })),
+        extraSquad: {},
+        ...(clubSeason(repository, data, params, c.id) ? { season: clubSeason(repository, data, params, c.id) as NonNullable<ReturnType<typeof clubSeason>> } : {}),
       };
-      for (const j of saida.plantel) {
-        const ct = repositorio.contrato(j.id);
-        const campos = verTudo ? undefined : vista.ficha(j.id)?.atributos?.campos;
-        const nivel = nivelDoJogador(repositorio, j.id, j.jogador?.posicao, campos, verTudo);
-        saida.plantelExtra[j.id] = { ...(ct ? { contratoFim: ct.fim } : {}), ...(nivel ? { nivel } : {}) };
+      for (const j of output.squad) {
+        const ct = repository.contract(j.id);
+        const fields = seeAll ? undefined : view.profile(j.id)?.attributes?.fields;
+        const level = playerLevel(repository, j.id, j.player?.position, fields, seeAll);
+        output.extraSquad[j.id] = { ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}) };
       }
-      if (verTudo) {
-        const niveis = saida.plantel.map((j) => saida.plantelExtra[j.id]?.nivel?.valor).filter((v): v is number => v !== undefined);
-        saida.verdade = {
-          reputacao: c.reputacao,
-          financas: saldoDoClube(repositorio, c),
-          qualidadeStaff: Object.fromEntries(saida.cargos.flatMap((p) => { const q = repositorio.cargo(p.id)?.qualidade; return q ? [[p.id, q]] : []; })),
-          plantelNivel: niveis.length ? Math.round((niveis.reduce((s, v) => s + v, 0) / niveis.length) * 10) / 10 : 0,
+      if (seeAll) {
+        const levels = output.squad.map((j) => output.extraSquad[j.id]?.level?.value).filter((v): v is number => v !== undefined);
+        output.truth = {
+          reputation: c.reputation,
+          finances: clubBalance(repository, c),
+          staffQuality: Object.fromEntries(output.roles.flatMap((p) => { const q = repository.role(p.id)?.quality; return q ? [[p.id, q]] : []; })),
+          squadLevel: levels.length ? Math.round((levels.reduce((s, v) => s + v, 0) / levels.length) * 10) / 10 : 0,
         };
       }
-      return saida;
+      return output;
     }
-    case "fichaLocalidade": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      const base = dados.localidades.find((x) => x.id === m.entrada.id);
+    case "localityProfile": {
+      const { repository, data, params } = await context(servicos);
+      const base = data.localities.find((x) => x.id === m.input.id);
       if (!base) return null;
       // antes de haver mundo mostra-se o estado de arranque
-      const atual = repositorio.localidade(m.entrada.id) ?? { populacao: base.populacao, estatuto: base.estatuto, desde: criarData(params.calendario.anoInicial, 7, 1) };
-      const cidade = dados.cidades.find((x) => x.id === base.cidade);
-      const historico = repositorio
-        .eventosDe({ k: "localidade", id: base.id }, { apenasPublicos: true, tipo: "LOCALIDADE_ESTATUTO" })
-        .map((e) => ({ data: e.data, de: e.dados.de as EstatutoLocalidade, para: e.dados.para as EstatutoLocalidade, populacao: Number(e.dados.populacao) }));
-      const saida: FichaLocalidadeDados = {
-        id: base.id, nome: base.nome, estatuto: atual.estatuto, populacao: atual.populacao, desde: atual.desde, sede: base.sede,
-        cidade: { k: "cidade", id: base.cidade, nome: cidade?.nome ?? base.cidade }, distrito: base.distrito,
-        clubes: base.clubes.flatMap((id) => {
-          const c = dados.clubes.find((x) => x.id === id);
-          return c ? [{ k: "clube" as const, id: c.id, nome: c.nome, liga: c.liga }] : [];
+      const current = repository.locality(m.input.id) ?? { population: base.population, status: base.status, since: createDate(params.calendar.initialYear, 7, 1) };
+      const city = data.cities.find((x) => x.id === base.city);
+      const history = repository
+        .eventsOf({ k: "locality", id: base.id }, { publicOnly: true, type: "LOCALITY_STATUS" })
+        .map((e) => ({ date: e.date, de: e.data.de as LocalityStatus, para: e.data.para as LocalityStatus, population: Number(e.data.population) }));
+      const output: LocalityProfileData = {
+        id: base.id, name: base.name, status: current.status, population: current.population, since: current.since, host: base.host,
+        city: { k: "city", id: base.city, name: city?.name ?? base.city }, district: base.district,
+        clubs: base.clubs.flatMap((id) => {
+          const c = data.clubs.find((x) => x.id === id);
+          return c ? [{ k: "club" as const, id: c.id, name: c.name, league: c.league }] : [];
         }),
-        historico,
+        history,
       };
-      return saida;
+      return output;
     }
-    case "fichaCidade": {
-      const { repositorio, dados, base, params } = await contexto(servicos);
-      return fichaCidade(repositorio, dados, base, params, vistaDoGamer(repositorio), m.entrada.id);
+    case "cityProfile": {
+      const { repository, data, base, params } = await context(servicos);
+      return cityProfile(repository, data, base, params, gamerView(repository), m.input.id);
     }
-    case "competicoes":
-      return competicoesDoMundo((await contexto(servicos)).dados);
+    case "competitions":
+      return worldCompetitions((await context(servicos)).data);
     case "competitionPage": {
-      const { repositorio, dados, base, params } = await contexto(servicos);
-      const atual = epocaAtual(repositorio);
-      const epoca = m.entrada.season ?? atual;
-      if (epoca < 1 || epoca > atual) return null;
-      return competitionPage(repositorio, epoca === atual ? dados : dadosDaPiramide(repositorio, base, epoca), params, m.entrada.league, epoca) ?? null;
+      const { repository, data, base, params } = await context(servicos);
+      const current = currentSeason(repository);
+      const season = m.input.season ?? current;
+      if (season < 1 || season > current) return null;
+      return competitionPage(repository, season === current ? data : pyramidData(repository, base, season), params, m.input.league, season) ?? null;
     }
-    case "laboratorioJogo": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      return jogoLab(repositorio, dados, params, m.entrada);
+    case "matchLab": {
+      const { repository, data, params } = await context(servicos);
+      return labMatch(repository, data, params, m.input);
     }
-    case "laboratorioLiga": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      return ligaLab(repositorio, dados, params, m.entrada);
+    case "leagueLab": {
+      const { repository, data, params } = await context(servicos);
+      return labLeague(repository, data, params, m.input);
     }
-    case "clubeDoGamer": {
-      const { repositorio } = await servicos.abrirRepositorio();
-      const id = repositorio.meta("clube.gamer");
+    case "gamerClub": {
+      const { repository } = await servicos.openRepository();
+      const id = repository.meta("gamer.club");
       return id ? { id } : null;
     }
-    case "jogoAoVivo": {
-      const { repositorio } = await contexto(servicos);
-      const { dados, params } = await contexto(servicos);
+    case "liveMatch": {
+      const { repository } = await context(servicos);
+      const { data, params } = await context(servicos);
       // um jogo a decorrer tem prioridade (sem id, ou com o id desse jogo)
-      const emCurso = sessaoAtual(repositorio, dados, params);
-      if (emCurso && (!m.entrada.id || m.entrada.id === emCurso.id)) return emCurso;
-      return lerJogoVivo(repositorio, m.entrada.id);
+      const ongoing = currentSession(repository, data, params);
+      if (ongoing && (!m.input.id || m.input.id === ongoing.id)) return ongoing;
+      return readLiveMatch(repository, m.input.id);
     }
-    case "noticias": {
-      const { repositorio, dados } = await contexto(servicos);
-      return noticias(repositorio, dados, m.entrada);
+    case "news": {
+      const { repository, data } = await context(servicos);
+      return news(repository, data, m.input);
     }
-    case "caixa": {
-      const { repositorio, dados } = await contexto(servicos);
-      return caixa(repositorio, dados, m.entrada);
+    case "inbox": {
+      const { repository, data } = await context(servicos);
+      return inbox(repository, data, m.input);
     }
-    case "marcarCaixaLida": {
-      const { repositorio } = await contexto(servicos);
-      marcarCaixaLida(repositorio);
+    case "markInboxRead": {
+      const { repository } = await context(servicos);
+      markInboxRead(repository);
       return null;
     }
-    case "marcarMensagem": {
-      const { repositorio } = await contexto(servicos);
-      marcarMensagem(repositorio, m.entrada.id, m.entrada.lida);
+    case "markMessage": {
+      const { repository } = await context(servicos);
+      markMessage(repository, m.input.id, m.input.isRead);
       return null;
     }
-    case "demitir": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      return demitir(repositorio, dados, params);
+    case "resign": {
+      const { repository, data, params } = await context(servicos);
+      return resign(repository, data, params);
     }
-    case "ofertas": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      const desempregado = estaDesempregado(repositorio);
-      const nome = (id: string) => dados.clubes.find((c) => c.id === id)?.nome;
-      const anterior = repositorio.meta("gamer.anterior");
+    case "offers": {
+      const { repository, data, params } = await context(servicos);
+      const unemployed = isUnemployed(repository);
+      const name = (id: string) => data.clubs.find((c) => c.id === id)?.name;
+      const previous = repository.meta("gamer.previous");
       return {
-        desempregado,
-        ...(anterior ? { anterior: nome(anterior) ?? anterior } : {}),
-        ofertas: desempregado ? ofertasDoGamer(repositorio).flatMap((o) => {
-          const c = dados.clubes.find((x) => x.id === o.clube);
-          return c ? [{ id: c.id, nome: c.nome, liga: c.liga, escalao: c.escalao, nivelReputacao: nivelDeReputacao(c.reputacao, params), desde: o.desde }] : [];
+        unemployed,
+        ...(previous ? { previous: name(previous) ?? previous } : {}),
+        offers: unemployed ? gamerOffers(repository).flatMap((o) => {
+          const c = data.clubs.find((x) => x.id === o.club);
+          return c ? [{ id: c.id, name: c.name, league: c.league, tier: c.tier, levelReputation: reputationLevel(c.reputation, params), since: o.since }] : [];
         }) : [],
       };
     }
-    case "aceitarOferta": {
-      const { repositorio } = await contexto(servicos);
-      aceitarOferta(repositorio, m.entrada.id);
-      return { id: m.entrada.id };
+    case "acceptOffer": {
+      const { repository } = await context(servicos);
+      acceptOffer(repository, m.input.id);
+      return { id: m.input.id };
     }
-    case "escolherClube": {
-      const { repositorio, dados } = await contexto(servicos);
-      if (estaDesempregado(repositorio) && m.entrada.forcar !== true) throw new Error("Sem clube: escolhe uma das ofertas recebidas");
-      const escolhido = dados.clubes.find((c) => c.id === m.entrada.id);
-      if (!escolhido) throw new Error("Clube desconhecido");
-      if (estaNaSegundaDistrital(escolhido.liga)) throw new Error("Esse clube está na segunda distrital: só é jogável quando voltar à pirâmide");
-      const atual = repositorio.meta("clube.gamer");
-      if (atual && atual !== m.entrada.id && m.entrada.forcar !== true) throw new Error("O clube do save já foi escolhido: só muda se fores despedido ou te despedires");
-      repositorio.definirMeta("clube.gamer", m.entrada.id);
-      return { id: m.entrada.id };
+    case "chooseClub": {
+      const { repository, data } = await context(servicos);
+      if (isUnemployed(repository) && m.input.force !== true) throw new Error("Sem clube: escolhe uma das ofertas recebidas");
+      const chosen = data.clubs.find((c) => c.id === m.input.id);
+      if (!chosen) throw new Error("Clube desconhecido");
+      if (isInSecondDistrict(chosen.league)) throw new Error("Esse clube está na segunda distrital: só é jogável quando voltar à pirâmide");
+      const current = repository.meta("gamer.club");
+      if (current && current !== m.input.id && m.input.force !== true) throw new Error("O clube do save já foi escolhido: só muda se fores despedido ou te despedires");
+      repository.setMeta("gamer.club", m.input.id);
+      return { id: m.input.id };
     }
-    case "plano": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      const clube = repositorio.meta("clube.gamer");
-      return clube ? vistaDoPlano(repositorio, dados, params, clube) : null;
+    case "plan": {
+      const { repository, data, params } = await context(servicos);
+      const club = repository.meta("gamer.club");
+      return club ? planView(repository, data, params, club) : null;
     }
-    case "guardarPlano": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      const clube = repositorio.meta("clube.gamer");
-      if (!clube) throw new Error("Ainda não escolheste o clube");
-      guardarPlano(repositorio, clube, { tatica: m.entrada.tatica, ...(m.entrada.onze ? { onze: m.entrada.onze } : {}) });
-      return vistaDoPlano(repositorio, dados, params, clube) as NonNullable<ReturnType<typeof vistaDoPlano>>;
+    case "savePlan": {
+      const { repository, data, params } = await context(servicos);
+      const club = repository.meta("gamer.club");
+      if (!club) throw new Error("Ainda não escolheste o clube");
+      savePlan(repository, club, { tactic: m.input.tactic, ...(m.input.lineup ? { lineup: m.input.lineup } : {}) });
+      return planView(repository, data, params, club) as NonNullable<ReturnType<typeof planView>>;
     }
-    case "confirmarJogo": {
-      const { repositorio } = await servicos.abrirRepositorio();
-      confirmarJogo(repositorio, m.entrada.jogo);
-      return { jogo: m.entrada.jogo };
+    case "confirmMatch": {
+      const { repository } = await servicos.openRepository();
+      confirmMatch(repository, m.input.match);
+      return { match: m.input.match };
     }
-    case "iniciarJogo": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      const clube = repositorio.meta("clube.gamer");
-      if (!clube) throw new Error("Escolhe um clube primeiro");
-      return iniciarSessao(repositorio, dados, params, clube, m.entrada.jogo);
+    case "startMatch": {
+      const { repository, data, params } = await context(servicos);
+      const club = repository.meta("gamer.club");
+      if (!club) throw new Error("Escolhe um clube primeiro");
+      return startSession(repository, data, params, club, m.input.match);
     }
-    case "passoJogo": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      return passoSessao(repositorio, dados, params, m.entrada.minutos);
+    case "matchStep": {
+      const { repository, data, params } = await context(servicos);
+      return sessionStep(repository, data, params, m.input.minutes);
     }
-    case "definirOrcamento": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      const id = repositorio.meta("clube.gamer");
-      const c = dados.clubes.find((x) => x.id === id);
+    case "setBudget": {
+      const { repository, data, params } = await context(servicos);
+      const id = repository.meta("gamer.club");
+      const c = data.clubs.find((x) => x.id === id);
       if (!c) throw new Error("Sem clube");
-      definirOrcamento(repositorio, c, params, Number(repositorio.meta("epoca") ?? 1), m.entrada);
-      return financasDoClube(repositorio, dados, params, c, true);
+      setBudget(repository, c, params, Number(repository.meta("season") ?? 1), m.input);
+      return clubFinances(repository, data, params, c, true);
     }
-    case "taticaNoJogo": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      return mudarTaticaSessao(repositorio, dados, params, m.entrada.tatica);
+    case "tacticInMatch": {
+      const { repository, data, params } = await context(servicos);
+      return changeSessionTactic(repository, data, params, m.input.tactic);
     }
-    case "substituicoesNoJogo": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      return substituirSessao(repositorio, dados, params, m.entrada.trocas);
+    case "substitutionsInMatch": {
+      const { repository, data, params } = await context(servicos);
+      return substituteSession(repository, data, params, m.input.substitutions);
     }
-    case "estadoTempo": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      return estadoDoTempo(repositorio, dados, params);
+    case "timeState": {
+      const { repository, data, params } = await context(servicos);
+      return timeState(repository, data, params);
     }
-    case "avancar": {
-      const { repositorio, dados, params } = await contexto(servicos);
-      return avancar(repositorio, dados, params, m.entrada.modo, m.entrada.clube ?? repositorio.meta("clube.gamer"));
+    case "advance": {
+      const { repository, data, params } = await context(servicos);
+      return advance(repository, data, params, m.input.mode, m.input.club ?? repository.meta("gamer.club"));
     }
-    case "plantel": {
-      const { repositorio } = await servicos.abrirRepositorio();
-      const clube = m.entrada.clube;
-      return vistaDoGamer(repositorio, clube).plantel(clube);
+    case "squad": {
+      const { repository } = await servicos.openRepository();
+      const club = m.input.club;
+      return gamerView(repository, club).squad(club);
     }
   }
 }
 
 /** Nível geral do jogador: exato com «ver tudo»; senão estimado a partir dos atributos que se conhecem (e só se se conhecem todos os da posição). */
-function nivelDoJogador(r: Repositorio, id: string, posicao: string | undefined, campos: Record<string, { valor: number; margem: number }> | undefined, verTudo: boolean): NivelEstimado | undefined {
-  if (!posicao || !(posicao in CHAVE)) return undefined;
-  const pos = posicao as Posicao;
-  if (verTudo) {
-    const at = r.jogador(id)?.atributos;
-    const v = at ? nivelGeral((a) => at[a], pos) : undefined;
-    return v === undefined ? undefined : { valor: v, margem: 0, exato: true };
+function playerLevel(r: Repository, id: string, position: string | undefined, fields: Record<string, { value: number; margin: number }> | undefined, seeAll: boolean): EstimatedLevel | undefined {
+  if (!position || !(position in KEY)) return undefined;
+  const pos = position as Position;
+  if (seeAll) {
+    const at = r.player(id)?.attributes;
+    const v = at ? generalLevel((a) => at[a], pos) : undefined;
+    return v === undefined ? undefined : { value: v, margin: 0, exact: true };
   }
-  if (!campos) return undefined;
-  const v = nivelGeral((a: Atributo) => campos[a]?.valor, pos);
+  if (!fields) return undefined;
+  const v = generalLevel((a: Attribute) => fields[a]?.value, pos);
   if (v === undefined) return undefined;
-  const margens = CHAVE[pos].map((a) => campos[a]?.margem ?? 0);
-  return { valor: v, margem: Math.round((margens.reduce((s, x) => s + x, 0) / margens.length) * 10) / 10, exato: false };
+  const margins = KEY[pos].map((a) => fields[a]?.margin ?? 0);
+  return { value: v, margin: Math.round((margins.reduce((s, x) => s + x, 0) / margins.length) * 10) / 10, exact: false };
 }
 
-function verdadeDaPessoa(r: Repositorio, id: string): VerdadePessoa | undefined {
-  const p = r.pessoa(id);
+function personTruth(r: Repository, id: string): PersonTruth | undefined {
+  const p = r.person(id);
   if (!p) return undefined;
-  const j = r.jogador(id);
-  const ct = r.contrato(id);
-  const cg = r.cargo(id);
+  const j = r.player(id);
+  const ct = r.contract(id);
+  const cg = r.role(id);
   return {
-    personalidade: p.personalidade, arquetipo: p.arquetipo, lod: p.lod,
-    ...(j ? { atributos: j.atributos, potencial: j.potencial, posicoes: j.posicoes } : {}),
-    ...(ct ? { salarioMensal: ct.salarioMensal } : {}),
-    ...(cg?.qualidade ? { qualidade: cg.qualidade } : {}),
+    personality: p.personality, archetype: p.archetype, lod: p.lod,
+    ...(j ? { attributes: j.attributes, potential: j.potential, positions: j.positions } : {}),
+    ...(ct ? { monthlyWage: ct.monthlyWage } : {}),
+    ...(cg?.quality ? { quality: cg.quality } : {}),
   };
 }
 
 /** Repositório + dados com a liga atual de cada clube (RZ-159); `base` são os dados de arranque. */
-async function contexto(servicos: Servicos): Promise<{ repositorio: Repositorio; dados: DadosBase; base: DadosBase; paises: Pais[]; params: Parametros }> {
-  const [{ repositorio }, jogo] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
-  return { repositorio, dados: dadosDaEpoca(repositorio, jogo.dados), base: jogo.dados, paises: jogo.paises, params: parametrosDoSave(repositorio, PARAMETROS_PADRAO) };
+async function context(servicos: Servicos): Promise<{ repository: Repository; data: BaseData; base: BaseData; countries: Country[]; params: Params }> {
+  const [{ repository }, match] = await Promise.all([servicos.openRepository(), matchData(servicos)]);
+  return { repository, data: seasonData(repository, match.data), base: match.data, countries: match.countries, params: saveParameters(repository, DEFAULT_PARAMETERS) };
 }
 
-type DadosDoJogo = { dados: DadosBase; paises: Pais[] };
-const cache = new WeakMap<Servicos, Promise<DadosDoJogo>>();
+type MatchData = { data: BaseData; countries: Country[] };
+const cache = new WeakMap<Servicos, Promise<MatchData>>();
 
 /** Lê e valida os CSV uma vez por conjunto de serviços. */
-function dadosDoJogo(servicos: Servicos): Promise<DadosDoJogo> {
+function matchData(servicos: Servicos): Promise<MatchData> {
   let p = cache.get(servicos);
   if (!p) {
-    p = servicos.carregarDados().then((f) => {
-      const d = importarDados(f);
-      if (!d.ok) throw new Error("Dados inválidos:\n" + d.erros.join("\n"));
-      const pa = importarPaises(f.paises);
-      if (!pa.ok) throw new Error("Países inválidos:\n" + pa.erros.join("\n"));
-      return { dados: d.dados, paises: pa.paises };
+    p = servicos.loadData().then((f) => {
+      const d = importData(f);
+      if (!d.ok) throw new Error("Dados inválidos:\n" + d.errors.join("\n"));
+      const pa = importCountries(f.countries);
+      if (!pa.ok) throw new Error("Países inválidos:\n" + pa.errors.join("\n"));
+      return { data: d.data, countries: pa.countries };
     });
     cache.set(servicos, p);
     p.catch(() => cache.delete(servicos));
@@ -379,94 +379,94 @@ function dadosDoJogo(servicos: Servicos): Promise<DadosDoJogo> {
   return p;
 }
 
-async function criarMundo(seed: string, servicos: Servicos, aoProgredir: (p: ProgressoMundo) => void): Promise<ResumoMundoCriado> {
-  const [{ repositorio }, { dados, paises }] = await Promise.all([servicos.abrirRepositorio(), dadosDoJogo(servicos)]);
-  if (repositorio.totalPessoas() > 0) {
+async function createWorld(seed: string, servicos: Servicos, onProgress: (p: WorldProgress) => void): Promise<CreatedWorldSummary> {
+  const [{ repository }, { data, countries }] = await Promise.all([servicos.openRepository(), matchData(servicos)]);
+  if (repository.peopleTotal() > 0) {
     // reabrir um save que já tem mundo: não se gera outra vez
-    completarLocalidades(repositorio, dados);
-    return resumoExistente(repositorio, dados);
+    completeLocalities(repository, data);
+    return existingSummary(repository, data);
   }
   const t0 = Date.now();
-  const agora = servicos.agora?.() ?? new Date();
-  const ano = anoDaEpocaQueContem(agora.getFullYear(), agora.getMonth() + 1, PARAMETROS_PADRAO);
-  const params: Parametros = { ...PARAMETROS_PADRAO, calendario: { ...PARAMETROS_PADRAO.calendario, anoInicial: ano } };
-  const lote = gerarMundo({ seed, dados, paises, params, aoProgredir: (fase, feito, total) => aoProgredir({ fase, feito, total }) });
-  aoProgredir({ fase: "validar", feito: 0, total: 1 });
-  const v = validarMundo(lote, dados, paises, params);
-  if (v.erros.length > 0) throw new Error("Mundo gerado inválido:\n" + v.erros.slice(0, 10).join("\n"));
-  repositorio.transacao(() => {
-    repositorio.definirMeta("seed", seed);
-    repositorio.definirMeta("ano.inicial", String(ano));
-    repositorio.definirMeta("mundo.jogadores", String(lote.jogadores.length));
-    guardarLocalidadesDeArranque(repositorio, dados, ano);
-    repositorio.guardarMundo(lote, (feito, total) => aoProgredir({ fase: "guardar", feito, total }));
+  const now = servicos.now?.() ?? new Date();
+  const year = seasonYearContaining(now.getFullYear(), now.getMonth() + 1, DEFAULT_PARAMETERS);
+  const params: Params = { ...DEFAULT_PARAMETERS, calendar: { ...DEFAULT_PARAMETERS.calendar, initialYear: year } };
+  const batch = generateWorld({ seed, data, countries, params, onProgress: (phase, done, total) => onProgress({ phase, done, total }) });
+  onProgress({ phase: "validate", done: 0, total: 1 });
+  const v = validateWorld(batch, data, countries, params);
+  if (v.errors.length > 0) throw new Error("Mundo gerado inválido:\n" + v.errors.slice(0, 10).join("\n"));
+  repository.transaction(() => {
+    repository.setMeta("seed", seed);
+    repository.setMeta("start.year", String(year));
+    repository.setMeta("world.players", String(batch.players.length));
+    saveStartLocalities(repository, data, year);
+    repository.saveWorld(batch, (done, total) => onProgress({ phase: "save", done, total }));
   });
-  return { seed, clubes: dados.clubes.length, pessoas: lote.pessoas.length, jogadores: lote.jogadores.length, ms: Date.now() - t0, avisos: v.avisos, jaExistia: false };
+  return { seed, clubs: data.clubs.length, people: batch.people.length, players: batch.players.length, ms: Date.now() - t0, warnings: v.warnings, alreadyExisted: false };
 }
 
-function guardarLocalidadesDeArranque(r: Repositorio, dados: DadosBase, ano: number): void {
-  r.guardarLocalidades(
-    dados.localidades.map((l) => ({
-      id: l.id, nome: l.nome, cidade: l.cidade, populacao: l.populacao, estatuto: l.estatuto,
-      desde: criarData(ano, 7, 1),
+function saveStartLocalities(r: Repository, data: BaseData, year: number): void {
+  r.saveLocalities(
+    data.localities.map((l) => ({
+      id: l.id, name: l.name, city: l.city, population: l.population, status: l.status,
+      since: createDate(year, 7, 1),
     })),
   );
 }
 
 /** Saves criados antes da migração 4 não têm localidades: preenche-as com o estado de arranque (idempotente). */
-function completarLocalidades(r: Repositorio, dados: DadosBase): void {
-  if (r.localidades().length === 0) guardarLocalidadesDeArranque(r, dados, Number(r.meta("ano.inicial") ?? PARAMETROS_PADRAO.calendario.anoInicial));
+function completeLocalities(r: Repository, data: BaseData): void {
+  if (r.localities().length === 0) saveStartLocalities(r, data, Number(r.meta("start.year") ?? DEFAULT_PARAMETERS.calendar.initialYear));
 }
 
-function resumoExistente(r: Repositorio, dados: DadosBase): ResumoMundoCriado {
-  return { seed: r.meta("seed") ?? "?", clubes: dados.clubes.length, pessoas: r.totalPessoas(), jogadores: Number(r.meta("mundo.jogadores") ?? 0), ms: 0, avisos: [], jaExistia: true };
+function existingSummary(r: Repository, data: BaseData): CreatedWorldSummary {
+  return { seed: r.meta("seed") ?? "?", clubs: data.clubs.length, people: r.peopleTotal(), players: Number(r.meta("world.players") ?? 0), ms: 0, warnings: [], alreadyExisted: true };
 }
 
 /**
  * A Vista de quem joga. Enquanto não há escolha de clube (RZ-134/RZ-120), o observador é o clube
  * guardado em `clube.gamer` ou ninguém: só factos públicos.
  */
-function vistaDoGamer(r: Repositorio, observador?: string): Vista {
-  const clube = observador ?? r.meta("clube.gamer") ?? "";
-  const hoje = criarData(anoInicialDoSave(r, PARAMETROS_PADRAO), 7, 1);
-  return new Vista(r, { observador: clube, participantes: new Set(clube ? [`clube:${clube}`] : []), data: hoje, epoca: 1 }, PARAMETROS_PADRAO.conhecimento);
+function gamerView(r: Repository, observer?: string): View {
+  const club = observer ?? r.meta("gamer.club") ?? "";
+  const today = createDate(saveInitialYear(r, DEFAULT_PARAMETERS), 7, 1);
+  return new View(r, { observer: club, participants: new Set(club ? [`clube:${club}`] : []), date: today, season: 1 }, DEFAULT_PARAMETERS.knowledge);
 }
 
-const indices = new WeakMap<Repositorio, { pessoas: number; indice: Indexada[] }>();
+const indices = new WeakMap<Repository, { people: number; index: Indexed[] }>();
 
 /** Índice de pesquisa (clubes, cidades, pessoas); refaz-se só se o nº de pessoas mudar. */
-function indiceDePesquisa(r: Repositorio, dados: DadosBase): Indexada[] {
-  const total = r.totalPessoas();
-  const guardado = indices.get(r);
-  if (guardado && guardado.pessoas === total) return guardado.indice;
-  const nomeClube = new Map(dados.clubes.map((c) => [c.id, c.nome] as const));
-  const entradas: EntradaIndice[] = [
-    ...dados.clubes.map((c): EntradaIndice => ({ k: "clube", id: c.id, titulo: c.nome, subtitulo: c.liga, extra: `${c.localidade} ${c.alcunha}` })),
-    ...dados.cidades.map((c): EntradaIndice => ({ k: "cidade", id: c.id, titulo: c.nome, subtitulo: c.distrito })),
-    ...dados.localidades.filter((l) => !l.sede).map((l): EntradaIndice => ({ k: "localidade", id: l.id, titulo: l.nome, subtitulo: `${l.estatuto} · ${dados.cidades.find((c) => c.id === l.cidade)?.nome ?? ""}` })),
-    ...r.indicePessoas().map((p): EntradaIndice => ({
-      k: "pessoa", id: p.id, titulo: p.nomeDesportivo,
-      subtitulo: [p.posicao ?? p.funcao, p.clube ? nomeClube.get(p.clube) : undefined].filter(Boolean).join(" · "),
-      extra: p.nome,
+function searchIndex(r: Repository, data: BaseData): Indexed[] {
+  const total = r.peopleTotal();
+  const saved = indices.get(r);
+  if (saved && saved.people === total) return saved.index;
+  const clubName = new Map(data.clubs.map((c) => [c.id, c.name] as const));
+  const inputs: InputIndex[] = [
+    ...data.clubs.map((c): InputIndex => ({ k: "club", id: c.id, title: c.name, subtitle: c.league, extra: `${c.locality} ${c.nickname}` })),
+    ...data.cities.map((c): InputIndex => ({ k: "city", id: c.id, title: c.name, subtitle: c.district })),
+    ...data.localities.filter((l) => !l.host).map((l): InputIndex => ({ k: "locality", id: l.id, title: l.name, subtitle: `${l.status} · ${data.cities.find((c) => c.id === l.city)?.name ?? ""}` })),
+    ...r.peopleIndex().map((p): InputIndex => ({
+      k: "person", id: p.id, title: p.sportingName,
+      subtitle: [p.position ?? p.fn, p.club ? clubName.get(p.club) : undefined].filter(Boolean).join(" · "),
+      extra: p.name,
     })),
   ];
-  const indice = indexar(entradas);
-  indices.set(r, { pessoas: total, indice });
-  return indice;
+  const index = buildIndex(inputs);
+  indices.set(r, { people: total, index });
+  return index;
 }
 
 /** Estado das finanças de um clube; o próprio clube (ou o modo developer) vê também o saldo exato e o último fecho mensal. */
-function financasDoClube(repositorio: Repositorio, dados: DadosBase, params: Parametros, c: ClubeBase, proprio: boolean): FinancasClube {
-  const e = estadoFinanceiro(repositorio, dados, params, c, { proprio, epoca: Number(repositorio.meta("epoca") ?? 1), seed: repositorio.meta("seed") ?? "?" });
-  if (!proprio) return { estado: e.estado, exato: false };
-  const ultimo = repositorio.ultimo("FECHO_FINANCEIRO", { k: "clube", id: c.id });
+function clubFinances(repository: Repository, data: BaseData, params: Params, c: BaseClub, own: boolean): ClubFinances {
+  const e = financialState(repository, data, params, c, { own, season: Number(repository.meta("season") ?? 1), seed: repository.meta("seed") ?? "?" });
+  if (!own) return { state: e.state, exact: false };
+  const last = repository.last("FINANCIAL_CLOSE", { k: "club", id: c.id });
   return {
-    estado: e.estado, exato: true, saldo: saldoDoClube(repositorio, c),
-    orcamento: (() => {
-      const o = orcamentoDoClube(repositorio, c, params, Number(repositorio.meta("epoca") ?? 1));
-      const massaAtual = massaSalarialMensal(repositorio, c.id) * 12;
-      return { massaSalarialMax: o.massaSalarialMax, transferencias: o.transferencias, massaAtual, acima: massaAtual > o.massaSalarialMax };
+    state: e.state, exact: true, balance: clubBalance(repository, c),
+    budget: (() => {
+      const o = clubBudget(repository, c, params, Number(repository.meta("season") ?? 1));
+      const currentBill = monthlyWageBill(repository, c.id) * 12;
+      return { wageBillMax: o.wageBillMax, transfers: o.transfers, currentBill, above: currentBill > o.wageBillMax };
     })(),
-    ...(ultimo ? { ultimoFecho: { data: ultimo.data, receitas: Number(ultimo.dados.receitas), despesas: Number(ultimo.dados.despesas), porCategoria: ultimo.dados.mes as Record<string, number> } } : {}),
+    ...(last ? { lastClose: { date: last.date, revenues: Number(last.data.revenues), expenses: Number(last.data.expenses), byCategory: last.data.month as Record<string, number> } } : {}),
   };
 }

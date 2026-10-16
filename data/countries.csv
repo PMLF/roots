@@ -1,0 +1,52 @@
+id,name,population_millions,tradition,infrastructure,pt_affinity,name_family,lusophone
+pt,Portugal,10.3,80,65,1.00,portugal,1
+br,Brasil,215,95,60,0.90,brazil,1
+cv,Cabo Verde,0.6,35,25,0.95,africa_pt,1
+ao,Angola,35,40,25,0.85,africa_pt,1
+gw,Guiné-Bissau,2.1,30,15,0.85,africa_pt,1
+mz,Moçambique,33,30,20,0.75,africa_pt,1
+st,São Tomé e Príncipe,0.22,20,10,0.80,africa_pt,1
+es,Espanha,47,92,85,0.85,spain,0
+fr,França,68,92,90,0.80,france,0
+de,Alemanha,84,90,95,0.45,germany,0
+gb,Reino Unido,67,95,95,0.45,anglo,0
+ie,Irlanda,5.1,45,60,0.30,anglo,0
+it,Itália,59,88,80,0.45,italy,0
+nl,Países Baixos,17.5,85,92,0.40,dutch,0
+be,Bélgica,11.6,78,85,0.50,dutch,0
+ch,Suíça,8.7,60,92,0.40,germany,0
+se,Suécia,10.5,55,88,0.25,nordic,0
+dk,Dinamarca,5.9,62,90,0.25,nordic,0
+no,Noruega,5.5,45,88,0.20,nordic,0
+pl,Polónia,38,60,70,0.30,east,0
+ua,Ucrânia,38,70,55,0.30,east,0
+ru,Rússia,144,75,70,0.20,east,0
+bg,Bulgária,6.5,50,45,0.25,east,0
+ro,Roménia,19,60,50,0.35,east,0
+cz,Chéquia,10.5,60,70,0.25,east,0
+rs,Sérvia,6.8,75,50,0.35,balkans,0
+hr,Croácia,3.9,80,60,0.35,balkans,0
+ba,Bósnia e Herzegovina,3.2,55,40,0.25,balkans,0
+gr,Grécia,10.4,55,60,0.30,balkans,0
+tr,Turquia,85,70,70,0.30,turkey,0
+ma,Marrocos,37,65,55,0.45,maghreb,0
+dz,Argélia,45,60,40,0.40,maghreb,0
+eg,Egito,110,70,45,0.20,maghreb,0
+sn,Senegal,17,65,35,0.50,africa_fr,0
+ci,Costa do Marfim,28,60,30,0.45,africa_fr,0
+cm,Camarões,27,60,25,0.40,africa_fr,0
+cd,RD Congo,99,50,15,0.35,africa_fr,0
+ml,Mali,22,45,15,0.35,africa_fr,0
+ga,Gabão,2.4,30,15,0.25,africa_fr,0
+ng,Nigéria,220,70,25,0.40,africa_en,0
+gh,Gana,33,65,25,0.35,africa_en,0
+ar,Argentina,46,95,70,0.55,spain,0
+uy,Uruguai,3.4,85,60,0.50,spain,0
+co,Colômbia,52,70,50,0.45,spain,0
+cl,Chile,19.5,60,60,0.35,spain,0
+us,Estados Unidos,333,35,85,0.25,anglo,0
+jp,Japão,125,60,90,0.15,japan,0
+kr,Coreia do Sul,52,55,85,0.10,korea,0
+uz,Uzbequistão,35,40,40,0.08,central_asia,0
+ir,Irão,88,55,35,0.10,central_asia,0
+au,Austrália,26,35,85,0.15,anglo,0
