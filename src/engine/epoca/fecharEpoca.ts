@@ -19,6 +19,7 @@ import { parametrosDoSave } from "./anoDoSave";
 import { campeaoDoCp } from "./faseFinalCp";
 import { despedirPorDescida } from "./mercadoTreinadores";
 import { ajustarDistritais, estaNaSegundaDistrital, type SegundaDistrital } from "./distritais";
+import { fatoresDeDistrito, valorDoPremio, type TipoPremio } from "./premiosCompeticao";
 import { anosSeguidos, premiadosPorDistrito, type ClubeClassificado } from "./premioEstado";
 import { dadosDaEpoca, guardarPiramide, lerPiramide, ligasDaPiramide } from "./piramideEpoca";
 import { nomeGrupoPromocao, gruposDaPromocao, prepararEpoca } from "./preparar";
@@ -75,9 +76,12 @@ export function fecharEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Par
   const segunda = ordem(liga(atual.segunda), "liga");
   const terceira = ordem(liga(atual.terceira), "liga");
   const cp = Object.fromEntries(SERIES.map((s) => [s, ordem(`CP Série ${s}`, "promocao")])) as Record<SerieCP, string[]>;
+  const vencedoresDosGrupos: string[] = [];
   const promovidos = (gruposDaPromocao(repo, epoca) ?? []).flatMap((g) => {
     const jogos = repo.jogosDaCompeticao(nomeGrupoPromocao(g.serie), epoca).map((j) => ({ casa: j.casa, fora: j.fora, golosCasa: j.golosCasa, golosFora: j.golosFora }));
-    return promovidosDoGrupo(g, classificarGrupo(g, jogos, epoca, seed, params, rep), params);
+    const ordem = classificarGrupo(g, jogos, epoca, seed, params, rep);
+    if (jogos.length > 0 && ordem[0]) vencedoresDosGrupos.push(ordem[0]);
+    return promovidosDoGrupo(g, ordem, params);
   });
   const ctx = { distritoDe: (c: string) => dados.clubes.find((x) => x.id === c)!.distrito, serieDoDistrito: serieDoDistrito(dados) };
   const r = aplicarMovimentos(atual, { primeira, segunda, terceira, cp, promovidosFasePromocao: promovidos }, params, ctx);
@@ -105,10 +109,23 @@ export function fecharEpoca(repo: Repositorio, dados: DadosBase, paramsBase: Par
   r.avisos.push(...ajuste.avisos);
 
   const campeoes = [primeira, segunda, terceira, ...SERIES.map((s) => cp[s])].map((t) => ({ liga: nomeLiga(t[0] as string), clube: t[0] as string, nome: nome.get(t[0] as string) ?? "" }));
+  const campeaoCp = campeaoDoCp(repo, params, epoca);
   repo.transacao(() => {
     for (const c of campeoes) repo.acrescentarEvento({ tipo: "CAMPEAO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: c.clube, papel: "campeao" }, { k: "competicao", id: c.liga }], dados: { liga: c.liga } });
-    const campeaoCp = campeaoDoCp(repo, params, epoca);
     if (campeaoCp) repo.acrescentarEvento({ tipo: "CAMPEAO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: campeaoCp, papel: "campeao" }, { k: "competicao", id: "Campeonato de Portugal" }], dados: { liga: "Campeonato de Portugal" } });
+    // prémio por vencer cada competição (RZ-216)
+    const fatores = fatoresDeDistrito(dados.cidades, params);
+    const distritoDe2 = new Map(dados.clubes.map((c) => [c.id, c.distrito] as const));
+    const premiar = (tipo: TipoPremio, clube: string, competicao: string, distrito?: string) => {
+      const fator = distrito ? fatores.get(distrito) ?? 1 : 1;
+      const cidade = cidadeDe0.get(clube);
+      repo.acrescentarEvento({ tipo: "PREMIO_COMPETICAO", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: clube, papel: "premiado" }, { k: "competicao", id: competicao }, ...(cidade ? [{ k: "cidade" as const, id: cidade, papel: "sede" }] : [])], dados: { competicao, tipo, valor: valorDoPremio(tipo, params, fator), fatorDistrito: distrito ? fator : undefined, posicao: 1 } });
+    };
+    const tipoDaLiga: TipoPremio[] = ["primeiraLiga", "segundaLiga", "terceiraLiga", "serieCp", "serieCp", "serieCp", "serieCp"];
+    campeoes.forEach((c, i) => premiar(tipoDaLiga[i] as TipoPremio, c.clube, c.liga));
+    if (campeaoCp) premiar("vencedorCp", campeaoCp, "Campeonato de Portugal");
+    for (const [distrito, tabela] of Object.entries(finaisDistritais)) if (tabela[0]) premiar("distrital", tabela[0], `Distrital ${distrito}`, distrito);
+    for (const c of vencedoresDosGrupos) premiar("fasePromocao", c, "Fase de Promoção", distritoDe2.get(c));
     for (const m of r.movimentos) {
       const para = m.para.startsWith("cp-") ? `CP Série ${m.para.slice(3)}` : m.para;
       repo.acrescentarEvento({ tipo: m.motivo === "descida" ? "DESCIDA" : "SUBIDA", data: hoje, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: m.clube }], dados: { de: m.de, para, motivo: m.motivo } });

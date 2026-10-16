@@ -144,3 +144,7 @@ Cada clube pertence a um **concelho** (= a Câmara e o orçamento municipal). Ca
 
 **Notas de honestidade:** a população dos concelhos é aproximada (Censos 2021 arredondados); os números de reputação, finanças e capacidade dos clubes novos são gerados por regras (e podem ser ajustados à mão em `data/src`); os presidentes da Câmara iniciais são fictícios; os clubes novos têm nomes inventados e inspirados em cada localidade, sem usar clubes reais.
 No ficheiro original corrigi 4 gralhas (cores/mascote de Lourinhã FC, UD Santana, FC Varziela e CD Castelo de Óbidos), passei o **Serpa Atlético Clube** para a cidade de Serpa e preenchi 44 campos de alcunha/mascote que estavam vazios (sugestões rápidas em `data/src/existentes_preenchimento.txt`, para rever).
+
+## Prémio por vencer cada competição (RZ-216)
+
+Evento `PREMIO_COMPETICAO` ao vencedor (valores em `premios.competicoes`): Primeira Liga 10 M€; Segunda 2 M€; Terceira 500 k€; cada série do CP 100 k€ e +100 k€ ao campeão do CP (vencedor da final); Taça de Portugal 2 M€ (mais prémios por ronda); Supertaça 500 k€. Distritais (≈5 k€) e Fase de Promoção (≈10 k€) são valores médios multiplicados pelo fator do distrito: orçamento municipal total × apoio médio dos autarcas ao desporto, sobre a média dos distritos, entre 0,4 e 2,5 (`fatoresDeDistrito`). Taças Distritais ≈5 k€ pelo mesmo fator. O finalista vencido de uma taça recebe 25 %. O dinheiro só entra na tesouraria com as finanças (RZ-114).

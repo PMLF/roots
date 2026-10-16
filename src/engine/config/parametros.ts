@@ -69,6 +69,17 @@ export type Parametros = {
     clube: number;
     /** Prémio ao concelho (Câmara) do clube premiado. */
     cidade: number;
+    /** Prémio ao vencedor de cada competição (RZ-216), em euros. As distritais e a Fase de Promoção são valores médios, escalados pelo distrito. */
+    competicoes: {
+      primeiraLiga: number; segundaLiga: number; terceiraLiga: number;
+      serieCp: number; vencedorCp: number;
+      distrital: number; fasePromocao: number;
+      tacaPortugal: number; supertaca: number; tacaDistrital: number;
+    };
+    /** Fração do prémio do vencedor que recebe o finalista vencido (taças). */
+    finalistaVencido: number;
+    /** Limites do fator de riqueza de um distrito (autarcas e orçamento municipal) sobre os prémios distritais. */
+    fatorDistrito: { min: number; max: number };
   };
   piramide: {
     primeiraLiga: { clubes: number; descem: number };
@@ -388,7 +399,12 @@ export type Parametros = {
 
 export const PARAMETROS_PADRAO: Parametros = {
   versao: 1,
-  premios: { clube: 2_000_000, cidade: 1_000_000 },
+  premios: {
+    clube: 2_000_000, cidade: 1_000_000,
+    competicoes: { primeiraLiga: 10_000_000, segundaLiga: 2_000_000, terceiraLiga: 500_000, serieCp: 100_000, vencedorCp: 100_000, distrital: 5_000, fasePromocao: 10_000, tacaPortugal: 2_000_000, supertaca: 500_000, tacaDistrital: 5_000 },
+    finalistaVencido: 0.25,
+    fatorDistrito: { min: 0.4, max: 2.5 },
+  },
   piramide: {
     primeiraLiga: { clubes: 20, descem: 3 },
     segundaLiga: { clubes: 20, sobem: 3, descem: 3 },
@@ -637,6 +653,9 @@ export function validarParametros(p: Parametros): string[] {
   const pos = (nome: string, v: number) => { if (!(v > 0)) erros.push(`${nome} deve ser > 0 (é ${v})`); };
   pos("premios.clube", p.premios.clube);
   pos("premios.cidade", p.premios.cidade);
+  for (const [k, v] of Object.entries(p.premios.competicoes)) pos(`premios.competicoes.${k}`, v);
+  if (!(p.premios.finalistaVencido >= 0 && p.premios.finalistaVencido <= 1)) erros.push("premios.finalistaVencido deve estar em [0, 1]");
+  if (!(p.premios.fatorDistrito.min > 0 && p.premios.fatorDistrito.min <= 1 && p.premios.fatorDistrito.max >= 1)) erros.push("premios.fatorDistrito deve ter min em (0, 1] e max >= 1");
 
   const { piramide: pi, distritais: d } = p;
   if (pi.promocao.grupos !== pi.cp.series) erros.push("promocao.grupos deve ser igual a cp.series (cada grupo promove para a sua série)");
