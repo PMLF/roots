@@ -1,6 +1,6 @@
 "use client";
 import type { JogadorVivo, JogoVivo, LinhaVivo } from "@/engine/epoca/jogoAoVivo";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Estilo, Nivel, Tatica } from "@/engine/jogo/tipos";
 import type { ReactNode } from "react";
 import { AmostraClube } from "@/ui/components/AmostraClube";
@@ -120,27 +120,31 @@ export function OutrosJogos({ jogo, meu }: { jogo: JogoVivo; meu?: string }) {
 const fmt = (v: number, formato: "inteiro" | "decimal" | "percentagem") => (formato === "inteiro" ? String(Math.round(v)) : formato === "decimal" ? v.toFixed(2) : `${Math.round(v * 100)}%`);
 
 /** Estatísticas lado a lado; a barra mostra a parte de cada equipa. */
-export function Estatisticas({ jogo }: { jogo: JogoVivo }) {
+export function Estatisticas({ jogo, semPainel = false }: { jogo: JogoVivo; semPainel?: boolean }) {
   const { t } = useT();
   if (!jogo.resumo) return null;
   const linhas = estatisticasDoJogo(jogo.resumo);
+  const lista = (
+    <ul className="estatisticas">
+      {linhas.map((l) => {
+        const total = l.casa + l.fora;
+        const pc = total > 0 ? (l.casa / total) * 100 : 50;
+        return (
+          <li key={l.chave}>
+            <span className="estat-valor estat-casa">{fmt(l.casa, l.formato)}</span>
+            <span className="estat-nome">{t(`jogo.stat.${l.chave}` as Chave)}</span>
+            <span className="estat-valor estat-fora">{fmt(l.fora, l.formato)}</span>
+            <span className="estat-barra" aria-hidden="true"><i style={{ width: `${pc}%` }} /></span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+  if (semPainel) return lista;
   return (
     <section className="painel" aria-labelledby="h-estat">
       <h2 id="h-estat">{t("jogo.estatisticas")}</h2>
-      <ul className="estatisticas">
-        {linhas.map((l) => {
-          const total = l.casa + l.fora;
-          const pc = total > 0 ? (l.casa / total) * 100 : 50;
-          return (
-            <li key={l.chave}>
-              <span className="estat-valor estat-casa">{fmt(l.casa, l.formato)}</span>
-              <span className="estat-nome">{t(`jogo.stat.${l.chave}` as Chave)}</span>
-              <span className="estat-valor estat-fora">{fmt(l.fora, l.formato)}</span>
-              <span className="estat-barra" aria-hidden="true"><i style={{ width: `${pc}%` }} /></span>
-            </li>
-          );
-        })}
-      </ul>
+      {lista}
     </section>
   );
 }
@@ -204,28 +208,51 @@ function LinhaJogador({ j }: { j: JogadorVivo }) {
   );
 }
 
-/** Os dois onzes (e bancos) com a nota de cada jogador ao minuto, o que fez e quando entrou ou saiu. */
-export function Equipas({ jogo }: { jogo: JogoVivo }) {
+/** Um onze (e o banco) com a nota de cada jogador ao minuto, o que fez e quando entrou ou saiu. */
+function Onze({ jogo, lado }: { jogo: JogoVivo; lado: "casa" | "fora" }) {
   const { t } = useT();
-  if (!jogo.equipas) return null;
-  const lado = (l: "casa" | "fora") => {
-    const todos = jogo.equipas![l];
-    const campo = todos.filter((j) => j.estado !== "banco" && j.entrou === undefined);
-    const entraram = todos.filter((j) => j.entrou !== undefined);
-    const banco = todos.filter((j) => j.estado === "banco");
-    return (
-      <div className="equipa-vivo">
-        <h3><AmostraClube cores={jogo.cores?.[jogo[l].id]} /> <Ligacao k="clube" id={jogo[l].id} semAmostra>{jogo[l].nome}</Ligacao></h3>
-        <ul>{campo.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul>
-        {entraram.length > 0 && <><h4>{t("jogo.entraram")}</h4><ul>{entraram.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
-        {banco.length > 0 && <><h4>{t("jogo.banco")}</h4><ul>{banco.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
-      </div>
-    );
-  };
+  const todos = jogo.equipas?.[lado] ?? [];
+  const campo = todos.filter((j) => j.estado !== "banco" && j.entrou === undefined);
+  const entraram = todos.filter((j) => j.entrou !== undefined);
+  const banco = todos.filter((j) => j.estado === "banco");
   return (
-    <section className="painel painel-equipas" aria-labelledby="h-equipas">
-      <h2 id="h-equipas">{t("jogo.equipas")}</h2>
-      <div className="equipas-vivo">{lado("casa")}{lado("fora")}</div>
+    <div className="equipa-vivo">
+      <ul>{campo.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul>
+      {entraram.length > 0 && <><h4>{t("jogo.entraram")}</h4><ul>{entraram.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></>}
+      {banco.length > 0 && <details className="banco-vivo"><summary>{t("jogo.banco")} ({banco.length})</summary><ul>{banco.map((j) => <LinhaJogador key={j.id} j={j} />)}</ul></details>}
+    </div>
+  );
+}
+
+/**
+ * Painel do meio do jogo: separadores «Equipas» (um onze de cada vez, o do teu clube primeiro) e «Estatísticas». Ocupa o
+ * lugar das estatísticas em vez de empurrar os restantes cartões para baixo; o onze rola dentro do cartão.
+ */
+export function EquipasEEstatisticas({ jogo }: { jogo: JogoVivo }) {
+  const { t } = useT();
+  const tem = !!jogo.equipas;
+  const [aba, setAba] = useState<"equipas" | "estatisticas">("equipas");
+  const [lado, setLado] = useState<"casa" | "fora">(jogo.ladoGamer ?? "casa");
+  const atual = tem ? aba : "estatisticas";
+  return (
+    <section className="painel painel-equipas" aria-label={t("jogo.equipas")}>
+      <div className="separadores" role="tablist">
+        {tem && <button type="button" role="tab" aria-selected={atual === "equipas"} onClick={() => setAba("equipas")}>{t("jogo.equipas")}</button>}
+        {jogo.resumo && <button type="button" role="tab" aria-selected={atual === "estatisticas"} onClick={() => setAba("estatisticas")}>{t("jogo.estatisticas")}</button>}
+      </div>
+      {atual === "equipas" && tem ? (
+        <>
+          <div className="alternar-equipa" role="group" aria-label={t("jogo.equipas")}>
+            {(["casa", "fora"] as const).map((l) => (
+              <button key={l} type="button" aria-pressed={lado === l} onClick={() => setLado(l)}>
+                <AmostraClube cores={jogo.cores?.[jogo[l].id]} /> {jogo[l].nome}
+              </button>
+            ))}
+          </div>
+          <div className="onze-rolagem"><Onze jogo={jogo} lado={lado} /></div>
+          <p className="suave"><Ligacao k="clube" id={jogo[lado].id} semAmostra>{jogo[lado].nome}</Ligacao></p>
+        </>
+      ) : jogo.resumo ? <Estatisticas jogo={jogo} semPainel /> : null}
     </section>
   );
 }

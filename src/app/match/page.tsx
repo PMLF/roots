@@ -6,7 +6,7 @@ import type { JogoVivo } from "@/engine/epoca/jogoAoVivo";
 import type { Tatica } from "@/engine/jogo/tipos";
 import { Ligacao } from "@/ui/components/Ligacao";
 import { AmostraClube } from "@/ui/components/AmostraClube";
-import { Equipas, Eventos, Estatisticas, OutrosJogos, TabelaViva, TaticaNoJogo } from "@/ui/components/jogo/PainelJogo";
+import { EquipasEEstatisticas, Eventos, OutrosJogos, TabelaViva, TaticaNoJogo } from "@/ui/components/jogo/PainelJogo";
 import { guardar, ler } from "@/ui/armazenamento";
 import { useModoDev } from "@/ui/dev";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -126,7 +126,6 @@ function Conteudo() {
       ) : null}
       {erro && <p className="erro" role="alert">{erro}</p>}
       {taticaAberta && emCurso && jogo.tatica && <TaticaNoJogo tatica={jogo.tatica} aoMudar={(x) => void mudarTatica(x)} aoFechar={fecharTatica} ocupado={aMudar} />}
-      <Equipas jogo={jogo} />
       <div className="jogo-grelha">
         <div className="jogo-coluna">
           <section className="painel" aria-label={t("jogo.eventos")}>
@@ -134,7 +133,7 @@ function Conteudo() {
             <Eventos jogo={jogo} soImportante={soImportante} />
           </section>
         </div>
-        <div className="jogo-coluna"><Estatisticas jogo={jogo} /></div>
+        <div className="jogo-coluna"><EquipasEEstatisticas jogo={jogo} /></div>
         <div className="jogo-coluna"><OutrosJogos jogo={jogo} meu={meu ?? undefined} /><TabelaViva jogo={jogo} meu={meu ?? undefined} /></div>
       </div>
     </section>
