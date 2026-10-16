@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import type { PlanoVista } from "@/engine/api/contratos";
+import { Ligacao } from "@/ui/components/Ligacao";
 import { AmostraClube } from "@/ui/components/AmostraClube";
 import { ComClube } from "@/ui/components/ComClube";
 import { EditorTatica } from "@/ui/components/EditorTatica";
@@ -36,14 +37,16 @@ function Conteudo() {
 
   const eu = meu ? <AmostraClube id={meu} /> : null;
   const adv = <AmostraClube id={jogo.adversarioId} />;
+  const advLink = <Ligacao k="clube" id={jogo.adversarioId} semAmostra>{jogo.adversario}</Ligacao>;
+  const meuLink = meu ? <Ligacao k="clube" id={meu} semAmostra>{plano?.clubeNome ?? ""}</Ligacao> : (plano?.clubeNome ?? "");
   return (
     <section className="prematch">
       <header className="prematch-cabecalho">
         <div>
           <p className="prematch-confronto">
-            {jogo.emCasa ? <>{eu}{plano?.clubeNome ?? ""}</> : <>{adv}{jogo.adversario}</>} <span className="suave">{t("inicio.vs")}</span> {jogo.emCasa ? <>{adv}{jogo.adversario}</> : <>{eu}{plano?.clubeNome ?? ""}</>}
+            {jogo.emCasa ? <>{eu}{meuLink}</> : <>{adv}{advLink}</>} <span className="suave">{t("inicio.vs")}</span> {jogo.emCasa ? <>{adv}{advLink}</> : <>{eu}{meuLink}</>}
           </p>
-          <p className="suave">{jogo.competicao} · {jogo.data}</p>
+          <p className="suave"><Ligacao k="competicao" id={jogo.competicao}>{jogo.competicao}</Ligacao> · {jogo.data}</p>
         </div>
       </header>
       <p className="suave">{t("prematch.aviso")}</p>

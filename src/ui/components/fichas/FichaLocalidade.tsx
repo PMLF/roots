@@ -14,7 +14,7 @@ export function FichaLocalidade({ d }: { d: FichaLocalidadeDados }) {
     <Ficha
       tipo="localidade"
       titulo={d.nome}
-      subtitulo={`${estatuto(d.estatuto)} · ${d.cidade.nome} (${d.distrito})`}
+      subtitulo={<>{estatuto(d.estatuto)} · <Ligacao k="cidade" id={d.cidade.id}>{d.cidade.nome}</Ligacao> ({d.distrito})</>}
       numeros={[
         { rotulo: t("localidade.populacao"), valor: n.format(d.populacao) },
         { rotulo: t("localidade.estatuto"), valor: estatuto(d.estatuto) },
