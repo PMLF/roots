@@ -4,7 +4,7 @@
  * clube, para que todas as páginas mostrem sempre a liga em que o clube joga neste save (a de arranque só fica no
  * histórico de divisões).
  */
-import { ligaDaBolsa } from "./distritais";
+import { ligaDaSegundaDistrital } from "./distritais";
 import type { Escalao } from "../config/parametros";
 import type { ClubeId, DadosBase, SerieCP } from "../dados/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
@@ -52,8 +52,8 @@ export function ligasDaPiramide(p: Piramide, dados: DadosBase): Map<ClubeId, Lig
 /** Os dados com a liga e o escalão de cada clube numa época do save. */
 export function dadosDaPiramide(repo: Repositorio, dados: DadosBase, epoca: number): DadosBase {
   const ligas = ligasDaPiramide(lerPiramide(repo, dados, epoca), dados);
-  // quem não está na pirâmide está na Bolsa distrital: não joga (RZ-113)
-  return { ...dados, clubes: dados.clubes.map((c) => { const l = ligas.get(c.id); return l ? { ...c, liga: l.liga, escalao: l.escalao } : { ...c, liga: ligaDaBolsa(c.distrito), escalao: "distrital" as const }; }) };
+  // quem não está na pirâmide está na SegundaDistrital distrital: não joga (RZ-113)
+  return { ...dados, clubes: dados.clubes.map((c) => { const l = ligas.get(c.id); return l ? { ...c, liga: l.liga, escalao: l.escalao } : { ...c, liga: ligaDaSegundaDistrital(c.distrito), escalao: "distrital" as const }; }) };
 }
 
 /** Os dados com a liga e o escalão **atuais** de cada clube. Idempotente. */

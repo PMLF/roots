@@ -1,4 +1,5 @@
 "use client";
+import { estaNaSegundaDistrital } from "@/engine/epoca/distritais";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import type { ClubeResumo, OfertaDeClube } from "@/engine/api/contratos";
@@ -27,7 +28,7 @@ export function SeletorClube({ clubes, atual, aoEscolher, aberto0 }: { clubes: C
   const nome = clubes.find((c) => c.id === atual)?.nome;
   const visiveis = useMemo(() => {
     const q = norm(texto.trim());
-    return clubes.filter((c) => !q || norm(c.nome).includes(q) || norm(c.liga).includes(q)).slice(0, MAX_RESULTADOS);
+    return clubes.filter((c) => !estaNaSegundaDistrital(c.liga) && (!q || norm(c.nome).includes(q) || norm(c.liga).includes(q))).slice(0, MAX_RESULTADOS);
   }, [clubes, texto]);
   return (
     <div className="seletor-ligas" ref={raiz}>

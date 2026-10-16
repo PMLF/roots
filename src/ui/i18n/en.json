@@ -935,5 +935,7 @@
   "noticia.premio_estado.1.titulo": "{clube} are the best in {distrito}",
   "noticia.premio_estado.1.corpo": "The club receives the State Prize and the {cidade} council gets its share.",
   "noticia.premio_estado.2.titulo": "State Prize for {clube}",
-  "noticia.premio_estado.2.corpo": "Best-placed club of {distrito} in the pyramid ({seguidos, plural, one {first year} other {# years running}})."
+  "noticia.premio_estado.2.corpo": "Best-placed club of {distrito} in the pyramid ({seguidos, plural, one {first year} other {# years running}}).",
+  "noticia.despedido.1.titulo": "{clube} drop to the second district tier: you have been sacked",
+  "noticia.despedido.1.corpo": "The club cannot be managed until it returns to the pyramid. Other teams want you: see the offers."
 }

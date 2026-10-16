@@ -9,6 +9,7 @@ import type { Parametros } from "../config/parametros";
 import type { DadosBase } from "../dados/tipos";
 import type { Repositorio } from "../persistencia/repositorio";
 import type { Data } from "../persistencia/tipos";
+import { estaNaSegundaDistrital } from "./distritais";
 import { epocaAtual } from "./piramideEpoca";
 import { prepararEpoca } from "./preparar";
 
@@ -32,7 +33,7 @@ export function atualizarOfertas(repo: Repositorio, dados: DadosBase, params: Pa
     while (out.length < n && p.length > 0) out.push(p.splice(rng.inteiro(0, p.length - 1), 1)[0]!);
     return out;
   };
-  const outros = dados.clubes.filter((c) => c.id !== anterior);
+  const outros = dados.clubes.filter((c) => c.id !== anterior && !estaNaSegundaDistrital(c.liga));
   const normais = tirar(outros.filter((c) => c.reputacao <= ref), params.treinador.ofertas);
   const ids = new Set(normais.map((c) => c.id));
   const surpresas = tirar(outros.filter((c) => !ids.has(c.id) && c.reputacao > ref && c.reputacao <= ref + params.treinador.margemSurpresa), params.treinador.surpresas);
@@ -65,5 +66,16 @@ export function aceitarOferta(repo: Repositorio, clube: string): void {
     repo.definirMeta("clube.gamer", clube);
     repo.definirMeta("gamer.anterior", "");
     repo.definirMeta("gamer.ofertas", "");
+  });
+}
+
+/** O clube do gamer desceu à segunda distrital: despede-o automaticamente e deixa de ser jogável até voltar à pirâmide. */
+export function despedirPorDescida(repo: Repositorio, dados: DadosBase, params: Parametros, clube: string, data: Data, epoca: number): void {
+  if (repo.meta("clube.gamer") !== clube) return;
+  repo.transacao(() => {
+    repo.acrescentarEvento({ tipo: "GAMER_DEMISSAO", data, epoca, vis: "publico", origem: "jogo", entidades: [{ k: "clube", id: clube, papel: "deixado" }], dados: { motivo: "segundaDistrital" } });
+    repo.definirMeta("gamer.anterior", clube);
+    repo.definirMeta("clube.gamer", "");
+    atualizarOfertas(repo, dados, params, data);
   });
 }

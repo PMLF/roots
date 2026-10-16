@@ -11,7 +11,7 @@
 | 3 | Terceira Liga | 20 | 3 | 4 |
 | 4 | Campeonato de Portugal (CP) | 4 séries × 10 = 40 | 4 (1 por série) | **8** (= promovidos da Fase de Promoção) |
 | 5 | 20 ligas distritais | 10 inicial (8 a 14) | até 8, via **Fase de Promoção** | ver §4 |
-| — | *Bolsa distrital* (clubes não simulados) | variável | — | — |
+| — | *Segunda distrital* (clubes que o jogo não simula) | variável | — | — |
 
 **Distritos = 18 continentais + Açores + Madeira (20).** Tal como no ficheiro original, Açores e Madeira contam como um distrito cada (backlog: dividir os Açores pelas 3 associações).
 
@@ -72,8 +72,8 @@ n_seguinte = n_atual − p + r
 
 - **p=1, r=0**: a liga perde um clube (a tua regra original).
 - **p=0, r=0 ou p=r**: fica igual.
-- **r > p** (várias descidas do mesmo distrito): a liga **cresce, até `DIST_MAX`**. O excedente, os **piores classificados** dessa época (os acabados de chegar do CP ficam protegidos no 1.º ano), desce para a **Bolsa distrital** (divisões inferiores não simuladas, guardam a história e podem voltar).
-- **Abaixo de `DIST_MIN`:** a liga é completada com clubes da Bolsa desse distrito (os que desceram há menos tempo). Se a Bolsa estiver vazia, **nasce um clube novo** (ver abaixo).
+- **r > p** (várias descidas do mesmo distrito): a liga **cresce, até `DIST_MAX`**. O excedente, os **piores classificados** dessa época (os acabados de chegar do CP ficam protegidos no 1.º ano), desce para a **segunda distrital** (divisões inferiores não simuladas, guardam a história e podem voltar).
+- **Abaixo de `DIST_MIN`:** a liga é completada com clubes da segunda distrital desse distrito (os que desceram há menos tempo). Se a segunda distrital estiver vazia, **nasce um clube novo** (ver abaixo).
 - Calendários com número ímpar de clubes têm folga por jornada.
 
 ### Como nasceria um clube novo
@@ -82,7 +82,9 @@ n_seguinte = n_atual − p + r
 2. Nome por modelos (`GD/CD/AD/SC/Atlético/União` + localidade), cores e estádio genéricos, alcunha derivada do nome da terra.
 3. Estatísticas pela mesma regra dos clubes distritais (reputação 800-1 800, finanças e capacidade em função da população), personalidade e presidente do clube gerados.
 4. Notícia ("Nasceu o X, fundado por um grupo de amigos / pela junta de freguesia") e entrada no histórico.
-Com a Fase de Promoção as promoções são em média 8 por ano em 20 distritos, por isso a Bolsa chega quase sempre; o gerador é uma rede de segurança (backlog RZ-126). No MVP, se a Bolsa estiver vazia, a liga joga com menos clubes até um **mínimo duro de 6** e abaixo disso o campeão não pode ser promovido.
+Com a Fase de Promoção as promoções são em média 8 por ano em 20 distritos, por isso a segunda distrital chega quase sempre; o gerador é uma rede de segurança (backlog RZ-126). No MVP, se a segunda distrital estiver vazia, a liga joga com menos clubes (aviso só para developers). **O campeão sobe sempre**, mesmo que a liga fique abaixo do mínimo, por verdade desportiva (decidido a 16-10-2026).
+
+**Segunda distrital:** não existe como competição no jogo, mas os clubes «sabem» que jogam nela; a interface mostra o clube nessa liga, sem ligação. **Se o clube do gamer cair para lá, é despedido automaticamente** e o clube deixa de ser jogável até voltar à pirâmide.
 
 ## 5. Sinergias clube ↔ cidade
 

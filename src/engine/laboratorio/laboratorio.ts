@@ -3,7 +3,7 @@
  * liga inteira com o mundo gerado, para ver o motor a funcionar e dar feedback enquanto o ciclo de dias (RZ-119) não existe.
  * Usa o mesmo motor, o mesmo calendário e os mesmos desempates do jogo a sério; um repositório em memória guarda a liga.
  */
-import { estaNaBolsa } from "../epoca/distritais";
+import { estaNaSegundaDistrital } from "../epoca/distritais";
 import { Rng } from "../aleatorio/rng";
 import { gerarCalendarioLiga, paraRepositorio } from "../calendario/calendario";
 import { ordenarClassificacao } from "../competicao/classificacao";
@@ -24,7 +24,7 @@ export function competicoesDoMundo(dados: DadosBase): CompeticaoResumo[] {
   const ordem: Escalao[] = ["primeiraLiga", "segundaLiga", "terceiraLiga", "cp", "distrital"];
   const m = new Map<string, CompeticaoResumo>();
   for (const c of dados.clubes) {
-    if (estaNaBolsa(c.liga)) continue; // a Bolsa distrital não é uma competição simulada
+    if (estaNaSegundaDistrital(c.liga)) continue; // a SegundaDistrital distrital não é uma competição simulada
     const l = m.get(c.liga) ?? m.set(c.liga, { liga: c.liga, escalao: c.escalao, clubes: 0, ...(c.escalao === "distrital" ? { distrito: c.distrito } : {}) }).get(c.liga)!;
     l.clubes++;
   }
