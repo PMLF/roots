@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { save, read } from "@/ui/armazenamento";
+import { save, read } from "@/ui/storage";
 
 /**
  * Modo developer: páginas de ferramentas (Laboratório, Mundo) que não são «jogar o jogo».
@@ -21,7 +21,7 @@ export function useDevMode(): boolean {
  * «Ver tudo» (só no modo developer): mostra a verdade oculta (atributos, potencial, personalidade, finanças…) em vez do
  * que o gamer sabe. Guardado no browser; todas as páginas reagem à mudança.
  */
-const ALL_SEE_KEY = "raizes.verTudo";
+const ALL_SEE_KEY = "raizes.seeAll";
 const ALL_SEE_EVENT = "raizes:verTudo";
 
 function readSeeAll(): boolean {

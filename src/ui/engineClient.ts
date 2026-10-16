@@ -1,4 +1,4 @@
-import type { Message, EngineRequests, WorldProgress, EngineResponse, RequestType } from "@/engine/api/contratos";
+import type { Message, EngineRequests, WorldProgress, EngineResponse, RequestType } from "@/engine/api/contracts";
 
 /** Cliente da interface para o motor, que corre num Web Worker (a interface nunca bloqueia). */
 export class ClientEngine {

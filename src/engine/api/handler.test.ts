@@ -1,15 +1,15 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { SCHEMA_VERSION, ENGINE_VERSION, handle, type Servicos } from "./handler";
-import { DEFAULT_PARAMETERS } from "../config/parametros";
-import { MemoryRepository } from "../persistencia/repositorioMemoria";
+import { DEFAULT_PARAMETERS } from "../config/parameters";
+import { MemoryRepository } from "../persistence/repositoryMemory";
 
 function testServicos(): Servicos {
   const repository = new MemoryRepository();
   const read = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
   return {
     now: () => new Date(2026, 9, 15),
-    openRepository: async () => ({ repository, backend: "memory", sqliteVersion: "teste" }),
+    openRepository: async () => ({ repository, backend: "memory", sqliteVersion: "test" }),
     loadData: async () => ({ clubs: read("clubs"), cities: read("cities"), localities: read("localities"), rivalries: read("rivalries"), districts: read("districts"), countries: read("countries") }),
   };
 }
@@ -75,13 +75,13 @@ describe("handler do motor", () => {
   it("localidades: o Matelense é de Matela (aldeia de Vimioso), com ficha e pesquisa próprias", async () => {
     const sl = testServicos();
     const club = (await handle({ id: 20, type: "clubProfile", input: { id: "cd-matelense" } }, sl))!;
-    expect(club.locality).toMatchObject({ k: "locality", id: "matela@vimioso", name: "Matela", status: "aldeia" });
+    expect(club.locality).toMatchObject({ k: "locality", id: "matela@vimioso", name: "Matela", status: "village" });
     expect(club.city.name).toBe("Vimioso");
     const f = (await handle({ id: 21, type: "localityProfile", input: { id: "matela@vimioso" } }, sl))!;
-    expect(f).toMatchObject({ name: "Matela", status: "aldeia", population: 150, host: false, district: "Bragança", history: [] });
+    expect(f).toMatchObject({ name: "Matela", status: "village", population: 150, host: false, district: "Bragança", history: [] });
     expect(f.clubs.map((c) => c.name)).toEqual(["CD Matelense"]);
     const moita = (await handle({ id: 22, type: "localityProfile", input: { id: "moita-dos-ferreiros@lourinha" } }, sl))!;
-    expect(moita).toMatchObject({ status: "aldeia", city: { name: "Lourinhã" } });
+    expect(moita).toMatchObject({ status: "village", city: { name: "Lourinhã" } });
     expect(await handle({ id: 23, type: "localityProfile", input: { id: "nada" } }, sl)).toBeNull();
     const r = await handle({ id: 24, type: "find", input: { q: "matela" } }, sl);
     expect(r.find((x) => x.k === "locality")).toMatchObject({ id: "matela@vimioso", title: "Matela" });
@@ -92,11 +92,11 @@ describe("handler do motor", () => {
     await handle({ id: 30, type: "createWorld", input: { seed: "locality" } }, sl);
     const { repository } = await sl.openRepository();
     expect(repository.localities().length).toBe(298);
-    repository.updateLocality("matela@vimioso", { population: 1700, status: "vila", date: "2031-06-30", season: 5 });
+    repository.updateLocality("matela@vimioso", { population: 1700, status: "town", date: "2031-06-30", season: 5 });
     const f = (await handle({ id: 31, type: "localityProfile", input: { id: "matela@vimioso" } }, sl))!;
-    expect(f).toMatchObject({ status: "vila", population: 1700, since: "2031-06-30", history: [{ de: "aldeia", para: "vila", population: 1700 }] });
+    expect(f).toMatchObject({ status: "town", population: 1700, since: "2031-06-30", history: [{ de: "village", para: "town", population: 1700 }] });
     const c = (await handle({ id: 32, type: "clubProfile", input: { id: "cd-matelense" } }, sl))!;
-    expect(c.locality.status).toBe("vila");
+    expect(c.locality.status).toBe("town");
   });
 
   it("reiniciarMundo apaga o save e gera outro mundo, com seed nova e pesquisa atualizada", async () => {

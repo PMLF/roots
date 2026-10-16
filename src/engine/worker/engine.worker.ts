@@ -1,14 +1,14 @@
 /// <reference lib="webworker" />
 import { handle, type Servicos } from "../api/handler";
-import type { Message, EngineResponse } from "../api/contratos";
-import { SqliteRepository } from "../persistencia/repositorioSqlite";
+import type { Message, EngineResponse } from "../api/contracts";
+import { SqliteRepository } from "../persistence/repositorySqlite";
 import { openWasm, publicUrl } from "./driverWasm";
 
 // Casca fina: recebe pedidos da interface, chama o motor e responde. Toda a lógica está em ../api e no resto do motor.
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
 
 let isOpen: ReturnType<Servicos["openRepository"]> | undefined;
-const urlData = (f: string) => publicUrl(`dados/${f}`);
+const urlData = (f: string) => publicUrl(`data/${f}`);
 const fetchText = async (f: string) => {
   const r = await fetch(urlData(f));
   if (!r.ok) throw new Error(`Não consegui carregar ${f} (${r.status})`);

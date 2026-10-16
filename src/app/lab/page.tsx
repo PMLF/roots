@@ -1,7 +1,7 @@
 "use client";
 import { useDevMode } from "@/ui/dev";
-import { useEngine } from "@/ui/MotorProvider";
-import { Lab } from "@/ui/components/Laboratorio";
+import { useEngine } from "@/ui/EngineProvider";
+import { Lab } from "@/ui/components/Lab";
 
 export default function LabPage() {
   const engine = useEngine();

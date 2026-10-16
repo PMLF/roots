@@ -1,18 +1,18 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import type { CompetitionPage, SummaryCompetition } from "@/engine/api/contratos";
-import { Card } from "@/ui/components/Cartao";
-import { LeagueTable } from "@/ui/components/competicao/TabelaLiga";
-import { EntityLink } from "@/ui/components/Ligacao";
-import { save, read } from "@/ui/armazenamento";
+import type { CompetitionPage, SummaryCompetition } from "@/engine/api/contracts";
+import { Card } from "@/ui/components/Card";
+import { LeagueTable } from "@/ui/components/competition/LeagueTable";
+import { EntityLink } from "@/ui/components/Link";
+import { save, read } from "@/ui/storage";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useEngine } from "@/ui/MotorProvider";
+import { useEngine } from "@/ui/EngineProvider";
 
 const GROUPS: { rowKey: Key; tiers: readonly string[]; columns?: true }[] = [
-  { rowKey: "competicoes.profissionais", tiers: ["firstLeague", "secondLeague", "thirdLeague"] },
-  { rowKey: "escalao.cp", tiers: ["cp"], columns: true },
-  { rowKey: "escalao.distrital", tiers: ["district"], columns: true },
+  { rowKey: "competitions.professionals", tiers: ["firstLeague", "secondLeague", "thirdLeague"] },
+  { rowKey: "tier.cp", tiers: ["cp"], columns: true },
+  { rowKey: "tier.district", tiers: ["district"], columns: true },
 ];
 const KEY = "raizes.competitions.selected";
 const DEFAULT = ["Primeira Liga", "Segunda Liga", "Terceira Liga"];
@@ -30,10 +30,10 @@ function Highlights({ p }: { p: CompetitionPage }) {
   const club = (x: { club: string; name: string; value: number } | undefined) => (x ? <><EntityLink k="club" id={x.club}>{x.name}</EntityLink> <b>{x.value}</b></> : "—");
   return (
     <ul className="destaques-mini">
-      {line(t("competicoes.melhorMarcador"), player(h.topScorers[0]))}
-      {line(t("competicoes.melhorJogador"), player(h.bestRated[0], (v) => v.toFixed(2)))}
-      {line(t("competicoes.melhorAtaque"), club(h.bestAttack))}
-      {line(t("competicoes.melhorDefesa"), club(h.bestDefence))}
+      {line(t("competitions.bestScorer"), player(h.topScorers[0]))}
+      {line(t("competitions.bestPlayer"), player(h.bestRated[0], (v) => v.toFixed(2)))}
+      {line(t("competitions.bestAttack"), club(h.bestAttack))}
+      {line(t("competitions.bestDefence"), club(h.bestDefence))}
     </ul>
   );
 }
@@ -97,28 +97,28 @@ export default function CompetitionsPage() {
 
   return (
     <section>
-      <h1>{t("competicoes.titulo")}</h1>
-      {list === null && <p className="vazio">{t("hoje.semMundo")}</p>}
+      <h1>{t("competitions.title")}</h1>
+      {list === null && <p className="vazio">{t("today.noWorld")}</p>}
       {list && (
         <>
           {seasons.length > 1 && (
             <label className="seletor-epoca">
-              <span className="suave">{t("competicoes.epoca")}</span>{" "}
+              <span className="suave">{t("competitions.season")}</span>{" "}
               <select value={season ?? seasons[seasons.length - 1]!.season} onChange={(e) => { const v = Number(e.target.value); setSeason(v === seasons[seasons.length - 1]!.season ? undefined : v); }}>
-                {[...seasons].reverse().map((x, i) => <option key={x.season} value={x.season}>{i === 0 ? t("competicoes.epocaAtual", { season: x.label }) : x.label}</option>)}
+                {[...seasons].reverse().map((x, i) => <option key={x.season} value={x.season}>{i === 0 ? t("competitions.currentSeason", { season: x.label }) : x.label}</option>)}
               </select>
             </label>
           )}
           <div className="seletor-ligas" ref={selector}>
             <button type="button" aria-expanded={isOpen} aria-haspopup="true" onClick={() => setIsOpen((v) => !v)}>
-              {t("competicoes.escolher")} ({chosen.length}/{list.length}) <span aria-hidden="true">▾</span>
+              {t("competitions.choose")} ({chosen.length}/{list.length}) <span aria-hidden="true">▾</span>
             </button>
             {isOpen && (
-              <div className="seletor-painel" role="group" aria-label={t("competicoes.escolher")}>
+              <div className="seletor-painel" role="group" aria-label={t("competitions.choose")}>
                 <div className="seletor-acoes">
-                  <button type="button" onClick={() => set(list.map((c) => c.league))}>{t("competicoes.todas")}</button>
-                  <button type="button" onClick={() => set(DEFAULT)}>{t("competicoes.padrao")}</button>
-                  <span className="suave">{t("competicoes.minimo", { n: MIN })}</span>
+                  <button type="button" onClick={() => set(list.map((c) => c.league))}>{t("competitions.all")}</button>
+                  <button type="button" onClick={() => set(DEFAULT)}>{t("competitions.fallback")}</button>
+                  <span className="suave">{t("competitions.min", { n: MIN })}</span>
                 </div>
                 {GROUPS.map((g) => {
                   const leagues = list.filter((c) => (g.tiers as readonly string[]).includes(c.tier));
@@ -140,20 +140,20 @@ export default function CompetitionsPage() {
               </div>
             )}
           </div>
-          {visible.length === 0 && <p className="vazio">{t("competicoes.semSelecao")}</p>}
+          {visible.length === 0 && <p className="vazio">{t("competitions.noSelection")}</p>}
           <div className="ligas-grelha">
             {visible.map((c) => {
               const p = pages[pageKey(c.league)];
               return (
                 <Card key={c.league} title={<EntityLink k="competition" id={c.league}>{c.league}</EntityLink>}>
-                  <p className="suave cartao-sub">{t("competicoes.clubes", { n: c.clubs })}</p>
+                  <p className="suave cartao-sub">{t("competitions.clubs", { n: c.clubs })}</p>
                   {p ? (
                     <>
                       <Highlights p={p} />
                       <LeagueTable page={p} compact />
                     </>
                   ) : (
-                    <p className="vazio">{t("ficha.aCarregar")}</p>
+                    <p className="vazio">{t("profile.loading")}</p>
                   )}
                 </Card>
               );

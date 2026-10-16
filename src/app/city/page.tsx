@@ -1,10 +1,10 @@
 "use client";
 import { Suspense, useEffect, useState } from "react";
-import type { CityProfileData } from "@/engine/api/contratos";
-import { WithClub } from "@/ui/components/ComClube";
-import { CityProfile } from "@/ui/components/fichas/FichaCidade";
+import type { CityProfileData } from "@/engine/api/contracts";
+import { WithClub } from "@/ui/components/WithClub";
+import { CityProfile } from "@/ui/components/profiles/CityProfile";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useEngine } from "@/ui/MotorProvider";
+import { useEngine } from "@/ui/EngineProvider";
 
 function Content({ club }: { club: string }) {
   const engine = useEngine();
@@ -20,8 +20,8 @@ function Content({ club }: { club: string }) {
     })().catch(() => live && setD(null));
     return () => { live = false; };
   }, [engine, club]);
-  if (d === undefined) return <p>{t("ficha.aCarregar")}</p>;
-  if (d === null) return <p className="erro">{t("ficha.naoEncontrada")}</p>;
+  if (d === undefined) return <p>{t("profile.loading")}</p>;
+  if (d === null) return <p className="erro">{t("profile.notFound")}</p>;
   return <CityProfile d={d} />;
 }
 

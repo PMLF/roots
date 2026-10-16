@@ -1,7 +1,7 @@
 import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
 import { describe, expect, it } from "vitest";
-import { repositoryContract, ev } from "../persistencia/repositorio.contrato";
-import { SqliteRepository } from "../persistencia/repositorioSqlite";
+import { repositoryContract, ev } from "../persistence/repository.contract";
+import { SqliteRepository } from "../persistence/repositorySqlite";
 import { involve } from "./driverWasm";
 
 // No Node o pacote resolve para a versão em memória (sem OPFS): serve para validar o nosso invólucro

@@ -12,9 +12,9 @@ describe("i18n", () => {
     }
   });
   it("formata plurais e números por idioma", () => {
-    expect(translate("pt-PT", "inicio.autosave", { days: 1 })).toBe("Autosave todos os dias");
-    expect(translate("pt-PT", "inicio.autosave", { days: 7 })).toBe("Autosave a cada 7 dias");
-    expect(translate("en", "inicio.autosave", { days: 7 })).toBe("Autosave every 7 days");
-    expect(translate("en", "inicio.motorLigado", { version: "0.1.0", schema: 1, ms: 12 })).toContain("12 ms");
+    expect(translate("pt-PT", "start.autosave", { days: 1 })).toBe("Autosave todos os dias");
+    expect(translate("pt-PT", "start.autosave", { days: 7 })).toBe("Autosave a cada 7 dias");
+    expect(translate("en", "start.autosave", { days: 7 })).toBe("Autosave every 7 days");
+    expect(translate("en", "start.engineConnected", { version: "0.1.0", schema: 1, ms: 12 })).toContain("12 ms");
   });
 });

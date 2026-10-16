@@ -5,7 +5,7 @@
  * É a única parte do projeto que conhece o `@sqlite.org/sqlite-wasm`.
  */
 import type { Database, PreparedStatement, Sqlite3Static } from "@sqlite.org/sqlite-wasm";
-import type { DriverSql, SqlLine, SqlValue } from "../persistencia/driver";
+import type { DriverSql, SqlLine, SqlValue } from "../persistence/driver";
 
 // O Next substitui process.env.NEXT_PUBLIC_* no build; o worker não tem os tipos do Node.
 declare const process: { env: { NEXT_PUBLIC_BASE_PATH?: string } };
@@ -15,7 +15,7 @@ export type IsOpenDb = { driver: DriverSql; backend: DbBackend; sqliteVersion: s
 
 let module: Promise<Sqlite3Static> | undefined;
 
-/** URL de public/sqlite/index.mjs, respeitando o basePath (tools/copiar-sqlite-wasm.mjs copia-o para lá). */
+/** URL de public/sqlite/index.mjs, respeitando o basePath (tools/copy-sqlite-wasm.mjs copia-o para lá). */
 export function urlSqlite(): string {
   return publicUrl("sqlite/index.mjs");
 }
@@ -28,7 +28,7 @@ export function publicUrl(path: string): string {
 
 const sqlite = () =>
   (module ??= (async () => {
-    // Carregado por URL, fora do bundler (ver tools/copiar-sqlite-wasm.mjs).
+    // Carregado por URL, fora do bundler (ver tools/copy-sqlite-wasm.mjs).
     const m = (await import(/* webpackIgnore: true */ /* turbopackIgnore: true */ urlSqlite())) as { default: () => Promise<Sqlite3Static> };
     return m.default();
   })());

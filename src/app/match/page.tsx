@@ -2,20 +2,20 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
-import type { LiveMatch } from "@/engine/epoca/jogoAoVivo";
-import type { Tactic } from "@/engine/jogo/tipos";
-import { Icon } from "@/ui/components/Icone";
-import { EventIcon } from "@/ui/components/IconeEvento";
-import { EntityLink } from "@/ui/components/Ligacao";
-import { ClubSwatch } from "@/ui/components/AmostraClube";
-import { TeamCard, Meetings, Statistics, HistoryEvents, XgChart, HeaderInfo, HalfTime, OthersMatches, LiveTable, TacticInMatch } from "@/ui/components/jogo/PainelJogo";
-import { SubstitutionsInMatch, SubsCounters, withoutSubstitutions } from "@/ui/components/jogo/Substituicoes";
-import { save, read } from "@/ui/armazenamento";
+import type { LiveMatch } from "@/engine/season/liveMatch";
+import type { Tactic } from "@/engine/match/types";
+import { Icon } from "@/ui/components/Icon";
+import { EventIcon } from "@/ui/components/EventIcon";
+import { EntityLink } from "@/ui/components/Link";
+import { ClubSwatch } from "@/ui/components/ClubSwatch";
+import { TeamCard, Meetings, Statistics, HistoryEvents, XgChart, HeaderInfo, HalfTime, OthersMatches, LiveTable, TacticInMatch } from "@/ui/components/match/MatchPanel";
+import { SubstitutionsInMatch, SubsCounters, withoutSubstitutions } from "@/ui/components/match/Substitutions";
+import { save, read } from "@/ui/storage";
 import { useDevMode } from "@/ui/dev";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useOwnClub } from "@/ui/meuClube";
-import { useEngine } from "@/ui/MotorProvider";
+import { useOwnClub } from "@/ui/myClub";
+import { useEngine } from "@/ui/EngineProvider";
 
 /** Segundos de relógio por minuto de jogo em cada velocidade. */
 const SPEEDS = [{ label: "1×", sec: 0.5 }, { label: "2×", sec: 0.25 }, { label: "4×", sec: 0.1 }] as const;
@@ -47,8 +47,8 @@ function Content() {
   const seenHalfTime = useRef<string | undefined>(undefined);
   const ofHalfTimePause = useRef(false);
 
-  useEffect(() => { setTab(read("raizes.separadorJogo", isTab) ?? "match"); }, []);
-  useEffect(() => { setSpeed(read("raizes.velocidadeJogo", isSpeed) ?? 0); }, []);
+  useEffect(() => { setTab(read("raizes.matchTab", isTab) ?? "match"); }, []);
+  useEffect(() => { setSpeed(read("raizes.matchSpeed", isSpeed) ?? 0); }, []);
   useEffect(() => {
     if (!engine) return;
     let live = true;
@@ -143,45 +143,45 @@ function Content() {
     try { setMatch(await engine.call("tacticInMatch", { tactic })); setError(undefined); } catch (e) { setError(e instanceof Error ? e.message : String(e)); } finally { setChanging(false); }
   };
 
-  if (match === undefined) return <p>{t("ficha.aCarregar")}</p>;
-  if (match === null) return <p className="vazio">{t("jogo.semJogo")} <Link href="/">{t("jogo.voltar")}</Link></p>;
+  if (match === undefined) return <p>{t("profile.loading")}</p>;
+  if (match === null) return <p className="vazio">{t("match.noMatch")} <Link href="/">{t("match.back")}</Link></p>;
   const minute = match.minute ?? match.duration;
   const last = match.lines.filter((l) => l.minute <= minute).at(-1);
   const gc = last?.homeGoals ?? 0;
   const gf = last?.awayGoals ?? 0;
   return (
     <section className="pagina-jogo">
-      <p className="suave jogo-contexto"><EntityLink k="competition" id={match.competition}>{match.competition}</EntityLink> · {t("jogo.jornada", { n: match.round })} · {match.date}</p>
+      <p className="suave jogo-contexto"><EntityLink k="competition" id={match.competition}>{match.competition}</EntityLink> · {t("match.round", { n: match.round })} · {match.date}</p>
       <HeaderInfo match={match} />
       <div className="placar" aria-live="polite">
         <span className="placar-equipa placar-casa"><ClubSwatch colours={match.colours?.[match.home.id]} /><EntityLink k="club" id={match.home.id} withoutSwatch>{match.home.name}</EntityLink></span>
         <b className="placar-golos">{gc}–{gf}</b>
         <span className="placar-equipa placar-fora"><EntityLink k="club" id={match.away.id} withoutSwatch>{match.away.name}</EntityLink><ClubSwatch colours={match.colours?.[match.away.id]} /></span>
       </div>
-      <p className="relogio">{ongoing ? `${Math.floor(minute)}'` : t("jogo.terminado")}</p>
+      <p className="relogio">{ongoing ? `${Math.floor(minute)}'` : t("match.finished")}</p>
       {ongoing && match.subs && <p className="subs-resumo"><SubsCounters subs={match.subs} /></p>}
       {ongoing ? (
         <>
-          <div className="controlos-fixos" role="group" aria-label={t("jogo.controlos")}>
-            <button type="button" className="primario controlo-principal" onClick={() => setRunning((v) => !v)} disabled={tacticOpen || subsOpen} aria-label={running ? t("jogo.pausa") : minute === 0 ? t("jogo.comecar") : t("jogo.continuar")}>
+          <div className="controlos-fixos" role="group" aria-label={t("match.controls")}>
+            <button type="button" className="primario controlo-principal" onClick={() => setRunning((v) => !v)} disabled={tacticOpen || subsOpen} aria-label={running ? t("match.pause") : minute === 0 ? t("match.start") : t("match.continue")}>
               <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d={running ? "M7 5h3.500v14H7zM13.500 5H17v14h-3.500z" : "M8 5v14l11-7z"} fill="currentColor" /></svg>
-              <span>{running ? t("jogo.pausa") : minute === 0 ? t("jogo.comecar") : t("jogo.continuar")}</span>
+              <span>{running ? t("match.pause") : minute === 0 ? t("match.start") : t("match.continue")}</span>
             </button>
-            <span className="velocidade-seg" role="radiogroup" aria-label={t("jogo.velocidade")}>
+            <span className="velocidade-seg" role="radiogroup" aria-label={t("match.speed")}>
               {SPEEDS.map((v, i) => (
-                <button key={v.label} type="button" role="radio" aria-checked={speed === i} onClick={() => { setSpeed(i); save("raizes.velocidadeJogo", i); }}>{v.label}</button>
+                <button key={v.label} type="button" role="radio" aria-checked={speed === i} onClick={() => { setSpeed(i); save("raizes.matchSpeed", i); }}>{v.label}</button>
               ))}
             </span>
             {dev && (
-              <button type="button" className="controlo-saltar" title={t("jogo.saltar")} aria-label={t("jogo.saltar")} onClick={() => { setRunning(false); void step(500); }}>
+              <button type="button" className="controlo-saltar" title={t("match.skip")} aria-label={t("match.skip")} onClick={() => { setRunning(false); void step(500); }}>
                 <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 5v14l9-7zM16.500 5H19v14h-2.500z" fill="currentColor" /></svg>
               </button>
             )}
           </div>
           <div className="acoes controlos-jogo">
-            <button type="button" onClick={openTactic}><Icon name="tactic" />{t("jogo.taticaBotao")}</button>
-            <button type="button" onClick={openSubs} disabled={minute < 1 || withoutSubstitutions(match.subs, minute === halfTimeMinute)} title={withoutSubstitutions(match.subs, minute === halfTimeMinute) ? t("jogo.subs.semMais") : undefined}><EventIcon rowKey="substitution" />{t("jogo.subs.botao")}</button>
-            <label><input type="checkbox" checked={importantOnly} onChange={(e) => setImportantOnly(e.target.checked)} /> {t("jogo.soImportante")}</label>
+            <button type="button" onClick={openTactic}><Icon name="tactic" />{t("match.tacticButton")}</button>
+            <button type="button" onClick={openSubs} disabled={minute < 1 || withoutSubstitutions(match.subs, minute === halfTimeMinute)} title={withoutSubstitutions(match.subs, minute === halfTimeMinute) ? t("match.subs.noMore") : undefined}><EventIcon rowKey="substitution" />{t("match.subs.button")}</button>
+            <label><input type="checkbox" checked={importantOnly} onChange={(e) => setImportantOnly(e.target.checked)} /> {t("match.importantOnly")}</label>
           </div>
         </>
       ) : null}
@@ -189,16 +189,16 @@ function Content() {
       {halfTime && ongoing && <HalfTime match={match} onTactic={halfTimeTactic} aoSubs={halfTimeSubs} onContinue={secondHalf} />}
       {subsOpen && ongoing && <SubstitutionsInMatch match={match} busy={changing} {...(subsError ? { error: subsError } : {})} onConfirm={(x) => void confirmSubs(x)} onClose={closeSubs} />}
       {tacticOpen && ongoing && match.tactic && <TacticInMatch tactic={match.tactic} onChange={(x) => void changeTactic(x)} onClose={closeTactic} busy={changing} />}
-      <div className="separadores" role="tablist" aria-label={t("jogo.separadores")}>
+      <div className="separadores" role="tablist" aria-label={t("match.tabs")}>
         {TABS.map((x) => (
-          <button key={x} type="button" role="tab" id={`sep-${x}`} aria-selected={tab === x} aria-controls={`pn-${x}`} onClick={() => { setTab(x); save("raizes.separadorJogo", x); }}>{t(`jogo.tab.${x}` as Key)}</button>
+          <button key={x} type="button" role="tab" id={`sep-${x}`} aria-selected={tab === x} aria-controls={`pn-${x}`} onClick={() => { setTab(x); save("raizes.matchTab", x); }}>{t(`match.tab.${x}` as Key)}</button>
         ))}
       </div>
       <div role="tabpanel" id={`pn-${tab}`} aria-labelledby={`sep-${tab}`}>
         {tab === "match" && (
           <>
-            <section className="painel painel-eventos" aria-label={t("jogo.eventos")}>
-              <h2>{t("jogo.eventos")}</h2>
+            <section className="painel painel-eventos" aria-label={t("match.events")}>
+              <h2>{t("match.events")}</h2>
               <HistoryEvents match={match} importantOnly={importantOnly} />
             </section>
             <div className="jogo-grelha">

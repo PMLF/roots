@@ -3,7 +3,7 @@
  * o motor não conhece bibliotecas nativas.
  */
 import Database from "better-sqlite3";
-import type { DriverSql, SqlLine, SqlValue } from "../engine/persistencia/driver";
+import type { DriverSql, SqlLine, SqlValue } from "../engine/persistence/driver";
 
 export function openSqliteBetter(path: string | Uint8Array = ":memory:"): DriverSql {
   const db = typeof path === "string" ? new Database(path) : new Database(Buffer.from(path));

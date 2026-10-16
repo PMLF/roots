@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import type { Message } from "@/engine/noticias/noticias";
-import { NewsItemView } from "@/ui/components/ItemNoticia";
+import type { Message } from "@/engine/news/news";
+import { NewsItemView } from "@/ui/components/NewsItem";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useEngine } from "@/ui/MotorProvider";
+import { useEngine } from "@/ui/EngineProvider";
 
 const BY_PAGE = 25;
 
@@ -45,16 +45,16 @@ export default function InboxPage() {
 
   return (
     <section className="pagina-noticias">
-      <h1>{t("caixa.titulo")}</h1>
+      <h1>{t("inbox.title")}</h1>
       <div className="acoes">
-        <b>{t("caixa.naoLidas", { n: unread })}</b>
-        <button type="button" onClick={() => void score()} disabled={unread === 0}>{t("caixa.marcarLidas")}</button>
-        {unemployed && <Link href="/">{t("caixa.verOfertas")}</Link>}
+        <b>{t("inbox.unread", { n: unread })}</b>
+        <button type="button" onClick={() => void score()} disabled={unread === 0}>{t("inbox.markAllRead")}</button>
+        {unemployed && <Link href="/">{t("inbox.seeOffers")}</Link>}
       </div>
-      {messages === undefined ? <p>{t("ficha.aCarregar")}</p> : messages.length === 0 ? <p className="vazio">{t("caixa.vazio")}</p> : (
+      {messages === undefined ? <p>{t("profile.loading")}</p> : messages.length === 0 ? <p className="vazio">{t("inbox.empty")}</p> : (
         <div className="noticias">
           {messages.map((m) => <NewsItemView key={m.id} n={m} unread={!m.isRead} onToggleIsRead={() => void toggle(m)} />)}
-          {!end && <button type="button" onClick={() => void load(messages.at(-1)!.id)}>{t("caixa.maisAntigas")}</button>}
+          {!end && <button type="button" onClick={() => void load(messages.at(-1)!.id)}>{t("inbox.oldest")}</button>}
         </div>
       )}
     </section>

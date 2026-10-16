@@ -1,11 +1,11 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import type { NewsScope, NewsItem } from "@/engine/noticias/noticias";
-import { NewsItemView } from "@/ui/components/ItemNoticia";
-import { save, read } from "@/ui/armazenamento";
+import type { NewsScope, NewsItem } from "@/engine/news/news";
+import { NewsItemView } from "@/ui/components/NewsItem";
+import { save, read } from "@/ui/storage";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useEngine } from "@/ui/MotorProvider";
+import { useEngine } from "@/ui/EngineProvider";
 
 const BY_PAGE = 20;
 const SCOPES: NewsScope[] = ["club", "league", "world"];
@@ -37,16 +37,16 @@ export default function NewsPage() {
 
   return (
     <section className="pagina-noticias">
-      <h1>{t("noticias.titulo")}</h1>
-      <div className="acoes" role="tablist" aria-label={t("noticias.titulo")}>
+      <h1>{t("news.title")}</h1>
+      <div className="acoes" role="tablist" aria-label={t("news.title")}>
         {SCOPES.map((e) => (
-          <button key={e} type="button" role="tab" aria-selected={scope === e} className={scope === e ? "active" : undefined} onClick={() => { setScope(e); save(KEY, e); }}>{t(`noticias.escopo.${e}` as Key)}</button>
+          <button key={e} type="button" role="tab" aria-selected={scope === e} className={scope === e ? "active" : undefined} onClick={() => { setScope(e); save(KEY, e); }}>{t(`news.scope.${e}` as Key)}</button>
         ))}
       </div>
-      {list === undefined ? <p>{t("ficha.aCarregar")}</p> : list.length === 0 ? <p className="vazio">{t("noticias.vazio")}</p> : (
+      {list === undefined ? <p>{t("profile.loading")}</p> : list.length === 0 ? <p className="vazio">{t("news.empty")}</p> : (
         <div className="noticias">
           {list.map((n) => <NewsItemView key={n.id} n={n} />)}
-          {end ? <p className="suave">{t("noticias.semMais")}</p> : <button type="button" onClick={() => void load(list.at(-1)!.id)}>{t("noticias.maisAntigas")}</button>}
+          {end ? <p className="suave">{t("news.noMore")}</p> : <button type="button" onClick={() => void load(list.at(-1)!.id)}>{t("news.oldest")}</button>}
         </div>
       )}
     </section>

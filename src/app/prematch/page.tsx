@@ -2,15 +2,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import type { ViewPlan } from "@/engine/api/contratos";
-import { EntityLink } from "@/ui/components/Ligacao";
-import { ClubSwatch } from "@/ui/components/AmostraClube";
-import { WithClub } from "@/ui/components/ComClube";
-import { TacticEditor } from "@/ui/components/EditorTatica";
+import type { ViewPlan } from "@/engine/api/contracts";
+import { EntityLink } from "@/ui/components/Link";
+import { ClubSwatch } from "@/ui/components/ClubSwatch";
+import { WithClub } from "@/ui/components/WithClub";
+import { TacticEditor } from "@/ui/components/TacticEditor";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useOwnClub } from "@/ui/meuClube";
-import { useEngine } from "@/ui/MotorProvider";
-import { useTime } from "@/ui/useTempo";
+import { useOwnClub } from "@/ui/myClub";
+import { useEngine } from "@/ui/EngineProvider";
+import { useTime } from "@/ui/useTime";
 
 function Content() {
   const { t } = useT();
@@ -32,8 +32,8 @@ function Content() {
   // um jogo já a decorrer: não se prepara outra vez, retoma-se
   useEffect(() => { if (match?.ongoing && match.date === today) router.replace("/match/"); }, [match, today, router]);
 
-  if (plan === undefined || !today) return <p>{t("ficha.aCarregar")}</p>;
-  if (!match || match.date !== today) return <p className="vazio">{t("prematch.semJogo")} <Link href="/">{t("jogo.voltar")}</Link></p>;
+  if (plan === undefined || !today) return <p>{t("profile.loading")}</p>;
+  if (!match || match.date !== today) return <p className="vazio">{t("prematch.noMatch")} <Link href="/">{t("match.back")}</Link></p>;
 
   const eu = mine ? <ClubSwatch id={mine} /> : null;
   const opp = <ClubSwatch id={match.opponentId} />;
@@ -44,12 +44,12 @@ function Content() {
       <header className="prematch-cabecalho">
         <div>
           <p className="prematch-confronto">
-            {match.atHome ? <>{eu}{ownLink}</> : <>{opp}{linkOpp}</>} <span className="suave">{t("inicio.vs")}</span> {match.atHome ? <>{opp}{linkOpp}</> : <>{eu}{ownLink}</>}
+            {match.atHome ? <>{eu}{ownLink}</> : <>{opp}{linkOpp}</>} <span className="suave">{t("start.vs")}</span> {match.atHome ? <>{opp}{linkOpp}</> : <>{eu}{ownLink}</>}
           </p>
           <p className="suave"><EntityLink k="competition" id={match.competition}>{match.competition}</EntityLink> · {match.date}</p>
         </div>
       </header>
-      <p className="suave">{t("prematch.aviso")}</p>
+      <p className="suave">{t("prematch.warning")}</p>
       <TacticEditor withoutNextMatch />
     </section>
   );
@@ -58,5 +58,5 @@ function Content() {
 /** Ecrã pré-jogo (RZ-169): confirmar ou mudar a tática e o onze e só então começar o jogo. */
 export default function PrematchPage() {
   const { t } = useT();
-  return <Suspense fallback={null}><WithClub title={t("prematch.titulo")}>{() => <Content />}</WithClub></Suspense>;
+  return <Suspense fallback={null}><WithClub title={t("prematch.title")}>{() => <Content />}</WithClub></Suspense>;
 }
