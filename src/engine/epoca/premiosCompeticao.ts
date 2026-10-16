@@ -40,3 +40,12 @@ export function valorDoPremio(tipo: TipoPremio, params: Parametros, fator = 1): 
 export function valorDoFinalista(vencedor: number, params: Parametros): number {
   return Math.round((vencedor * params.premios.finalistaVencido) / 10) * 10;
 }
+
+/**
+ * Prémio de ultrapassar uma ronda da Taça de Portugal. `rondasAntesDasMeias` = 0 nas meias-finais (a ronda que leva à final),
+ * 1 nos quartos, 2 nos oitavos… Cada ronda para trás vale `fator` da seguinte, com mínimo.
+ */
+export function premioDeRonda(rondasAntesDasMeias: number, params: Parametros): number {
+  const { meias, fator, minimo } = params.premios.tacaPortugalPorRonda;
+  return Math.max(minimo, Math.round(meias * fator ** Math.max(0, rondasAntesDasMeias)));
+}

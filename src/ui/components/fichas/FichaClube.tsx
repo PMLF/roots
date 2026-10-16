@@ -30,6 +30,7 @@ export function FichaClube({ d, verTudo, soPlantel = false }: { d: FichaClubeDad
   const { t, locale } = useT();
   const pais = usePaises();
   const n = new Intl.NumberFormat(locale);
+  const eur = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
   const desconhecido = <span className="valor-estimado" title={t("pessoa.desconhecido")}>?</span>;
   const verdade = verTudo ? d.verdade : undefined;
   const nome = (p: PessoaVista) => <Ligacao k="pessoa" id={p.id}>{p.nomeDesportivo}</Ligacao>;
@@ -182,10 +183,17 @@ export function FichaClube({ d, verTudo, soPlantel = false }: { d: FichaClubeDad
       <Cartao titulo={t("cartao.financas")}>
         <Dados
           linhas={[
-            { rotulo: t("clube.orcamento"), valor: desconhecido },
-            { rotulo: t("clube.massaSalarial"), valor: desconhecido },
-            { rotulo: t("clube.patrocinios"), valor: desconhecido },
-            ...(verdade ? [{ rotulo: t("dev.caixa"), valor: new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(verdade.financas) }] : []),
+            { rotulo: t("financas.estado"), valor: <span title={d.financas.exato ? undefined : t("financas.estimativa")}>{t(`financas.estado.${d.financas.estado}` as Chave)}{d.financas.exato ? "" : " ~"}</span> },
+            ...(d.financas.saldo !== undefined ? [{ rotulo: t("financas.saldo"), valor: eur.format(d.financas.saldo) }] : []),
+            ...(d.financas.ultimoFecho ? [
+              { rotulo: t("financas.receitasMes"), valor: eur.format(d.financas.ultimoFecho.receitas) },
+              { rotulo: t("financas.despesasMes"), valor: eur.format(-d.financas.ultimoFecho.despesas) },
+            ] : []),
+            ...(d.financas.exato ? [] : [
+              { rotulo: t("clube.orcamento"), valor: desconhecido },
+              { rotulo: t("clube.massaSalarial"), valor: desconhecido },
+              { rotulo: t("clube.patrocinios"), valor: desconhecido },
+            ]),
           ]}
         />
       </Cartao>

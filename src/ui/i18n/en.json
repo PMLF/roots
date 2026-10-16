@@ -941,5 +941,21 @@
   "noticia.segunda_distrital.1.titulo": "{clube} drop to the second district tier",
   "noticia.segunda_distrital.1.corpo": "They leave the competitions we follow in {distrito}, but the club lives on and can return.",
   "noticia.regresso_distrital.1.titulo": "{clube} return to the {distrito} district league",
-  "noticia.regresso_distrital.1.corpo": "The club rejoins the competition to complete the district league."
+  "noticia.regresso_distrital.1.corpo": "The club rejoins the competition to complete the district league.",
+  "financas.estado": "Status",
+  "financas.estimativa": "Press estimate: may be one band off",
+  "financas.saldo": "Cash",
+  "financas.receitasMes": "Income (last month)",
+  "financas.despesasMes": "Spending (last month)",
+  "financas.estado.beiraFalencia": "On the brink of bankruptcy",
+  "financas.estado.emRisco": "At risk",
+  "financas.estado.apertado": "Tight",
+  "financas.estado.poderoso": "Powerful",
+  "financas.estado.muitoRico": "Very rich",
+  "financas.estado.rico": "Rich",
+  "financas.estado.folgado": "Comfortable",
+  "financas.estado.remediado": "Well-off",
+  "financas.estado.estavel": "Stable",
+  "financas.estado.modesto": "Modest",
+  "financas.estado.pobre": "Poor"
 }
