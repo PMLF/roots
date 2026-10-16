@@ -14,6 +14,8 @@ import type {
   FactMatch,
   CardRecord,
   PlayerRecord,
+  PlayerPatch,
+  PlayerState,
   NewMatch,
   StandingsLine,
   PlayerStatLine,
@@ -130,6 +132,14 @@ export interface Repository {
   // --- pessoas (RZ-103)
   /** Guarda o mundo gerado numa só transação (`aoProgredir` é chamado por lotes). Recusa se já existirem pessoas. */
   saveWorld(batch: WorldBatchRecord, onProgress?: (done: number, total: number) => void): void;
+  /** Acrescenta pessoas depois do arranque (formação, novos jogadores livres). Recusa ids repetidos e referências em falta. */
+  addPeople(batch: WorldBatchRecord): void;
+  /** Altera factos de um jogador existente (desenvolvimento, clube, estado). */
+  updatePlayer(person: string, patch: PlayerPatch): void;
+  /** Novo contrato: o mais recente é o vigente; os anteriores ficam como história. */
+  saveContract(c: ContractRecord): void;
+  /** Todos os jogadores num dado estado, por id. */
+  playersByState(state: PlayerState): PlayerRecord[];
   peopleTotal(): number;
   /** Todas as pessoas com os factos públicos mínimos para pesquisar (nome, clube, posição, função). */
   peopleIndex(): PersonIndex[];

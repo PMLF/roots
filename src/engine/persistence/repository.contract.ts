@@ -610,5 +610,38 @@ export function repositoryContract(name: string, create: () => Repository): void
       expect(() => r2.saveWorld(bad)).toThrow();
       expect(r2.peopleTotal()).toBe(0);
     });
+    it("acrescenta pessoas, atualiza jogadores e contratos, e desfaz em caso de falha", () => {
+      const r = create();
+      r.saveWorld(batch());
+      r.addPeople({
+        people: [{ id: "p4", name: "Rui Novo", sportingName: "Rui Novo", birth: "2009-02-02", nationality: "pt", roles: ["player"], personality: { loyalty: 8 }, archetype: "common", lod: 2 }],
+        players: [{ person: "p4", positions: [{ pos: "CM", aptitude: 20 }], attributes: { pass: 6 }, potential: 14, heightCm: 172, weightKg: 62, pe: "D", club: "X", state: "active" }],
+        contracts: [{ person: "p4", club: "X", monthlyWage: 300, start: "2026-07-01", end: "2029-06-30" }],
+        roles: [],
+      });
+      expect(r.peopleTotal()).toBe(4);
+      expect(r.clubPlayers("X").map((j) => j.person)).toEqual(["p1", "p4"]);
+      expect(() => r.addPeople({ people: [{ ...r.person("p4")! }], players: [], contracts: [], roles: [] })).toThrow();
+      expect(() => r.addPeople({ people: [], players: [{ ...r.player("p4")!, person: "ghost" }], contracts: [], roles: [] })).toThrow();
+
+      r.updatePlayer("p1", { attributes: { pass: 16 }, potential: 16, state: "free", club: null });
+      expect(r.player("p1")).toMatchObject({ attributes: { pass: 16 }, potential: 16, state: "free" });
+      expect(r.player("p1")?.club).toBeUndefined();
+      expect(r.playersByState("free").map((j) => j.person)).toEqual(["p1", "p3"]);
+      expect(() => r.updatePlayer("nobody", { potential: 1 })).toThrow();
+
+      r.saveContract({ person: "p1", club: "Y", monthlyWage: 2000, start: "2026-07-01", end: "2027-06-30" });
+      expect(r.contract("p1")).toMatchObject({ club: "Y", monthlyWage: 2000 });
+
+      expect(() =>
+        r.transaction(() => {
+          r.updatePlayer("p3", { state: "retired" });
+          r.saveContract({ person: "p3", club: "Y", monthlyWage: 1, start: "2026-07-01", end: "2027-06-30" });
+          throw new Error("fail");
+        }),
+      ).toThrow("fail");
+      expect(r.player("p3")?.state).toBe("free");
+      expect(r.contract("p3")).toBeUndefined();
+    });
   });
 }

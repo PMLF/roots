@@ -18,6 +18,8 @@ import type {
   ScheduledMatch,
   FactMatch,
   PlayerRecord,
+  PlayerPatch,
+  PlayerState,
   NewMatch,
   StandingsLine,
   PlayerStatLine,
@@ -147,6 +149,16 @@ export class SqliteRepository implements Repository {
   }
 
   // ---------- pessoas
+  private insertPerson(p: PersonRecord): void {
+    this.d.run("INSERT INTO person (id, name, sporting_name, birth, nationality, native_of, roles, personality, archetype, lod) VALUES (?,?,?,?,?,?,?,?,?,?)", [
+      p.id, p.name, p.sportingName, p.birth, p.nationality, p.birthCity ?? null, JSON.stringify(p.roles), JSON.stringify(p.personality), p.archetype, p.lod,
+    ]);
+  }
+  private insertPlayer(j: PlayerRecord): void {
+    this.d.run("INSERT INTO player (person, positions, attributes, potential, height, weight, foot, club, state) VALUES (?,?,?,?,?,?,?,?,?)", [
+      j.person, JSON.stringify(j.positions), JSON.stringify(j.attributes), j.potential, j.heightCm, j.weightKg, j.pe, j.club ?? null, j.state,
+    ]);
+  }
   saveWorld(batch: WorldBatchRecord, onProgress?: (done: number, total: number) => void): void {
     this.transaction(() => {
       if (this.peopleTotal() > 0) throw new Error("O save já tem pessoas");
@@ -156,15 +168,11 @@ export class SqliteRepository implements Repository {
         if (++done % 500 === 0) onProgress?.(done, total);
       };
       for (const p of batch.people) {
-        this.d.run("INSERT INTO person (id, name, sporting_name, birth, nationality, native_of, roles, personality, archetype, lod) VALUES (?,?,?,?,?,?,?,?,?,?)", [
-          p.id, p.name, p.sportingName, p.birth, p.nationality, p.birthCity ?? null, JSON.stringify(p.roles), JSON.stringify(p.personality), p.archetype, p.lod,
-        ]);
+        this.insertPerson(p);
         tick();
       }
       for (const j of batch.players) {
-        this.d.run("INSERT INTO player (person, positions, attributes, potential, height, weight, foot, club, state) VALUES (?,?,?,?,?,?,?,?,?)", [
-          j.person, JSON.stringify(j.positions), JSON.stringify(j.attributes), j.potential, j.heightCm, j.weightKg, j.pe, j.club ?? null, j.state,
-        ]);
+        this.insertPlayer(j);
         tick();
       }
       for (const c of batch.contracts) {
@@ -177,6 +185,34 @@ export class SqliteRepository implements Repository {
       }
       onProgress?.(total, total);
     });
+  }
+  addPeople(batch: WorldBatchRecord): void {
+    this.transaction(() => {
+      for (const p of batch.people) this.insertPerson(p);
+      for (const j of batch.players) this.insertPlayer(j);
+      for (const c of batch.contracts) this.saveContract(c);
+      for (const c of batch.roles) this.d.run("INSERT INTO role (person, role_function, club, city, quality) VALUES (?,?,?,?,?)", [c.person, c.fn, c.club ?? null, c.city ?? null, c.quality ? JSON.stringify(c.quality) : null]);
+    });
+  }
+  updatePlayer(person: string, patch: PlayerPatch): void {
+    const before = this.player(person);
+    if (!before) throw new Error(`Unknown player: ${person}`);
+    const next: PlayerRecord = { ...before };
+    if (patch.attributes) next.attributes = { ...patch.attributes };
+    if (patch.potential !== undefined) next.potential = patch.potential;
+    if (patch.positions) next.positions = patch.positions.map((x) => ({ ...x }));
+    if (patch.state) next.state = patch.state;
+    if (patch.club === null) delete next.club;
+    else if (patch.club !== undefined) next.club = patch.club;
+    this.d.run("UPDATE player SET positions = ?, attributes = ?, potential = ?, club = ?, state = ? WHERE person = ?", [
+      JSON.stringify(next.positions), JSON.stringify(next.attributes), next.potential, next.club ?? null, next.state, person,
+    ]);
+  }
+  saveContract(c: ContractRecord): void {
+    this.d.run("INSERT INTO contract (person, club, monthly_wage, start_date, end_date) VALUES (?,?,?,?,?)", [c.person, c.club, c.monthlyWage, c.start, c.end]);
+  }
+  playersByState(state: PlayerState): PlayerRecord[] {
+    return this.d.all("SELECT * FROM player WHERE state = ? ORDER BY person", [state]).map((r) => this.playerOf(r));
   }
   peopleTotal(): number {
     return within(this.d.all("SELECT COUNT(*) AS n FROM person")[0]?.n);
@@ -209,7 +245,7 @@ export class SqliteRepository implements Repository {
       ...(club !== null && club !== undefined ? { club: txt(club) } : {}),
       ...(r.role_function !== null && r.role_function !== undefined ? { fn: txt(r.role_function) } : {}),
       ...(pos !== undefined
-        ? { player: { position: pos, heightCm: within(r.height), weightKg: within(r.weight), pe: txt(r.foot) as "D" | "E" | "A", state: txt(r.state) as "active" | "free" } }
+        ? { player: { position: pos, heightCm: within(r.height), weightKg: within(r.weight), pe: txt(r.foot) as "D" | "E" | "A", state: txt(r.state) as PlayerState } }
         : {}),
     };
   }
@@ -247,7 +283,7 @@ export class SqliteRepository implements Repository {
     return {
       person: txt(r.person), positions: JSON.parse(txt(r.positions)) as { pos: string; aptitude: number }[], attributes: JSON.parse(txt(r.attributes)) as Record<string, number>,
       potential: within(r.potential), heightCm: within(r.height), weightKg: within(r.weight), pe: txt(r.foot) as "D" | "E" | "A",
-      ...(r.club !== null ? { club: txt(r.club) } : {}), state: txt(r.state) as "active" | "free",
+      ...(r.club !== null ? { club: txt(r.club) } : {}), state: txt(r.state) as PlayerState,
     };
   }
   player(person: string): PlayerRecord | undefined {

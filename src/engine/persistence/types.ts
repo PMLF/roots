@@ -181,7 +181,16 @@ export type PlayerRecord = {
   weightKg: number;
   pe: "D" | "E" | "A";
   club?: string;
-  state: "active" | "free";
+  state: PlayerState;
+};
+export type PlayerState = "active" | "free" | "retired";
+/** Alterações permitidas a um jogador depois de criado (`club: null` = fica sem clube). */
+export type PlayerPatch = {
+  attributes?: Record<string, number>;
+  potential?: number;
+  positions?: { pos: string; aptitude: number }[];
+  club?: string | null;
+  state?: PlayerState;
 };
 export type ContractRecord = { person: string; club: string; monthlyWage: number; start: IsoDate; end: IsoDate };
 export type RoleRecord = { person: string; fn: string; club?: string; city?: string; quality?: Record<string, number> };
@@ -205,7 +214,7 @@ export type PublicPerson = {
   roles: string[];
   club?: string;
   fn?: string;
-  player?: { position: string; heightCm: number; weightKg: number; pe: "D" | "E" | "A"; state: "active" | "free" };
+  player?: { position: string; heightCm: number; weightKg: number; pe: "D" | "E" | "A"; state: PlayerState };
 };
 
 /** Entrada do índice de pesquisa de pessoas: só factos públicos. */

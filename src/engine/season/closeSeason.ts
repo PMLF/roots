@@ -23,6 +23,7 @@ import { closeUntilMonths, post } from "../club/finances";
 import { districtFactors, prizeValue, type PrizeType } from "./competitionPrizes";
 import { consecutiveYears, winnersPerDistrict, type RankedClub } from "./statePrize";
 import { seasonData, savePyramid, readPyramid, pyramidLeagues } from "./seasonPyramid";
+import { rolloverSquads } from "../squad/rollover";
 import { promotionGroupName, promotionGroups, prepareSeason } from "./prepare";
 
 export type SeasonSummary = {
@@ -157,9 +158,14 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
     for (const c of champions) add(c.club, "champions");
     for (const m of r.movements) add(m.club, m.reason === "relegation" ? "relegations" : "promotions");
     evolveCities(repo, data, params, season, today, results);
+    // plantéis: envelhecer, reformas, contratos, livres e formação para a nova época (RZ-117)
+    const newSeasonStart = createDate(params.calendar.initialYear + season, params.calendar.seasonStartMonth, 1);
+    const nextTiers = new Map([...pyramidLeagues(r.pyramid, data)].map(([club, l]) => [club, l.tier] as const));
+    const gamerClub = repo.meta("gamer.club");
+    rolloverSquads(repo, data, params, { season, seasonStart: newSeasonStart, tiers: nextTiers, ...(gamerClub ? { gamerClub } : {}) });
     savePyramid(repo, season + 1, r.pyramid);
     repo.setMeta("season", String(season + 1));
-    repo.setMeta("date.today", createDate(params.calendar.initialYear + season, params.calendar.seasonStartMonth, 1));
+    repo.setMeta("date.today", newSeasonStart);
   });
   prepareSeason(repo, seasonData(repo, data), paramsBase);
   // os meses sem jogos (junho, julho) também pagam custos
