@@ -127,7 +127,7 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
         {children}
       </main>
-      <footer className="barra">
+      <footer className={jogoAMeio ? "barra barra-jogo" : "barra"}>
         <ProgressoJogo />
         <span>{t("barra.data")}: <b>{tempo.estado ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${tempo.estado.hoje}T00:00:00Z`)) : t("barra.semDados")}</b></span>
         <span>{t("barra.orcamento")}: <b>{t("barra.semDados")}</b></span>

@@ -152,13 +152,14 @@ function Conteudo() {
   return (
     <section className="pagina-jogo">
       <p className="suave jogo-contexto"><Ligacao k="competicao" id={jogo.competicao}>{jogo.competicao}</Ligacao> · {t("jogo.jornada", { n: jogo.jornada })} · {jogo.data}</p>
+      <InfoCabecalho jogo={jogo} />
       <div className="placar" aria-live="polite">
         <span className="placar-equipa placar-casa"><AmostraClube cores={jogo.cores?.[jogo.casa.id]} /><Ligacao k="clube" id={jogo.casa.id} semAmostra>{jogo.casa.nome}</Ligacao></span>
         <b className="placar-golos">{gc}–{gf}</b>
         <span className="placar-equipa placar-fora"><Ligacao k="clube" id={jogo.fora.id} semAmostra>{jogo.fora.nome}</Ligacao><AmostraClube cores={jogo.cores?.[jogo.fora.id]} /></span>
       </div>
       <p className="relogio">{emCurso ? `${Math.floor(minuto)}'` : t("jogo.terminado")}</p>
-      <InfoCabecalho jogo={jogo} />
+      {emCurso && jogo.subs && <p className="subs-resumo"><ContadoresSubs subs={jogo.subs} /></p>}
       {emCurso ? (
         <>
           <div className="controlos-fixos" role="group" aria-label={t("jogo.controlos")}>
@@ -184,7 +185,6 @@ function Conteudo() {
           </div>
         </>
       ) : null}
-      {emCurso && jogo.subs && <p className="subs-resumo"><ContadoresSubs subs={jogo.subs} /></p>}
       {erro && <p className="erro" role="alert">{erro}</p>}
       {intervalo && emCurso && <Intervalo jogo={jogo} aoTatica={taticaDoIntervalo} aoSubs={subsDoIntervalo} aoContinuar={segundaParte} />}
       {subsAberto && emCurso && <SubstituicoesNoJogo jogo={jogo} ocupado={aMudar} {...(erroSubs ? { erro: erroSubs } : {})} aoConfirmar={(x) => void confirmarSubs(x)} aoFechar={fecharSubs} />}
