@@ -1,11 +1,12 @@
 "use client";
 import type { JogadorVivo, JogoVivo, LinhaVivo } from "@/engine/epoca/jogoAoVivo";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { corPredominante } from "@/ui/cores";
 import type { Estilo, Nivel, Tatica } from "@/engine/jogo/tipos";
 import type { ReactNode } from "react";
 import { AmostraClube } from "@/ui/components/AmostraClube";
 import { IconeEvento, chaveIcone } from "@/ui/components/IconeEvento";
+import { ContadoresSubs, semSubstituicoes } from "@/ui/components/jogo/Substituicoes";
 import { Ligacao } from "@/ui/components/Ligacao";
 import type { Chave } from "@/ui/i18n";
 import { siglaPosicao } from "@/ui/i18n/posicao";
@@ -187,7 +188,7 @@ export function TaticaNoJogo({ tatica, aoMudar, aoFechar, ocupado }: { tatica: T
 }
 
 /** Popup do intervalo: o jogo está parado; resumo da primeira parte e as decisões possíveis (tática; substituições no RZ-215). */
-export function Intervalo({ jogo, aoTatica, aoContinuar }: { jogo: JogoVivo; aoTatica: () => void; aoContinuar: () => void }) {
+export function Intervalo({ jogo, aoTatica, aoSubs, aoContinuar }: { jogo: JogoVivo; aoTatica: () => void; aoSubs: () => void; aoContinuar: () => void }) {
   const { t } = useT();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -216,10 +217,12 @@ export function Intervalo({ jogo, aoTatica, aoContinuar }: { jogo: JogoVivo; aoT
             })}
           </ul>
         )}
-        <div className="intervalo-xg"><GraficoXg jogo={jogo} semPainel /></div>
+        <div className="intervalo-xg"><GraficoXg jogo={jogo} semPainel preencher /></div>
       </div>
+      {jogo.subs && <p className="subs-resumo"><ContadoresSubs subs={jogo.subs} /></p>}
       <p className="acoes">
         <button type="button" onClick={aoTatica}>{t("jogo.intervaloTatica")}</button>
+        <button type="button" onClick={aoSubs} disabled={semSubstituicoes(jogo.subs, true)}>{t("jogo.subs.botao")}</button>
         <button type="button" className="primario" onClick={aoContinuar} autoFocus>{t("jogo.segundaParte")}</button>
       </p>
     </dialog>
@@ -278,12 +281,23 @@ export function CartaoEquipa({ jogo, lado }: { jogo: JogoVivo; lado: "casa" | "f
 }
 
 /** Evolução do xG acumulado de cada equipa, minuto a minuto (degraus: o xG sobe quando há remate). */
-export function GraficoXg({ jogo, semPainel = false }: { jogo: JogoVivo; semPainel?: boolean }) {
+export function GraficoXg({ jogo, semPainel = false, preencher = false }: { jogo: JogoVivo; semPainel?: boolean; /** Ocupa a altura que sobra ao pai (popup do intervalo). */ preencher?: boolean }) {
   const { t } = useT();
   const xg = jogo.xg;
+  const caixa = useRef<HTMLDivElement>(null);
+  const [tam, setTam] = useState<{ w: number; h: number } | null>(null);
+  useEffect(() => {
+    const el = caixa.current;
+    if (!preencher || !el) return;
+    const ler = () => setTam({ w: Math.max(200, el.clientWidth), h: Math.max(120, el.clientHeight) });
+    ler();
+    const ro = new ResizeObserver(ler);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [preencher]);
   if (!xg || xg.casa.length < 2) return null;
-  const W = 320;
-  const H = 150;
+  const W = preencher && tam ? tam.w : 320;
+  const H = preencher && tam ? tam.h : 150;
   const m = { e: 26, d: 8, c: 8, b: 20 };
   const fim = Math.max(jogo.duracao, xg.casa.length - 1, 90);
   const topo = Math.max(1, Math.ceil(Math.max(...xg.casa, ...xg.fora) * 2) / 2);
@@ -296,12 +310,12 @@ export function GraficoXg({ jogo, semPainel = false }: { jogo: JogoVivo; semPain
   const cor = { casa: corPredominante(jogo.cores?.[jogo.casa.id]) ?? "var(--destaque)", fora: corPredominante(jogo.cores?.[jogo.fora.id]) ?? "var(--texto)" };
   const conteudo = (
     <>
-      <svg className="grafico-xg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("jogo.xg.aria", { casa: nomes.casa, a: xg.casa[ultimo]!.toFixed(2), fora: nomes.fora, b: xg.fora[ultimo]!.toFixed(2) })}>
+      <div ref={caixa} className={preencher ? "grafico-xg-caixa" : undefined}><svg className="grafico-xg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t("jogo.xg.aria", { casa: nomes.casa, a: xg.casa[ultimo]!.toFixed(2), fora: nomes.fora, b: xg.fora[ultimo]!.toFixed(2) })}>
         {[0, topo / 2, topo].map((v) => <g key={v}><line className="xg-grelha" x1={m.e} x2={W - m.d} y1={y(v)} y2={y(v)} /><text className="xg-eixo" x={m.e - 4} y={y(v) + 3} textAnchor="end">{v.toFixed(1)}</text></g>)}
         {marcas.map((n) => <text key={n} className="xg-eixo" x={x(n)} y={H - 6} textAnchor="middle">{n}'</text>)}
         <path className="xg-linha xg-fora" stroke={cor.fora} d={degraus(xg.fora)} />
         <path className="xg-linha xg-casa" stroke={cor.casa} d={degraus(xg.casa)} />
-      </svg>
+      </svg></div>
       <p className="xg-legenda">
         <span><i className="xg-chave xg-casa" style={{ borderTopColor: cor.casa }} /> {nomes.casa} <b>{xg.casa[ultimo]!.toFixed(2)}</b></span>
         <span><i className="xg-chave xg-fora" style={{ borderTopColor: cor.fora }} /> {nomes.fora} <b>{xg.fora[ultimo]!.toFixed(2)}</b></span>

@@ -57,7 +57,12 @@ export type JogadorVivo = {
   saiu?: number;
   /** Quem o substituiu / quem substituiu. */
   trocaCom?: { id: string; nome: string };
+  /** Posições que sabe jogar, com a aptidão (1-20): para escolher substituições. */
+  posicoes?: { pos: string; aptidao: number }[];
 };
+
+/** Substituições e pausas do gamer neste jogo (as lesões também gastam substituições, mas não pausas). */
+export type SubsVivo = { usadas: number; max: number; pausasUsadas: number; maxPausas: number };
 export type EquipasVivo = { casa: JogadorVivo[]; fora: JogadorVivo[] };
 
 /** Constrói o painel das equipas no minuto a que `eventos` e `relatorio` chegam. */
@@ -89,6 +94,7 @@ export function equipasDoJogo(equipas: { casa: EquipaJogo; fora: EquipaJogo }, e
         golos: st?.golos ?? 0, assistencias: st?.assistencias ?? 0, amarelos: st?.amarelos ?? 0, vermelho: (st?.vermelhos ?? 0) > 0, lesionado: !!st?.lesao,
         ...(ent !== undefined ? { entrou: ent } : {}), ...(sai ? { saiu: sai.minuto } : {}),
         ...(outro ? { trocaCom: { id: outro, nome: nome(outro) } } : {}),
+        ...(j.posicoes ? { posicoes: j.posicoes.map((x) => ({ pos: x.pos, aptidao: x.aptidao })) } : {}),
       };
     });
   return { casa: lado("casa"), fora: lado("fora") };
@@ -164,6 +170,8 @@ export type JogoVivo = {
   xg?: CurvaXg;
   /** Últimos jogos entre as duas equipas, mais recente primeiro. */
   confrontos?: ConfrontoVivo[];
+  /** Substituições e pausas que o gamer já gastou (só ao vivo). */
+  subs?: SubsVivo;
   /** Estádio, assistência, árbitro, ... */
   info?: InfoJogo;
   /** Quantos sobem e descem nesta competição (para as zonas da tabela). */

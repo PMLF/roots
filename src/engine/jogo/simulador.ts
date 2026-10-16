@@ -89,6 +89,34 @@ export class SimuladorJogo {
     this.riscosBase[lado] = undefined;
   }
 
+  /** A equipa de um lado neste momento: quem está em campo e o banco que resta. */
+  equipa(lado: Lado): EquipaJogo {
+    return this.equipas[lado];
+  }
+
+  /**
+   * Substituições do treinador (RZ-215): cada `entra` (do banco) ocupa a posição de `sai` (em campo). Valem a partir do minuto
+   * seguinte. Os limites (5 substituições, 3 pausas) são da sessão do jogo, não do simulador.
+   */
+  substituir(lado: Lado, trocas: readonly { sai: string; entra: string }[]): EventoJogo[] {
+    const out: EventoJogo[] = [];
+    let eq = this.equipas[lado];
+    for (const t of trocas) {
+      const sai = eq.onze.find((j) => j.id === t.sai);
+      const entra = (eq.banco ?? []).find((j) => j.id === t.entra);
+      if (!sai) throw new Error(`substituir: ${t.sai} não está em campo`);
+      if (!entra) throw new Error(`substituir: ${t.entra} não está no banco`);
+      const novo: JogadorEmCampo = { ...entra, posicao: sai.posicao, ...(entra.posicoes ? { aptidao: aptidaoNa(entra.posicoes, sai.posicao, this.params) } : {}) };
+      eq = { ...eq, onze: eq.onze.map((j) => (j.id === sai.id ? novo : j)), banco: (eq.banco ?? []).filter((b) => b.id !== entra.id) };
+      out.push({ tipo: "substituicao", minuto: this.ultimo, lado, sai: sai.id, entra: entra.id, motivo: "treinador" });
+    }
+    this.equipas[lado] = eq;
+    this.forcas[lado] = this.calcularForca(eq);
+    this.riscosBase[lado] = undefined;
+    this.atualizarEfetivas(this.ultimo);
+    return out;
+  }
+
   /** Muda só a tática de um lado (RZ-170): vale a partir do minuto seguinte. */
   mudarTatica(lado: Lado, tatica: Tatica): void {
     this.alterarEquipa(lado, { ...this.equipas[lado], tatica });

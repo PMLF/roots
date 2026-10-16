@@ -53,7 +53,7 @@ export type EventoJogo =
   /** Cartão (RZ-106). O segundo amarelo vem como um amarelo seguido de um vermelho com `segundoAmarelo`. */
   /** Lesão em jogo (RZ-107): o jogador sai do campo. */
   | { tipo: "lesao"; minuto: number; lado: Lado; jogador: string; lesao: Lesao }
-  | { tipo: "substituicao"; minuto: number; lado: Lado; sai: string; entra: string; motivo: "lesao" }
+  | { tipo: "substituicao"; minuto: number; lado: Lado; sai: string; entra: string; motivo: "lesao" | "treinador" }
   | { tipo: "cartao"; minuto: number; lado: Lado; jogador: string; cor: "amarelo" | "vermelho"; segundoAmarelo?: true };
 
 export type EstatLado = {

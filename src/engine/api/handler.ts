@@ -13,7 +13,7 @@ import { competicoesDoMundo, jogoLab, ligaLab } from "../laboratorio/laboratorio
 import { caixa, marcarCaixaLida, marcarMensagem, noticias } from "../noticias/noticias";
 import { epocaDoClube } from "../competicao/clubeEpoca";
 import { lerJogoVivo } from "../epoca/jogoAoVivo";
-import { iniciarSessao, mudarTaticaSessao, passoSessao, sessaoAtual } from "../epoca/sessaoJogo";
+import { iniciarSessao, mudarTaticaSessao, passoSessao, sessaoAtual, substituirSessao } from "../epoca/sessaoJogo";
 import { estaNaSegundaDistrital } from "../epoca/distritais";
 import { aceitarOferta, demitir, estaDesempregado, ofertasDoGamer } from "../epoca/mercadoTreinadores";
 import { avancar, estadoDoTempo } from "../epoca/avancar";
@@ -302,6 +302,10 @@ export async function tratar(m: Mensagem, servicos: Servicos, aoProgredir: (p: P
     case "taticaNoJogo": {
       const { repositorio, dados, params } = await contexto(servicos);
       return mudarTaticaSessao(repositorio, dados, params, m.entrada.tatica);
+    }
+    case "substituicoesNoJogo": {
+      const { repositorio, dados, params } = await contexto(servicos);
+      return substituirSessao(repositorio, dados, params, m.entrada.trocas);
     }
     case "estadoTempo": {
       const { repositorio, dados, params } = await contexto(servicos);

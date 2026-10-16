@@ -134,4 +134,68 @@ describe("jogo do gamer minuto a minuto (RZ-170)", () => {
     expect(r.pausa!.jogo).not.toBe(a.pausa.jogo);
     expect(r.pausa!.data > a.pausa.data).toBe(true);
   }, 120000);
+
+  describe("substituições do gamer (RZ-215)", () => {
+    async function aos(minutos: number, seed: string) {
+      const a = await ateAoJogo(seed);
+      const ini = await tratar({ id: 60, tipo: "iniciarJogo", entrada: { jogo: a.pausa.jogo } }, a.s);
+      const j = minutos > 0 ? await tratar({ id: 61, tipo: "passoJogo", entrada: { minutos } }, a.s) : ini;
+      let n = 100;
+      const trocar = (trocas: { sai: string; entra: string }[]) => tratar({ id: n++, tipo: "substituicoesNoJogo", entrada: { trocas } }, a.s);
+      const passo = (m: number) => tratar({ id: n++, tipo: "passoJogo", entrada: { minutos: m } }, a.s);
+      const campo = (jg: typeof j) => jg.equipas![jg.ladoGamer!].filter((x) => x.estado === "campo" && x.posicao !== "GK");
+      const banco = (jg: typeof j) => jg.equipas![jg.ladoGamer!].filter((x) => x.estado === "banco" && x.posicao !== "GK");
+      return { j, trocar, passo, campo, banco };
+    }
+
+    it("várias trocas de uma vez gastam uma pausa; o limite é 5 substituições e 3 pausas", async () => {
+      const { j, trocar, campo, banco } = await aos(30, "subs-1");
+      expect(j.subs).toMatchObject({ usadas: 0, max: 5, pausasUsadas: 0, maxPausas: 3 });
+      const c = campo(j);
+      const b = banco(j);
+      const j2 = await trocar([{ sai: c[0]!.id, entra: b[0]!.id }, { sai: c[1]!.id, entra: b[1]!.id }, { sai: c[2]!.id, entra: b[2]!.id }]);
+      expect(j2.subs).toMatchObject({ usadas: 3, pausasUsadas: 1 });
+      expect(j2.linhas.filter((l) => l.tipo === "substituicao" && l.minuto === 30)).toHaveLength(3);
+      const em = j2.equipas![j2.ladoGamer!];
+      expect(em.find((x) => x.id === b[0]!.id)).toMatchObject({ estado: "campo", entrou: 30, posicao: c[0]!.posicao });
+      expect(em.find((x) => x.id === c[0]!.id)).toMatchObject({ estado: "saiu", saiu: 30 });
+      const c2 = campo(j2).filter((x) => !x.entrou);
+      const b2 = banco(j2);
+      const j3 = await trocar([{ sai: c2[0]!.id, entra: b2[0]!.id }, { sai: c2[1]!.id, entra: b2[1]!.id }]);
+      expect(j3.subs).toMatchObject({ usadas: 5, pausasUsadas: 2 });
+      await expect(trocar([{ sai: campo(j3)[0]!.id, entra: banco(j3)[0]?.id ?? "x" }])).rejects.toThrow(/substituições/);
+    }, 120000);
+
+    it("sem pausas não há substituições; ao intervalo não se gastam pausas", async () => {
+      const { j, trocar, passo, campo, banco } = await aos(20, "subs-2");
+      let atual = j;
+      for (let k = 0; k < 3; k++) {
+        atual = await trocar([{ sai: campo(atual).filter((x) => !x.entrou)[0]!.id, entra: banco(atual)[0]!.id }]);
+        atual = await passo(2);
+        if (atual.minuto! >= 45) break;
+      }
+      expect(atual.subs!.pausasUsadas).toBe(3);
+      await expect(trocar([{ sai: campo(atual).filter((x) => !x.entrou)[0]!.id, entra: banco(atual)[0]!.id }])).rejects.toThrow(/pausas/);
+      const meio = await passo(45 - atual.minuto!);
+      expect(meio.minuto).toBe(45);
+      const livre = await trocar([{ sai: campo(meio).filter((x) => !x.entrou)[0]!.id, entra: banco(meio)[0]!.id }]);
+      expect(livre.subs!.pausasUsadas).toBe(3);
+      expect(livre.subs!.usadas).toBe(4);
+    }, 120000);
+
+    it("rejeita jogadores que não estão em campo ou no banco; o jogo guardado inclui as trocas", async () => {
+      const { j, trocar, passo, campo, banco } = await aos(10, "subs-3");
+      const c = campo(j)[0]!;
+      const b = banco(j)[0]!;
+      await expect(trocar([{ sai: b.id, entra: c.id }])).rejects.toThrow();
+      await expect(trocar([])).rejects.toThrow();
+      const feito = await trocar([{ sai: c.id, entra: b.id }]);
+      expect(feito.subs!.usadas).toBe(1);
+      const fim = await passo(200);
+      const entrou = fim.equipas![fim.ladoGamer!].find((x) => x.id === b.id)!;
+      expect(entrou.entrou).toBe(10);
+      expect(entrou.nota).toBeDefined();
+      expect(fim.linhas.filter((l) => l.tipo === "substituicao" && l.minuto === 10).length).toBe(1);
+    }, 120000);
+  });
 });
