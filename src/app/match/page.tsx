@@ -6,7 +6,7 @@ import type { JogoVivo } from "@/engine/epoca/jogoAoVivo";
 import type { Tatica } from "@/engine/jogo/tipos";
 import { Ligacao } from "@/ui/components/Ligacao";
 import { AmostraClube } from "@/ui/components/AmostraClube";
-import { CartaoEquipa, Confrontos, Estatisticas, Eventos, GraficoXg, InfoCabecalho, OutrosJogos, TabelaViva, TaticaNoJogo } from "@/ui/components/jogo/PainelJogo";
+import { CartaoEquipa, Confrontos, Estatisticas, Eventos, GraficoXg, InfoCabecalho, Intervalo, OutrosJogos, TabelaViva, TaticaNoJogo } from "@/ui/components/jogo/PainelJogo";
 import { guardar, ler } from "@/ui/armazenamento";
 import { useModoDev } from "@/ui/dev";
 import type { Chave } from "@/ui/i18n";
@@ -38,6 +38,9 @@ function Conteudo() {
   const [aMudar, setAMudar] = useState(false);
   const [erro, setErro] = useState<string | undefined>(undefined);
   const corriaAntes = useRef(false);
+  const [intervalo, setIntervalo] = useState(false);
+  const intervaloVisto = useRef<string | undefined>(undefined);
+  const daPausaDoIntervalo = useRef(false);
 
   useEffect(() => { setSeparador(ler("raizes.separadorJogo", eSeparador) ?? "jogo"); }, []);
   useEffect(() => { setVel(ler("raizes.velocidadeJogo", eVelocidade) ?? 0); }, []);
@@ -72,6 +75,23 @@ function Conteudo() {
     return () => window.clearTimeout(timer);
   }, [jogo, emCurso, aCorrer, vel, passo]);
 
+  // a barra de progresso do rodapé segue o jogo do gamer enquanto decorre
+  const duracaoJogo = jogo?.duracao;
+  const minutoJogo = jogo?.minuto;
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("raizes:jogoEmCurso", { detail: emCurso && duracaoJogo ? { minuto: minutoJogo ?? 0, duracao: duracaoJogo } : null }));
+  }, [emCurso, minutoJogo, duracaoJogo]);
+
+  // ao intervalo o jogo pára e abre-se o popup (uma vez por jogo; ao reabrir a página no intervalo volta a abrir)
+  const minutoIntervalo = jogo?.linhas.find((l) => l.tipo === "intervalo")?.minuto;
+  const idJogo = jogo?.id;
+  useEffect(() => {
+    if (!emCurso || minutoIntervalo === undefined || minutoJogo !== minutoIntervalo || intervaloVisto.current === idJogo) return;
+    intervaloVisto.current = idJogo;
+    setACorrer(false);
+    setIntervalo(true);
+  }, [emCurso, minutoIntervalo, minutoJogo, idJogo]);
+
   // espaço: pausa e continua (a barra global não avança o tempo nesta página)
   useEffect(() => {
     if (!emCurso) return;
@@ -92,7 +112,10 @@ function Conteudo() {
   };
   const fecharTatica = useCallback(() => {
     setTaticaAberta((aberta) => { if (aberta) setACorrer(corriaAntes.current); return false; });
+    if (daPausaDoIntervalo.current) { daPausaDoIntervalo.current = false; setIntervalo(true); }
   }, []);
+  const taticaDoIntervalo = () => { daPausaDoIntervalo.current = true; setIntervalo(false); abrirTatica(); };
+  const segundaParte = () => { setIntervalo(false); setACorrer(true); };
   const mudarTatica = async (tatica: Tatica) => {
     if (!motor) return;
     setAMudar(true);
@@ -107,7 +130,7 @@ function Conteudo() {
   const gf = ultima?.golosFora ?? 0;
   return (
     <section className="pagina-jogo">
-      <p className="suave"><Ligacao k="competicao" id={jogo.competicao}>{jogo.competicao}</Ligacao> · {t("jogo.jornada", { n: jogo.jornada })} · {jogo.data}</p>
+      <p className="suave jogo-contexto"><Ligacao k="competicao" id={jogo.competicao}>{jogo.competicao}</Ligacao> · {t("jogo.jornada", { n: jogo.jornada })} · {jogo.data}</p>
       <div className="placar" aria-live="polite">
         <span className="placar-equipa placar-casa"><AmostraClube cores={jogo.cores?.[jogo.casa.id]} /><Ligacao k="clube" id={jogo.casa.id} semAmostra>{jogo.casa.nome}</Ligacao></span>
         <b className="placar-golos">{gc}–{gf}</b>
@@ -132,6 +155,7 @@ function Conteudo() {
         </div>
       ) : null}
       {erro && <p className="erro" role="alert">{erro}</p>}
+      {intervalo && emCurso && <Intervalo jogo={jogo} aoTatica={taticaDoIntervalo} aoContinuar={segundaParte} />}
       {taticaAberta && emCurso && jogo.tatica && <TaticaNoJogo tatica={jogo.tatica} aoMudar={(x) => void mudarTatica(x)} aoFechar={fecharTatica} ocupado={aMudar} />}
       <div className="separadores" role="tablist" aria-label={t("jogo.separadores")}>
         {SEPARADORES.map((x) => (

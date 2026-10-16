@@ -992,5 +992,11 @@
   "jogo.info.canais": "Transmissão",
   "jogo.meio.tv": "TV",
   "jogo.meio.streaming": "streaming",
-  "jogo.meio.radio": "rádio"
+  "jogo.meio.radio": "rádio",
+  "jogo.intervaloTatica": "Alterar tática",
+  "jogo.segundaParte": "Começar a 2.ª parte",
+  "jogo.progresso": "Progresso do jogo",
+  "jogo.intervaloTitulo": "Intervalo",
+  "definicoes.rotulo": "Definições",
+  "definicoes.densidade": "Densidade"
 }

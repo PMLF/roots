@@ -992,5 +992,11 @@
   "jogo.info.canais": "Broadcast",
   "jogo.meio.tv": "TV",
   "jogo.meio.streaming": "streaming",
-  "jogo.meio.radio": "radio"
+  "jogo.meio.radio": "radio",
+  "jogo.intervaloTatica": "Change tactics",
+  "jogo.segundaParte": "Start the second half",
+  "jogo.progresso": "Match progress",
+  "jogo.intervaloTitulo": "Half-time",
+  "definicoes.rotulo": "Settings",
+  "definicoes.densidade": "Density"
 }
