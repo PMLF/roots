@@ -95,13 +95,15 @@ legend { padding: 0 6px; color: var(--suave); }
 .barra { position: relative; }
 .progresso-jogo { position: absolute; left: 0; right: 0; top: -1px; height: 2px; background: transparent; pointer-events: none; }
 .progresso-jogo i { display: block; height: 100%; background: var(--destaque); transition: width .25s linear; }
-.intervalo-jogo { width: min(92vw, 780px); text-align: center; padding: 24px 28px; }
+.intervalo-jogo { width: min(94vw, 880px); text-align: center; padding: 24px 28px; }
 .intervalo-jogo h2 { text-align: center; font-size: 18px; margin-bottom: 18px; }
 .intervalo-corpo { display: grid; gap: 28px; align-items: stretch; margin-bottom: 22px; }
 .intervalo-corpo > * { padding: 14px 16px; border: 1px solid var(--linha); border-radius: var(--r-m); }
-.intervalo-corpo .estatisticas { display: grid; align-content: space-between; gap: 10px; margin: 0; list-style: none; }
-@media (min-width: 640px) { .intervalo-corpo { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
-.intervalo-xg { min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+.intervalo-corpo .estatisticas { display: grid; grid-template-columns: minmax(0, 1fr); align-content: space-between; gap: 10px; margin: 0; list-style: none; }
+@media (min-width: 640px) { .intervalo-corpo { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); } }
+.intervalo-xg { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.grafico-xg-caixa { flex: 1; min-height: 180px; position: relative; }
+.grafico-xg-caixa .grafico-xg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .intervalo-xg .xg-legenda { justify-content: center; }
 .intervalo-jogo .acoes { justify-content: center; gap: 12px; margin: 0; }
 .ind .ev-icone { width: 15px; height: 15px; }
@@ -610,3 +612,29 @@ button.dev { border-style: dashed; }
 .nota-media { background: #f2d479; color: #3b2f00; }
 .nota-baixa { background: #e38b84; color: #3b0b07; }
 .nota-vazia { opacity: 0.4; }
+
+/* Substituições (RZ-215) */
+.subs-resumo { display: flex; justify-content: center; margin: 6px 0 0; max-width: none; }
+.contadores-subs { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: 4px 20px; font-size: 12px; color: var(--suave); }
+.contador-subs { display: inline-flex; align-items: center; gap: 8px; }
+.contador-barras { display: inline-flex; gap: 3px; }
+.contador-barras i { display: block; width: 16px; height: 6px; border-radius: 2px; }
+.contador-barras .livre { background: var(--destaque); }
+.contador-barras .gasta { background: var(--linha-forte); }
+.subs-jogo { width: min(94vw, 760px); }
+.subs-jogo h3 { margin: 0 0 6px; font-size: 13px; color: var(--suave); font-weight: 600; }
+.subs-aviso { text-align: center; max-width: none; margin: 8px 0 12px; font-size: 13px; }
+.subs-listas { display: grid; gap: 18px; margin-bottom: 12px; }
+@media (min-width: 640px) { .subs-listas { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.subs-listas ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 42vh; overflow-y: auto; }
+.subs-jogador { display: grid; grid-template-columns: auto 2.4rem minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 5px 10px; font-size: 13px; }
+.subs-listas section:nth-child(2) .subs-jogador { grid-template-columns: 2.4rem minmax(0, 1fr) auto; }
+.subs-jogador.escolhido { border-color: var(--destaque); background: var(--destaque-fundo); }
+.subs-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.subs-apt { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--suave); }
+.subs-apt.fraca { color: #d32f2f; }
+.nota-pequena { font-variant-numeric: tabular-nums; font-size: 12px; min-width: 2rem; }
+.subs-pares { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; font-size: 13px; }
+.subs-pares li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 4px 10px; border-radius: var(--r-s); background: linear-gradient(135deg, color-mix(in srgb, #1a7f37 18%, transparent), color-mix(in srgb, #d32f2f 18%, transparent)); }
+.subs-pares .ligacao-botao { margin-left: auto; }
+.subs-jogo .acoes { justify-content: center; gap: 12px; }

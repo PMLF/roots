@@ -237,6 +237,8 @@ export type PedidosMotor = {
   /** Muda a tática do gamer durante o jogo, a partir do minuto seguinte. */
   definirOrcamento: { entrada: { massaSalarialMax: number; transferencias: number }; saida: FinancasClube };
   taticaNoJogo: { entrada: { tatica: Tatica }; saida: JogoVivo };
+  /** Substituições do gamer (todas as de uma paragem): sai quem está em campo, entra quem está no banco. */
+  substituicoesNoJogo: { entrada: { trocas: { sai: string; entra: string }[] }; saida: JogoVivo };
   /** Marca uma mensagem como lida ou por ler. */
   marcarMensagem: { entrada: { id: number; lida: boolean }; saida: null };
   demitir: { entrada: null; saida: { clube: string } };

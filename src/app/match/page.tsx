@@ -7,6 +7,7 @@ import type { Tatica } from "@/engine/jogo/tipos";
 import { Ligacao } from "@/ui/components/Ligacao";
 import { AmostraClube } from "@/ui/components/AmostraClube";
 import { CartaoEquipa, Confrontos, Estatisticas, Eventos, GraficoXg, InfoCabecalho, Intervalo, OutrosJogos, TabelaViva, TaticaNoJogo } from "@/ui/components/jogo/PainelJogo";
+import { SubstituicoesNoJogo, ContadoresSubs, semSubstituicoes } from "@/ui/components/jogo/Substituicoes";
 import { guardar, ler } from "@/ui/armazenamento";
 import { useModoDev } from "@/ui/dev";
 import type { Chave } from "@/ui/i18n";
@@ -39,6 +40,8 @@ function Conteudo() {
   const [erro, setErro] = useState<string | undefined>(undefined);
   const corriaAntes = useRef(false);
   const [intervalo, setIntervalo] = useState(false);
+  const [subsAberto, setSubsAberto] = useState(false);
+  const [erroSubs, setErroSubs] = useState<string | undefined>(undefined);
   const intervaloVisto = useRef<string | undefined>(undefined);
   const daPausaDoIntervalo = useRef(false);
 
@@ -114,6 +117,22 @@ function Conteudo() {
     setTaticaAberta((aberta) => { if (aberta) setACorrer(corriaAntes.current); return false; });
     if (daPausaDoIntervalo.current) { daPausaDoIntervalo.current = false; setIntervalo(true); }
   }, []);
+  const abrirSubs = () => {
+    corriaAntes.current = aCorrer;
+    setACorrer(false);
+    setErroSubs(undefined);
+    setSubsAberto(true);
+  };
+  const fecharSubs = useCallback(() => {
+    setSubsAberto((aberto) => { if (aberto) setACorrer(corriaAntes.current); return false; });
+    if (daPausaDoIntervalo.current) { daPausaDoIntervalo.current = false; setIntervalo(true); }
+  }, []);
+  const confirmarSubs = async (trocas: { sai: string; entra: string }[]) => {
+    if (!motor) return;
+    setAMudar(true);
+    try { setJogo(await motor.chamar("substituicoesNoJogo", { trocas })); fecharSubs(); } catch (e) { setErroSubs(e instanceof Error ? e.message : String(e)); } finally { setAMudar(false); }
+  };
+  const subsDoIntervalo = () => { daPausaDoIntervalo.current = true; setIntervalo(false); abrirSubs(); };
   const taticaDoIntervalo = () => { daPausaDoIntervalo.current = true; setIntervalo(false); abrirTatica(); };
   const segundaParte = () => { setIntervalo(false); setACorrer(true); };
   const mudarTatica = async (tatica: Tatica) => {
@@ -140,7 +159,7 @@ function Conteudo() {
       <InfoCabecalho jogo={jogo} />
       {emCurso ? (
         <div className="acoes controlos-jogo">
-          <button type="button" className="primario" onClick={() => setACorrer((v) => !v)} disabled={taticaAberta}>
+          <button type="button" className="primario" onClick={() => setACorrer((v) => !v)} disabled={taticaAberta || subsAberto}>
             {aCorrer ? t("jogo.pausa") : minuto === 0 ? t("jogo.comecar") : t("jogo.continuar")}
           </button>
           <label className="velocidade">
@@ -150,12 +169,15 @@ function Conteudo() {
             </select>
           </label>
           <button type="button" onClick={abrirTatica}>{t("jogo.taticaBotao")}</button>
+          <button type="button" onClick={abrirSubs} disabled={minuto < 1 || semSubstituicoes(jogo.subs, minuto === minutoIntervalo)} title={semSubstituicoes(jogo.subs, minuto === minutoIntervalo) ? t("jogo.subs.semMais") : undefined}>{t("jogo.subs.botao")}</button>
           <label><input type="checkbox" checked={soImportante} onChange={(e) => setSoImportante(e.target.checked)} /> {t("jogo.soImportante")}</label>
           {dev && <button type="button" className="dev" onClick={() => { setACorrer(false); void passo(500); }}>{t("jogo.saltar")}</button>}
         </div>
       ) : null}
+      {emCurso && jogo.subs && <p className="subs-resumo"><ContadoresSubs subs={jogo.subs} /></p>}
       {erro && <p className="erro" role="alert">{erro}</p>}
-      {intervalo && emCurso && <Intervalo jogo={jogo} aoTatica={taticaDoIntervalo} aoContinuar={segundaParte} />}
+      {intervalo && emCurso && <Intervalo jogo={jogo} aoTatica={taticaDoIntervalo} aoSubs={subsDoIntervalo} aoContinuar={segundaParte} />}
+      {subsAberto && emCurso && <SubstituicoesNoJogo jogo={jogo} noIntervalo={minuto === minutoIntervalo} ocupado={aMudar} {...(erroSubs ? { erro: erroSubs } : {})} aoConfirmar={(x) => void confirmarSubs(x)} aoFechar={fecharSubs} />}
       {taticaAberta && emCurso && jogo.tatica && <TaticaNoJogo tatica={jogo.tatica} aoMudar={(x) => void mudarTatica(x)} aoFechar={fecharTatica} ocupado={aMudar} />}
       <div className="separadores" role="tablist" aria-label={t("jogo.separadores")}>
         {SEPARADORES.map((x) => (

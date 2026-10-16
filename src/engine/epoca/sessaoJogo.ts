@@ -22,6 +22,8 @@ import { lerPlano, validarTatica } from "./planoDeJogo";
 import { prepararEpoca } from "./preparar";
 
 type Mudanca = { minuto: number; tatica: Tatica };
+/** Uma substituição do gamer. `pausa`: número da paragem que a trouxe (0 = intervalo, que não gasta pausas). */
+export type TrocaFeita = { minuto: number; sai: string; entra: string; pausa: number };
 export type SessaoGuardada = {
   jogo: string;
   competicao: string;
@@ -31,6 +33,7 @@ export type SessaoGuardada = {
   lado: Lado;
   entrada: EntradaJogo;
   mudancas: Mudanca[];
+  trocas?: TrocaFeita[];
   minuto: number;
   tabela: LinhaTabelaVivo[];
   outros: OutroJogoVivo[];
@@ -52,14 +55,22 @@ const guardar = (repo: Repositorio, s: SessaoGuardada) => repo.definirMeta(CHAVE
 function reproduzir(s: SessaoGuardada, params: Parametros, ate: number = s.minuto): { sim: SimuladorJogo; eventos: EventoJogo[] } {
   const sim = new SimuladorJogo(s.entrada, params);
   const eventos: EventoJogo[] = [];
-  const mudancas = s.mudancas.filter((m) => m.minuto <= ate);
-  for (const m of mudancas) {
-    eventos.push(...sim.simularAte(m.minuto));
-    sim.mudarTatica(s.lado, m.tatica);
+  const taticas = s.mudancas.filter((m) => m.minuto <= ate);
+  const trocas = (s.trocas ?? []).filter((t) => t.minuto <= ate);
+  // no mesmo minuto aplica-se primeiro a tática e depois as substituições (sempre pela mesma ordem, para a repetição ser igual)
+  const minutos = [...new Set([...taticas.map((m) => m.minuto), ...trocas.map((t) => t.minuto)])].sort((x, y) => x - y);
+  for (const m of minutos) {
+    eventos.push(...sim.simularAte(m));
+    for (const x of taticas.filter((y) => y.minuto === m)) sim.mudarTatica(s.lado, x.tatica);
+    const doMinuto = trocas.filter((t) => t.minuto === m);
+    if (doMinuto.length > 0) eventos.push(...sim.substituir(s.lado, doMinuto));
   }
   eventos.push(...sim.simularAte(ate));
   return { sim, eventos };
 }
+
+/** O minuto do intervalo: as substituições feitas aqui não gastam pausas. */
+export const minutoDoIntervalo = (params: Parametros): number => Math.round(params.jogo.duracao / 2);
 
 /** A vista do jogo no minuto atual: o mesmo formato do jogo guardado, só com o que já aconteceu. */
 function vista(repo: Repositorio, s: SessaoGuardada, params: Parametros, nomes: ReadonlyMap<string, string>): JogoVivo {
@@ -79,7 +90,7 @@ function vista(repo: Repositorio, s: SessaoGuardada, params: Parametros, nomes: 
     fora: { id: s.entrada.fora.clube, nome: nomes.get(s.entrada.fora.clube) ?? s.entrada.fora.clube },
     duracao: sim.duracao, golosCasa: resumo.casa.golos, golosFora: resumo.fora.golos, linhas,
     tabela: s.tabela, pontosVitoria: s.pontosVitoria, pontosEmpate: s.pontosEmpate, outros, cores: s.cores, ...(s.zonas ? { zonas: s.zonas } : {}),
-    resumo, equipas, xg: curvaXg(eventos, s.minuto), ...(s.confrontos ? { confrontos: s.confrontos } : {}), ...(s.info ? { info: s.info } : {}), ladoGamer: s.lado, emCurso: true, minuto: s.minuto, ...(ultima ? { tatica: ultima } : {}),
+    resumo, equipas, subs: { usadas: eventos.filter((e) => e.tipo === "substituicao" && e.lado === s.lado).length, max: params.jogo.substituicoes.max, pausasUsadas: new Set((s.trocas ?? []).map((t) => t.pausa).filter((p) => p > 0)).size, maxPausas: params.jogo.substituicoes.pausas }, xg: curvaXg(eventos, s.minuto), ...(s.confrontos ? { confrontos: s.confrontos } : {}), ...(s.info ? { info: s.info } : {}), ladoGamer: s.lado, emCurso: true, minuto: s.minuto, ...(ultima ? { tatica: ultima } : {}),
   };
 }
 
@@ -147,6 +158,39 @@ export function mudarTaticaSessao(repo: Repositorio, base: DadosBase, params: Pa
   const atual = [...s.mudancas].reverse()[0]?.tatica ?? (s.lado === "casa" ? s.entrada.casa.tatica : s.entrada.fora.tatica);
   if (atual && atual.formacao !== tatica.formacao) throw new Error("A formação não muda a meio do jogo");
   const novo = { ...s, mudancas: [...s.mudancas, { minuto: s.minuto, tatica }] };
+  guardar(repo, novo);
+  return vista(repo, novo, params, nomesDe(dadosDaEpoca(repo, base)));
+}
+
+/**
+ * Substituições do gamer (RZ-215), todas as que confirma de uma vez. Fora do intervalo gastam uma pausa (3 por jogo), seja
+ * qual for o número de trocas; ao intervalo não gastam pausas. No total, no máximo 5 (as lesões também contam).
+ */
+export function substituirSessao(repo: Repositorio, base: DadosBase, params: Parametros, trocas: readonly { sai: string; entra: string }[]): JogoVivo {
+  const s = lerSessao(repo);
+  if (!s) throw new Error("Não há jogo a decorrer");
+  if (trocas.length === 0) throw new Error("Escolhe pelo menos uma substituição");
+  const { sim, eventos } = reproduzir(s, params);
+  if (sim.terminado || s.minuto < 1) throw new Error("Só se fazem substituições com o jogo a decorrer");
+  const cfg = params.jogo.substituicoes;
+  const usadas = eventos.filter((e) => e.tipo === "substituicao" && e.lado === s.lado).length;
+  if (usadas >= cfg.max) throw new Error("Já não tens substituições");
+  if (usadas + trocas.length > cfg.max) throw new Error(`Só tens mais ${cfg.max - usadas} substituições`);
+  const intervalo = s.minuto === minutoDoIntervalo(params);
+  const pausasUsadas = new Set((s.trocas ?? []).map((t) => t.pausa).filter((p) => p > 0)).size;
+  if (!intervalo && pausasUsadas >= cfg.pausas) throw new Error("Já não tens pausas para substituições");
+  const eq = sim.equipa(s.lado);
+  const sai = new Set<string>();
+  const entra = new Set<string>();
+  for (const t of trocas) {
+    if (!eq.onze.some((j) => j.id === t.sai)) throw new Error("O jogador que sai não está em campo");
+    if (!(eq.banco ?? []).some((j) => j.id === t.entra)) throw new Error("O jogador que entra não está no banco");
+    if (sai.has(t.sai) || entra.has(t.entra)) throw new Error("Jogador repetido nas substituições");
+    sai.add(t.sai);
+    entra.add(t.entra);
+  }
+  const pausa = intervalo ? 0 : Math.max(0, ...(s.trocas ?? []).map((t) => t.pausa)) + 1;
+  const novo: SessaoGuardada = { ...s, trocas: [...(s.trocas ?? []), ...trocas.map((t) => ({ minuto: s.minuto, sai: t.sai, entra: t.entra, pausa }))] };
   guardar(repo, novo);
   return vista(repo, novo, params, nomesDe(dadosDaEpoca(repo, base)));
 }

@@ -998,5 +998,21 @@
   "jogo.progresso": "Progresso do jogo",
   "jogo.intervaloTitulo": "Intervalo",
   "definicoes.rotulo": "Definições",
-  "definicoes.densidade": "Densidade"
+  "definicoes.densidade": "Densidade",
+  "jogo.subs.botao": "Substituições",
+  "jogo.subs.titulo": "Substituições",
+  "jogo.subs.contSubs": "Substituições",
+  "jogo.subs.contPausas": "Pausas",
+  "jogo.subs.aviso": "Todas as trocas que confirmares agora gastam uma só pausa. Quem sai não volta.",
+  "jogo.subs.avisoIntervalo": "Ao intervalo as substituições não gastam pausas. Quem sai não volta.",
+  "jogo.subs.emCampo": "Em campo",
+  "jogo.subs.sai": "Sai",
+  "jogo.subs.entra": "Entra",
+  "jogo.subs.escolhidas": "Substituições escolhidas",
+  "jogo.subs.remover": "Remover",
+  "jogo.subs.escolhe": "Escolhe quem sai e depois quem entra.",
+  "jogo.subs.escolheEntra": "Escolhe quem entra para o lugar de {nome}.",
+  "jogo.subs.confirmar": "Confirmar substituições",
+  "jogo.subs.foraPosicao": "fora de posição",
+  "jogo.subs.semMais": "Já não tens substituições ou pausas para as fazer."
 }

@@ -998,5 +998,21 @@
   "jogo.progresso": "Match progress",
   "jogo.intervaloTitulo": "Half-time",
   "definicoes.rotulo": "Settings",
-  "definicoes.densidade": "Density"
+  "definicoes.densidade": "Density",
+  "jogo.subs.botao": "Substitutions",
+  "jogo.subs.titulo": "Substitutions",
+  "jogo.subs.contSubs": "Substitutions",
+  "jogo.subs.contPausas": "Stoppages",
+  "jogo.subs.aviso": "All the changes you confirm now use a single stoppage. Whoever comes off can't return.",
+  "jogo.subs.avisoIntervalo": "At half-time substitutions don't use stoppages. Whoever comes off can't return.",
+  "jogo.subs.emCampo": "On the pitch",
+  "jogo.subs.sai": "Off",
+  "jogo.subs.entra": "On",
+  "jogo.subs.escolhidas": "Chosen substitutions",
+  "jogo.subs.remover": "Remove",
+  "jogo.subs.escolhe": "Pick who comes off, then who comes on.",
+  "jogo.subs.escolheEntra": "Pick who replaces {nome}.",
+  "jogo.subs.confirmar": "Confirm substitutions",
+  "jogo.subs.foraPosicao": "out of position",
+  "jogo.subs.semMais": "No substitutions or stoppages left."
 }

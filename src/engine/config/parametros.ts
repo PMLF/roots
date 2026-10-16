@@ -217,6 +217,8 @@ export type Parametros = {
      * (um jogo por semana é normal): perde `perdaPor90` por cada 90 minutos a mais, até `minimo`. Nunca passa de 1.
      */
     forma: { janelaDias: number; cargaNormal: number; perdaPor90: number; minimo: number; /** Perda de ritmo ao regressar de lesão: forma no 1.º dia e ganho por dia até 1. */ regresso: { inicial: number; ganhoPorDia: number } };
+    /** Substituições do treinador (RZ-215): máximo por jogo e de pausas para as fazer (o intervalo não conta como pausa). */
+    substituicoes: { max: number; pausas: number };
     /** Minutos regulares e acréscimos (total, sorteado por jogo). */
     duracao: number;
     acrescimos: { min: number; max: number };
@@ -593,6 +595,7 @@ export const PARAMETROS_PADRAO: Parametros = {
   jogo: {
     aptidao: { minimo: 0.55, semRegisto: 3, minimoGR: 0.15, semRegistoGR: 1 },
     forma: { janelaDias: 7, cargaNormal: 90, perdaPor90: 0.03, minimo: 0.85, regresso: { inicial: 0.88, ganhoPorDia: 0.01 } },
+    substituicoes: { max: 5, pausas: 3 },
     duracao: 90,
     acrescimos: { min: 3, max: 8 },
     oportunidadesPorEquipa: 24,
@@ -712,6 +715,7 @@ export function validarParametros(p: Parametros): string[] {
   if (!(ap.minimo > 0 && ap.minimo <= 1 && ap.minimoGR > 0 && ap.minimoGR <= 1)) erros.push("jogo.aptidao.minimo e minimoGR devem estar em (0, 1]");
   if (!(ap.semRegisto >= 1 && ap.semRegisto <= 20 && ap.semRegistoGR >= 1 && ap.semRegistoGR <= 20)) erros.push("jogo.aptidao.semRegisto deve estar entre 1 e 20");
   const fm = p.jogo.forma;
+  if (!(Number.isInteger(p.jogo.substituicoes.max) && p.jogo.substituicoes.max >= 0 && Number.isInteger(p.jogo.substituicoes.pausas) && p.jogo.substituicoes.pausas >= 0)) erros.push("jogo.substituicoes inválidas");
   if (!(fm.janelaDias >= 1 && fm.cargaNormal >= 0 && fm.perdaPor90 >= 0 && fm.minimo > 0 && fm.minimo <= 1)) erros.push("jogo.forma inválida");
   if (!(fm.regresso.inicial > 0 && fm.regresso.inicial <= 1 && fm.regresso.ganhoPorDia >= 0)) erros.push("jogo.forma.regresso inválido");
   const pos = (nome: string, v: number) => { if (!(v > 0)) erros.push(`${nome} deve ser > 0 (é ${v})`); };
