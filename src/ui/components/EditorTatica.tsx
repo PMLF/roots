@@ -52,8 +52,10 @@ export function EditorTatica({ semProximoJogo = false }: { semProximoJogo?: bool
   const aptidao = (id: string, pos: string) => estado(id)?.posicoes.find((p) => p.pos === pos)?.aptidao;
   const marca = (id: string) => {
     const e = estado(id);
-    return e?.indisponivel ? ` — ${t(`tatica.${e.indisponivel}` as Chave)}` : "";
+    return e?.indisponivel ? ` — ${t(`tatica.${e.indisponivel}` as Chave)}` : e && e.forma < 0.97 ? ` — ${t("tatica.cansado")}` : "";
   };
+  const foraDePosicao = plano.onze.filter((o) => o.foraDePosicao);
+  const cansados = plano.onze.filter((o) => (estado(o.jogador)?.forma ?? 1) < 0.97);
 
   return (
     <div className="cartoes">
@@ -100,11 +102,15 @@ export function EditorTatica({ semProximoJogo = false }: { semProximoJogo?: bool
                   </select>
                 </td>
                 <td className="num suave" title={t("tatica.aptidao")}>{aptidao(o.jogador, o.posicao) ?? "—"}</td>
+                <td className={`num${o.foraDePosicao ? " erro" : " suave"}`} title={t("tatica.rendimento")}>{Math.round(o.rendimento * 100)}%</td>
+                <td className={`num${(estado(o.jogador)?.forma ?? 1) < 0.97 ? " erro" : " suave"}`} title={t("tatica.forma")}>{Math.round((estado(o.jogador)?.forma ?? 1) * 100)}%</td>
                 <td>{estado(o.jogador)?.indisponivel ? <span className="erro">{t(`tatica.${estado(o.jogador)!.indisponivel}` as Chave)}</span> : null}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        {foraDePosicao.length > 0 && <p className="erro" role="status">{t("tatica.avisoForaPosicao", { nomes: foraDePosicao.map((o) => `${o.nome} (${siglaPosicao(t, o.posicao)}, ${Math.round(o.rendimento * 100)}%)`).join(", ") })}</p>}
+        {cansados.length > 0 && <p className="suave" role="status">{t("tatica.avisoCansados", { nomes: cansados.map((o) => o.nome).join(", ") })}</p>}
         <p className="acoes"><button type="button" disabled={plano.automatico} onClick={() => void guardar(plano.tatica, null)}>{t("tatica.onzeAutomatico")}</button></p>
         {erro && <p className="erro">{erro}</p>}
       </Cartao>

@@ -13,6 +13,10 @@ export type JogadorEmCampo = {
   alturaCm: number;
   /** Forma/fadiga, 0.7-1.1 (RZ-107 passa a preenchê-la); 1 = normal. */
   forma: number;
+  /** Aptidão (1-20) na posição em que joga; sem valor, 20 (posição natural). Vê `fatorAptidao` (RZ-177). */
+  aptidao?: number;
+  /** Todas as posições que conhece, para recalcular a aptidão se mudar de posição a meio do jogo (suplente). */
+  posicoes?: { pos: string; aptidao: number }[];
   /** Regressou há pouco desta lesão: risco de recaída (RZ-107). */
   recaida?: TipoLesao;
 };

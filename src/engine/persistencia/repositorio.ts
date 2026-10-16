@@ -98,6 +98,8 @@ export interface Repositorio {
   marcadores(competicao: string, epoca: number, jornada: number): Marcador[];
   /** Cartões (CA, CV) destes jogadores nesta competição e época, por jornada, data, jogo e minuto. */
   cartoes(competicao: string, epoca: number, jogadores: readonly string[]): RegistoCartao[];
+  /** Minutos jogados por cada jogador em jogos com data em [desde, ate): serve o cansaço (RZ-177). Só devolve quem jogou. */
+  minutosJogados(jogadores: readonly string[], desde: Data, ate: Data): Map<string, number>;
   /** Jornadas (sem repetidas, por ordem) em que o clube jogou nesta competição e época. */
   jornadasJogadas(clube: string, competicao: string, epoca: number): number[];
   /** Jogos jogados nesta competição e época, por jornada, data e id. */

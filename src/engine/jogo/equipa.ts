@@ -16,13 +16,27 @@ const GR_ATRIBUTOS: readonly Atributo[] = ["reflexos", "manuseamento", "posicion
 
 const media = (a: Atributos, ks: readonly Atributo[]): number => ks.reduce((s, k) => s + a[k], 0) / ks.length;
 
-function ponderada(onze: readonly JogadorEmCampo[], g: Grupo): number {
+/** Quanto rende um jogador na posição onde joga: 1 na posição natural, menos fora dela (RZ-177). */
+export function fatorAptidao(aptidao: number | undefined, posicao: Posicao, params: Parametros): number {
+  if (aptidao === undefined) return 1;
+  const a = params.jogo.aptidao;
+  const gr = posicao === "GK";
+  const min = gr ? a.minimoGR : a.minimo;
+  return min + (1 - min) * (Math.min(20, Math.max(0, aptidao)) / 20);
+}
+
+/** A aptidão de um candidato numa posição; sem registo, o valor de `semRegisto`. */
+export function aptidaoNa(posicoes: readonly { pos: string; aptidao: number }[], posicao: Posicao, params: Parametros): number {
+  return posicoes.find((p) => p.pos === posicao)?.aptidao ?? (posicao === "GK" ? params.jogo.aptidao.semRegistoGR : params.jogo.aptidao.semRegisto);
+}
+
+function ponderada(onze: readonly JogadorEmCampo[], g: Grupo, params?: Parametros): number {
   let soma = 0;
   let pesos = 0;
   for (const j of onze) {
     const w = g.pesos[j.posicao];
     if (!w) continue;
-    soma += w * media(j.atributos, g.atributos) * j.forma;
+    soma += w * media(j.atributos, g.atributos) * j.forma * (params ? fatorAptidao(j.aptidao, j.posicao, params) : 1);
     pesos += w;
   }
   return pesos > 0 ? soma / pesos : 5;
@@ -35,10 +49,10 @@ function ponderada(onze: readonly JogadorEmCampo[], g: Grupo): number {
 export function forcaEquipa(onze: readonly JogadorEmCampo[], tatica?: Tatica, params?: Parametros): ForcaEquipa {
   const gr = onze.find((j) => j.posicao === "GK");
   const base = {
-    ataque: ponderada(onze, ATAQUE),
-    controlo: ponderada(onze, CONTROLO),
-    defesa: ponderada(onze, DEFESA),
-    guardaRedes: gr ? media(gr.atributos, GR_ATRIBUTOS) * gr.forma : 3,
+    ataque: ponderada(onze, ATAQUE, params),
+    controlo: ponderada(onze, CONTROLO, params),
+    defesa: ponderada(onze, DEFESA, params),
+    guardaRedes: gr ? media(gr.atributos, GR_ATRIBUTOS) * gr.forma * (params ? fatorAptidao(gr.aptidao, "GK", params) : 1) : 3,
   };
   if (!tatica || !params) return base;
   const m = modificadoresTatica(onze.map((j) => j.posicao), tatica, params.tatica, base.controlo);
@@ -48,15 +62,15 @@ export function forcaEquipa(onze: readonly JogadorEmCampo[], tatica?: Tatica, pa
 /** 4-3-3, a formação por omissão enquanto não há táticas (RZ-108). */
 export const FORMACAO_PADRAO: readonly Posicao[] = FORMACOES["4-3-3"];
 
-export type CandidatoOnze = { pessoa: string; posicoes: { pos: string; aptidao: number }[]; atributos: Record<string, number>; alturaCm: number };
+export type CandidatoOnze = { pessoa: string; posicoes: { pos: string; aptidao: number }[]; atributos: Record<string, number>; alturaCm: number; /** Forma por cansaço (0,85-1); por omissão 1. */ forma?: number };
 
 /** Escolhe o melhor onze disponível para a formação: cada posição fica com quem lá rende mais (aptidão incluída). Determinístico. */
-export function onzeAutomatico(candidatos: readonly CandidatoOnze[], formacao: readonly Posicao[] = FORMACAO_PADRAO): JogadorEmCampo[] {
-  return onzeComValor(candidatos, formacao).onze;
+export function onzeAutomatico(candidatos: readonly CandidatoOnze[], formacao: readonly Posicao[] = FORMACAO_PADRAO, params?: Parametros): JogadorEmCampo[] {
+  return onzeComValor(candidatos, formacao, params).onze;
 }
 
 /** Como `onzeAutomatico`, mais o valor médio do onze (qualidade na posição × aptidão), para comparar formações. */
-export function onzeComValor(candidatos: readonly CandidatoOnze[], formacao: readonly Posicao[] = FORMACAO_PADRAO): { onze: JogadorEmCampo[]; valor: number } {
+export function onzeComValor(candidatos: readonly CandidatoOnze[], formacao: readonly Posicao[] = FORMACAO_PADRAO, params?: Parametros): { onze: JogadorEmCampo[]; valor: number } {
   const livres = [...candidatos];
   const onze: JogadorEmCampo[] = [];
   let total = 0;
@@ -67,8 +81,8 @@ export function onzeComValor(candidatos: readonly CandidatoOnze[], formacao: rea
     let valor = -Infinity;
     livres.forEach((c, i) => {
       const apt = c.posicoes.find((p) => p.pos === pos)?.aptidao;
-      const fator = apt === undefined ? (pos === "GK" ? 0.1 : 0.45) : apt / 20;
-      const v = qualidadeAtual(c.atributos as Atributos, pos) * fator;
+      const fator = params ? fatorAptidao(aptidaoNa(c.posicoes, pos, params), pos, params) : apt === undefined ? (pos === "GK" ? 0.1 : 0.45) : apt / 20;
+      const v = qualidadeAtual(c.atributos as Atributos, pos) * fator * (c.forma ?? 1);
       if (v > valor || (v === valor && melhor >= 0 && c.pessoa < (livres[melhor] as CandidatoOnze).pessoa)) {
         valor = v;
         melhor = i;
@@ -77,7 +91,7 @@ export function onzeComValor(candidatos: readonly CandidatoOnze[], formacao: rea
     if (melhor < 0) break;
     const [c] = livres.splice(melhor, 1) as [CandidatoOnze];
     total += valor;
-    onze.push({ id: c.pessoa, posicao: pos, atributos: c.atributos as Atributos, alturaCm: c.alturaCm, forma: 1 });
+    onze.push({ id: c.pessoa, posicao: pos, atributos: c.atributos as Atributos, alturaCm: c.alturaCm, forma: c.forma ?? 1, ...(params ? { aptidao: aptidaoNa(c.posicoes, pos, params), posicoes: c.posicoes } : {}) });
   }
   return { onze, valor: onze.length > 0 ? total / onze.length : 0 };
 }

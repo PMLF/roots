@@ -973,5 +973,10 @@
   "financas.acimaOrcamento": "acima do orçamento",
   "financas.massaMax": "Massa salarial máxima (€/ano)",
   "financas.verbaTransferencias": "Verba para transferências (€)",
-  "financas.guardarOrcamento": "Guardar orçamento"
+  "financas.guardarOrcamento": "Guardar orçamento",
+  "tatica.rendimento": "Rendimento na posição (100% = posição natural)",
+  "tatica.forma": "Forma (cansaço por jogos recentes)",
+  "tatica.cansado": "cansado",
+  "tatica.avisoForaPosicao": "Fora de posição: {nomes}. Rendem menos do que na posição natural.",
+  "tatica.avisoCansados": "Cansados (muitos minutos nos últimos dias): {nomes}."
 }

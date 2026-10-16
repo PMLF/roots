@@ -179,8 +179,10 @@ export type PlanoVista = {
   automatico: boolean;
   formacoes: FormacaoId[];
   posicoesDaFormacao: Record<FormacaoId, Posicao[]>;
-  onze: { jogador: string; nome: string; posicao: Posicao }[];
-  plantel: { jogador: string; nome: string; posicoes: { pos: Posicao; aptidao: number }[]; indisponivel?: "lesao" | "suspenso"; jogosPorCumprir?: number }[];
+  /** `rendimento` (0-1): quanto rende o jogador na posição em que está (1 = posição natural); `foraDePosicao` avisa na interface (RZ-177). */
+  onze: { jogador: string; nome: string; posicao: Posicao; aptidao: number; rendimento: number; foraDePosicao: boolean }[];
+  /** `forma` (0,85-1): cansaço por jogos recentes; 1 = descansado ou carga normal. */
+  plantel: { jogador: string; nome: string; forma: number; posicoes: { pos: Posicao; aptidao: number }[]; indisponivel?: "lesao" | "suspenso"; jogosPorCumprir?: number }[];
   proximoJogo?: { id: string; data: string; competicao: string; adversario: string; emCasa: boolean; confirmado: boolean; /** O jogo já começou e está a decorrer. */ emCurso: boolean; adversarioId: string; adversarioCores: string };
 };
 

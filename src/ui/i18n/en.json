@@ -973,5 +973,10 @@
   "financas.acimaOrcamento": "over budget",
   "financas.massaMax": "Maximum wage bill (€/year)",
   "financas.verbaTransferencias": "Transfer budget (€)",
-  "financas.guardarOrcamento": "Save budget"
+  "financas.guardarOrcamento": "Save budget",
+  "tatica.rendimento": "Output in this position (100% = natural position)",
+  "tatica.forma": "Fitness (tiredness from recent games)",
+  "tatica.cansado": "tired",
+  "tatica.avisoForaPosicao": "Out of position: {nomes}. They perform below their natural position.",
+  "tatica.avisoCansados": "Tired (many minutes in recent days): {nomes}."
 }
