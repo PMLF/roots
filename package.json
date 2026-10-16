@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.engine.json && tsc --noEmit -p tsconfig.worker.json",
     "lint": "eslint .",
     "test": "vitest run",
+    "calibrar": "RAIZES_CALIBRAR=${RAIZES_CALIBRAR:-10} vitest run src/engine/laboratorio/calibracaoEpocas.test.ts",
     "ci": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
     "sqlite:copiar": "node tools/copiar-sqlite-wasm.mjs && node tools/copiar-dados.mjs"
   },
