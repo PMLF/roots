@@ -1049,5 +1049,10 @@
   "renewals.refused": "Recusou. Quer pelo menos perto de {wage}.",
   "renewals.willRenew": "Renova: {wage}/mês, {years} anos",
   "renewals.willLeave": "Sai no fim da época",
-  "renewals.pending": "Por decidir"
+  "renewals.pending": "Por decidir",
+  "person.agent": "Agente",
+  "person.resale": "Cláusula de revenda",
+  "person.resaleValue": "{pct} % de uma venda futura",
+  "person.resaleClub": "Revenda para",
+  "person.noClause": "Sem cláusula"
 }

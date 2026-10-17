@@ -89,6 +89,10 @@ export type PersonProfileData = {
   initialYear: number;
   /** Contrato atual: as datas são públicas, o salário não. */
   contract?: { start: string; end: string };
+  /** Agente do jogador (público). */
+  agent?: EntityRef;
+  /** Cláusulas do contrato: só no teu clube (ou em modo developer). */
+  clauses?: { release?: number; resale?: { club: EntityRef; pct: number } };
   level?: EstimatedLevel;
   /** Estrelas (RZ-916): qualidade relativa ao escalão onde joga e intervalo de potencial. */
   rating?: StarRating;

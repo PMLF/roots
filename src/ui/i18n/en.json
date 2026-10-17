@@ -1049,5 +1049,10 @@
   "renewals.refused": "Refused. They want something close to {wage}.",
   "renewals.willRenew": "Renews: {wage}/month, {years} years",
   "renewals.willLeave": "Leaves at season end",
-  "renewals.pending": "Undecided"
+  "renewals.pending": "Undecided",
+  "person.agent": "Agent",
+  "person.resale": "Resale clause",
+  "person.resaleValue": "{pct}% of a future sale",
+  "person.resaleClub": "Resale goes to",
+  "person.noClause": "No clause"
 }
