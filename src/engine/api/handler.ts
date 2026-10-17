@@ -1,6 +1,7 @@
 import { setBudget, clubBudget } from "../club/budget";
 import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
-import { createDate } from "../calendar/dates";
+import { ageAt, createDate } from "../calendar/dates";
+import { answerRenewal, decisionOf, expiringPlayers, renewalAsk, setDecision } from "../squad/renewals";
 import { DEFAULT_PARAMETERS, type Params, type Tier } from "../config/parameters";
 import { SCHEMA_VERSION as DB_SCHEMA } from "../persistence/schema";
 import type { Repository } from "../persistence/repository";
@@ -33,7 +34,7 @@ import { Rng } from "../random/rng";
 import { startCompanies } from "../company/cycle";
 import { assignAgents } from "../agent/assign";
 import { potentialRange, referenceTier, starsOf } from "../world/stars";
-import type { StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
+import type { RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SCHEMA_VERSION = DB_SCHEMA;
@@ -246,6 +247,26 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const { repository, data, params } = await context(servicos);
       return resign(repository, data, params);
     }
+    case "renewals": {
+      const { repository, data, params } = await context(servicos);
+      return renewalsOf(repository, data, params);
+    }
+    case "negotiateRenewal": {
+      const { repository, data, params } = await context(servicos);
+      const club = gamerClubOf(repository, data);
+      const season = Number(repository.meta("season") ?? 1);
+      if (!club || !renewalsOf(repository, data, params).lines.some((l) => l.id === m.input.person)) throw new Error("O jogador não tem contrato a expirar no teu clube.");
+      const r = answerRenewal(repository, data, params, club, m.input.person, { wage: m.input.wage, years: m.input.years });
+      if (!r) throw new Error("Jogador sem contrato.");
+      if (r.accepted) setDecision(repository, season, m.input.person, { kind: "renew", wage: m.input.wage, years: m.input.years });
+      return r;
+    }
+    case "releaseExpiring": {
+      const { repository, data, params } = await context(servicos);
+      if (!renewalsOf(repository, data, params).lines.some((l) => l.id === m.input.person)) throw new Error("O jogador não tem contrato a expirar no teu clube.");
+      setDecision(repository, Number(repository.meta("season") ?? 1), m.input.person, { kind: "release" });
+      return null;
+    }
     case "offers": {
       const { repository, data, params } = await context(servicos);
       const unemployed = isUnemployed(repository);
@@ -360,6 +381,32 @@ function playerRating(r: Repository, id: string, level: EstimatedLevel | undefin
   if (truth !== undefined) rating.potential = potentialRange(truth, truth, level.value, tier, params);
   else if (potential) rating.potential = potentialRange(potential.value - potential.margin, potential.value + potential.margin, level.value, tier, params);
   return rating;
+}
+
+function gamerClubOf(r: Repository, data: BaseData): BaseClub | undefined {
+  const id = r.meta("gamer.club");
+  return id ? data.clubs.find((c) => c.id === id) : undefined;
+}
+
+/** Contratos a expirar no clube do gamer, com pedido e decisão (RZ-165). */
+function renewalsOf(r: Repository, data: BaseData, params: Params): RenewalsData {
+  const season = Number(r.meta("season") ?? 1);
+  const nextSeasonStart = createDate(params.calendar.initialYear + season, params.calendar.seasonStartMonth, 1);
+  const club = gamerClubOf(r, data);
+  if (!club) return { season, nextSeasonStart, lines: [] };
+  const today = r.meta("date.today") ?? nextSeasonStart;
+  const lines: RenewalLine[] = [];
+  for (const id of expiringPlayers(r, club.id, nextSeasonStart)) {
+    const person = r.person(id);
+    const player = r.player(id);
+    const ct = r.contract(id);
+    const ask = renewalAsk(r, data, params, club, id);
+    if (!person || !player || !ct || !ask) continue;
+    const decision = decisionOf(r, season, id);
+    const agent = player.agent ? r.person(player.agent)?.sportingName : undefined;
+    lines.push({ id, name: person.sportingName, position: player.positions[0]?.pos ?? "", age: ageAt(person.birth, today), endContract: ct.end, currentWage: ct.monthlyWage, ask, ...(agent ? { agent } : {}), ...(decision ? { decision } : {}) });
+  }
+  return { season, nextSeasonStart, lines: lines.sort((a, b) => b.currentWage - a.currentWage) };
 }
 
 function personTruth(r: Repository, id: string): PersonTruth | undefined {

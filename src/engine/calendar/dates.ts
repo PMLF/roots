@@ -30,3 +30,6 @@ export const compare = (a: IsoDate, b: IsoDate): number => dayNumber(a) - dayNum
 export function nextWeekday(d: IsoDate, day: number): IsoDate {
   return addDays(d, (day - weekDay(d) + 7) % 7);
 }
+
+/** Idade em anos completos (aprox.) numa data. */
+export const ageAt = (birth: IsoDate, on: IsoDate): number => Math.floor((dayNumber(on) - dayNumber(birth)) / 365.25);

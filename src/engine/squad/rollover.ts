@@ -8,7 +8,7 @@
  * Determinístico: cada jogador e cada clube têm o seu fluxo aleatório; os clubes processam-se por escalão e reputação.
  */
 import { Rng, clamp } from "../random/rng";
-import { dayNumber } from "../calendar/dates";
+import { ageAt } from "../calendar/dates";
 import type { Params, Tier } from "../config/parameters";
 import type { BaseCity, BaseClub, BaseData, ClubId } from "../data/types";
 import type { Repository } from "../persistence/repository";
@@ -18,6 +18,7 @@ import { distributePositions } from "../world/generateWorld";
 import type { Attributes, Position } from "../world/types";
 import { developPlayer } from "./development";
 import { contractDates, createYouth, wageFor } from "./youth";
+import { decisionOf } from "./renewals";
 import { marketValue } from "../market/value";
 import { releaseClause } from "../market/clauses";
 import { agentTraits } from "../agent/assign";
@@ -36,7 +37,6 @@ export type RolloverInput = {
 
 const TIER_ORDER: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
 
-const ageAt = (birth: IsoDate, on: IsoDate): number => Math.floor((dayNumber(on) - dayNumber(birth)) / 365.25);
 
 const median = (xs: number[]): number => {
   const s = [...xs].sort((a, b) => a - b);
@@ -165,10 +165,13 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const expiring = members.filter(expired).sort((a, b) => b.quality - a.quality || (a.record.person < b.record.person ? -1 : 1));
     for (const m of expiring) {
       summary.expired++;
-      const wants = kept.length < target && (o.gamerClub === club.id || rng.derive(`renew/${m.record.person}`).prob(renewalProbability(m.quality, tq.mean, age(m.record), params, focus)));
+      const decision = o.gamerClub === club.id ? decisionOf(repo, o.season, m.record.person) : undefined;
+      const wants = decision
+        ? decision.kind === "renew"
+        : kept.length < target && (o.gamerClub === club.id || rng.derive(`renew/${m.record.person}`).prob(renewalProbability(m.quality, tq.mean, age(m.record), params, focus)));
       if (wants) {
-        const y = years(rng);
-        const wage = Math.max(50, Math.round((wageFor(params, tier, m.quality, wageScale) * sc.contracts.renewalWageFactor) / 10) * 10);
+        const y = decision?.kind === "renew" ? decision.years : years(rng);
+        const wage = decision?.kind === "renew" ? decision.wage : Math.max(50, Math.round((wageFor(params, tier, m.quality, wageScale) * sc.contracts.renewalWageFactor) / 10) * 10);
         const release = releaseClause(rng.derive(`release/${m.record.person}`), marketValue({ quality: m.quality, potential: m.record.potential, age: age(m.record), monthlyWage: wage, monthsLeft: y * 12 }, params), agentTraits(repo, m.record.agent)?.greed, params);
         repo.saveContract({ person: m.record.person, club: club.id, monthlyWage: wage, ...contractDates(o.seasonStart, y), ...(release !== undefined ? { clauses: { release } } : {}) });
         event("CONTRACT_RENEWED", m.record.person, club.id, { wage, years: y });
