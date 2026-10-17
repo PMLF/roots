@@ -1,7 +1,6 @@
 "use client";
 import { Suspense, useEffect, useState } from "react";
 import type { ClubProfileData } from "@/engine/api/contracts";
-import Link from "next/link";
 import { WithClub } from "@/ui/components/WithClub";
 import { ClubProfile } from "@/ui/components/profiles/ClubProfile";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -21,7 +20,7 @@ function Content({ club }: { club: string }) {
   }, [engine, club, seeAll]);
   if (d === undefined) return <p>{t("profile.loading")}</p>;
   if (d === null) return <p className="erro">{t("profile.notFound")}</p>;
-  return <><p><Link href="/renewals/">{t("menu.renewals")}</Link></p><ClubProfile d={d} seeAll={seeAll} squadOnly /></>;
+  return <ClubProfile d={d} seeAll={seeAll} squadOnly />;
 }
 
 /** Plantel (RZ-145): a tabela de jogadores do clube do gamer. */

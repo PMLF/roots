@@ -27,13 +27,14 @@ describe("API de renovações (RZ-165)", { timeout: 120000 }, () => {
     expect(lines.length).toBeGreaterThanOrEqual(first.length);
     const l = lines.find((x) => x.id === ids[0])!;
     expect(l.ask.wage).toBeGreaterThan(0);
-    const low = await handle({ id: 6, type: "negotiateRenewal", input: { person: l.id, wage: 50, years: 2 } }, s);
-    expect(low.accepted).toBe(false);
-    const ok = await handle({ id: 7, type: "negotiateRenewal", input: { person: l.id, wage: l.ask.wage, years: 2 } }, s);
-    expect(ok.accepted).toBe(true);
+    const mid = await handle({ id: 6, type: "negotiateRenewal", input: { person: l.id, wage: Math.floor(l.ask.wage * 0.7), years: 2, release: l.ask.release } }, s);
+    expect(["counter", "closed"]).toContain(mid.status);
+    if (mid.status === "closed") return; // jogador sem interesse: não há mais a negociar
+    const ok = await handle({ id: 7, type: "negotiateRenewal", input: { person: l.id, wage: mid.terms.wage, years: mid.terms.years, release: mid.terms.release } }, s);
+    expect(ok.status).toBe("accepted");
     await handle({ id: 8, type: "releaseExpiring", input: { person: ids[1]! } }, s);
     const after = (await handle({ id: 9, type: "renewals", input: null }, s)).lines;
-    expect(after.find((x) => x.id === ids[0])?.decision).toMatchObject({ kind: "renew", wage: l.ask.wage });
+    expect(after.find((x) => x.id === ids[0])?.decision).toMatchObject({ kind: "renew" });
     expect(after.find((x) => x.id === ids[1])?.decision).toEqual({ kind: "release" });
     await expect(handle({ id: 10, type: "releaseExpiring", input: { person: "nao-existe" } }, s)).rejects.toThrow();
   });

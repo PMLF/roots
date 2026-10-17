@@ -1,6 +1,6 @@
 "use client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, type KeyboardEvent, type ReactNode } from "react";
+import { type KeyboardEvent, type ReactNode } from "react";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import type { Key } from "@/ui/i18n";
 import { TABS, TAB_URL, urlTab, type ProfileEntityType } from "@/ui/links";
@@ -26,7 +26,7 @@ export function Profile({ type, title, subtitle, numbers = [], top, tabs }: Prop
   const router = useRouter();
   const path = usePathname();
   const params = useSearchParams();
-  // O separador vive no URL (`tab`) e cada mudança entra no histórico: «Voltar» regressa ao mesmo separador.
+  // O separador vive no URL (`tab`) e a mudança substitui a entrada do histórico: «Voltar» sai da ficha em vez de saltar entre separadores.
   const pendingRequest = urlTab(params.get("tab"));
   const active = pendingRequest && ids.includes(pendingRequest) ? pendingRequest : (ids[0] as string);
   const setActive = (id: string) => {
@@ -34,13 +34,9 @@ export function Profile({ type, title, subtitle, numbers = [], top, tabs }: Prop
     const fresh = new URLSearchParams(params.toString());
     fresh.set("tab", TAB_URL[id] ?? id);
     fresh.delete("sort");
-    router.push(`${path}?${fresh.toString()}`, { scroll: false });
+    router.replace(`${path}?${fresh.toString()}`, { scroll: false });
   };
   const label = (id: string) => t(`tab.${id}` as Key);
-  // Em ecrãs estreitos a fila de separadores desliza: o ativo tem de estar sempre à vista.
-  useEffect(() => {
-    document.getElementById(`sep-${active}`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [active]);
 
   const hotkeys = (e: KeyboardEvent<HTMLDivElement>) => {
     const i = ids.indexOf(active);

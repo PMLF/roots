@@ -16,6 +16,10 @@ function BarLevel({ level }: { level: ViewCityLevel }) {
   );
 }
 
+function LevelCell({ level, word }: { level: ViewCityLevel; word: string }) {
+  return <span title={word}><BarLevel level={level} /><span className="so-leitor">{word}</span></span>;
+}
+
 const ARROW = { rises: "↑", stable: "→", drops: "↓" } as const;
 
 /** Evolução de um número ao longo das épocas (linha simples, sem eixos). */
@@ -102,29 +106,41 @@ export function CityProfile({ d }: { d: CityProfileData }) {
 
   const summary = (
     <div className="cartoes">
+      <Card title={t("card.council")}>
+        {d.mayor ? (
+          <Data
+            lines={[
+              { label: t("city.mayor"), value: <EntityLink k="person" id={d.mayor.person.id}>{d.mayor.person.name}</EntityLink> },
+              { label: t("mayor.term"), value: `${d.mayor.sinceTerm}–${d.mayor.untilTerm}` },
+              { label: t("mayor.support"), value: <span className="nivel-linha"><BarLevel level={d.mayor.sportSupport} /><b>{level(d.mayor.sportSupport)}</b></span> },
+              { label: t("mayor.reputation"), value: d.mayor.profile.length > 0 ? d.mayor.profile.map((p) => t(`mayor.profile.${p}` as Key)).join(" · ") : "—" },
+              { label: t("city.budget"), value: <span className="nivel-linha"><BarLevel level={d.budget} /><b>{level(d.budget)}</b></span> },
+            ]}
+          />
+        ) : (
+          <>
+            <p className="vazio">{t("city.noMayor")}</p>
+            <Data lines={[{ label: t("city.budget"), value: <span className="nivel-linha"><BarLevel level={d.budget} /><b>{level(d.budget)}</b></span> }]} />
+          </>
+        )}
+      </Card>
       <Card title={t("card.cityEconomy")}>
         <Data lines={[line("economy"), line("employment"), line("tourism")]} />
       </Card>
       <Card title={t("card.cityFootball")}>
         <Data lines={[line("pride"), line("notoriety"), line("footballCulture")]} />
       </Card>
-      <Card title={t("card.council")}>
-        <Data
-          lines={[
-            { label: t("city.budget"), value: <span className="nivel-linha"><BarLevel level={d.budget} /><b>{level(d.budget)}</b></span> },
-            ...(d.mayor ? [{ label: t("mayor.support"), value: <span className="nivel-linha"><BarLevel level={d.mayor.sportSupport} /><b>{level(d.mayor.sportSupport)}</b></span> }] : []),
-          ]}
-        />
-      </Card>
-      <Card title={t("card.synergies")}>
-        <ul className="lista-simples">
-          {sectors.map((s) => <li key={s}><b>{sectorName(s)}</b> <span className="suave">· {t(`synergy.${s}` as Key)}</span></li>)}
-          {d.island && <li><b>{sectorName("ILH")}</b> <span className="suave">· {t("synergy.ILH")}</span></li>}
-        </ul>
-      </Card>
-      <Card title={t("card.incidents")} wide>
-        {d.incidents.length > 0 ? <ul className="lista-simples">{d.incidents.map(incident)}</ul> : <p className="vazio">{t("city.noIncidents")}</p>}
-      </Card>
+      <div className="cartoes-par">
+        <Card title={t("card.synergies")}>
+          <ul className="lista-horizontal">
+            {sectors.map((s) => <li key={s}><b>{sectorName(s)}</b> <span className="suave">{t(`synergy.${s}` as Key)}</span></li>)}
+            {d.island && <li><b>{sectorName("ILH")}</b> <span className="suave">{t("synergy.ILH")}</span></li>}
+          </ul>
+        </Card>
+        <Card title={t("card.incidents")}>
+          {d.incidents.length > 0 ? <ul className="lista-simples">{d.incidents.map(incident)}</ul> : <p className="vazio">{t("city.noIncidents")}</p>}
+        </Card>
+      </div>
     </div>
   );
 
@@ -160,24 +176,6 @@ export function CityProfile({ d }: { d: CityProfileData }) {
     </div>
   );
 
-  const mayor = d.mayor ? (
-    <div className="cartoes">
-      <Card title={d.mayor.person.name}>
-        <Data
-          lines={[
-            { label: t("city.mayor"), value: <EntityLink k="person" id={d.mayor.person.id}>{d.mayor.person.name}</EntityLink> },
-            { label: t("mayor.term"), value: `${d.mayor.sinceTerm}–${d.mayor.untilTerm}` },
-            { label: t("mayor.support"), value: <span className="nivel-linha"><BarLevel level={d.mayor.sportSupport} /><b>{level(d.mayor.sportSupport)}</b></span> },
-            { label: t("mayor.reputation"), value: d.mayor.profile.length > 0 ? d.mayor.profile.map((p) => t(`mayor.profile.${p}` as Key)).join(" · ") : "—" },
-          ]}
-        />
-        <p className="suave">{t("mayor.rating")}</p>
-      </Card>
-    </div>
-  ) : (
-    <p className="vazio">{t("city.noMayor")}</p>
-  );
-
   const story = (
     <div className="cartoes">
       <Card title={t("city.populationHistory")} wide>
@@ -193,7 +191,7 @@ export function CityProfile({ d }: { d: CityProfileData }) {
               {[...d.historyPopulation].reverse().map((p) => (
                 <tr key={p.season}>
                   <th scope="row">{p.label}</th>
-                  {d.indicators.map((i) => <td key={i.id}>{level(i.history.find((h) => h.season === p.season)!.level)}</td>)}
+                  {d.indicators.map((i) => <td key={i.id}><LevelCell level={i.history.find((h) => h.season === p.season)!.level} word={level(i.history.find((h) => h.season === p.season)!.level)} /></td>)}
                 </tr>
               ))}
             </tbody>
@@ -203,5 +201,5 @@ export function CityProfile({ d }: { d: CityProfileData }) {
     </div>
   );
 
-  return <Profile type="city" title={d.name} top={<Top title={d.name} labels={labels} card={identity} />} tabs={{ summary, clubs, mayor, story }} />;
+  return <Profile type="city" title={d.name} top={<Top title={d.name} labels={labels} card={identity} />} tabs={{ summary, clubs, story }} />;
 }

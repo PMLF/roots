@@ -49,3 +49,10 @@ Verão (1 jul – 1 set) e inverno (1 – 31 jan). Corre uma ronda à segunda-fe
 - **Aceitação**: o jogador aceita ofertas a partir de `acceptFloor` × pedido; o patamar baixa com a lealdade (`floorByLoyalty`) e se o clube é da terra (`floorNative`), com mínimo `floorMin`. Se recusa, a resposta traz o pedido.
 - **Decisão**: `negotiateRenewal` (aceite fica registada) ou `releaseExpiring`; ficam em meta `renewal.<época>.<pessoa>` e a passagem de época aplica-as no clube do gamer. Sem decisão, o clube do gamer continua a renovar ao ordenado de fórmula (comportamento anterior).
 - Ainda sem UI.
+
+## Negociação de renovações com o agente (RZ-165, fatia c)
+Três variáveis: **ordenado mensal, anos (1-5) e cláusula de rescisão** (ou sem cláusula). Ficaram de fora, para o Parking lot: bónus de assinatura/golos (207d) e estatuto/minutos prometidos.
+- Ronda a ronda (`negotiateRenewal`, estado em `renewal.negotiation.<época>.<pessoa>`): o agente **aceita** se o ordenado chega ao patamar (`acceptFloor` × pedido × fator da cláusula), **contrapropõe** (aproxima-se da oferta a `concession^ronda`, corrige os anos se estiverem 2+ longe do pedido e corta cláusulas acima do teto) ou **fecha a porta** (oferta abaixo de `walkAway` × pedido, ou mais de `maxRounds` rondas). Fechada sem acordo, o jogador sai na passagem de época.
+- **Cláusula**: mais alta (ou nenhuma) custa ordenado (`clauseWage` por referência acima de 1); a referência é o valor de mercado × meio do intervalo de `market.clauses.releaseFactor`.
+- **Interesse** (`renewalInterest`): um jogador muito acima do nível do escalão (`level.margin` desvios), ambicioso e pouco leal não quer renovar; em escalões baixos (`distance.tiers`), quem não é da terra nem do distrito só fica por `distance.wageFactor` × o ordenado médio do escalão. Naturais e leais ficam isentos.
+- A decisão aceite guarda `release` e é aplicada em `rollover`. Parâmetros em `squadCycle.contracts.negotiation`.
