@@ -675,6 +675,10 @@ export function repositoryContract(name: string, create: () => Repository): void
 
       r.saveContract({ person: "p1", club: "Y", monthlyWage: 2000, start: "2026-07-01", end: "2027-06-30" });
       expect(r.contract("p1")).toMatchObject({ club: "Y", monthlyWage: 2000 });
+      expect(r.contract("p1")?.clauses).toBeUndefined();
+      r.saveContract({ person: "p1", club: "Y", monthlyWage: 2100, start: "2026-07-01", end: "2027-06-30", clauses: { resale: { club: "X", pct: 0.15 } } });
+      expect(r.contract("p1")?.clauses).toEqual({ resale: { club: "X", pct: 0.15 } });
+      r.saveContract({ person: "p1", club: "Y", monthlyWage: 2000, start: "2026-07-01", end: "2027-06-30" });
 
       expect(() =>
         r.transaction(() => {

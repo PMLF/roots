@@ -184,8 +184,13 @@ ALTER TABLE player ADD COLUMN agent TEXT;
 CREATE INDEX ix_player_agent ON player(agent);
 `;
 
+const V8 = `
+-- Cláusulas de contrato (RZ-207), em JSON.
+ALTER TABLE contract ADD COLUMN clauses TEXT;
+`;
+
 /** A posição no array + 1 é o número da versão do esquema. */
-export const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7];
+export const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8];
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
 export function fileVersion(d: DriverSql): number {
