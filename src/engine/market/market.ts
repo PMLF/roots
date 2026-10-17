@@ -169,7 +169,7 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
     const wageScale = clamp((club.finances / st.medianFinances) ** 0.4, 0.4, 2.5);
 
     // candidatos: qualidade acima do piso e não muito acima do que o clube pode querer
-    const pool = (byPos.get(position) ?? []).filter((e) => e.club !== club.id && e.club !== o.gamerClub && e.quality >= floor && e.quality <= desired + mk.qualityCeiling);
+    const pool = (byPos.get(position) ?? []).filter((e) => e.club !== club.id && (o.gamerClub === undefined || e.club !== o.gamerClub) && e.quality >= floor && e.quality <= desired + mk.qualityCeiling);
     let best: { e: Entry; fee: number; wage: number; commission: number; compensation: number; trainer: BaseClub | undefined; years: number; score: number } | undefined;
     for (const e of crng.shuffle(pool).slice(0, 80)) {
       const ct = repo.contract(e.record.person);
