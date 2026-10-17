@@ -8,7 +8,7 @@
  * Determinístico: cada jogador e cada clube têm o seu fluxo aleatório; os clubes processam-se por escalão e reputação.
  */
 import { Rng, clamp } from "../random/rng";
-import { dayNumber, ageAt } from "../calendar/dates";
+import { ageAt } from "../calendar/dates";
 import type { Params, Tier } from "../config/parameters";
 import type { BaseCity, BaseClub, BaseData, ClubId } from "../data/types";
 import type { Repository } from "../persistence/repository";
