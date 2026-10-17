@@ -29,7 +29,9 @@ import { KEY } from "../world/player";
 import type { Attribute, Position } from "../world/types";
 import { View } from "../view/view";
 import { buildIndex, find, type InputIndex, type Indexed } from "../search/search";
+import { Rng } from "../random/rng";
 import { startCompanies } from "../company/cycle";
+import { assignAgents } from "../agent/assign";
 import { potentialRange, referenceTier, starsOf } from "../world/stars";
 import type { StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
@@ -423,6 +425,7 @@ async function createWorld(seed: string, servicos: Servicos, onProgress: (p: Wor
     repository.saveWorld(batch, (done, total) => onProgress({ phase: "save", done, total }));
     onProgress({ phase: "companies", done: 0, total: 1 });
     startCompanies(repository, data, params, { seasonStart: createDate(year, params.calendar.seasonStartMonth, 1), year, tiers: new Map(data.clubs.map((c) => [c.id, c.tier] as const)) });
+    assignAgents(repository, new Rng(seed, "agents/start"), params, (club) => data.clubs.find((c) => c.id === club)?.tier);
   });
   return { seed, clubs: data.clubs.length, people: repository.peopleTotal(), players: batch.players.length, ms: Date.now() - t0, warnings: v.warnings, alreadyExisted: false };
 }

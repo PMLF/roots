@@ -178,8 +178,14 @@ CREATE INDEX ix_sponsorship_club ON sponsorship(club);
 CREATE INDEX ix_sponsorship_company ON sponsorship(company);
 `;
 
+const V7 = `
+-- Agentes (RZ-206): cada jogador pode ter um agente (pessoa com a função agent).
+ALTER TABLE player ADD COLUMN agent TEXT;
+CREATE INDEX ix_player_agent ON player(agent);
+`;
+
 /** A posição no array + 1 é o número da versão do esquema. */
-export const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6];
+export const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7];
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
 export function fileVersion(d: DriverSql): number {

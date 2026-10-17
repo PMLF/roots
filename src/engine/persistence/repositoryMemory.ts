@@ -294,6 +294,8 @@ export class MemoryRepository implements Repository {
     if (patch.state) next.state = patch.state;
     if (patch.club === null) delete next.club;
     else if (patch.club !== undefined) next.club = patch.club;
+    if (patch.agent === null) delete next.agent;
+    else if (patch.agent !== undefined) next.agent = patch.agent;
     this.mapPlayers.set(person, next);
     this.undo(() => this.mapPlayers.set(person, before));
   }
@@ -365,6 +367,9 @@ export class MemoryRepository implements Repository {
   contract(person: string): ContractRecord | undefined {
     const c = [...this.contracts].reverse().find((x) => x.person === person);
     return c ? { ...c } : undefined;
+  }
+  roleHolders(fn: string): string[] {
+    return [...this.roles.values()].filter((r) => r.fn === fn).map((r) => r.person).sort();
   }
   role(person: string): RoleRecord | undefined {
     const c = this.roles.get(person);

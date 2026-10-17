@@ -24,6 +24,8 @@ import { districtFactors, prizeValue, type PrizeType } from "./competitionPrizes
 import { consecutiveYears, winnersPerDistrict, type RankedClub } from "./statePrize";
 import { seasonData, savePyramid, readPyramid, pyramidLeagues } from "./seasonPyramid";
 import { rolloverSquads } from "../squad/rollover";
+import { assignAgents } from "../agent/assign";
+import { Rng } from "../random/rng";
 import { rolloverCompanies } from "../company/cycle";
 import { promotionGroupName, promotionGroups, prepareSeason } from "./prepare";
 
@@ -164,6 +166,8 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
     const nextTiers = new Map([...pyramidLeagues(r.pyramid, data)].map(([club, l]) => [club, l.tier] as const));
     const gamerClub = repo.meta("gamer.club");
     rolloverSquads(repo, data, params, { season, seasonStart: newSeasonStart, tiers: nextTiers, ...(gamerClub ? { gamerClub } : {}) });
+    // agentes para os novos jogadores (formação e livres contratados) (RZ-206)
+    assignAgents(repo, new Rng(repo.meta("seed") ?? "?", `agents/${season}`), params, (club) => nextTiers.get(club));
     // empresas: evolução, falências, novas e patrocínios do clube para a nova época (RZ-219, RZ-311)
     rolloverCompanies(repo, data, params, { season, seasonStart: newSeasonStart, year: params.calendar.initialYear + season, tiers: nextTiers, previousTiers: new Map([...leagues].map(([club, l]) => [club, l.tier] as const)) });
     savePyramid(repo, season + 1, r.pyramid);

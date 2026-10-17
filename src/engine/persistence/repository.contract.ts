@@ -667,6 +667,11 @@ export function repositoryContract(name: string, create: () => Repository): void
       expect(r.player("p1")?.club).toBeUndefined();
       expect(r.playersByState("free").map((j) => j.person)).toEqual(["p1", "p3"]);
       expect(() => r.updatePlayer("nobody", { potential: 1 })).toThrow();
+      r.updatePlayer("p1", { agent: "p2" });
+      expect(r.player("p1")?.agent).toBe("p2");
+      r.updatePlayer("p1", { agent: null });
+      expect(r.player("p1")?.agent).toBeUndefined();
+      expect(r.roleHolders("nada")).toEqual([]);
 
       r.saveContract({ person: "p1", club: "Y", monthlyWage: 2000, start: "2026-07-01", end: "2027-06-30" });
       expect(r.contract("p1")).toMatchObject({ club: "Y", monthlyWage: 2000 });
