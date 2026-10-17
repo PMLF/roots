@@ -35,3 +35,10 @@ Verão (1 jul – 1 set) e inverno (1 – 31 jan). Corre uma ronda à segunda-fe
 - Um contrato novo (assinatura no mercado ou renovação na passagem de época) pode levar `clauses.release`: um valor (1,2-2,2 × o valor de mercado) que **qualquer clube pode pagar sem o vendedor poder recusar**. Probabilidade `market.clauses.releaseProbability`, mais alta com agente ganancioso (`releaseByAgentGreed`, relativo ao pivô).
 - No mercado, se o vendedor recusaria (pede mais do que o comprador aceita) mas o comprador pode pagar a cláusula (mais a comissão), a transferência faz-se pelo valor da cláusula (`TRANSFER` com `release: true`). O consentimento do jogador continua a contar.
 - É assim que clubes mais ricos levam os melhores jogadores dos pequenos. Falta ligar à compensação de formação e à saída a custo zero.
+
+## Compensação de formação (RZ-207, fatia c)
+- O jogador guarda o clube onde se formou (`trainedAt`, migração V9): formação própria na passagem de época e, no arranque, quem tem até 22 anos conta como formado no clube onde está.
+- Quem contrata um **livre** com 23 anos ou menos, formado noutro clube, paga-lhe `training.byTier[escalão do clube formador] × ordenado anual do contrato novo` (a pagar pelo orçamento de transferências). Nas **distritais é zero** e no CP quase (`0,08`): a custo zero, como acontece na vida real. A 1.ª Liga leva 1,2 ordenados.
+- O evento `PLAYER_SIGNED` traz o clube formador (`roleKind: "trainer"`) e a `compensation`. O dinheiro conserva-se.
+- Corrigido de caminho: sem clube do gamer definido, o mercado ignorava os livres (`undefined !== undefined`).
+- Falta: solidariedade em transferências com contrato (percentagem para clubes formadores), jovens sem contrato profissional e a decisão do clube formador de renovar a tempo.

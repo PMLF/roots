@@ -163,8 +163,8 @@ export class SqliteRepository implements Repository {
     ]);
   }
   private insertPlayer(j: PlayerRecord): void {
-    this.d.run("INSERT INTO player (person, positions, attributes, potential, height, weight, foot, club, state, agent) VALUES (?,?,?,?,?,?,?,?,?,?)", [
-      j.person, JSON.stringify(j.positions), JSON.stringify(j.attributes), j.potential, j.heightCm, j.weightKg, j.pe, j.club ?? null, j.state, j.agent ?? null,
+    this.d.run("INSERT INTO player (person, positions, attributes, potential, height, weight, foot, club, state, agent, trained_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)", [
+      j.person, JSON.stringify(j.positions), JSON.stringify(j.attributes), j.potential, j.heightCm, j.weightKg, j.pe, j.club ?? null, j.state, j.agent ?? null, j.trainedAt ?? null,
     ]);
   }
   saveWorld(batch: WorldBatchRecord, onProgress?: (done: number, total: number) => void): void {
@@ -280,8 +280,10 @@ export class SqliteRepository implements Repository {
     else if (patch.club !== undefined) next.club = patch.club;
     if (patch.agent === null) delete next.agent;
     else if (patch.agent !== undefined) next.agent = patch.agent;
-    this.d.run("UPDATE player SET positions = ?, attributes = ?, potential = ?, club = ?, state = ?, agent = ? WHERE person = ?", [
-      JSON.stringify(next.positions), JSON.stringify(next.attributes), next.potential, next.club ?? null, next.state, next.agent ?? null, person,
+    if (patch.trainedAt === null) delete next.trainedAt;
+    else if (patch.trainedAt !== undefined) next.trainedAt = patch.trainedAt;
+    this.d.run("UPDATE player SET positions = ?, attributes = ?, potential = ?, club = ?, state = ?, agent = ?, trained_at = ? WHERE person = ?", [
+      JSON.stringify(next.positions), JSON.stringify(next.attributes), next.potential, next.club ?? null, next.state, next.agent ?? null, next.trainedAt ?? null, person,
     ]);
   }
   saveContract(c: ContractRecord): void {
@@ -361,6 +363,7 @@ export class SqliteRepository implements Repository {
       potential: within(r.potential), heightCm: within(r.height), weightKg: within(r.weight), pe: txt(r.foot) as "D" | "E" | "A",
       ...(r.club !== null ? { club: txt(r.club) } : {}), state: txt(r.state) as PlayerState,
       ...(r.agent !== null && r.agent !== undefined ? { agent: txt(r.agent) } : {}),
+      ...(r.trained_at !== null && r.trained_at !== undefined ? { trainedAt: txt(r.trained_at) } : {}),
     };
   }
   roleHolders(fn: string): string[] {

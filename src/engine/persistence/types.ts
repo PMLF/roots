@@ -184,6 +184,8 @@ export type PlayerRecord = {
   state: PlayerState;
   /** Agente (pessoa com a função `agent`), se tiver (RZ-206). */
   agent?: string;
+  /** Clube onde se formou (formação própria ou até aos 22 anos no arranque), para a compensação de formação (RZ-207). */
+  trainedAt?: string;
 };
 export type PlayerState = "active" | "free" | "retired";
 /** Alterações permitidas a um jogador depois de criado (`club: null` = fica sem clube). */
@@ -194,6 +196,7 @@ export type PlayerPatch = {
   club?: string | null;
   state?: PlayerState;
   agent?: string | null;
+  trainedAt?: string | null;
 };
 /** Cláusulas do contrato (RZ-207). `resale`: o clube de origem fica com `pct` (0-1) do valor de uma venda futura. */
 export type ContractClauses = { resale?: { club: string; pct: number }; /** Valor (euros) que qualquer clube pode pagar para levar o jogador sem o vendedor poder recusar. */ release?: number };

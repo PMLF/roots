@@ -148,6 +148,7 @@ function createPlayer(
     potential: Math.round(Math.max(potential, currentQuality(attributes, o.pos)) * 10) / 10,
     ...generateBody(rng, o.pos),
     ...(o.club ? { club: o.club.id } : {}),
+    ...(o.club && age <= m.age.trainedAtStartMax ? { trainedAt: o.club.id } : {}),
     state: o.club ? "active" : "free",
   };
   c.batch.players.push(j);

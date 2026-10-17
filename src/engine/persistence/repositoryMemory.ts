@@ -296,6 +296,8 @@ export class MemoryRepository implements Repository {
     else if (patch.club !== undefined) next.club = patch.club;
     if (patch.agent === null) delete next.agent;
     else if (patch.agent !== undefined) next.agent = patch.agent;
+    if (patch.trainedAt === null) delete next.trainedAt;
+    else if (patch.trainedAt !== undefined) next.trainedAt = patch.trainedAt;
     this.mapPlayers.set(person, next);
     this.undo(() => this.mapPlayers.set(person, before));
   }
