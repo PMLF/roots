@@ -10,6 +10,7 @@ import { DivisionsChart } from "@/ui/components/DivisionsChart";
 import { EntityLink } from "@/ui/components/Link";
 import { ClubBudget } from "@/ui/components/profiles/ClubBudget";
 import { Table } from "@/ui/components/Table";
+import { Stars } from "@/ui/components/Stars";
 import { Value } from "@/ui/components/Value";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -47,6 +48,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
     { id: "name", title: t("column.name"), value: (p) => p.sportingName },
     { id: "pos", title: t("column.position"), value: (p) => abbreviationPosition(t, p.player?.position ?? "") },
     { id: "age", title: t("column.age"), value: (p) => p.age, numeric: true },
+    { id: "stars", title: t("column.stars"), value: (p) => d.extraSquad[p.id]?.rating?.stars ?? 0, numeric: true },
     { id: "level", title: t("column.level"), value: (p) => levelOf(p)?.value ?? "", numeric: true },
     { id: "country", title: t("column.country"), value: (p) => country(p.nationality) },
     { id: "foot", title: t("column.pe"), value: (p) => (p.player ? t(`pe.${p.player.pe}` as Key) : "") },
@@ -85,7 +87,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
   const [view, setView] = useState<"profile" | "season" | "discipline">("profile");
   const viewColumns = view === "season" ? seasonCol : view === "discipline" ? disciplineCol : squad;
   const seasonCell = {
-    name: name, level: cellLevel,
+    name: name, level: cellLevel, stars: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating; return r ? <Stars value={r.stars} /> : unknown; },
     rating: (p: ViewPerson) => (ep(p)?.rating !== undefined ? dec(ep(p)?.rating ?? 0, 2) : "—"),
     g90: (p: ViewPerson) => (ep(p)?.minutes ? dec(g90(p), 2) : "—"),
   };

@@ -429,6 +429,8 @@ export type Params = {
     targetQuality: Record<Tier, { mean: number; deviation: number }>;
     /** Quanto a reputação do clube (0-10000) desloca a qualidade-alvo dentro do escalão, em pontos de qualidade para ±metade da amplitude. */
     qualityByReputation: number;
+    /** Estrelas (RZ-916): qualidade relativa ao escalão onde joga, em meias estrelas. `centre` = estrelas de quem tem a qualidade média do escalão; `pointsPerStar` = pontos de qualidade (1-20) por estrela. */
+    stars: { centre: number; pointsPerStar: number; freeAgentTier: Tier };
     /** Variação relativa (±) do % de estrangeiros com a reputação do clube dentro do escalão (0,35 → de −35 % a +35 % da média do escalão). */
     variationForeignersReputation: number;
     /** Tamanho do plantel por escalão. */
@@ -873,6 +875,7 @@ export const DEFAULT_PARAMETERS: Params = {
       district: { mean: 6.5, deviation: 1.8 },
     },
     qualityByReputation: 2,
+    stars: { centre: 2.5, pointsPerStar: 1, freeAgentTier: "thirdLeague" },
     variationForeignersReputation: 0.35,
     squad: { firstLeague: 28, secondLeague: 26, thirdLeague: 25, cp: 23, district: 20 },
     placesByPosition: { GK: 3, RB: 2, CB: 4, LB: 2, DM: 2, CM: 3, AM: 2, RW: 2, LW: 2, ST: 3 },
@@ -1114,6 +1117,7 @@ export function validateParameters(p: Params): string[] {
   if (!(m.talent.seasonsIndex0 > 0 && m.talent.seasonsIndex0 <= m.talent.seasonsIndex100 && m.talent.seasonsIndex100 < 1)) errors.push("mundo.talento: 0 < epsIndice0 ≤ epsIndice100 < 1 (a cauda nunca é zero)");
   if (!(m.talent.alphaPareto > 0 && m.talent.scalePareto > 0)) errors.push("mundo.talento: paretoAlfa e paretoEscala > 0");
   for (const [tier, q] of Object.entries(m.targetQuality)) if (!(q.mean >= 1 && q.mean <= 20 && q.deviation > 0)) errors.push(`world.targetQuality.${tier} inválida`);
+  if (!(m.stars.pointsPerStar > 0 && m.stars.centre >= 0.5 && m.stars.centre <= 5)) errors.push("world.stars inválido");
   for (const [tier, n] of Object.entries(m.squad)) if (n < 16) errors.push(`world.squad.${tier} ≥ 16`);
   if (Object.values(m.placesByPosition).some((n) => n < 1)) errors.push("mundo.lugaresPorPosicao: pelo menos 1 por posição");
   if (Object.values(m.wage.average).some((x) => !(x > 0)) || m.wage.yearsContractMin < 1 || m.wage.yearsContractMax < m.wage.yearsContractMin) errors.push("mundo.salario inválido");
