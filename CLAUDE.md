@@ -21,7 +21,7 @@ Jogo de browser de gestão de futebol português com **clubes ligados a cidades*
 - Personalidade = um sistema único (traços + memória) para todas as pessoas e entidades.
 
 ## Comandos
-`pnpm dev` · `pnpm typecheck` · `pnpm lint` (inclui fronteiras: motor sem React/DOM; UI sem `truth`/`repository`/`worker`) · `pnpm test` · `pnpm build` · `pnpm run ci`. Parâmetros de regras só em `src/engine/config/parameters.ts`.
+`pnpm dev` · `pnpm typecheck` · `pnpm lint` (inclui fronteiras: motor sem React/DOM; UI sem `truth`/`repository`/`worker`) · `pnpm test` (rápidos, dia a dia) · `pnpm test:slow` (calibração e simulações de várias épocas, ficheiros `*.slow.test.ts`) · `pnpm test:all` · `pnpm build` · `pnpm run ci` (corre tudo). Teste novo que simule várias épocas ou muitos jogos nasce como `*.slow.test.ts`; durante o trabalho corre-se `pnpm test` + os ficheiros lentos tocados, e o CI completo só antes do merge. Parâmetros de regras só em `src/engine/config/parameters.ts`.
 
 ## Regras de trabalho
 - **Git:** `main` = estável, `develop` = integração, `feature/rz-xxx` = trabalho atual (um de cada vez). Docs podem ir direto para `develop`; `main` só recebe merges de marcos. Commits terminam com as linhas de atribuição pedidas pelo ambiente.

@@ -1,41 +1,13 @@
-import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { Rng } from "../random/rng";
 import { DEFAULT_PARAMETERS as P } from "../config/parameters";
-import { importData } from "../data/importData";
-import { MemoryRepository } from "../persistence/repositoryMemory";
-import { generateWorld } from "../world/generateWorld";
-import { importCountries } from "../world/countries";
+import { Rng } from "../random/rng";
 import { currentQuality } from "../world/player";
 import type { Attributes, Position } from "../world/types";
 import { developPlayer, expectedChange } from "./development";
-import { youthFocus } from "./youthFocus";
 import { createYouth } from "./youth";
 import { renewalProbability, retirementProbability, rolloverSquads } from "./rollover";
-
-const read = (f: string) => readFileSync(`data/${f}`, "utf8");
-const d = importData({ clubs: read("clubs.csv"), cities: read("cities.csv"), localities: read("localities.csv"), rivalries: read("rivalries.csv"), districts: read("districts.csv") });
-const pr = importCountries(read("countries.csv"));
-if (!d.ok || !pr.ok) throw new Error("invalid data");
-const data = d.data;
-const tiers = new Map(data.clubs.map((c) => [c.id, c.tier] as const));
-
-const fresh = (seed: string) => {
-  const repo = new MemoryRepository();
-  repo.setMeta("seed", seed);
-  repo.saveWorld(generateWorld({ seed, data, countries: pr.countries, params: P }));
-  return repo;
-};
-const run = (repo: MemoryRepository, seasons: number, gamerClub?: string) => {
-  const out = [];
-  for (let s = 1; s <= seasons; s++) out.push(rolloverSquads(repo, data, P, { season: s, seasonStart: `${2026 + s}-07-01`, tiers, ...(gamerClub ? { gamerClub } : {}) }));
-  return out;
-};
-const meanQuality = (repo: MemoryRepository, tier: string) => {
-  let sum = 0, n = 0;
-  for (const c of data.clubs.filter((x) => x.tier === tier)) for (const j of repo.clubPlayers(c.id)) { sum += currentQuality(j.attributes as Attributes, j.positions[0]!.pos as Position); n++; }
-  return sum / n;
-};
+import { MemoryRepository } from "../persistence/repositoryMemory";
+import { data, fresh, run, tiers } from "./testWorld.testlib";
 
 describe("desenvolvimento", () => {
   it("jovens crescem em direção ao potencial, veteranos descem", () => {
@@ -71,54 +43,16 @@ describe("desenvolvimento", () => {
   });
 });
 
-describe("ciclo anual dos plantéis (várias épocas)", () => {
-  const repo = fresh("squads");
-  const free0 = repo.playersByState("free").length;
-  const total0 = repo.peopleTotal();
-  const q0 = Object.fromEntries(["firstLeague", "secondLeague", "thirdLeague", "cp", "district"].map((t) => [t, meanQuality(repo, t)]));
-  const summaries = run(repo, 10);
-
-  it("os plantéis mantêm o tamanho: entre o alvo e o alvo + folga", () => {
-    for (const c of data.clubs) {
-      const n = repo.clubPlayers(c.id).length;
-      const target = P.world.squad[c.tier];
-      expect(n).toBeGreaterThanOrEqual(target);
-      expect(n).toBeLessThanOrEqual(target + P.squadCycle.squad.slack + P.squadCycle.youth.perClub[c.tier]);
+describe("ciclo anual dos plantéis (2 épocas, rápido)", () => {
+  it("mantêm tamanho e contratos vigentes; chegam jovens e há reformas", () => {
+    const repo = fresh("squads-fast");
+    const summaries = run(repo, 2);
+    expect(summaries[0]!.retired).toBeGreaterThan(0);
+    for (const c of data.clubs.slice(0, 40)) {
+      const squad = repo.clubPlayers(c.id);
+      expect(squad.length).toBeGreaterThan(14);
+      for (const m of squad) expect(repo.person(m.person)).toBeDefined();
     }
-  });
-  it("todos os jogadores de um clube têm contrato vigente no clube", () => {
-    for (const c of data.clubs) for (const j of repo.clubPlayers(c.id)) {
-      const ct = repo.contract(j.person)!;
-      expect(ct.club).toBe(c.id);
-      expect(ct.end >= "2036-07-01").toBe(true);
-      expect(j.state).toBe("active");
-    }
-  });
-  it("reformam-se, renovam, contratam livres e a formação traz gente nova", () => {
-    const sum = (k: keyof (typeof summaries)[number]) => summaries.reduce((a, s) => a + s[k], 0);
-    expect(sum("retired")).toBeGreaterThan(300);
-    expect(sum("renewed")).toBeGreaterThan(1000);
-    expect(sum("released")).toBeGreaterThan(300);
-    expect(sum("signedFree")).toBeGreaterThan(300);
-    expect(sum("youth")).toBeGreaterThan(1500);
-    expect(repo.peopleTotal()).toBeGreaterThan(total0);
-    expect(repo.count("PLAYER_RETIRED")).toBe(sum("retired"));
-    expect(repo.count("CONTRACT_RENEWED")).toBe(sum("renewed"));
-  });
-  it("a idade média dos plantéis e a bolsa de livres ficam estáveis", () => {
-    const born = (id: string) => repo.person(id)!.birth;
-    const ages = data.clubs.flatMap((c) => repo.clubPlayers(c.id).map((j) => 2036.5 - Number(born(j.person).slice(0, 4))));
-    const mean = ages.reduce((a, b) => a + b, 0) / ages.length;
-    expect(mean).toBeGreaterThan(P.world.age.mean - 3);
-    expect(mean).toBeLessThan(P.world.age.mean + 2);
-    expect(Math.max(...ages)).toBeLessThanOrEqual(P.squadCycle.retirement.maxAge + 1); // idade aproximada pelo ano de nascimento
-    const free = repo.playersByState("free").length;
-    expect(free).toBeGreaterThan(free0 * 0.3);
-    expect(free).toBeLessThan(free0 * 3);
-  });
-  it("a qualidade média por escalão não deriva mais de 1 ponto", () => {
-    // folga: clubes que apostam mais produzem mais jovens e melhores (covariância positiva), deriva ligeira por desenho
-    for (const [tier, q] of Object.entries(q0)) expect(Math.abs(meanQuality(repo, tier) - q), tier).toBeLessThan(1.25);
   });
 });
 
@@ -139,27 +73,6 @@ describe("aposta nos jovens", () => {
     const high = sample(1.6);
     expect(high.q - low.q).toBeGreaterThan(0.5);
     expect(high.pot - low.pot).toBeGreaterThan(1.5);
-  });
-  it("os clubes diferem na aposta e quem aposta mais tem plantéis mais jovens", { timeout: 120000 }, () => {
-    const repo = fresh("focus");
-    run(repo, 8);
-    const focus = new Map(data.clubs.map((c) => [c.id, youthFocus(repo, c, c.tier, P)] as const));
-    const values = [...focus.values()];
-    expect(Math.max(...values) - Math.min(...values)).toBeGreaterThan(1);
-    expect(Math.min(...values)).toBeGreaterThanOrEqual(P.squadCycle.youth.focus.min);
-    expect(Math.max(...values)).toBeLessThanOrEqual(P.squadCycle.youth.focus.max);
-    expect(youthFocus(repo, data.clubs[0]!, data.clubs[0]!.tier, P)).toBe(focus.get(data.clubs[0]!.id));
-    const meanAge = (clubs: string[]) => {
-      const ages = clubs.flatMap((c) => repo.clubPlayers(c).map((j) => 2034 - Number(repo.person(j.person)!.birth.slice(0, 4))));
-      return ages.reduce((a, b) => a + b, 0) / ages.length;
-    };
-    let diff = 0;
-    for (const tier of ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"]) {
-      const sorted = data.clubs.filter((c) => c.tier === tier).map((c) => c.id).sort((a, b) => (focus.get(a) as number) - (focus.get(b) as number));
-      const third = Math.floor(sorted.length / 3);
-      diff += meanAge(sorted.slice(0, third)) - meanAge(sorted.slice(-third));
-    }
-    expect(diff / 5).toBeGreaterThan(0.4);
   });
 });
 
