@@ -6,7 +6,7 @@ import type { BaseCity } from "../data/types";
 import { generatePersonality } from "../personality/generate";
 import { generateName } from "../world/names";
 import type { CompanyRecord, CompanyScale, PersonRecord, RoleRecord } from "../persistence/types";
-import { drawSector, companyName } from "./sectors";
+import { drawSector, companyName, isBroadcaster } from "./sectors";
 
 const SCALES: CompanyScale[] = ["local", "regional", "national", "international"];
 const BASE_DECADE = Math.log10(15000);
@@ -44,7 +44,8 @@ export function createOwner(rng: Rng, id: string, city: BaseCity, today: string,
 /** Nova empresa de uma cidade; o apelido do nome vem do dono. */
 export function createCompany(rng: Rng, o: { id: string; city: BaseCity; owner: PersonRecord; year: number; foundedBefore?: number }, params: Params): CompanyRecord {
   const sector = drawSector(rng, o.city.sector, o.city.tag2);
-  const scale = drawScale(rng, o.city.population, params);
+  // emissoras: a televisão generalista é regional; rádios e plataformas, locais ou regionais (as nacionais criam-se à parte)
+  const scale: CompanyScale = isBroadcaster(sector) ? (sector === "television" || rng.prob(0.35) ? "regional" : "local") : drawScale(rng, o.city.population, params);
   const surname = o.owner.sportingName.split(" ").at(-1) as string;
   return {
     id: o.id,
@@ -55,6 +56,22 @@ export function createCompany(rng: Rng, o: { id: string; city: BaseCity; owner: 
     owner: o.owner.id,
     capital: drawCapital(rng, scale, params),
     founded: o.year - (o.foundedBefore ?? 0),
+    state: "active",
+  };
+}
+
+/** Emissora nacional criada no arranque: dono novo na cidade escolhida. */
+export function createNationalBroadcaster(rng: Rng, o: { id: string; city: BaseCity; owner: PersonRecord; year: number; spec: Params["broadcast"]["national"][number] }): CompanyRecord {
+  const surname = o.owner.sportingName.split(" ").at(-1) as string;
+  return {
+    id: o.id,
+    name: companyName(rng, o.spec.sector, surname, o.city.name),
+    sector: o.spec.sector,
+    scale: o.spec.scale,
+    city: o.city.id,
+    owner: o.owner.id,
+    capital: Math.round(o.spec.capital * Math.exp(rng.gauss(0, 0.1)) / 1_000_000) * 1_000_000,
+    founded: o.year - rng.integer(5, 45),
     state: "active",
   };
 }

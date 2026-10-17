@@ -19,6 +19,7 @@ import type { IsoDate } from "../persistence/types";
 import { matchAttendance } from "../club/attendance";
 import { ensureBudgets } from "../club/budget";
 import { closeUntilMonths, post } from "../club/finances";
+import { postBroadcast } from "../broadcast/featured";
 import { isInSecondDistrict } from "./districts";
 import { CP_FINAL_COMPETITION, generateCpFinal, generateCpFinalSemi } from "./cpFinalPhase";
 import { advanceCompetitions } from "./competitions";
@@ -179,6 +180,7 @@ export function advanceDay(repo: Repository, base: BaseData, params: Params, gam
       const ticket = matchTicket(data, params, g.home, g.away, g.competition, g);
       const { event } = repo.recordMatch({ ...r.record.match, referee: matchReferee(seed, g.id), ...(ticket ? { attendance: ticket.attendance, revenue: ticket.revenue } : {}) }, r.record.facts, r.record.appearances);
       if (ticket) postTicketing(repo, ticket);
+      postBroadcast(repo, data, params, season, g);
       if (rival) repo.appendEvent(rivalEvent(g.id, g.home, g.away, today, season, g.round, event, rival));
       for (const l of r.record.injuries) repo.appendEvent({ ...l, cause: event });
       for (const h of r.stories) repo.appendEvent({ ...h, cause: event });

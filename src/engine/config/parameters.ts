@@ -507,6 +507,13 @@ export type Params = {
       hometownProbability: number;
       /** Família de nomes dos jogadores formados. */
       nameFamily: string;
+      /** Aposta do clube nos jovens (1 = média): desvio sorteado, efeito da paciência e da ambição do presidente, limites. */
+      focus: { spread: number; byPatience: number; byAmbition: number; min: number; max: number };
+      /** Penalização na escolha de livres por ano acima de 26, para um clube com aposta 1 (escala com a aposta). */
+      agePenalty: number;
+      /** Efeito da aposta na renovação: sobe os jovens (≤ 21) e desce os veteranos (≥ 30), por unidade acima/abaixo de 1. */
+      renewalYouthEffect: number;
+      renewalVeteranEffect: number;
     };
   };
   /** Empresas e patrocínios (RZ-219, RZ-311). */
@@ -538,6 +545,29 @@ export type Params = {
       /** Quanto cada escala encaixa em cada escalão. */
       scaleFit: Record<Tier, Record<"local" | "regional" | "national" | "international", number>>;
     };
+  };
+  /** Direitos de transmissão (RZ-218): emissoras (televisão, rádio, streaming) disputam pacotes por escalão e jogos de interesse. */
+  broadcast: {
+    /** Emissoras nacionais criadas no arranque (na maior cidade); o capital é o volume de negócio. */
+    national: { sector: "television" | "radio" | "streaming"; scale: "national" | "international"; capital: number }[];
+    /** Fração do valor comercial do escalão (`annualCommercial`) que passa a vir do pacote de direitos. */
+    packageShareOfCommercial: Record<Tier, number>;
+    /** Máximo de licitantes por pacote (sorteados por interesse) e, em cada escalão, quanto cada tipo de emissora se interessa. */
+    bidders: Record<Tier, number>;
+    interest: Record<Tier, Record<"television" | "radio" | "streaming", Record<"local" | "regional" | "national" | "international", number>>>;
+    /** Desvio do logaritmo de cada proposta, preço mínimo (fração do valor de referência) e prémio de quem já tinha os direitos. */
+    bidSigma: number;
+    reserve: number;
+    incumbentBonus: number;
+    /** Fração máxima do capital da emissora que pode estar comprometida em direitos. */
+    maxShareOfCapital: number;
+    /** Jogos de interesse por jornada em cada escalão; valor por jogo transmitido (€) e bónus do dérbi / limites do multiplicador de interesse. */
+    featuredPerRound: Record<Tier, number>;
+    matchFee: Record<Tier, number>;
+    derbyBonus: number;
+    interestRange: { min: number; max: number };
+    /** Taça e Supertaça: jogos de interesse por ronda, valor por jogo e emissoras com interesse (nacionais). */
+    cup: { featuredPerRound: number; matchFee: number; superCupFee: number };
   };
   /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
   knowledge: {
@@ -817,7 +847,7 @@ export const DEFAULT_PARAMETERS: Params = {
     retirement: { fromAge: 33, baseProbability: 0.06, perYear: 0.14, goalkeeperExtraYears: 3, maxAge: 40, freeMultiplier: 1.6 },
     contracts: { yearsMin: 1, yearsMax: 3, renewBase: 0.7, renewPerQualityPoint: 0.1, renewPerOldYear: 0.08, oldAge: 31, renewMin: 0.05, renewMax: 0.95, renewalWageFactor: 1 },
     squad: { slack: 2, freeAgentTolerance: 2.5 },
-    youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal" },
+    youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal", focus: { spread: 0.4, byPatience: 0.05, byAmbition: 0.03, min: 0.25, max: 1.9 }, agePenalty: 0.25, renewalYouthEffect: 0.2, renewalVeteranEffect: 0.12 },
   },
   companies: {
     perCity: { base: 3, perDecade: 4, min: 2 },
@@ -843,6 +873,34 @@ export const DEFAULT_PARAMETERS: Params = {
         district: { local: 1, regional: 0.35, national: 0.02, international: 0.005 },
       },
     },
+  },
+  broadcast: {
+    national: [
+      { sector: "television", scale: "national", capital: 500_000_000 },
+      { sector: "television", scale: "national", capital: 350_000_000 },
+      { sector: "television", scale: "national", capital: 180_000_000 },
+      { sector: "radio", scale: "national", capital: 60_000_000 },
+      { sector: "streaming", scale: "international", capital: 900_000_000 },
+      { sector: "streaming", scale: "national", capital: 40_000_000 },
+    ],
+    packageShareOfCommercial: { firstLeague: 0.5, secondLeague: 0.35, thirdLeague: 0.2, cp: 0.08, district: 0.03 },
+    bidders: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 2, district: 2 },
+    interest: {
+      firstLeague: { television: { local: 0, regional: 0.1, national: 1, international: 1 }, radio: { local: 0, regional: 0.1, national: 0.6, international: 0.6 }, streaming: { local: 0, regional: 0.1, national: 0.8, international: 1.2 } },
+      secondLeague: { television: { local: 0, regional: 0.3, national: 0.8, international: 0.6 }, radio: { local: 0.05, regional: 0.4, national: 0.6, international: 0.4 }, streaming: { local: 0.05, regional: 0.4, national: 0.8, international: 0.7 } },
+      thirdLeague: { television: { local: 0.05, regional: 0.4, national: 0.3, international: 0.1 }, radio: { local: 0.2, regional: 0.8, national: 0.4, international: 0.1 }, streaming: { local: 0.2, regional: 0.8, national: 0.6, international: 0.3 } },
+      cp: { television: { local: 0.05, regional: 0.3, national: 0.1, international: 0.05 }, radio: { local: 0.5, regional: 1, national: 0.2, international: 0.05 }, streaming: { local: 0.5, regional: 1, national: 0.4, international: 0.2 } },
+      district: { television: { local: 0, regional: 0.1, national: 0, international: 0 }, radio: { local: 1, regional: 0.6, national: 0.02, international: 0 }, streaming: { local: 0.8, regional: 0.5, national: 0.05, international: 0.02 } },
+    },
+    bidSigma: 0.2,
+    reserve: 0.7,
+    incumbentBonus: 0.05,
+    maxShareOfCapital: 0.12,
+    featuredPerRound: { firstLeague: 3, secondLeague: 2, thirdLeague: 1, cp: 1, district: 1 },
+    matchFee: { firstLeague: 15_000, secondLeague: 5_000, thirdLeague: 2_000, cp: 1_000, district: 400 },
+    derbyBonus: 0.6,
+    interestRange: { min: 0.6, max: 2.5 },
+    cup: { featuredPerRound: 2, matchFee: 15_000, superCupFee: 80_000 },
   },
   knowledge: {
     seasonsAfterOutdated: 2,

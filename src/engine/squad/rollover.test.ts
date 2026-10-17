@@ -9,6 +9,7 @@ import { importCountries } from "../world/countries";
 import { currentQuality } from "../world/player";
 import type { Attributes, Position } from "../world/types";
 import { developPlayer, expectedChange } from "./development";
+import { youthFocus } from "./youthFocus";
 import { renewalProbability, retirementProbability, rolloverSquads } from "./rollover";
 
 const read = (f: string) => readFileSync(`data/${f}`, "utf8");
@@ -116,6 +117,30 @@ describe("ciclo anual dos plantéis (várias épocas)", () => {
   });
   it("a qualidade média por escalão não deriva mais de 1 ponto", () => {
     for (const [tier, q] of Object.entries(q0)) expect(Math.abs(meanQuality(repo, tier) - q), tier).toBeLessThan(1);
+  });
+});
+
+describe("aposta nos jovens", () => {
+  it("os clubes diferem na aposta e quem aposta mais tem plantéis mais jovens", { timeout: 120000 }, () => {
+    const repo = fresh("focus");
+    run(repo, 8);
+    const focus = new Map(data.clubs.map((c) => [c.id, youthFocus(repo, c, c.tier, P)] as const));
+    const values = [...focus.values()];
+    expect(Math.max(...values) - Math.min(...values)).toBeGreaterThan(1);
+    expect(Math.min(...values)).toBeGreaterThanOrEqual(P.squadCycle.youth.focus.min);
+    expect(Math.max(...values)).toBeLessThanOrEqual(P.squadCycle.youth.focus.max);
+    expect(youthFocus(repo, data.clubs[0]!, data.clubs[0]!.tier, P)).toBe(focus.get(data.clubs[0]!.id));
+    const meanAge = (clubs: string[]) => {
+      const ages = clubs.flatMap((c) => repo.clubPlayers(c).map((j) => 2034 - Number(repo.person(j.person)!.birth.slice(0, 4))));
+      return ages.reduce((a, b) => a + b, 0) / ages.length;
+    };
+    let diff = 0;
+    for (const tier of ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"]) {
+      const sorted = data.clubs.filter((c) => c.tier === tier).map((c) => c.id).sort((a, b) => (focus.get(a) as number) - (focus.get(b) as number));
+      const third = Math.floor(sorted.length / 3);
+      diff += meanAge(sorted.slice(0, third)) - meanAge(sorted.slice(-third));
+    }
+    expect(diff / 5).toBeGreaterThan(0.4);
   });
 });
 

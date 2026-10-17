@@ -18,6 +18,7 @@ import { distributePositions } from "../world/generateWorld";
 import type { Attributes, Position } from "../world/types";
 import { developPlayer } from "./development";
 import { contractDates, createYouth, wageFor } from "./youth";
+import { youthFocus } from "./youthFocus";
 
 export type RolloverSummary = { retired: number; developed: number; expired: number; renewed: number; released: number; signedFree: number; youth: number; emergencyYouth: number };
 
@@ -54,9 +55,11 @@ export function retirementProbability(age: number, position: string, free: boole
   return clamp((r.baseProbability + r.perYear * (effective - r.fromAge)) * (free ? r.freeMultiplier : 1), 0, 1);
 }
 
-export function renewalProbability(quality: number, tierMean: number, age: number, params: Params): number {
+export function renewalProbability(quality: number, tierMean: number, age: number, params: Params, focus = 1): number {
   const c = params.squadCycle.contracts;
-  return clamp(c.renewBase + c.renewPerQualityPoint * (quality - tierMean) - c.renewPerOldYear * Math.max(0, age - c.oldAge), c.renewMin, c.renewMax);
+  const y = params.squadCycle.youth;
+  const byFocus = age <= 21 ? y.renewalYouthEffect * (focus - 1) : age >= 30 ? -y.renewalVeteranEffect * (focus - 1) : 0;
+  return clamp(c.renewBase + c.renewPerQualityPoint * (quality - tierMean) - c.renewPerOldYear * Math.max(0, age - c.oldAge) + byFocus, c.renewMin, c.renewMax);
 }
 
 export function rolloverSquads(repo: Repository, data: BaseData, params: Params, o: RolloverInput): RolloverSummary {
@@ -75,7 +78,15 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     repo.appendEvent({ type: "PLAYER_RETIRED", date, season: o.season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: j.person, roleKind: "player" }, ...(was ? [{ k: "club" as const, id: was }] : [])], data: { age: ageAt(repo.person(j.person)!.birth, date) } });
     summary.retired++;
   };
-  const age = (j: PlayerRecord) => ageAt((repo.person(j.person) as { birth: IsoDate }).birth, date);
+  const ages = new Map<string, number>();
+  const age = (j: PlayerRecord): number => {
+    let a = ages.get(j.person);
+    if (a === undefined) {
+      a = ageAt((repo.person(j.person) as { birth: IsoDate }).birth, date);
+      ages.set(j.person, a);
+    }
+    return a;
+  };
   const process = (j: PlayerRecord): Member | undefined => {
     const rng = rngOf(`player/${j.person}`);
     const a = age(j);
@@ -143,6 +154,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const wageScale = clamp((club.finances / stats.medianFinances) ** 0.4, 0.4, 2.5);
     const rng = rngOf(`club/${club.id}`);
     const members = squads.get(club.id) ?? [];
+    const focus = youthFocus(repo, club, tier, params);
 
     // contratos que terminaram
     const expired = (m: Member) => (repo.contract(m.record.person)?.end ?? "9999-12-31") < o.seasonStart;
@@ -150,7 +162,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const expiring = members.filter(expired).sort((a, b) => b.quality - a.quality || (a.record.person < b.record.person ? -1 : 1));
     for (const m of expiring) {
       summary.expired++;
-      const wants = kept.length < target && (o.gamerClub === club.id || rng.derive(`renew/${m.record.person}`).prob(renewalProbability(m.quality, tq.mean, age(m.record), params)));
+      const wants = kept.length < target && (o.gamerClub === club.id || rng.derive(`renew/${m.record.person}`).prob(renewalProbability(m.quality, tq.mean, age(m.record), params, focus)));
       if (wants) {
         const y = years(rng);
         const wage = Math.max(50, Math.round((wageFor(params, tier, m.quality, wageScale) * sc.contracts.renewalWageFactor) / 10) * 10);
@@ -198,7 +210,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     };
 
     // formação até ao alvo mais a folga
-    const intake = Math.min(sc.youth.perClub[tier], Math.max(0, target + sc.squad.slack - kept.length));
+    const intake = Math.min(Math.round(sc.youth.perClub[tier] * focus), Math.max(0, target + sc.squad.slack - kept.length));
     for (let i = 0; i < intake; i++) {
       const need = missing();
       addYouth(need.length > 0 ? rng.choose(need) : rng.weighted([...new Set(wanted)], (p) => world.placesByPosition[p]), false);
@@ -207,10 +219,11 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     // livres para o que falta
     for (const position of missing().slice(0, Math.max(0, target - kept.length))) {
       let best = -1;
-      let bestGap = sc.squad.freeAgentTolerance + 1e-9;
+      let bestGap = Infinity;
       pool.forEach((m, i) => {
         if (m.position !== position) return;
-        const gap = Math.abs(m.quality - desired);
+        const gap = Math.abs(m.quality - desired) + sc.youth.agePenalty * focus * Math.max(0, age(m.record) - 26);
+        if (Math.abs(m.quality - desired) > sc.squad.freeAgentTolerance) return;
         if (gap < bestGap || (gap === bestGap && best >= 0 && m.record.person < (pool[best] as Member).record.person)) {
           best = i;
           bestGap = gap;
