@@ -9,7 +9,7 @@ import type { Params, Tier } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
 import { annualFixedRevenues } from "../club/finances";
 import type { Repository } from "../persistence/repository";
-import type { CompanyRecord, IsoDate, SponsorshipKind, SponsorshipRecord } from "../persistence/types";
+import type { CompanyRecord, IsoDate, SponsorSlot, SponsorshipRecord } from "../persistence/types";
 import { SECTOR_INFO, type CompanySector } from "./sectors";
 
 export type SponsorContext = {
@@ -22,7 +22,7 @@ export type SponsorContext = {
 const TIER_ORDER: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
 
 /** Valor anual de referência de um tipo de patrocínio num clube (sem ruído). */
-export function referenceValue(club: BaseClub, tier: Tier, kind: SponsorshipKind, params: Params): number {
+export function referenceValue(club: BaseClub, tier: Tier, kind: SponsorSlot, params: Params): number {
   const s = params.companies.sponsorship;
   const total = annualFixedRevenues({ ...club, tier }, params).sponsorships;
   const shareSum = s.slots[tier].reduce((t, k) => t + s.kindShare[k], 0);
@@ -40,7 +40,7 @@ type Pool = {
 
 export function makePool(repo: Repository, data: BaseData, params: Params, on: IsoDate): Pool {
   const committed = new Map<string, number>();
-  for (const s of repo.activeSponsorships(on)) committed.set(s.company, (committed.get(s.company) ?? 0) + s.annualValue);
+  for (const s of repo.activeSponsorships(on)) if (s.kind !== "broadcast") committed.set(s.company, (committed.get(s.company) ?? 0) + s.annualValue);
   return { repo, data, params, districtOfCity: new Map(data.cities.map((c) => [c.id, c.district] as const)), companies: repo.companies({ state: "active" }), committed };
 }
 
@@ -58,7 +58,7 @@ function weightOf(pool: Pool, company: CompanyRecord, club: BaseClub, tier: Tier
 
 const roundValue = (x: number) => Math.max(500, Math.round(x / 100) * 100);
 
-function sign(pool: Pool, rng: Rng, club: BaseClub, tier: Tier, kind: SponsorshipKind, ctx: SponsorContext, already: Set<string>, keep?: CompanyRecord): SponsorshipRecord | undefined {
+function sign(pool: Pool, rng: Rng, club: BaseClub, tier: Tier, kind: SponsorSlot, ctx: SponsorContext, already: Set<string>, keep?: CompanyRecord): SponsorshipRecord | undefined {
   const s = pool.params.companies.sponsorship;
   const desired = referenceValue(club, tier, kind, pool.params) * Math.exp(rng.gauss(0, s.valueSigma));
   const company = keep ?? (pool.companies.length === 0 ? undefined : rng.weighted(pool.companies, (c) => weightOf(pool, c, club, tier, desired, already)));
@@ -86,7 +86,7 @@ export function fillSponsorships(repo: Repository, data: BaseData, params: Param
   let signed = 0;
   for (const club of order) {
     const tier = ctx.tiers.get(club.id) ?? club.tier;
-    const current = repo.clubSponsorships(club.id, ctx.start);
+    const current = repo.clubSponsorships(club.id, ctx.start).filter((x) => x.kind !== "broadcast");
     const have = new Set(current.map((x) => x.kind));
     const already = new Set(current.map((x) => x.company));
     const rng = new Rng(seed, `sponsorship/${ctx.season}/${club.id}`);
@@ -107,11 +107,13 @@ export function renewSponsorships(repo: Repository, data: BaseData, params: Para
   const s = params.companies.sponsorship;
   const pool = makePool(repo, data, params, ctx.start);
   const dayBefore = createDate(Number(ctx.start.slice(0, 4)), 6, 30);
-  const expiring = repo.activeSponsorships(dayBefore).filter((x) => x.end < ctx.start).sort((a, b) => a.id - b.id);
+  const expiring = repo.activeSponsorships(dayBefore).filter((x) => x.kind !== "broadcast" && x.end < ctx.start).sort((a, b) => a.id - b.id);
   const clubs = new Map(data.clubs.map((c) => [c.id, c] as const));
   let renewed = 0;
   let lapsed = 0;
-  for (const old of expiring) {
+  for (const old0 of expiring) {
+    if (old0.kind === "broadcast") continue;
+    const old = old0 as typeof old0 & { kind: SponsorSlot };
     const club = clubs.get(old.club);
     const company = repo.company(old.company);
     if (!club || !company) continue;
@@ -120,7 +122,7 @@ export function renewSponsorships(repo: Repository, data: BaseData, params: Para
     const p = clamp(s.renewBase + (change > 0 ? s.renewPromoted : change < 0 ? s.renewRelegated : 0), 0.02, 0.98);
     const rng = new Rng(seed, `sponsorship/renew/${ctx.season}/${old.id}`);
     const offered = s.slots[tier].includes(old.kind);
-    const current = repo.clubSponsorships(club.id, ctx.start);
+    const current = repo.clubSponsorships(club.id, ctx.start).filter((x) => x.kind !== "broadcast");
     const already = new Set(current.filter((x) => x.kind !== old.kind || x.company !== old.company).map((x) => x.company));
     if (company.state === "active" && offered && rng.prob(p) && sign(pool, rng, club, tier, old.kind, ctx, already, company)) {
       renewed++;

@@ -39,7 +39,7 @@ const fillByTier = (repo: MemoryRepository, on: string) => {
 describe("empresas no arranque", () => {
   const repo = fresh("empresas");
   it("cada cidade tem as empresas que sustenta, de vários setores e escalas, com dono", () => {
-    for (const city of data.cities) expect(repo.companies({ city: city.id }).length).toBe(targetCompanies(city, P));
+    for (const city of data.cities) expect(repo.companies({ city: city.id }).length).toBeGreaterThanOrEqual(targetCompanies(city, P)); // a maior cidade tem ainda as emissoras nacionais
     const all = repo.companies();
     expect(all.length).toBeGreaterThan(900);
     expect(new Set(all.map((c) => c.sector)).size).toBe(COMPANY_SECTORS.length);
@@ -59,7 +59,7 @@ describe("empresas no arranque", () => {
   });
   it("todos os clubes têm todos os tipos de patrocínio do escalão e recebem perto do valor de referência", () => {
     for (const c of data.clubs) {
-      const kinds = repo.clubSponsorships(c.id, "2026-07-01").map((s) => s.kind).sort();
+      const kinds = repo.clubSponsorships(c.id, "2026-07-01").map((s) => s.kind).filter((k) => k !== "broadcast").sort();
       expect(kinds).toEqual([...P.companies.sponsorship.slots[c.tier]].sort());
     }
     for (const [tier, ratio] of Object.entries(fillByTier(repo, "2026-08-01"))) {
@@ -101,7 +101,7 @@ describe("ciclo anual das empresas", { timeout: 120000 }, () => {
   it("as empresas fechadas não têm patrocínios vigentes e os clubes continuam com todos os tipos", () => {
     for (const c of repo.companies({ state: "closed" })) expect(repo.companySponsorships(c.id)).toEqual([]);
     for (const c of data.clubs) {
-      const kinds = repo.clubSponsorships(c.id, "2034-08-01").map((s) => s.kind).sort();
+      const kinds = repo.clubSponsorships(c.id, "2034-08-01").map((s) => s.kind).filter((k) => k !== "broadcast").sort();
       expect(kinds).toEqual([...P.companies.sponsorship.slots[c.tier]].sort());
     }
   });

@@ -8,8 +8,9 @@ import type { BaseData } from "../data/types";
 import { cityHistory } from "../city/cities";
 import type { Repository } from "../persistence/repository";
 import type { CompanyRecord, IsoDate, PersonRecord, RoleRecord } from "../persistence/types";
-import { createCompany, createOwner, targetCompanies } from "./generate";
+import { createCompany, createNationalBroadcaster, createOwner, targetCompanies } from "./generate";
 import { fillSponsorships, renewSponsorships } from "./sponsorship";
+import { auctionRights } from "../broadcast/rights";
 
 export type CompanyCycleSummary = { founded: number; closed: number; renewed: number; lapsed: number; signed: number };
 
@@ -40,10 +41,22 @@ export function startCompanies(repo: Repository, data: BaseData, params: Params,
       companies.push(createCompany(rng, { id: companyId(companies.length + 1), city, owner, year: o.year, foundedBefore: rng.integer(0, 40) }, params));
     }
   }
+  // emissoras nacionais, na maior cidade
+  const capital = [...data.cities].sort((a, b) => b.population - a.population || (a.id < b.id ? -1 : 1))[0];
+  if (capital) {
+    const rng = new Rng(seed, "company/national");
+    for (const spec of params.broadcast.national) {
+      const created = createOwner(rng, personId(++nextPerson), capital, o.seasonStart, params);
+      people.push(created.person);
+      roles.push(created.role);
+      companies.push(createNationalBroadcaster(rng, { id: companyId(companies.length + 1), city: capital, owner: created.person, year: o.year, spec }));
+    }
+  }
   repo.addPeople({ people, players: [], contracts: [], roles });
   repo.saveCompanies(companies);
   repo.setMeta("companies.enabled", "1");
   const sponsorships = fillSponsorships(repo, data, params, { season: 1, start: o.seasonStart, tiers: o.tiers });
+  auctionRights(repo, data, params, { season: 1, start: o.seasonStart, tiers: o.tiers });
   return { companies: companies.length, sponsorships };
 }
 
@@ -116,6 +129,7 @@ export function rolloverCompanies(repo: Repository, data: BaseData, params: Para
   summary.renewed = renewal.renewed;
   summary.lapsed = renewal.lapsed;
   summary.signed = fillSponsorships(repo, data, params, ctx);
+  auctionRights(repo, data, params, { ...ctx, forSeason: o.season + 1 });
   repo.setMeta(`companies.${o.season}`, JSON.stringify(summary));
   return summary;
 }

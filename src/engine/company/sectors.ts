@@ -1,7 +1,7 @@
 /** Setores de atividade das empresas (RZ-219): peso por setor da cidade, apetência por futebol e nomes fictícios. */
 import type { Rng } from "../random/rng";
 
-export const COMPANY_SECTORS = ["construction", "banking", "retail", "food", "industry", "technology", "tourism", "media", "energy", "transport", "agriculture", "health"] as const;
+export const COMPANY_SECTORS = ["construction", "banking", "retail", "food", "industry", "technology", "tourism", "media", "energy", "transport", "agriculture", "health", "television", "radio", "streaming"] as const;
 export type CompanySector = (typeof COMPANY_SECTORS)[number];
 
 type SectorInfo = {
@@ -21,10 +21,13 @@ export const SECTOR_INFO: Record<CompanySector, SectorInfo> = {
   industry: { base: 1, visibility: 0.9, names: ["{S} Metalúrgica", "Têxteis {S}", "Cerâmicas {C}", "Plásticos {S}", "Moldes {S}"] },
   technology: { base: 0.5, visibility: 0.8, names: ["{S} Sistemas", "Tecnologias {S}", "{S} Digital", "Software {C}"] },
   tourism: { base: 0.8, visibility: 1, names: ["Hotel {S}", "Turismo {C}", "Alojamentos {S}", "Viagens {S}", "Quinta {S}"] },
-  media: { base: 0.3, visibility: 1.3, names: ["Rádio {C}", "{S} Media", "Edições {S}", "Televisão Regional de {C}"] },
+  media: { base: 0.3, visibility: 1.3, names: ["{S} Media", "Edições {S}", "Revista {C}"] },
   energy: { base: 0.35, visibility: 1.2, names: ["Energias {S}", "Combustíveis {S}", "{S} Energia", "Solar {C}"] },
   transport: { base: 0.8, visibility: 0.9, names: ["Transportes {S}", "Autocarros {S}", "Logística {C}", "{S} Expresso"] },
   agriculture: { base: 1.3, visibility: 0.6, names: ["Agro {S}", "Adega {S}", "Cooperativa Agrícola de {C}", "Lacticínios {S}", "Azeites {S}"] },
+  television: { base: 0.04, visibility: 1.3, names: ["Canal {S}", "{S} Televisão", "Televisão {C}"] },
+  radio: { base: 0.35, visibility: 1.2, names: ["Rádio {C}", "Rádio {S}", "Antena {C}", "Emissora {C}"] },
+  streaming: { base: 0.12, visibility: 1.2, names: ["{S} Play", "Stream {C}", "{S} Direto"] },
   health: { base: 0.6, visibility: 0.6, names: ["Clínica {S}", "Farmácia {S}", "Saúde {C}", "Laboratórios {S}"] },
 };
 
@@ -46,6 +49,10 @@ const CITY_BIAS: Record<string, Partial<Record<CompanySector, number>>> = {
   ENE: { energy: 4, industry: 1.5 },
   MUL: {},
 };
+
+/** Setores que emitem jogos: disputam direitos de transmissão (RZ-218). */
+export const BROADCAST_SECTORS: readonly CompanySector[] = ["television", "radio", "streaming"];
+export const isBroadcaster = (sector: string): boolean => (BROADCAST_SECTORS as readonly string[]).includes(sector);
 
 export function sectorWeights(citySector: string, citySector2: string): Record<CompanySector, number> {
   const out = {} as Record<CompanySector, number>;

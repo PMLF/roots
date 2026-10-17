@@ -16,7 +16,7 @@ import type { IsoDate } from "../persistence/types";
  * entra e o que sai no mesmo mês somam-se. Os patrocínios passam a vir de contratos de patrocínio reais (RZ-311/RZ-219); até lá
  * vêm da fórmula por escalão e reputação.
  */
-export type FinancialCategory = "ticketing" | "sponsorships" | "commercial" | "prizes" | "transfers" | "compensations" | "wages" | "staff" | "stadium" | "fixed";
+export type FinancialCategory = "ticketing" | "sponsorships" | "commercial" | "broadcasting" | "prizes" | "transfers" | "compensations" | "wages" | "staff" | "stadium" | "fixed";
 export type Month = Partial<Record<FinancialCategory, number>>;
 
 
@@ -69,7 +69,13 @@ export function annualFixedRevenues(club: BaseClub, params: Params): { sponsorsh
  */
 export function monthlySponsorship(repo: Repository, club: BaseClub, params: Params, date: IsoDate): number {
   if (repo.meta("companies.enabled") !== "1") return annualFixedRevenues(club, params).sponsorships / 12;
-  return repo.clubSponsorships(club.id, date).reduce((t, s) => t + s.annualValue, 0) / 12;
+  return repo.clubSponsorships(club.id, date).filter((s) => s.kind !== "broadcast").reduce((t, s) => t + s.annualValue, 0) / 12;
+}
+
+/** Parte mensal do clube nos pacotes de direitos de transmissão (RZ-218); zero se o mundo não tem empresas. */
+export function monthlyBroadcast(repo: Repository, club: BaseClub, date: IsoDate): number {
+  if (repo.meta("companies.enabled") !== "1") return 0;
+  return repo.clubSponsorships(club.id, date).filter((s) => s.kind === "broadcast").reduce((t, s) => t + s.annualValue, 0) / 12;
 }
 
 /**
@@ -82,7 +88,10 @@ export function closeMonth(repo: Repository, data: BaseData, params: Params, dat
     const costs = monthlyCosts(repo, c, params);
     const fixed = annualFixedRevenues(c, params);
     post(repo, c, "sponsorships", monthlySponsorship(repo, c, params, date));
-    post(repo, c, "commercial", fixed.commercial / 12);
+    // com empresas no mundo, parte do valor comercial passa a vir dos direitos de transmissão (RZ-218)
+    const broadcastShare = repo.meta("companies.enabled") === "1" ? params.broadcast.packageShareOfCommercial[c.tier] : 0;
+    post(repo, c, "commercial", (fixed.commercial * (1 - broadcastShare)) / 12);
+    post(repo, c, "broadcasting", monthlyBroadcast(repo, c, date));
     post(repo, c, "wages", -costs.wages);
     post(repo, c, "staff", -costs.staff);
     post(repo, c, "stadium", -costs.stadium);
