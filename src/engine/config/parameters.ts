@@ -614,8 +614,8 @@ export type Params = {
     consent: { up: number; down: number; byAmbition: number; byLoyalty: number; byWageRatio: number };
     /** Agentes (RZ-206): quota de jogadores com agente por escalão do clube; peso de cada cliente já tido (agentes grandes atraem mais); comissão (fração do ordenado anual) e subida da comissão e do ordenado pedido por ponto de ganância acima de 10; efeito da ganância e da lealdade do agente no consentimento do jogador; pivôs = ganância e lealdade médias dos agentes (acima/abaixo disto o efeito é positivo/negativo, para o agente típico não mexer no equilíbrio do mercado). */
     agents: { share: Record<Tier, number>; popularity: number; commissionRate: number; commissionByGreed: number; wageByGreed: number; consentByGreed: number; consentByLoyalty: number; greedPivot: number; loyaltyPivot: number };
-    /** Cláusulas (RZ-207): probabilidade de o clube vendedor negociar uma percentagem de revenda (sobe com a ganância do presidente por ponto acima de 10) e intervalo dessa percentagem (fração do valor da venda futura). */
-    clauses: { resaleProbability: number; resaleByGreed: number; resalePct: [number, number] };
+    /** Cláusulas (RZ-207): probabilidade de o clube vendedor negociar uma percentagem de revenda (sobe com a ganância do presidente por ponto acima de 10) e intervalo dessa percentagem (fração do valor da venda futura); cláusula de rescisão num contrato novo: probabilidade base, subida por ponto de ganância do agente acima do pivô, e múltiplo do valor de mercado. */
+    clauses: { resaleProbability: number; resaleByGreed: number; resalePct: [number, number]; releaseProbability: number; releaseByAgentGreed: number; releaseFactor: [number, number] };
   };
   /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
   knowledge: {
@@ -976,7 +976,7 @@ export const DEFAULT_PARAMETERS: Params = {
     saleToBudget: 0.6,
     consent: { up: 0.9, down: 0.35, byAmbition: 0.03, byLoyalty: 0.025, byWageRatio: 0.5 },
     agents: { share: { firstLeague: 0.85, secondLeague: 0.55, thirdLeague: 0.3, cp: 0.12, district: 0.04 }, popularity: 0.5, commissionRate: 0.08, commissionByGreed: 0.05, wageByGreed: 0.012, consentByGreed: 0.012, consentByLoyalty: 0.015, greedPivot: 14.4, loyaltyPivot: 7 },
-    clauses: { resaleProbability: 0.3, resaleByGreed: 0.02, resalePct: [0.08, 0.2] },
+    clauses: { resaleProbability: 0.3, resaleByGreed: 0.02, resalePct: [0.08, 0.2], releaseProbability: 0.2, releaseByAgentGreed: 0.02, releaseFactor: [1.2, 2.2] },
   },
   knowledge: {
     seasonsAfterOutdated: 2,

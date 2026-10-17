@@ -30,3 +30,8 @@ Verão (1 jul – 1 set) e inverno (1 – 31 jan). Corre uma ronda à segunda-fe
 - Ao vender, o vendedor negoceia a cláusula com probabilidade `market.clauses.resaleProbability` (sobe com a ganância do presidente). No contrato novo fica só a cláusula mais recente.
 - Numa venda com cláusula, o clube de origem recebe `pct × valor` e o vendedor recebe o resto (o dinheiro continua a conservar-se); o evento `TRANSFER` traz o clube de origem (`roleKind: "resale"`) e `resaleCut`.
 - Próximas fatias: cláusula de rescisão, bónus por golos, «regresso à terra» e a compensação de formação (Parking lot).
+
+## Cláusula de rescisão (RZ-207, fatia b)
+- Um contrato novo (assinatura no mercado ou renovação na passagem de época) pode levar `clauses.release`: um valor (1,2-2,2 × o valor de mercado) que **qualquer clube pode pagar sem o vendedor poder recusar**. Probabilidade `market.clauses.releaseProbability`, mais alta com agente ganancioso (`releaseByAgentGreed`, relativo ao pivô).
+- No mercado, se o vendedor recusaria (pede mais do que o comprador aceita) mas o comprador pode pagar a cláusula (mais a comissão), a transferência faz-se pelo valor da cláusula (`TRANSFER` com `release: true`). O consentimento do jogador continua a contar.
+- É assim que clubes mais ricos levam os melhores jogadores dos pequenos. Falta ligar à compensação de formação e à saída a custo zero.

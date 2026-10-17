@@ -18,6 +18,9 @@ import { distributePositions } from "../world/generateWorld";
 import type { Attributes, Position } from "../world/types";
 import { developPlayer } from "./development";
 import { contractDates, createYouth, wageFor } from "./youth";
+import { marketValue } from "../market/value";
+import { releaseClause } from "../market/clauses";
+import { agentTraits } from "../agent/assign";
 import { TIER_BONUS, youthFocus } from "./youthFocus";
 
 export type RolloverSummary = { retired: number; developed: number; expired: number; renewed: number; released: number; signedFree: number; youth: number; emergencyYouth: number };
@@ -166,7 +169,8 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
       if (wants) {
         const y = years(rng);
         const wage = Math.max(50, Math.round((wageFor(params, tier, m.quality, wageScale) * sc.contracts.renewalWageFactor) / 10) * 10);
-        repo.saveContract({ person: m.record.person, club: club.id, monthlyWage: wage, ...contractDates(o.seasonStart, y) });
+        const release = releaseClause(rng.derive(`release/${m.record.person}`), marketValue({ quality: m.quality, potential: m.record.potential, age: age(m.record), monthlyWage: wage, monthsLeft: y * 12 }, params), agentTraits(repo, m.record.agent)?.greed, params);
+        repo.saveContract({ person: m.record.person, club: club.id, monthlyWage: wage, ...contractDates(o.seasonStart, y), ...(release !== undefined ? { clauses: { release } } : {}) });
         event("CONTRACT_RENEWED", m.record.person, club.id, { wage, years: y });
         kept.push(m);
         summary.renewed++;

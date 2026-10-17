@@ -20,6 +20,7 @@ import type { Attributes, Position } from "../world/types";
 import { contractDates, wageFor } from "../squad/youth";
 import { isInSecondDistrict } from "../season/districts";
 import { marketValue } from "./value";
+import { releaseClause } from "./clauses";
 import { agentTraits } from "../agent/assign";
 import type { ContractClauses } from "../persistence/types";
 
@@ -46,7 +47,7 @@ export function isMarketDay(date: IsoDate, params: Params): boolean {
   return w.last || weekDay(date) === params.market.roundWeekday || date.slice(5) === `${pad(first[0])}-${pad(first[1])}`;
 }
 
-export type MarketSummary = { transfers: number; freeSignings: number; spent: number; agentFees: number; resale: number };
+export type MarketSummary = { transfers: number; freeSignings: number; spent: number; agentFees: number; resale: number; releases: number };
 
 type Entry = { record: PlayerRecord; club?: ClubId; position: Position; quality: number };
 type Budget = { season: number; wageBillMax: number; transfers: number };
@@ -55,7 +56,7 @@ const TIER_ORDER: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", 
 const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 1;
 
 export function marketRound(repo: Repository, data: BaseData, params: Params, date: IsoDate, season: number, o: { gamerClub?: ClubId } = {}): MarketSummary {
-  const summary: MarketSummary = { transfers: 0, freeSignings: 0, spent: 0, agentFees: 0, resale: 0 };
+  const summary: MarketSummary = { transfers: 0, freeSignings: 0, spent: 0, agentFees: 0, resale: 0, releases: 0 };
   const win = windowAt(date, params);
   if (!win || repo.peopleTotal() === 0) return summary;
   const mk = params.market;
@@ -204,7 +205,13 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
       const ask = value * (mk.askBase + mk.askByGreed * (greed(seller.id) - 10)) * (rankInPos < slots ? 1.25 : 1);
       const offer = fee * (1 + crng.gauss(0, mk.bidNoise));
       const counter = ask <= value * (1 + mk.counterTolerance) && ask <= budget.transfers;
-      if (offer < ask && !counter) continue;
+      const releaseClauseValue = repo.contract(e.record.person)?.clauses?.release;
+      const canRelease = releaseClauseValue !== undefined && releaseClauseValue + commission <= budget.transfers;
+      let viaRelease = false;
+      if (offer < ask && !counter) {
+        if (!canRelease) continue;
+        viaRelease = true;
+      }
       // consentimento do jogador
       const person = repo.person(e.record.person);
       const dir = TIER_ORDER.indexOf(tierOf(club)) < TIER_ORDER.indexOf(tierOf(seller)) ? mk.consent.up : TIER_ORDER.indexOf(tierOf(club)) === TIER_ORDER.indexOf(tierOf(seller)) ? (mk.consent.up + mk.consent.down) / 2 : mk.consent.down;
@@ -212,7 +219,7 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
       const p = clamp(dir + mk.consent.byAmbition * ((person?.personality.ambition ?? 10) - 10) - mk.consent.byLoyalty * ((person?.personality.loyalty ?? 10) - 10) + mk.consent.byWageRatio * (wageRatio - 1) + (agentTr ? mk.agents.consentByGreed * (agentTr.greed - mk.agents.greedPivot) - mk.agents.consentByLoyalty * (agentTr.loyalty - mk.agents.loyaltyPivot) : 0), 0.02, 0.98);
       if (!crng.derive(`consent/${e.record.person}`).prob(p)) continue;
       // transferência
-      const paid = Math.round(Math.max(ask, Math.min(offer, fee)) / 1000) * 1000;
+      const paid = viaRelease ? (releaseClauseValue as number) : Math.round(Math.max(ask, Math.min(offer, fee)) / 1000) * 1000;
       if (paid + commission > budget.transfers) continue;
       // cláusula de revenda: parte do valor vai para o clube que vendeu o jogador antes (se ainda existir e não for um dos dois)
       const resale = repo.contract(e.record.person)?.clauses?.resale;
@@ -239,11 +246,12 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
       }
       sellerSquad.splice(sellerSquad.indexOf(e), 1);
       summary.transfers++;
+      if (viaRelease) summary.releases++;
       summary.spent += paid;
       repo.appendEvent({
         type: "TRANSFER", date, season, visibility: "exposed", origin: "generated",
         entities: [{ k: "person", id: e.record.person, roleKind: "player" }, { k: "club", id: seller.id, roleKind: "seller" }, { k: "club", id: club.id, roleKind: "buyer" }, ...(resaleClub ? [{ k: "club" as const, id: resaleClub.id, roleKind: "resale" }] : []), ...(e.record.agent ? [{ k: "person" as const, id: e.record.agent, roleKind: "agent" }] : [])],
-        data: { fee: paid, wage, years, window: win.id, ...(commission > 0 ? { commission } : {}), ...(resaleCut > 0 ? { resaleCut } : {}), ...(newClauses?.resale ? { resalePct: newClauses.resale.pct } : {}) },
+        data: { fee: paid, wage, years, window: win.id, ...(commission > 0 ? { commission } : {}), ...(resaleCut > 0 ? { resaleCut } : {}), ...(viaRelease ? { release: true } : {}), ...(newClauses?.resale ? { resalePct: newClauses.resale.pct } : {}) },
       });
     } else {
       repo.appendEvent({
@@ -259,7 +267,9 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
       repo.appendEvent({ type: "CONTRACT_EXPIRED", date, season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: displaced.record.person, roleKind: "player" }, { k: "club", id: club.id }], data: { reason: "released" } });
     }
     repo.updatePlayer(e.record.person, { club: club.id, state: "active" });
-    repo.saveContract({ person: e.record.person, club: club.id, monthlyWage: wage, ...contractDates(date, years), ...(newClauses ? { clauses: newClauses } : {}) });
+    const newRelease = releaseClause(crng.derive(`release/${e.record.person}`), marketValue({ quality: e.quality, potential: e.record.potential, age: ageOf(e.record.person), monthlyWage: wage, monthsLeft: years * 12 }, params), agentTr?.greed, params);
+    const clauses: ContractClauses = { ...(newClauses ?? {}), ...(newRelease !== undefined ? { release: newRelease } : {}) };
+    repo.saveContract({ person: e.record.person, club: club.id, monthlyWage: wage, ...contractDates(date, years), ...(Object.keys(clauses).length > 0 ? { clauses } : {}) });
     e.club = club.id;
     squad.push(e);
     if (commission > 0) {
