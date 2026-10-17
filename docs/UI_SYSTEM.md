@@ -91,3 +91,9 @@ Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já 
 - **Tabelas:** deslizam na horizontal dentro do cartão, com a primeira coluna (o nome) fixa. Onde faltar espaço, mostra-se o essencial e o resto fica na ficha (entrar mais a fundo).
 - Auditoria: Chromium a 320, 375, 768, 812×375 e 1280 px; nenhum ecrã do menu pode ter scroll horizontal da página nem conteúdo cortado dentro de cartões.
 
+## Separadores sem «Em breve» (17-10-2026)
+- **Clube:** *Jogos* mostra o calendário e os resultados da liga (o mesmo componente da página Jogos, `ClubMatches`); *História* tem o gráfico de subidas e descidas e a tabela de épocas (saiu do Resumo).
+- **Pessoa:** *Carreira* tem as estatísticas por época (saíram do Resumo; para quem não é jogador diz que não há jogos); *História* tem o percurso: transferências (de → para, valor), contratações livres, renovações, saídas e reforma, a partir dos eventos públicos.
+- O separador ativo desliza sempre para a vista em ecrãs estreitos.
+- Regra: um separador só existe se tiver conteúdo; senão, retira-se de `TABS` (`ui/links.ts`). Todas as fichas continuam a acabar em *História*.
+

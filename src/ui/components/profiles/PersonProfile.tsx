@@ -1,8 +1,9 @@
 "use client";
-import type { PersonProfileData } from "@/engine/api/contracts";
+import type { CareerLine, PersonProfileData } from "@/engine/api/contracts";
 import { PHYSICAL_ATTRIBUTES, GK_ATTRIBUTES, MENTAL_ATTRIBUTES, TECHNICAL_ATTRIBUTES } from "@/engine/world/types";
 import { Attributes, Chip, type AttributesGroup, type AttributeLine } from "@/ui/components/Attributes";
 import { Card, Data, Top } from "@/ui/components/Card";
+import { Table } from "@/ui/components/Table";
 import { Profile } from "@/ui/components/Profile";
 import { EntityLink } from "@/ui/components/Link";
 import { seasonName } from "@/engine/calendar/seasonName";
@@ -12,6 +13,7 @@ import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { namePosition, abbreviationPosition } from "@/ui/i18n/position";
 import { useCountries } from "@/ui/useCountries";
+import type { Column } from "@/ui/table/logic";
 import { showEstimate } from "@/ui/value";
 
 const eur = (locale: string, n: number) => new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
@@ -156,7 +158,6 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
       </Card>
       {contract}
       {cardPersonality}
-      {statistics}
       {cardDev}
     </div>
   ) : (
@@ -182,12 +183,36 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     </div>
   );
 
+  const eurShort = (n: number) => eur(locale, n);
+  const careerColumns: Column<CareerLine>[] = [
+    { id: "date", title: t("career.date"), value: (c) => c.date },
+    { id: "event", title: t("career.event"), value: (c) => t(`career.${c.kind}` as Key) },
+    { id: "club", title: t("entity.club"), value: (c) => c.club?.name ?? "" },
+    { id: "fee", title: t("career.fee"), value: (c) => c.fee ?? 0, numeric: true },
+  ];
+  const story = (
+    <Card title={t("career.title")} wide>
+      {(d.career ?? []).length === 0 ? (
+        <p className="vazio">{t("career.empty")}</p>
+      ) : (
+        <Table
+          id="pessoa-percurso" fileName={`career-${p.id}`} columns={careerColumns} lines={d.career ?? []} rowKey={(c) => String(c.id)} simple
+          initialOrder={{ column: "date", direction: "desc" }}
+          cell={{
+            club: (c) => (c.club ? <>{c.from && <><EntityLink k="club" id={c.from.id}>{c.from.name}</EntityLink> → </>}<EntityLink k="club" id={c.club.id}>{c.club.name}</EntityLink></> : "—"),
+            fee: (c) => (c.fee !== undefined ? (c.fee > 0 ? eurShort(c.fee) : t("career.free")) : "—"),
+          }}
+        />
+      )}
+    </Card>
+  );
+
   return (
     <Profile
       type="person"
       title={p.sportingName}
       top={<Top title={p.sportingName} labels={labels} card={<Data lines={data} />} />}
-      tabs={{ summary }}
+      tabs={{ summary, ...(j ? { career: statistics } : { career: <p className="vazio">{t("career.noMatches")}</p> }), story }}
     />
   );
 }

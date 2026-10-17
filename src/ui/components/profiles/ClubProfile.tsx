@@ -6,6 +6,7 @@ import { Chip } from "@/ui/components/Attributes";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { Card, Data, Top } from "@/ui/components/Card";
 import { Profile } from "@/ui/components/Profile";
+import { ClubMatches } from "@/ui/components/ClubMatches";
 import { DivisionsChart } from "@/ui/components/DivisionsChart";
 import { EntityLink } from "@/ui/components/Link";
 import { ClubBudget } from "@/ui/components/profiles/ClubBudget";
@@ -135,6 +136,12 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
     { id: "quality", title: t("column.quality"), value: (p) => { const q = truth?.staffQuality[p.id]; return q ? Object.entries(q).map(([k, v]) => `${t(`quality.${k}` as Key)} ${v}`).join(" · ") : "?"; } },
   ];
 
+  const seasonsColumns: Column<ClubProfileData["divisionsHistory"][number]>[] = [
+    { id: "season", title: t("column.season"), value: (h) => h.season },
+    { id: "league", title: t("stat.competition"), value: (h) => h.league },
+    { id: "tier", title: t("column.tier"), value: (h) => t(`tier.${h.tier}` as Key) },
+  ];
+
   // plantel em números
   const ages = d.squad.map((p) => p.age);
   const meanAge = ages.length ? (ages.reduce((s, x) => s + x, 0) / ages.length).toFixed(1) : undefined;
@@ -230,9 +237,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
           <Data lines={technicalTeam.map((p) => ({ label: t(`fn.${p.fn}` as Key), value: name(p) }))} />
         )}
       </Card>
-      <Card title={t("card.divisions")} wide>
-        <DivisionsChart points={d.divisionsHistory} />
-      </Card>
+
     </div>
   );
 
@@ -255,6 +260,17 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
           squadTable
         ) : (
           <p className="vazio">{t("club.noWorld")}</p>
+        ),
+        matches: <ClubMatches club={d.id} league={d.league} />,
+        story: (
+          <>
+                  <Card title={t("card.divisions")} wide>
+        <DivisionsChart points={d.divisionsHistory} />
+      </Card>
+            <Card title={t("club.seasons")} wide>
+              <Table id="clube-epocas" fileName={`history-${d.id}`} columns={seasonsColumns} lines={[...d.divisionsHistory].reverse()} rowKey={(h) => String(h.season)} simple />
+            </Card>
+          </>
         ),
         staff: d.roles.length > 0 ? (
           <Table id="staff" fileName={`staff-${d.id}`} columns={staff} lines={d.roles} rowKey={(p) => p.id} cell={{ name: name }} />

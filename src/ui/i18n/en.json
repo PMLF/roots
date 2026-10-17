@@ -1057,5 +1057,19 @@
   "person.noClause": "No clause",
   "menu.open": "Open menu",
   "menu.close": "Close menu",
-  "menu.tabs": "Main sections"
+  "menu.tabs": "Main sections",
+  "career.title": "Career path",
+  "career.date": "Date",
+  "career.event": "Event",
+  "career.fee": "Fee",
+  "career.free": "Free",
+  "career.empty": "No moves recorded yet: contracts, transfers and renewals will show up here.",
+  "career.transfer": "Transfer",
+  "career.signed": "Signed (free)",
+  "career.renewed": "Renewed",
+  "career.released": "Left the club",
+  "career.retired": "Retired",
+  "club.seasons": "Seasons",
+  "column.tier": "Tier",
+  "career.noMatches": "No matches as a player."
 }
