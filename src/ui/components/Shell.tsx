@@ -25,6 +25,7 @@ const MENU: ItemMenu[] = [
   { rowKey: "menu.competitions", icon: "competitions", href: "/competitions/", whenActive: (c) => c.startsWith("/competitions") },
   { rowKey: "menu.club", icon: "club", href: "/club/", whenActive: (c) => c.startsWith("/club") },
   { rowKey: "menu.squad", icon: "squad", href: "/squad/", whenActive: (c) => c.startsWith("/squad") },
+  { rowKey: "menu.renewals", icon: "squad", href: "/renewals/", whenActive: (c) => c.startsWith("/renewals"), hidden: true },
   { rowKey: "menu.tactic", icon: "tactic", href: "/tactics/", whenActive: (c) => c.startsWith("/tactics") },
   { rowKey: "menu.matches", icon: "matches", href: "/fixtures/", whenActive: (c) => c.startsWith("/fixtures") },
   { rowKey: "menu.city", icon: "city", href: "/city/", whenActive: (c) => c.startsWith("/city") },
