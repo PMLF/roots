@@ -702,3 +702,8 @@ button.dev { border-style: dashed; }
 .estrela-half { background: linear-gradient(90deg, var(--destaque) 50%, var(--linha, #c9ced6) 50%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .estrela-maybe { color: var(--destaque); opacity: .38; }
 .estrelas-intervalo { margin-left: .4em; color: var(--suave); font-size: .85em; }
+
+/* Renovações (RZ-165) */
+.renovacao-oferta { display: inline-flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.renovacao-oferta input { width: 6.5em; }
+.renovacao-oferta input[aria-label] + input { width: 3.5em; }
