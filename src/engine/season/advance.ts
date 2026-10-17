@@ -20,6 +20,7 @@ import { matchAttendance } from "../club/attendance";
 import { ensureBudgets } from "../club/budget";
 import { closeUntilMonths, post } from "../club/finances";
 import { postBroadcast } from "../broadcast/featured";
+import { isMarketDay, marketRound } from "../market/market";
 import { isInSecondDistrict } from "./districts";
 import { CP_FINAL_COMPETITION, generateCpFinal, generateCpFinalSemi } from "./cpFinalPhase";
 import { advanceCompetitions } from "./competitions";
@@ -209,6 +210,8 @@ export function advanceDay(repo: Repository, base: BaseData, params: Params, gam
     repo.setMeta("date.today", tomorrow);
     // fecho mensal das finanças (RZ-114): ao passar para o dia 1 de um mês
     if (tomorrow.endsWith("-01")) closeUntilMonths(repo, data, params, tomorrow, season, (c) => !isInSecondDistrict(c.league));
+    // mercado de transferências entre clubes da IA nas janelas (RZ-205/213)
+    if (isMarketDay(tomorrow, params)) marketRound(repo, data, params, tomorrow, season, gamerClub ? { gamerClub } : {});
     // Sem clube, chegam ofertas novas todas as segundas-feiras.
     if (isUnemployed(repo) && weekDay(tomorrow) === 1) updateOffers(repo, data, params, tomorrow);
     return { date: today, matches };
