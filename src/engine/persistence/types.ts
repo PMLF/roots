@@ -196,7 +196,7 @@ export type PlayerPatch = {
   agent?: string | null;
 };
 /** Cláusulas do contrato (RZ-207). `resale`: o clube de origem fica com `pct` (0-1) do valor de uma venda futura. */
-export type ContractClauses = { resale?: { club: string; pct: number } };
+export type ContractClauses = { resale?: { club: string; pct: number }; /** Valor (euros) que qualquer clube pode pagar para levar o jogador sem o vendedor poder recusar. */ release?: number };
 export type ContractRecord = { person: string; club: string; monthlyWage: number; start: IsoDate; end: IsoDate; clauses?: ContractClauses };
 export type RoleRecord = { person: string; fn: string; club?: string; city?: string; quality?: Record<string, number> };
 // ---------- localidades (RZ-136)
