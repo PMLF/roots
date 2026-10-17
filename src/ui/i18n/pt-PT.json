@@ -1030,5 +1030,10 @@
   "match.subs.noMore": "Já não tens substituições ou pausas para as fazer.",
   "match.leftList": "Já saíram",
   "match.controls": "Controlos do jogo",
-  "match.subs.chooseOut": "Escolhe quem sai para dar o lugar a {name}."
+  "match.subs.chooseOut": "Escolhe quem sai para dar o lugar a {name}.",
+  "person.agent": "Agente",
+  "person.resale": "Cláusula de revenda",
+  "person.resaleValue": "{pct} % de uma venda futura",
+  "person.resaleClub": "Revenda para",
+  "person.noClause": "Sem cláusula"
 }

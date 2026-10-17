@@ -1030,5 +1030,10 @@
   "match.subs.noMore": "No substitutions or stoppages left.",
   "match.leftList": "Already off",
   "match.controls": "Match controls",
-  "match.subs.chooseOut": "Pick who comes off for {name}."
+  "match.subs.chooseOut": "Pick who comes off for {name}.",
+  "person.agent": "Agent",
+  "person.resale": "Resale clause",
+  "person.resaleValue": "{pct}% of a future sale",
+  "person.resaleClub": "Resale goes to",
+  "person.noClause": "No clause"
 }

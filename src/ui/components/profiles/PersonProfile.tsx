@@ -100,7 +100,10 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
           { label: t("person.atClubSince"), value: d.contract?.start ?? unknown },
           { label: t("person.wage"), value: truth?.monthlyWage !== undefined ? `${eur(locale, truth.monthlyWage)}/${t("person.month")}` : unknown },
           { label: t("person.marketValue"), value: unknown },
-          { label: t("person.clause"), value: unknown },
+          ...(d.agent ? [{ label: t("person.agent"), value: <EntityLink k="person" id={d.agent.id}>{d.agent.name}</EntityLink> }] : []),
+          { label: t("person.clause"), value: d.clauses ? (d.clauses.release !== undefined ? eur(locale, d.clauses.release) : t("person.noClause")) : unknown },
+          { label: t("person.resale"), value: d.clauses ? (d.clauses.resale ? t("person.resaleValue", { pct: Math.round(d.clauses.resale.pct * 100) }) : t("person.noClause")) : unknown },
+          ...(d.clauses?.resale ? [{ label: t("person.resaleClub"), value: <EntityLink k="club" id={d.clauses.resale.club.id}>{d.clauses.resale.club.name}</EntityLink> }] : []),
         ]}
       />
     </Card>

@@ -27,4 +27,18 @@ describe("tabela do plantel", { timeout: 120000 }, () => {
     expect(again.extraSquad[hurt]?.injured).toBe(true);
     expect(Object.values(again.extraSquad).filter((x) => x.injured)).toHaveLength(1);
   });
+
+  it("a ficha mostra o agente a todos e as cláusulas só no teu clube", async () => {
+    const clubs = await handle({ id: 10, type: "clubs", input: null }, s);
+    repository.setMeta("gamer.club", clubs[0]!.id);
+    const mine = repository.clubPlayers(clubs[0]!.id)[0]!.person;
+    const theirs = repository.clubPlayers(clubs[1]!.id)[0]!.person;
+    for (const p of [mine, theirs]) repository.saveContract({ ...repository.contract(p)!, clauses: { release: 1234567, resale: { club: clubs[2]!.id, pct: 0.2 } } });
+    const own = (await handle({ id: 11, type: "personProfile", input: { id: mine } }, s))!;
+    const other = (await handle({ id: 12, type: "personProfile", input: { id: theirs } }, s))!;
+    expect(own.clauses).toMatchObject({ release: 1234567, resale: { pct: 0.2, club: { id: clubs[2]!.id } } });
+    expect(other.clauses).toBeUndefined();
+    const withAgent = repository.clubPlayers(clubs[1]!.id).find((j) => j.agent);
+    if (withAgent) expect((await handle({ id: 13, type: "personProfile", input: { id: withAgent.person } }, s))!.agent?.id).toBe(withAgent.agent);
+  });
 });
