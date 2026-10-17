@@ -143,6 +143,7 @@ describe("fichas ricas e «ver tudo»", () => {
     const player = club.squad[0]!;
     expect(club.extraSquad[player.id]?.endContract).toBeTruthy();
     expect(club.extraSquad[player.id]?.level).toBeUndefined(); // ninguém o observou
+    expect(club.extraSquad[player.id]?.rating).toBeUndefined();
 
     const profile = (await handle({ id: 62, type: "personProfile", input: { id: player.id } }, s))!;
     expect(profile.level).toBeUndefined();
@@ -157,12 +158,17 @@ describe("fichas ricas e «ver tudo»", () => {
     expect(dev.level).toMatchObject({ exact: true });
     expect(dev.level!.value).toBeGreaterThan(1);
     expect(dev.level!.value).toBeLessThanOrEqual(20);
+    expect(dev.rating!.stars).toBeGreaterThanOrEqual(0.5);
+    expect(dev.rating!.stars).toBeLessThanOrEqual(5);
+    expect(dev.rating!.potential!.high).toBeGreaterThanOrEqual(dev.rating!.stars);
+    expect(profile.rating).toBeUndefined();
 
     const devClub = (await handle({ id: 64, type: "clubProfile", input: { id: "sc-cascais", seeAll: true } }, s))!;
     expect(devClub.truth?.reputation).toBe(8300);
     expect(devClub.truth?.squadLevel).toBeGreaterThan(5);
     expect(Object.keys(devClub.truth?.staffQuality ?? {}).length).toBeGreaterThan(0);
     expect(devClub.extraSquad[player.id]?.level?.exact).toBe(true);
+    expect(devClub.extraSquad[player.id]?.rating?.stars).toBe(dev.rating!.stars);
 
     const president = club.roles.find((c) => c.fn === "president")!;
     const devPres = (await handle({ id: 65, type: "personProfile", input: { id: president.id, seeAll: true } }, s))!;

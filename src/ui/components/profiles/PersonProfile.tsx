@@ -6,6 +6,7 @@ import { Card, Data, Top } from "@/ui/components/Card";
 import { Profile } from "@/ui/components/Profile";
 import { EntityLink } from "@/ui/components/Link";
 import { seasonName } from "@/engine/calendar/seasonName";
+import { Stars } from "@/ui/components/Stars";
 import { Value } from "@/ui/components/Value";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -144,6 +145,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
       <Card title={t("card.level")}>
         <Data
           lines={[
+            ...(d.rating ? [{ label: t("person.stars"), value: <Stars value={d.rating.stars} /> }] : []),
+            ...(d.rating?.potential ? [{ label: t("person.potentialStars"), value: <Stars range={d.rating.potential} /> }] : []),
             { label: t("person.level"), value: level },
             { label: t("person.potential"), value: potentialValue },
             { label: t("person.form"), value: unknown },

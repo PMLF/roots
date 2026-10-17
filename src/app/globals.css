@@ -694,3 +694,11 @@ button.dev { border-style: dashed; }
 .pagina-jogo .relogio { margin: 4px 0 12px; }
 .pagina-jogo .subs-resumo { margin: 0 0 12px; }
 .pagina-jogo .controlos-jogo { margin: 0 0 20px; }
+
+/* Estrelas (RZ-916): qualidade e potencial relativos ao escalão */
+.estrelas { display: inline-flex; align-items: baseline; gap: 1px; white-space: nowrap; line-height: 1; }
+.estrela { font-size: 1.05em; color: var(--linha, #c9ced6); }
+.estrela-full { color: var(--destaque); }
+.estrela-half { background: linear-gradient(90deg, var(--destaque) 50%, var(--linha, #c9ced6) 50%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+.estrela-maybe { color: var(--destaque); opacity: .38; }
+.estrelas-intervalo { margin-left: .4em; color: var(--suave); font-size: .85em; }

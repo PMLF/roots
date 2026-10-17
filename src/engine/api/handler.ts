@@ -1,7 +1,7 @@
 import { setBudget, clubBudget } from "../club/budget";
 import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
 import { createDate } from "../calendar/dates";
-import { DEFAULT_PARAMETERS, type Params } from "../config/parameters";
+import { DEFAULT_PARAMETERS, type Params, type Tier } from "../config/parameters";
 import { SCHEMA_VERSION as DB_SCHEMA } from "../persistence/schema";
 import type { Repository } from "../persistence/repository";
 import { importData } from "../data/importData";
@@ -30,7 +30,8 @@ import type { Attribute, Position } from "../world/types";
 import { View } from "../view/view";
 import { buildIndex, find, type InputIndex, type Indexed } from "../search/search";
 import { startCompanies } from "../company/cycle";
-import type { EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
+import { potentialRange, referenceTier, starsOf } from "../world/stars";
+import type { StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SCHEMA_VERSION = DB_SCHEMA;
@@ -108,6 +109,9 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (contract) output.contract = { start: contract.start, end: contract.end };
       const level = playerLevel(repository, m.input.id, profile.exposed.player?.position, profile.attributes?.fields, m.input.seeAll === true);
       if (level) output.level = level;
+      const ratingClub = profile.exposed.club ? data.clubs.find((c) => c.id === profile.exposed.club) : undefined;
+      const rating = playerRating(repository, m.input.id, level, profile.potential?.fields.potential, ratingClub?.tier, params, m.input.seeAll === true);
+      if (rating) output.rating = rating;
       if (m.input.seeAll) output.truth = personTruth(repository, m.input.id);
       const club = profile.exposed.club ? data.clubs.find((c) => c.id === profile.exposed.club) : undefined;
       if (club) output.club = { k: "club", id: club.id, name: club.name };
@@ -149,7 +153,8 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         const ct = repository.contract(j.id);
         const fields = seeAll ? undefined : view.profile(j.id)?.attributes?.fields;
         const level = playerLevel(repository, j.id, j.player?.position, fields, seeAll);
-        output.extraSquad[j.id] = { ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}) };
+        const rating = playerRating(repository, j.id, level, view.profile(j.id)?.potential?.fields.potential, c.tier, params, seeAll);
+        output.extraSquad[j.id] = { ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}), ...(rating ? { rating } : {}) };
       }
       if (seeAll) {
         const levels = output.squad.map((j) => output.extraSquad[j.id]?.level?.value).filter((v): v is number => v !== undefined);
@@ -342,6 +347,17 @@ function playerLevel(r: Repository, id: string, position: string | undefined, fi
   if (v === undefined) return undefined;
   const margins = KEY[pos].map((a) => fields[a]?.margin ?? 0);
   return { value: v, margin: Math.round((margins.reduce((s, x) => s + x, 0) / margins.length) * 10) / 10, exact: false };
+}
+
+/** Estrelas do jogador (RZ-916): qualidade relativa ao escalão; potencial como intervalo (estimado com margem, ou exato com «ver tudo»). */
+function playerRating(r: Repository, id: string, level: EstimatedLevel | undefined, potential: { value: number; margin: number } | undefined, clubTier: Tier | undefined, params: Params, seeAll: boolean): StarRating | undefined {
+  if (!level) return undefined;
+  const tier = referenceTier(clubTier, params);
+  const rating: StarRating = { stars: starsOf(level.value, tier, params) };
+  const truth = seeAll ? r.player(id)?.potential : undefined;
+  if (truth !== undefined) rating.potential = potentialRange(truth, truth, level.value, tier, params);
+  else if (potential) rating.potential = potentialRange(potential.value - potential.margin, potential.value + potential.margin, level.value, tier, params);
+  return rating;
 }
 
 function personTruth(r: Repository, id: string): PersonTruth | undefined {
