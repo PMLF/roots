@@ -38,6 +38,8 @@ export type YouthInput = {
   years: number;
   cities: readonly BaseCity[];
   districtCities: readonly BaseCity[];
+  /** Aposta do clube nos jovens (1 = média): sobe o potencial de quem sai da formação. */
+  focus?: number;
 };
 
 export function createYouth(rng: Rng, o: YouthInput, params: Params): NewPlayerKit {
@@ -67,7 +69,7 @@ export function createYouth(rng: Rng, o: YouthInput, params: Params): NewPlayerK
     person: o.id,
     positions: generatePositions(rng, o.position, params.world.secondaryAptitude),
     attributes,
-    potential: Math.round(Math.max(potential, currentQuality(attributes, o.position)) * 10) / 10,
+    potential: Math.round(clamp(Math.max(potential + y.potentialByFocus * ((o.focus ?? 1) - 1), currentQuality(attributes, o.position)), 1, 20) * 10) / 10,
     ...generateBody(rng, o.position),
     club: o.club.id,
     state: "active",

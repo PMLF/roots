@@ -6,7 +6,7 @@ import { Rng, clamp } from "../random/rng";
 import type { Params, Tier } from "../config/parameters";
 import type { Repository } from "../persistence/repository";
 
-const TIER_BONUS: Record<Tier, number> = { firstLeague: -0.1, secondLeague: 0, thirdLeague: 0.05, cp: 0.1, district: 0.15 };
+export const TIER_BONUS: Record<Tier, number> = { firstLeague: -0.1, secondLeague: 0, thirdLeague: 0.05, cp: 0.1, district: 0.15 };
 
 export function youthFocus(repo: Repository, club: { id: string }, tier: Tier, params: Params): number {
   const f = params.squadCycle.youth.focus;

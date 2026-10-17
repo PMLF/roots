@@ -18,7 +18,7 @@ import { distributePositions } from "../world/generateWorld";
 import type { Attributes, Position } from "../world/types";
 import { developPlayer } from "./development";
 import { contractDates, createYouth, wageFor } from "./youth";
-import { youthFocus } from "./youthFocus";
+import { TIER_BONUS, youthFocus } from "./youthFocus";
 
 export type RolloverSummary = { retired: number; developed: number; expired: number; renewed: number; released: number; signedFree: number; youth: number; emergencyYouth: number };
 
@@ -197,7 +197,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
       const y = years(rng);
       const kit = createYouth(
         rng.derive(`youth/${nextId + 1}`),
-        { id: newId(), club, tier, position, targetQuality: clamp(rng.gauss(desired + sc.youth.targetOffset, tq.deviation), 1, 20), wageScale, seasonStart: o.seasonStart, years: y, cities: data.cities, districtCities: cities },
+        { id: newId(), club, tier, position, targetQuality: clamp(rng.gauss(desired + sc.youth.targetOffset + sc.youth.qualityByFocus * (focus - 1 - TIER_BONUS[tier]), tq.deviation), 1, 20), focus: focus - TIER_BONUS[tier], wageScale, seasonStart: o.seasonStart, years: y, cities: data.cities, districtCities: cities },
         params,
       );
       batch.people.push(kit.person);
