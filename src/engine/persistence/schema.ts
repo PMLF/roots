@@ -189,8 +189,13 @@ const V8 = `
 ALTER TABLE contract ADD COLUMN clauses TEXT;
 `;
 
+const V9 = `
+-- Clube de formação do jogador (RZ-207): compensação de formação.
+ALTER TABLE player ADD COLUMN trained_at TEXT;
+`;
+
 /** A posição no array + 1 é o número da versão do esquema. */
-export const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8];
+export const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8, V9];
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
 export function fileVersion(d: DriverSql): number {

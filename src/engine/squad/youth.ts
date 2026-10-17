@@ -72,6 +72,7 @@ export function createYouth(rng: Rng, o: YouthInput, params: Params): NewPlayerK
     potential: Math.round(clamp(Math.max(potential + y.potentialByFocus * ((o.focus ?? 1) - 1), currentQuality(attributes, o.position)), 1, 20) * 10) / 10,
     ...generateBody(rng, o.position),
     club: o.club.id,
+    trainedAt: o.club.id,
     state: "active",
   };
   const contract: ContractRecord = {

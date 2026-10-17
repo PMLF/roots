@@ -40,6 +40,7 @@ export type NewPlayer = {
   weightKg: number;
   pe: "D" | "E" | "A";
   club?: string;
+  trainedAt?: string;
   state: "active" | "free";
 };
 
