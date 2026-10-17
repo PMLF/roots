@@ -14,7 +14,7 @@ import { Stars } from "@/ui/components/Stars";
 import { Flag } from "@/ui/components/Flag";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { abbreviationPosition } from "@/ui/i18n/position";
+import { abbreviationPosition, rankPosition } from "@/ui/i18n/position";
 import type { Column } from "@/ui/table/logic";
 import { useCountries } from "@/ui/useCountries";
 
@@ -40,7 +40,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
 
   const squad: Column<ViewPerson>[] = [
     { id: "name", title: t("column.name"), value: (p) => p.sportingName },
-    { id: "pos", title: t("column.position"), value: (p) => abbreviationPosition(t, p.player?.position ?? "") },
+    { id: "pos", title: t("column.position"), value: (p) => abbreviationPosition(t, p.player?.position ?? ""), sortValue: (p) => rankPosition(p.player?.position ?? "") },
     { id: "age", title: t("column.age"), value: (p) => p.age, numeric: true },
     { id: "stars", title: t("column.level"), value: (p) => d.extraSquad[p.id]?.rating?.stars ?? 0, numeric: true },
     { id: "potential", title: t("column.potential"), value: (p) => d.extraSquad[p.id]?.rating?.potential?.high ?? 0, numeric: true },

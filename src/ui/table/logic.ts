@@ -4,6 +4,8 @@ export type Column<L> = {
   title: string;
   /** Valor para ordenar e exportar. */
   value: (line: L) => string | number;
+  /** Se existir, ordena por isto (o `value` continua a ser o que se exporta e filtra). */
+  sortValue?: (line: L) => string | number;
   /** Alinhar à direita (números). */
   numeric?: boolean;
 };
@@ -18,7 +20,7 @@ export function sort<L>(lines: readonly L[], columns: readonly Column<L>[], orde
   if (!c) return [...lines];
   const sign = order.direction === "asc" ? 1 : -1;
   return lines
-    .map((l, i) => ({ l, i, v: c.value(l) }))
+    .map((l, i) => ({ l, i, v: (c.sortValue ?? c.value)(l) }))
     .sort((a, b) => {
       const r = typeof a.v === "number" && typeof b.v === "number" ? a.v - b.v : norm(String(a.v)).localeCompare(norm(String(b.v)), "pt");
       return r * sign || a.i - b.i; // estável
