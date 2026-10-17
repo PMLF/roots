@@ -569,6 +569,45 @@ export type Params = {
     /** Taça e Supertaça: jogos de interesse por ronda, valor por jogo e emissoras com interesse (nacionais). */
     cup: { featuredPerRound: number; matchFee: number; superCupFee: number };
   };
+  /** Mercado de transferências entre clubes da IA (RZ-205/213): janelas, avaliação, propostas e consentimento do jogador. */
+  market: {
+    /** Janelas [mês, dia] de abertura e fecho (inclusive). */
+    windows: { open: [number, number]; close: [number, number] }[];
+    /** Dia da semana (0 = domingo) em que corre uma ronda; corre sempre também no último dia da janela. */
+    roundWeekday: number;
+    /** Probabilidade de um clube agir numa ronda normal e no último dia. */
+    actProbability: number;
+    actProbabilityLastDay: number;
+    /** Contratações máximas por clube e janela. */
+    maxSigningsPerWindow: number;
+    /** Um clube só compra se o plantel tiver menos do que alvo + folga. */
+    squadSlack: number;
+    /** Valor de mercado: múltiplo do ordenado anual por idade (interpolado), prémio do potencial por ponto, peso do contrato restante. */
+    ageFactor: [number, number][];
+    potentialPremium: number;
+    potentialPremiumAgeMax: number;
+    contractFullMonths: number;
+    contractMinFactor: number;
+    /** Preço pedido = valor × (base + ganância × (ganância do presidente − 10)); a oferta paga valor × (1 + prémio) com ruído. */
+    askBase: number;
+    askByGreed: number;
+    bidPremium: number;
+    bidNoise: number;
+    /** Até quanto acima do valor o comprador sobe se o vendedor pedir mais (fração do valor), e folga sobre a massa salarial do orçamento. */
+    counterTolerance: number;
+    wageSlack: number;
+    /** Folga de qualidade acima da procurada na escolha de candidatos. */
+    qualityCeiling: number;
+    /** Qualidade mínima que um reforço tem de trazer em relação ao pior titular da posição para valer a pena. */
+    minUpgrade: number;
+    /** Ordenado novo = máx(ordenado atual × subida, fórmula do escalão); anos de contrato novo. */
+    wageRaise: number;
+    contractYears: [number, number];
+    /** Parte do dinheiro de uma venda que passa a poder ser gasta em transferências. */
+    saleToBudget: number;
+    /** Consentimento do jogador: probabilidade base de aceitar subir de escalão e de descer, efeito da ambição e da lealdade (por ponto acima de 10). */
+    consent: { up: number; down: number; byAmbition: number; byLoyalty: number; byWageRatio: number };
+  };
   /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
   knowledge: {
     /** Épocas sem nova observação a partir das quais a ficha mostra "desatualizado". */
@@ -902,6 +941,31 @@ export const DEFAULT_PARAMETERS: Params = {
     interestRange: { min: 0.6, max: 2.5 },
     cup: { featuredPerRound: 2, matchFee: 15_000, superCupFee: 80_000 },
   },
+  market: {
+    windows: [{ open: [7, 1], close: [9, 1] }, { open: [1, 1], close: [1, 31] }],
+    roundWeekday: 1,
+    actProbability: 0.3,
+    actProbabilityLastDay: 0.7,
+    maxSigningsPerWindow: 4,
+    squadSlack: 2,
+    ageFactor: [[18, 3.4], [22, 3.2], [25, 2.8], [28, 2.2], [31, 1.2], [34, 0.4], [38, 0.1]],
+    potentialPremium: 0.22,
+    potentialPremiumAgeMax: 24,
+    contractFullMonths: 24,
+    contractMinFactor: 0.25,
+    askBase: 1.1,
+    askByGreed: 0.02,
+    bidPremium: 0.12,
+    bidNoise: 0.12,
+    counterTolerance: 0.55,
+    wageSlack: 0.05,
+    qualityCeiling: 3.5,
+    minUpgrade: 0.6,
+    wageRaise: 1.1,
+    contractYears: [2, 4],
+    saleToBudget: 0.6,
+    consent: { up: 0.9, down: 0.35, byAmbition: 0.03, byLoyalty: 0.025, byWageRatio: 0.5 },
+  },
   knowledge: {
     seasonsAfterOutdated: 2,
     uncertaintyGrowthPerSeason: 0.25,
@@ -1051,6 +1115,8 @@ export function validateParameters(p: Params): string[] {
   if (Object.values(m.placesByPosition).some((n) => n < 1)) errors.push("mundo.lugaresPorPosicao: pelo menos 1 por posição");
   if (Object.values(m.wage.average).some((x) => !(x > 0)) || m.wage.yearsContractMin < 1 || m.wage.yearsContractMax < m.wage.yearsContractMin) errors.push("mundo.salario inválido");
   if (!(m.age.min < m.age.max && m.age.min >= 15)) errors.push("mundo.idade: 15 ≤ min < max");
+  const mk = p.market;
+  if (!(mk.windows.length > 0 && mk.maxSigningsPerWindow >= 0 && mk.ageFactor.length >= 2 && mk.contractYears[0] >= 1 && mk.contractYears[1] >= mk.contractYears[0])) errors.push("market inválido");
   const co = p.companies;
   if (!(co.perCity.min >= 1 && co.perCity.base > 0 && co.capital.sigma >= 0)) errors.push("companies.perCity/capital inválido");
   if (!(co.sponsorship.yearsMin >= 1 && co.sponsorship.yearsMax >= co.sponsorship.yearsMin && co.sponsorship.maxShareOfCapital > 0)) errors.push("companies.sponsorship inválido");
