@@ -166,7 +166,6 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
         { label: t("club.nickname"), value: `${d.nickname} · ${d.mascot}` },
         ...(president ? [{ label: t("club.president"), value: name(president) }] : []),
         ...(d.rival ? [{ label: t("club.rival"), value: <EntityLink k="club" id={d.rival.id}>{d.rival.name}</EntityLink> }] : []),
-        { label: t("club.founded"), value: unknown },
       ]}
     />
   );
@@ -179,8 +178,6 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
           lines={[
             { label: t("club.size"), value: <b>{size}</b> },
             { label: t("club.division"), value: t(`tier.${d.tier}` as Key) },
-            { label: t("club.fans"), value: unknown },
-            { label: t("club.members"), value: unknown },
             ...(truth ? [{ label: t("dev.reputation"), value: n.format(truth.reputation) }] : []),
           ]}
         />
@@ -194,11 +191,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
               { label: t("finances.revenuesMonth"), value: eur.format(d.finances.lastClose.revenues) },
               { label: t("finances.expensesMonth"), value: eur.format(-d.finances.lastClose.expenses) },
             ] : []),
-            ...(d.finances.exact ? [] : [
-              { label: t("club.budget"), value: unknown },
-              { label: t("club.wageBill"), value: unknown },
-              { label: t("club.sponsorships"), value: unknown },
-            ]),
+            ...(d.sponsors.length ? [{ label: t("club.sponsorships"), value: d.sponsors.map((x) => x.name).join(", ") }] : []),
           ]}
         />
         {d.finances.budget && d.finances.balance !== undefined && <ClubBudget initial={d.finances.budget} balance={d.finances.balance} />}
@@ -213,7 +206,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
             { label: t("squad.foreigners"), value: d.squad.length ? `${foreigners} (${Math.round((foreigners / d.squad.length) * 100)}%)` : "—" },
             { label: t("squad.goalkeeper"), value: goalkeeper },
             { label: t("squad.averageLevel"), value: averageLevel ?? unknown },
-            { label: t("squad.injured"), value: unknown },
+            { label: t("squad.injured"), value: d.squad.filter((p) => d.extraSquad[p.id]?.injured).length },
           ]}
         />
       </Card>

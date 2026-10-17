@@ -147,8 +147,6 @@ export function Shell({ children }: { children: ReactNode }) {
       <footer className={matchInProgress ? "barra barra-jogo" : "barra"}>
         <MatchProgress />
         <span>{t("bar.date")}: <b>{time.state ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${time.state.today}T00:00:00Z`)) : t("bar.noData")}</b></span>
-        <span>{t("bar.budget")}: <b>{t("bar.noData")}</b></span>
-        <span>{t("bar.mood")}: <b>{t("bar.noData")}</b></span>
         <AdvanceButton />
       </footer>
       <nav className="abas" aria-label={t("menu.tabs")}>

@@ -97,3 +97,6 @@ Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já 
 - O separador ativo desliza sempre para a vista em ecrãs estreitos.
 - Regra: um separador só existe se tiver conteúdo; senão, retira-se de `TABS` (`ui/links.ts`). Todas as fichas continuam a acabar em *História*.
 
+
+## Elementos sem dados removidos (RZ-fill-gaps)
+Linhas que mostravam sempre «?»/«—» porque o motor não tem o dado foram retiradas: clube (fundação, adeptos, sócios), pessoa (valor de mercado, forma, condição, moral), barra (orçamento, humor da cidade). «Lesionados» passa a contar `extraSquad[].injured`; «Patrocínios» lista `sponsors`. Voltam quando o motor tiver o dado.
