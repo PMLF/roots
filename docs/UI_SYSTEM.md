@@ -100,3 +100,10 @@ Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já 
 
 ## Elementos sem dados removidos (RZ-fill-gaps)
 Linhas que mostravam sempre «?»/«—» porque o motor não tem o dado foram retiradas: clube (fundação, adeptos, sócios), pessoa (valor de mercado, forma, condição, moral), barra (orçamento, humor da cidade). «Lesionados» passa a contar `extraSquad[].injured`; «Patrocínios» lista `sponsors`. Voltam quando o motor tiver o dado.
+
+## Feedback de UI (17-10-2026)
+- **Voltar**: a mudança de separador usa `router.replace`, por isso «Voltar» (`router.back()`) sai da ficha para a página onde estávamos antes de abrir a pessoa/clube/cidade, em vez de saltar entre separadores.
+- **Separadores** sem scroll horizontal (em ecrãs estreitos repartem a largura).
+- **Cidade**: o cartão da Câmara (autarca + orçamento) é o primeiro do resumo e já não há separador «Autarca»; «O que o setor traz à cidade» (lista horizontal) divide a linha com «Acontecimentos»; a história dos indicadores usa as barras 1-5. As barras estavam vazias porque o CSS esperava `.cheio` e o componente punha `.full`.
+- **Finanças do teu clube**: o orçamento é decidido pelo presidente; a UI só mostra orçamento salarial total, margem salarial e verba de transferências que resta (o `setBudget` fica no motor).
+- **Renovações**: já não há ecrã. O plantel mostra «Renovar» nos contratos que acabam esta época e abre `RenewalDialog`.

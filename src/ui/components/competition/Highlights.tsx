@@ -77,7 +77,7 @@ export function HighlightsPanel({ h }: { h: H }) {
     const fresh = new URLSearchParams(params.toString());
     fresh.set("tab", TAB_URL["statistics"] ?? "stats");
     fresh.delete("sort");
-    router.push(`${path}?${fresh.toString()}`, { scroll: false });
+    router.replace(`${path}?${fresh.toString()}`, { scroll: false });
   };
   const onLoad = (e: MouseEvent) => {
     if ((e.target as HTMLElement).closest("a, button")) return; // as ligações dentro do cartão não o abrem

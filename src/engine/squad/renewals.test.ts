@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PARAMETERS as P } from "../config/parameters";
-import { acceptFloor, answerRenewal, expiringPlayers, renewalAsk, setDecision } from "./renewals";
+import { acceptFloor, clauseFactor, expiringPlayers, negotiateRenewal, renewalAsk, renewalInterest, setDecision } from "./renewals";
 import { data, fresh, run } from "./testWorld.testlib";
 
 const club = data.clubs.find((c) => c.tier === "thirdLeague")!;
@@ -26,12 +26,45 @@ describe("renovações do clube do gamer", () => {
       expect(f).toBeLessThanOrEqual(1);
     }
   });
-  it("aceita ofertas ao patamar e recusa abaixo dele", () => {
-    const p = squad[0]!;
-    const ask = renewalAsk(repo, data, P, club, p)!;
-    const floor = acceptFloor(repo, P, club, p);
-    expect(answerRenewal(repo, data, P, club, p, { wage: ask.wage, years: 2 })!.accepted).toBe(true);
-    expect(answerRenewal(repo, data, P, club, p, { wage: Math.floor(ask.wage * floor * 0.9), years: 2 })!.accepted).toBe(false);
+  const terms = (w: number, y: number, r: number | null) => ({ wage: w, years: y, release: r });
+  const open = squad.find((p) => renewalInterest(repo, data, P, club, p).interested && acceptFloor(repo, P, club, p) >= 0.85)!;
+  it("aceita ao pedido; abaixo do patamar contrapropõe e, ao igualar a contraproposta, aceita", () => {
+    const r = fresh("neg-b");
+    const ask = renewalAsk(r, data, P, club, open)!;
+    const first = negotiateRenewal(r, data, P, club, 1, open, terms(Math.floor(ask.wage * 0.7), 2, ask.release))!;
+    expect(first.status).toBe("counter");
+    if (first.status !== "counter") return;
+    expect(first.terms.wage).toBeGreaterThan(Math.floor(ask.wage * 0.7));
+    expect(first.round).toBe(1);
+    expect(negotiateRenewal(r, data, P, club, 1, open, first.terms)!.status).toBe("accepted");
+    const c = fresh("neg-c");
+    expect(negotiateRenewal(c, data, P, club, 1, open, terms(renewalAsk(c, data, P, club, open)!.wage, 2, renewalAsk(c, data, P, club, open)!.release))!.status).toBe("accepted");
+  });
+  it("uma oferta demasiado baixa fecha a negociação e ela não reabre", () => {
+    const r = fresh("neg-low");
+    expect(negotiateRenewal(r, data, P, club, 1, open, terms(50, 2, null))).toEqual({ status: "closed", reason: "refused" });
+    expect(negotiateRenewal(r, data, P, club, 1, open, terms(999999, 2, null))).toEqual({ status: "closed", reason: "refused" });
+  });
+  it("a cláusula pesa no ordenado e o agente corta uma acima do teto", () => {
+    const r = fresh("neg-clause");
+    const ask = renewalAsk(r, data, P, club, open)!;
+    expect(clauseFactor(P, null, ask.release!)).toBeGreaterThan(clauseFactor(P, ask.release!, ask.release!));
+    expect(clauseFactor(P, ask.release! / 2, ask.release!)).toBeLessThan(1);
+    const reply = negotiateRenewal(r, data, P, club, 1, open, terms(ask.wage * 2, 2, ask.releaseCeiling * 3))!;
+    expect(reply.status).toBe("counter");
+    if (reply.status === "counter") expect(reply.terms.release).toBe(ask.releaseCeiling);
+  });
+  it("com os parâmetros certos, um craque ambicioso não quer o clube e quem vem de longe exige ordenado mínimo", () => {
+    const n = P.squadCycle.contracts.negotiation;
+    const withN = (patch: Partial<typeof n>) => ({ ...P, squadCycle: { ...P.squadCycle, contracts: { ...P.squadCycle.contracts, negotiation: { ...n, ...patch } } } });
+    const lvl = withN({ level: { margin: -100, ambitionMin: 0, loyaltyStay: 99 } });
+    const outsider = squad.find((p) => repo.person(p)?.birthCity !== club.city)!;
+    expect(renewalInterest(repo, data, lvl, club, outsider)).toEqual({ interested: false, reason: "level" });
+    const dist = withN({ distance: { tiers: [club.tier], wageFactor: 1.5, loyaltyStay: 99 } });
+    const res = renewalInterest(repo, data, dist, club, outsider);
+    const from = data.cities.find((c) => c.id === repo.person(outsider)?.birthCity)?.district;
+    expect(res.interested).toBe(true);
+    expect("minWage" in res).toBe(from !== club.district);
   });
   it("a decisão do gamer manda na passagem de época: renova com as condições dadas ou deixa sair", () => {
     const r = fresh("renewals-roll");
@@ -39,7 +72,7 @@ describe("renovações do clube do gamer", () => {
     const ps = r.clubPlayers(club.id).map((j) => j.person).slice(0, 2);
     for (const p of ps) r.saveContract({ ...r.contract(p)!, end: "2027-06-30" });
     expect(expiringPlayers(r, club.id, seasonStart)).toEqual(expect.arrayContaining(ps));
-    setDecision(r, 1, ps[0]!, { kind: "renew", wage: 4321 * 10 / 10, years: 3 });
+    setDecision(r, 1, ps[0]!, { kind: "renew", wage: 4321, years: 3, release: null });
     setDecision(r, 1, ps[1]!, { kind: "release" });
     run(r, 1, club.id);
     expect(r.contract(ps[0]!)?.club).toBe(club.id);

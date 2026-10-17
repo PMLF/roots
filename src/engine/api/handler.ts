@@ -1,7 +1,7 @@
 import { setBudget, clubBudget } from "../club/budget";
 import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
 import { ageAt, createDate } from "../calendar/dates";
-import { answerRenewal, decisionOf, expiringPlayers, renewalAsk, setDecision } from "../squad/renewals";
+import { decisionOf, expiringPlayers, negotiateRenewal, negotiationOf, renewalAsk, setDecision } from "../squad/renewals";
 import { DEFAULT_PARAMETERS, type Params, type Tier } from "../config/parameters";
 import { SCHEMA_VERSION as DB_SCHEMA } from "../persistence/schema";
 import type { Repository } from "../persistence/repository";
@@ -173,12 +173,13 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         if (who && until && today && e.date <= today && until > today) injured.add(who.id);
       }
       const ownClub = repository.meta("gamer.club") === c.id || seeAll;
+      const expiring = new Set(repository.meta("gamer.club") === c.id ? expiringPlayers(repository, c.id, createDate(params.calendar.initialYear + Number(repository.meta("season") ?? 1), params.calendar.seasonStartMonth, 1)) : []);
       for (const j of output.squad) {
         const ct = repository.contract(j.id);
         const fields = seeAll ? undefined : view.profile(j.id)?.attributes?.fields;
         const level = playerLevel(repository, j.id, j.player?.position, fields, seeAll);
         const rating = playerRating(repository, j.id, level, view.profile(j.id)?.potential?.fields.potential, c.tier, params, seeAll);
-        output.extraSquad[j.id] = { ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}), ...(rating ? { rating } : {}), ...(injured.has(j.id) ? { injured: true } : {}), ...(ownClub && ct ? { wage: ct.monthlyWage } : {}) };
+        output.extraSquad[j.id] = { ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}), ...(rating ? { rating } : {}), ...(injured.has(j.id) ? { injured: true } : {}), ...(expiring.has(j.id) ? { renewable: true } : {}), ...(ownClub && ct ? { wage: ct.monthlyWage } : {}) };
       }
       if (seeAll) {
         const levels = output.squad.map((j) => output.extraSquad[j.id]?.level?.value).filter((v): v is number => v !== undefined);
@@ -277,9 +278,9 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const club = gamerClubOf(repository, data);
       const season = Number(repository.meta("season") ?? 1);
       if (!club || !renewalsOf(repository, data, params).lines.some((l) => l.id === m.input.person)) throw new Error("O jogador não tem contrato a expirar no teu clube.");
-      const r = answerRenewal(repository, data, params, club, m.input.person, { wage: m.input.wage, years: m.input.years });
+      const r = negotiateRenewal(repository, data, params, club, season, m.input.person, { wage: m.input.wage, years: m.input.years, release: m.input.release });
       if (!r) throw new Error("Jogador sem contrato.");
-      if (r.accepted) setDecision(repository, season, m.input.person, { kind: "renew", wage: m.input.wage, years: m.input.years });
+      if (r.status === "accepted") setDecision(repository, season, m.input.person, { kind: "renew", ...r.terms });
       return r;
     }
     case "releaseExpiring": {
@@ -424,8 +425,9 @@ function renewalsOf(r: Repository, data: BaseData, params: Params): RenewalsData
     const ask = renewalAsk(r, data, params, club, id);
     if (!person || !player || !ct || !ask) continue;
     const decision = decisionOf(r, season, id);
+    const neg = negotiationOf(r, season, id);
     const agent = player.agent ? r.person(player.agent)?.sportingName : undefined;
-    lines.push({ id, name: person.sportingName, position: player.positions[0]?.pos ?? "", age: ageAt(person.birth, today), endContract: ct.end, currentWage: ct.monthlyWage, ask, ...(agent ? { agent } : {}), ...(decision ? { decision } : {}) });
+    lines.push({ id, name: person.sportingName, position: player.positions[0]?.pos ?? "", age: ageAt(person.birth, today), endContract: ct.end, currentWage: ct.monthlyWage, ...(ct.clauses?.release !== undefined ? { currentRelease: ct.clauses.release } : {}), ask: { wage: ask.wage, years: ask.years, release: ask.release }, ...(agent ? { agent } : {}), ...(decision ? { decision } : {}), ...(neg.round > 0 || neg.closed ? { negotiation: { round: neg.round, roundsLeft: Math.max(0, params.squadCycle.contracts.negotiation.maxRounds - neg.round), ...(neg.closed ? { closed: neg.closed } : {}) } } : {}) });
   }
   return { season, nextSeasonStart, lines: lines.sort((a, b) => b.currentWage - a.currentWage) };
 }

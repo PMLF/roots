@@ -154,7 +154,7 @@ legend { padding: 0 6px; color: var(--suave); }
 .ficha-numeros dt { color: var(--suave); font-size: 12px; }
 .ficha-numeros dd { margin: 2px 0 0; font-size: 18px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
 .ligacoes { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
-.separadores { display: flex; gap: 2px; border-bottom: 1px solid var(--linha); margin: 0 0 14px; overflow-x: auto; }
+.separadores { display: flex; gap: 2px; border-bottom: 1px solid var(--linha); margin: 0 0 14px; }
 .separadores button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 8px 14px; color: var(--suave); margin-bottom: -1px; }
 .separadores button:hover:not(:disabled) { background: none; color: var(--texto); }
 .separadores button[aria-selected="true"] { color: var(--texto); border-bottom-color: var(--destaque); font-weight: 600; }
@@ -424,7 +424,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .nivel-linha { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
 .nivel-barra { display: inline-flex; gap: 2px; }
 .nivel-barra > span { width: 10px; height: 8px; border-radius: 2px; background: var(--linha); }
-.nivel-barra > span.cheio { background: var(--destaque); }
+.nivel-barra > span.cheio, .nivel-barra > span.full { background: var(--destaque); }
 .tendencia { font-variant-numeric: tabular-nums; color: var(--suave); }
 .tendencia-sobe { color: var(--destaque-texto); }
 .tendencia-desce { color: var(--aviso); }
@@ -734,9 +734,6 @@ button.dev { border-style: dashed; }
 .estrelas-intervalo { margin-left: .4em; color: var(--suave); font-size: .85em; }
 
 /* Renovações (RZ-165) */
-.renovacao-oferta { display: inline-flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-.renovacao-oferta input { width: 6.5em; }
-.renovacao-oferta input[aria-label] + input { width: 3.5em; }
 /* Plantel: lesionados com a linha avermelhada e uma cruz vermelha ao lado do nome; bandeiras */
 .tabela tr.lesionado td { background: color-mix(in srgb, #d33 11%, transparent); }
 .lesao { color: #d12b2b; font-weight: 700; }
@@ -758,10 +755,29 @@ button.dev { border-style: dashed; }
   .formulario { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 720px) {
-  .separadores { scrollbar-width: none; }
-  .separadores::-webkit-scrollbar { display: none; }
-  .separadores button { flex: none; white-space: nowrap; min-height: 44px; }
+  .separadores button { flex: 1 1 0; min-width: 0; padding: 8px 4px; font-size: 13px; text-align: center; min-height: 44px; }
   .migalhas button, .migalhas a { min-height: 36px; display: inline-flex; align-items: center; }
   .dados > div { min-height: 38px; align-items: center; }
 }
 .formulario input:not([type=checkbox]):not([type=radio]) { width: 100%; min-width: 0; }
+
+/* Cidade: par de cartões lado a lado (metade da largura cada) e lista horizontal */
+.cartoes-par { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 900px) { .cartoes-par { grid-template-columns: 1fr; } }
+.lista-horizontal { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 18px; }
+.lista-horizontal li { display: flex; flex-direction: column; gap: 2px; }
+
+/* Popup de renovação */
+.popup.popup-renovacao { width: min(94vw, 460px); position: relative; }
+.popup .renovacao-form { display: flex; flex-direction: column; gap: 10px; }
+.renovacao-form label { display: grid; gap: 4px; }
+.renovacao-form label > span { font-size: 13px; color: var(--suave); }
+.renovacao-form input[type="number"], .renovacao-form select { width: 100%; }
+.renovacao-form .caixa-marcar { display: flex; align-items: center; gap: 8px; }
+.renovacao-form .caixa-marcar > span { font-size: 14px; color: var(--texto); }
+.renovacao-form label.alterado input, .renovacao-form label.alterado select { border-color: var(--aviso); background: var(--aviso-fundo); }
+.alterado-nota { color: var(--aviso); }
+.mensagem-renovacao { margin: 4px 0 0; padding: 8px 10px; border-radius: var(--r-s, 6px); background: var(--painel-2); font-size: 14px; }
+.mensagem-renovacao.aviso { background: var(--aviso-fundo); }
+.mensagem-renovacao.erro { color: var(--erro, inherit); }
+.acoes-popup { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }

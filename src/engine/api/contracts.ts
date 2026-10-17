@@ -71,10 +71,18 @@ export type RenewalLine = {
   age: number;
   endContract: string;
   currentWage: number;
-  ask: { wage: number; years: number };
+  currentRelease?: number;
+  ask: { wage: number; years: number; release: number | null };
   agent?: string;
-  decision?: { kind: "renew"; wage: number; years: number } | { kind: "release" };
+  decision?: { kind: "renew"; wage: number; years: number; release: number | null } | { kind: "release" };
+  /** Rondas já feitas com o agente e, se a porta fechou, porquê. */
+  negotiation?: { round: number; roundsLeft: number; closed?: "refused" | "level" | "distance" };
 };
+export type RenewalTermsView = { wage: number; years: number; release: number | null };
+export type NegotiationResult =
+  | { status: "accepted"; terms: RenewalTermsView }
+  | { status: "counter"; terms: RenewalTermsView; round: number; roundsLeft: number; reason?: "distance" }
+  | { status: "closed"; reason: "refused" | "level" | "distance" };
 export type RenewalsData = { season: number; nextSeasonStart: string; lines: RenewalLine[] };
 
 export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string };
@@ -139,7 +147,7 @@ export type ClubProfileData = {
   /** Divisão em que o clube esteve, por época (a história de subidas e descidas). */
   divisionsHistory: { season: number; label: string; tier: Tier; league: string }[];
   /** Por jogador do plantel: fim de contrato e nível geral. */
-  extraSquad: Record<string, { endContract?: string; level?: EstimatedLevel; rating?: StarRating; injured?: boolean; /** Só no clube do gamer (ou em modo developer). */ wage?: number }>;
+  extraSquad: Record<string, { endContract?: string; level?: EstimatedLevel; rating?: StarRating; injured?: boolean; renewable?: boolean; /** Só no clube do gamer (ou em modo developer). */ wage?: number }>;
   /** Estatísticas da época atual (jogadores do plantel e tops do clube). */
   season?: ClubSeason;
   /** Por membro da equipa técnica: desde quando está no clube (contrato). */
@@ -277,8 +285,8 @@ export type EngineRequests = {
   acceptOffer: { input: { id: string }; output: { id: string } };
   /** Contratos a expirar no clube do gamer, com o pedido de cada jogador (RZ-165). Quem não tiver decisão renova pela fórmula do escalão. */
   renewals: { input: null; output: RenewalsData };
-  /** O gamer oferece condições a um jogador: aceita se chegarem ao patamar dele; senão devolve o pedido. Guarda a decisão se aceitar. */
-  negotiateRenewal: { input: { person: string; wage: number; years: number }; output: { accepted: boolean; ask: { wage: number; years: number } } };
+  /** Uma ronda com o agente: aceita (guarda a decisão), contrapropõe novas condições ou fecha a negociação. */
+  negotiateRenewal: { input: { person: string; wage: number; years: number; release: number | null }; output: NegotiationResult };
   /** O gamer decide deixar sair um jogador com contrato a expirar. */
   releaseExpiring: { input: { person: string }; output: null };
   chooseClub: { input: { id: string; force?: boolean }; output: { id: string } };

@@ -18,7 +18,7 @@ import { distributePositions } from "../world/generateWorld";
 import type { Attributes, Position } from "../world/types";
 import { developPlayer } from "./development";
 import { contractDates, createYouth, wageFor } from "./youth";
-import { decisionOf } from "./renewals";
+import { decisionOf, negotiationOf } from "./renewals";
 import { marketValue } from "../market/value";
 import { releaseClause } from "../market/clauses";
 import { agentTraits } from "../agent/assign";
@@ -165,14 +165,16 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const expiring = members.filter(expired).sort((a, b) => b.quality - a.quality || (a.record.person < b.record.person ? -1 : 1));
     for (const m of expiring) {
       summary.expired++;
-      const decision = o.gamerClub === club.id ? decisionOf(repo, o.season, m.record.person) : undefined;
+      const own = o.gamerClub === club.id;
+      // negociação fechada sem acordo (o agente recusou, ou o jogador não quer o clube): sai
+      const decision = own ? decisionOf(repo, o.season, m.record.person) ?? (negotiationOf(repo, o.season, m.record.person).closed ? { kind: "release" as const } : undefined) : undefined;
       const wants = decision
         ? decision.kind === "renew"
         : kept.length < target && (o.gamerClub === club.id || rng.derive(`renew/${m.record.person}`).prob(renewalProbability(m.quality, tq.mean, age(m.record), params, focus)));
       if (wants) {
         const y = decision?.kind === "renew" ? decision.years : years(rng);
         const wage = decision?.kind === "renew" ? decision.wage : Math.max(50, Math.round((wageFor(params, tier, m.quality, wageScale) * sc.contracts.renewalWageFactor) / 10) * 10);
-        const release = releaseClause(rng.derive(`release/${m.record.person}`), marketValue({ quality: m.quality, potential: m.record.potential, age: age(m.record), monthlyWage: wage, monthsLeft: y * 12 }, params), agentTraits(repo, m.record.agent)?.greed, params);
+        const release = decision?.kind === "renew" ? decision.release ?? undefined : releaseClause(rng.derive(`release/${m.record.person}`), marketValue({ quality: m.quality, potential: m.record.potential, age: age(m.record), monthlyWage: wage, monthsLeft: y * 12 }, params), agentTraits(repo, m.record.agent)?.greed, params);
         repo.saveContract({ person: m.record.person, club: club.id, monthlyWage: wage, ...contractDates(o.seasonStart, y), ...(release !== undefined ? { clauses: { release } } : {}) });
         event("CONTRACT_RENEWED", m.record.person, club.id, { wage, years: y });
         kept.push(m);

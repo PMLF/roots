@@ -13,6 +13,7 @@ import { ClubBudget } from "@/ui/components/profiles/ClubBudget";
 import { Table } from "@/ui/components/Table";
 import { Stars } from "@/ui/components/Stars";
 import { Flag } from "@/ui/components/Flag";
+import { RenewalDialog } from "@/ui/components/RenewalDialog";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { abbreviationPosition, rankPosition } from "@/ui/i18n/position";
@@ -81,9 +82,14 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
     countC("red", "column.reds", (p) => ep(p)?.red ?? 0),
   ];
   const [view, setView] = useState<"profile" | "season" | "discipline">("profile");
-  const viewColumns = view === "season" ? seasonCol : view === "discipline" ? disciplineCol : squad;
+  const [renewing, setRenewing] = useState<ViewPerson | undefined>(undefined);
+  const [agreed, setAgreed] = useState<Record<string, true>>({});
+  const canRenew = d.squad.some((p) => d.extraSquad[p.id]?.renewable);
+  const renewalCol: Column<ViewPerson> = { id: "renewal", title: t("renewals.action"), value: (p) => (d.extraSquad[p.id]?.renewable ? 1 : 0), numeric: false };
+  const viewColumns = view === "season" ? seasonCol : view === "discipline" ? disciplineCol : canRenew ? [...squad, renewalCol] : squad;
   const seasonCell = {
     name: (p: ViewPerson) => <>{name(p)}{d.extraSquad[p.id]?.injured && <span className="lesao" role="img" aria-label={t("squad.injured")} title={t("squad.injured")}> ✚</span>}</>, country: (p: ViewPerson) => <Flag id={p.nationality} />, wage: (p: ViewPerson) => { const w = d.extraSquad[p.id]?.wage; return w !== undefined ? eur.format(w) : unknown; }, potential: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating?.potential; return r ? <Stars range={r} /> : unknown; }, stars: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating; return r ? <Stars value={r.stars} /> : unknown; },
+    renewal: (p: ViewPerson) => (d.extraSquad[p.id]?.renewable ? (agreed[p.id] ? <b>{t("renewals.done")}</b> : <button type="button" className="secundario" onClick={() => setRenewing(p)}>{t("renewals.renew")}</button>) : null),
     rating: (p: ViewPerson) => (ep(p)?.rating !== undefined ? dec(ep(p)?.rating ?? 0, 2) : "—"),
     g90: (p: ViewPerson) => (ep(p)?.minutes ? dec(g90(p), 2) : "—"),
   };
@@ -97,6 +103,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
           <option value="discipline">{t("squad.view.discipline")}</option>
         </select>
       </label>
+      {renewing && <RenewalDialog person={renewing.id} name={renewing.sportingName} onClose={() => setRenewing(undefined)} onAgreed={() => setAgreed((a) => ({ ...a, [renewing.id]: true }))} />}
       <Table key={view} id={`plantel-${view}`} fileName={`plantel-${view}-${d.id}`} columns={viewColumns} lines={d.squad} rowKey={(p) => p.id} cell={seasonCell} lineClass={(p) => (d.extraSquad[p.id]?.injured ? "lesionado" : undefined)} initialOrder={view === "profile" ? { column: "pos", direction: "asc" } : { column: view === "season" ? "ga" : "minutes", direction: "desc" }} />
     </>
   );
@@ -194,7 +201,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
             ...(d.sponsors.length ? [{ label: t("club.sponsorships"), value: d.sponsors.map((x) => x.name).join(", ") }] : []),
           ]}
         />
-        {d.finances.budget && d.finances.balance !== undefined && <ClubBudget initial={d.finances.budget} balance={d.finances.balance} />}
+        {d.finances.budget && <ClubBudget budget={d.finances.budget} />}
       </Card>
       {clubSeason}
       {clubTops}
