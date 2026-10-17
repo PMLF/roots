@@ -57,7 +57,7 @@ export function CompetitionProfile({ d }: { d: CompetitionPage }) {
         summary,
         statistics: <Statistics page={d} />,
         clubs: (
-          <Table id="competicao-clubes" fileName={`clubs-${d.league}`} columns={clubsColumns} lines={d.clubs} rowKey={(c) => c.id} cell={{ club: (c) => <EntityLink k="club" id={c.id}>{c.name}</EntityLink>, stadium: (c) => n.format(c.capacity) }} initialOrder={{ column: "reputation", direction: "desc" }} />
+          <Table id="competicao-clubes" columns={clubsColumns} lines={d.clubs} rowKey={(c) => c.id} cell={{ club: (c) => <EntityLink k="club" id={c.id}>{c.name}</EntityLink>, stadium: (c) => n.format(c.capacity) }} initialOrder={{ column: "reputation", direction: "desc" }} />
         ),
         story: (
           <Card title={t("tab.story")}>

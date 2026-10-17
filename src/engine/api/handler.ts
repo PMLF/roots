@@ -13,7 +13,7 @@ import { validateWorld } from "../world/validate";
 import { worldCompetitions, labMatch, labLeague } from "../lab/lab";
 import { inbox, markInboxRead, markMessage, news } from "../news/news";
 import { clubSeason } from "../competition/clubSeason";
-import { readLiveMatch } from "../season/liveMatch";
+import { readLiveMatch, type LivePlayer } from "../season/liveMatch";
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
 import { acceptOffer, resign, isUnemployed, gamerOffers } from "../season/coachMarket";
@@ -30,6 +30,7 @@ import { generalLevel } from "../world/level";
 import { KEY } from "../world/player";
 import type { Attribute, Position } from "../world/types";
 import { View } from "../view/view";
+import type { PersonProfile } from "../view/types";
 import { buildIndex, find, type InputIndex, type Indexed } from "../search/search";
 import { Rng } from "../random/rng";
 import { startCompanies } from "../company/cycle";
@@ -105,9 +106,9 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     }
     case "personProfile": {
       const { repository, data, params } = await context(servicos);
-      const profile = gamerView(repository).profile(m.input.id);
-      if (!profile) return null;
       const view = gamerView(repository);
+      const profile = ownProfile(repository, view, m.input.id);
+      if (!profile) return null;
       const output: PersonProfileData = { profile, stats: view.playerStats(m.input.id), initialYear: params.calendar.initialYear };
       const contract = repository.contract(m.input.id);
       if (contract) output.contract = { start: contract.start, end: contract.end };
@@ -131,6 +132,10 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (m.input.seeAll) output.truth = personTruth(repository, m.input.id);
       const club = profile.exposed.club ? data.clubs.find((c) => c.id === profile.exposed.club) : undefined;
       if (club) output.club = { k: "club", id: club.id, name: club.name };
+      // quem não tem movimentos (treinador, presidente…) fica com uma linha: a época atual e o clube
+      if ((output.career ?? []).length === 0) output.career = [{ id: 0, date: repository.meta("date.today") ?? "", season: Number(repository.meta("season") ?? 1), kind: "current", ...(club ? { club: { k: "club" as const, id: club.id, name: club.name } } : {}) }];
+      if (club && repository.meta("gamer.club") === club.id && contract && expiringPlayers(repository, club.id, createDate(params.calendar.initialYear + Number(repository.meta("season") ?? 1), params.calendar.seasonStartMonth, 1)).includes(m.input.id)) output.renewable = true;
+      if (contract && (m.input.seeAll === true || (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club))) output.wage = contract.monthlyWage;
       const city = profile.exposed.birthCity ? data.cities.find((c) => c.id === profile.exposed.birthCity) : undefined;
       if (city) output.birthCity = { k: "city", id: city.id, name: city.name };
       return output;
@@ -176,9 +181,10 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const expiring = new Set(repository.meta("gamer.club") === c.id ? expiringPlayers(repository, c.id, createDate(params.calendar.initialYear + Number(repository.meta("season") ?? 1), params.calendar.seasonStartMonth, 1)) : []);
       for (const j of output.squad) {
         const ct = repository.contract(j.id);
-        const fields = seeAll ? undefined : view.profile(j.id)?.attributes?.fields;
+        const known = seeAll ? undefined : ownProfile(repository, view, j.id);
+        const fields = known?.attributes?.fields;
         const level = playerLevel(repository, j.id, j.player?.position, fields, seeAll);
-        const rating = playerRating(repository, j.id, level, view.profile(j.id)?.potential?.fields.potential, c.tier, params, seeAll);
+        const rating = playerRating(repository, j.id, level, known?.potential?.fields.potential, c.tier, params, seeAll);
         output.extraSquad[j.id] = { ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}), ...(rating ? { rating } : {}), ...(injured.has(j.id) ? { injured: true } : {}), ...(expiring.has(j.id) ? { renewable: true } : {}), ...(ownClub && ct ? { wage: ct.monthlyWage } : {}) };
       }
       if (seeAll) {
@@ -244,8 +250,8 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const { data, params } = await context(servicos);
       // um jogo a decorrer tem prioridade (sem id, ou com o id desse jogo)
       const ongoing = currentSession(repository, data, params);
-      if (ongoing && (!m.input.id || m.input.id === ongoing.id)) return ongoing;
-      return readLiveMatch(repository, m.input.id);
+      const live = ongoing && (!m.input.id || m.input.id === ongoing.id) ? ongoing : readLiveMatch(repository, m.input.id);
+      return live ? withStars(repository, data, params, live) : live;
     }
     case "news": {
       const { repository, data } = await context(servicos);
@@ -455,6 +461,35 @@ function personCareer(r: Repository, data: BaseData, person: string): CareerLine
       const fee = kind === "transfer" ? (e.data as { fee?: number }).fee : undefined;
       return { id: e.id, date: e.date, season: e.season, kind, ...(main ? { club: main } : {}), ...(from ? { from } : {}), ...(fee !== undefined ? { fee } : {}) };
     });
+}
+
+/**
+ * A ficha de uma pessoa tal como o gamer a vê. Os jogadores do próprio clube conhecem-se por inteiro (atributos exatos,
+ * potencial com margem pequena), sem precisar de observações; os dos outros clubes só pelo que se observou.
+ */
+function ownProfile(r: Repository, view: View, id: string): PersonProfile | undefined {
+  const base = view.profile(id);
+  const club = base?.exposed.club;
+  const player = r.player(id);
+  if (!base || !club || !player || r.meta("gamer.club") !== club) return base;
+  const fresh = { seenIn: r.meta("date.today") ?? "", sinceSeasons: 0, outdated: false };
+  const estimate = (value: number, margin: number) => ({ value, margin, halfTime: [value - margin, value + margin] as [number, number], ...fresh });
+  const attributes = { ...fresh, observations: 1, labels: [], fields: Object.fromEntries(Object.entries(player.attributes).map(([k, v]) => [k, estimate(v as number, 0)])) };
+  const potential = { ...fresh, observations: 1, labels: [], fields: { potential: estimate(player.potential, 1) } };
+  return { ...base, attributes, potential };
+}
+
+/** Estrelas de nível dos jogadores do clube do gamer no jogo (ajudam a decidir substituições). */
+function withStars<T extends { gamerSide?: "home" | "away"; teams?: { home: LivePlayer[]; away: LivePlayer[] } }>(r: Repository, data: BaseData, params: Params, match: T): T {
+  const club = gamerClubOf(r, data);
+  const side = match.gamerSide;
+  if (!club || !side || !match.teams) return match;
+  const teams = { ...match.teams, [side]: match.teams[side].map((j) => {
+    const at = r.player(j.id)?.attributes;
+    const level = at ? generalLevel((a) => at[a], j.position) : undefined;
+    return level === undefined ? j : { ...j, stars: starsOf(level, club.tier, params) };
+  }) };
+  return { ...match, teams };
 }
 
 function personTruth(r: Repository, id: string): PersonTruth | undefined {

@@ -19,6 +19,7 @@ import { useT } from "@/ui/i18n/LocaleProvider";
 import { abbreviationPosition, rankPosition } from "@/ui/i18n/position";
 import type { Column } from "@/ui/table/logic";
 import { useCountries } from "@/ui/useCountries";
+import { useOwnClub } from "@/ui/myClub";
 
 /** Barra 0-100 (qualidade de um aspeto do estádio). */
 function Bar({ value }: { value: number }) {
@@ -82,29 +83,35 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
     countC("red", "column.reds", (p) => ep(p)?.red ?? 0),
   ];
   const [view, setView] = useState<"profile" | "season" | "discipline">("profile");
+  const [ownClub] = useOwnClub();
+  const ownSquad = ownClub === d.id;
   const [renewing, setRenewing] = useState<ViewPerson | undefined>(undefined);
   const [agreed, setAgreed] = useState<Record<string, true>>({});
   const canRenew = d.squad.some((p) => d.extraSquad[p.id]?.renewable);
   const renewalCol: Column<ViewPerson> = { id: "renewal", title: t("renewals.action"), value: (p) => (d.extraSquad[p.id]?.renewable ? 1 : 0), numeric: false };
-  const viewColumns = view === "season" ? seasonCol : view === "discipline" ? disciplineCol : canRenew ? [...squad, renewalCol] : squad;
+  const actionsCol: Column<ViewPerson> = { id: "actions", title: t("column.actions"), value: () => "" };
+  const viewColumns = view === "season" ? seasonCol : view === "discipline" ? disciplineCol : canRenew ? [...squad, renewalCol] : !ownSquad ? [...squad, actionsCol] : squad;
   const seasonCell = {
     name: (p: ViewPerson) => <>{name(p)}{d.extraSquad[p.id]?.injured && <span className="lesao" role="img" aria-label={t("squad.injured")} title={t("squad.injured")}> ✚</span>}</>, country: (p: ViewPerson) => <Flag id={p.nationality} />, wage: (p: ViewPerson) => { const w = d.extraSquad[p.id]?.wage; return w !== undefined ? eur.format(w) : unknown; }, potential: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating?.potential; return r ? <Stars range={r} /> : unknown; }, stars: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating; return r ? <Stars value={r.stars} /> : unknown; },
+    actions: () => <span className="acoes-linha"><button type="button" className="secundario" disabled title={t("squad.marketSoon")}>{t("squad.scout")}</button><button type="button" className="secundario" disabled title={t("squad.marketSoon")}>{t("squad.offer")}</button></span>,
     renewal: (p: ViewPerson) => (d.extraSquad[p.id]?.renewable ? (agreed[p.id] ? <b>{t("renewals.done")}</b> : <button type="button" className="secundario" onClick={() => setRenewing(p)}>{t("renewals.renew")}</button>) : null),
     rating: (p: ViewPerson) => (ep(p)?.rating !== undefined ? dec(ep(p)?.rating ?? 0, 2) : "—"),
     g90: (p: ViewPerson) => (ep(p)?.minutes ? dec(g90(p), 2) : "—"),
   };
+  const viewSelect = (
+    <label className="vista-plantel">
+      <span className="so-leitor">{t("squad.view")}</span>
+      <select value={view} onChange={(e) => setView(e.target.value as typeof view)} data-testid="plantel-vista" aria-label={t("squad.view")}>
+        <option value="profile">{t("squad.view.profile")}</option>
+        <option value="season">{t("squad.view.season")}</option>
+        <option value="discipline">{t("squad.view.discipline")}</option>
+      </select>
+    </label>
+  );
   const squadTable = (
     <>
-      <label className="vista-plantel">
-        <span>{t("squad.view")}</span>
-        <select value={view} onChange={(e) => setView(e.target.value as typeof view)} data-testid="plantel-vista">
-          <option value="profile">{t("squad.view.profile")}</option>
-          <option value="season">{t("squad.view.season")}</option>
-          <option value="discipline">{t("squad.view.discipline")}</option>
-        </select>
-      </label>
       {renewing && <RenewalDialog person={renewing.id} name={renewing.sportingName} onClose={() => setRenewing(undefined)} onAgreed={() => setAgreed((a) => ({ ...a, [renewing.id]: true }))} />}
-      <Table key={view} id={`plantel-${view}`} fileName={`plantel-${view}-${d.id}`} columns={viewColumns} lines={d.squad} rowKey={(p) => p.id} cell={seasonCell} lineClass={(p) => (d.extraSquad[p.id]?.injured ? "lesionado" : undefined)} initialOrder={view === "profile" ? { column: "pos", direction: "asc" } : { column: view === "season" ? "ga" : "minutes", direction: "desc" }} />
+      <Table key={view} id={`plantel-${view}`} toolbar={viewSelect} columns={viewColumns} lines={d.squad} rowKey={(p) => p.id} cell={seasonCell} lineClass={(p) => (d.extraSquad[p.id]?.injured ? "lesionado" : undefined)} initialOrder={view === "profile" ? { column: "pos", direction: "asc" } : { column: view === "season" ? "ga" : "minutes", direction: "desc" }} />
     </>
   );
   const tp = d.season?.tops;
@@ -268,12 +275,12 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
         <DivisionsChart points={d.divisionsHistory} />
       </Card>
             <Card title={t("club.seasons")} wide>
-              <Table id="clube-epocas" fileName={`history-${d.id}`} columns={seasonsColumns} lines={[...d.divisionsHistory].reverse()} rowKey={(h) => String(h.season)} simple />
+              <Table id="clube-epocas" columns={seasonsColumns} lines={[...d.divisionsHistory].reverse()} rowKey={(h) => String(h.season)} simple />
             </Card>
           </>
         ),
         staff: d.roles.length > 0 ? (
-          <Table id="staff" fileName={`staff-${d.id}`} columns={staff} lines={d.roles} rowKey={(p) => p.id} cell={{ name: name }} />
+          <Table id="staff" columns={staff} lines={d.roles} rowKey={(p) => p.id} cell={{ name: name }} />
         ) : (
           <p className="vazio">{t("club.noWorld")}</p>
         ),

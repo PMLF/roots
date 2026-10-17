@@ -87,7 +87,6 @@
   "table.columns": "Colunas",
   "table.allColumns": "Todas",
   "table.reset": "Repor",
-  "table.export": "Exportar CSV",
   "table.empty": "Sem linhas.",
   "column.name": "Nome",
   "column.age": "Idade",
@@ -1080,5 +1079,19 @@
   "renewals.closed.level": "{name} não vê neste clube o nível que procura e não quer renovar.",
   "renewals.closed.distance": "{name} não se muda tão longe por este ordenado e o agente encerrou a conversa.",
   "renewals.reopens": "Só volta a falar a partir de {date}.",
-  "renewals.locked": "Depois da primeira proposta só saem daqui com acordo, deixando o jogador sair ou se o agente desistir."
+  "renewals.locked": "Depois da primeira proposta só saem daqui com acordo, deixando o jogador sair ou se o agente desistir.",
+  "bar.next": "Próximo jogo",
+  "bar.league": "Liga",
+  "bar.points": "pts",
+  "bar.cash": "Caixa",
+  "bar.wageRoom": "Margem salarial",
+  "bar.injured": "Lesionados",
+  "bar.council": "Apoio da Câmara",
+  "career.asPlayer": "Carreira como jogador",
+  "career.current": "Em funções",
+  "renewals.renewContract": "Renovar contrato",
+  "squad.scout": "Observar",
+  "squad.offer": "Fazer proposta",
+  "squad.marketSoon": "Disponível quando o mercado do gamer estiver pronto",
+  "column.actions": "Ações"
 }

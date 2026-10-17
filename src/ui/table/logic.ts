@@ -44,17 +44,6 @@ export function nextOrder(current: Order, column: string): Order {
   return current.direction === "asc" ? { column, direction: "desc" } : null;
 }
 
-const cellCsv = (v: string | number) => {
-  const s = String(v);
-  return /[";\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-};
-
-/** CSV com `;` (Excel em pt-PT) e BOM. */
-export function paraCsv<L>(lines: readonly L[], columns: readonly Column<L>[]): string {
-  const header = columns.map((c) => cellCsv(c.title)).join(";");
-  const body = lines.map((l) => columns.map((c) => cellCsv(c.value(l))).join(";"));
-  return "﻿" + [header, ...body].join("\r\n") + "\r\n";
-}
 
 export type ColumnsPreset = { name: string; columns: string[] };
 

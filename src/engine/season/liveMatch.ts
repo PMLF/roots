@@ -46,6 +46,8 @@ export type LivePlayer = {
   state: "pitch" | "bench" | "left" | "sentOff";
   /** Só quem já jogou. */
   rating?: number;
+  /** Estrelas de nível (só nos jogadores do clube do gamer). */
+  stars?: number;
   goals: number;
   assists: number;
   yellows: number;

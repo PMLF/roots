@@ -563,7 +563,7 @@ button.dev { border-style: dashed; }
 /* área clicável maior sem mudar o aspeto (RZ-173) */
 .ponto-alternar::before { inset: 9px; }
 
-.vista-plantel { display: inline-flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; }
+.vista-plantel { display: inline-flex; align-items: center; gap: 0.5rem; }
 .jogo-grelha > * { min-width: 0; }
 .jogo-grelha .cartao, .jogo-grelha section { min-width: 0; overflow: hidden; }
 .outros-jogos li { min-width: 0; }
@@ -672,7 +672,7 @@ button.dev { border-style: dashed; }
 .subs-pares { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; font-size: 13px; }
 .subs-pares li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 4px 10px; border-radius: var(--r-s); background: linear-gradient(135deg, color-mix(in srgb, #1a7f37 18%, transparent), color-mix(in srgb, #d32f2f 18%, transparent)); }
 .subs-pares .ligacao-botao { margin-left: auto; }
-.subs-jogo .acoes { justify-content: center; gap: 12px; }
+.subs-jogo .acoes { justify-content: flex-end; gap: 12px; }
 
 /* Controlos do jogo fixos no canto de cima à direita */
 .controlos-fixos { position: fixed; top: 14px; right: 24px; z-index: 6; display: flex; align-items: center; gap: 6px; padding: 5px; background: color-mix(in srgb, var(--painel) 92%, transparent); backdrop-filter: blur(6px); border: 1px solid var(--linha-forte); border-radius: 999px; box-shadow: 0 6px 20px rgba(0, 0, 0, .22); }
@@ -692,12 +692,12 @@ button.dev { border-style: dashed; }
 
 /* Semáforo das substituições */
 .semaforo { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--suave); }
-.apt-bom .semaforo { background: #1a9f4a; }
-.apt-medio .semaforo { background: #e0b100; }
-.apt-mau .semaforo { background: #d32f2f; }
-.subs-jogador.apt-bom { border-color: color-mix(in srgb, #1a9f4a 70%, transparent); background: color-mix(in srgb, #1a9f4a 14%, transparent); }
-.subs-jogador.apt-medio { border-color: color-mix(in srgb, #e0b100 70%, transparent); background: color-mix(in srgb, #e0b100 14%, transparent); }
-.subs-jogador.apt-mau { border-color: color-mix(in srgb, #d32f2f 60%, transparent); background: color-mix(in srgb, #d32f2f 12%, transparent); }
+.apt-good .semaforo { background: #1a9f4a; }
+.apt-average .semaforo { background: #e0b100; }
+.apt-bad .semaforo { background: #d32f2f; }
+.subs-jogador.apt-good { border-color: color-mix(in srgb, #1a9f4a 70%, transparent); background: color-mix(in srgb, #1a9f4a 14%, transparent); }
+.subs-jogador.apt-average { border-color: color-mix(in srgb, #e0b100 70%, transparent); background: color-mix(in srgb, #e0b100 14%, transparent); }
+.subs-jogador.apt-bad { border-color: color-mix(in srgb, #d32f2f 60%, transparent); background: color-mix(in srgb, #d32f2f 12%, transparent); }
 .subs-jogador[draggable="true"] { cursor: grab; }
 .subs-listas section:nth-child(2) .subs-jogador { grid-template-columns: 2.4rem minmax(0, 1fr) auto; }
 
@@ -781,3 +781,14 @@ button.dev { border-style: dashed; }
 .mensagem-renovacao.aviso { background: var(--aviso-fundo); }
 .mensagem-renovacao.erro { color: var(--erro, inherit); }
 .acoes-popup { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
+
+.topo .data-topo { margin-left: auto; color: var(--suave); font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.topo .data-topo:empty { display: none; }
+.barra .avancar { margin-left: auto; }
+
+/* Selects com a seta afastada da borda */
+select { appearance: none; -webkit-appearance: none; padding-right: 32px; background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%); background-position: calc(100% - 17px) 55%, calc(100% - 12px) 55%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; cursor: pointer; }
+select:disabled { cursor: default; }
+.definicoes-linha select, .idioma select, .velocidade select { padding-right: 30px; }
+.acoes-linha { display: inline-flex; gap: 6px; }
+.acoes-linha button { padding: 2px 10px; font-size: 13px; }

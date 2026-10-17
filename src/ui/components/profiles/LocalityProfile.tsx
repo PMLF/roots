@@ -36,14 +36,15 @@ export function LocalityProfile({ d }: { d: LocalityProfileData }) {
         ) : (
           <p className="vazio">{t("locality.noClubs")}</p>
         ),
-        story: d.history.length > 0 ? (
-          <ul>
-            {d.history.map((h, i) => (
-              <li key={i}>{t("locality.changed", { date: h.date, from: status(h.from), to: status(h.to), population: h.population })}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="vazio">{t("locality.noStory")}</p>
+        story: (
+          <table className="tabela">
+            <thead><tr><th>{t("career.date")}</th><th>{t("locality.status")}</th><th className="within">{t("locality.population")}</th></tr></thead>
+            <tbody>
+              {(d.history.length > 0 ? d.history.map((h) => ({ date: h.date, status: h.to, population: h.population })) : [{ date: d.since, status: d.status, population: d.population }]).map((h) => (
+                <tr key={h.date}><td>{h.date}</td><td>{status(h.status)}</td><td className="num">{n.format(h.population)}</td></tr>
+              ))}
+            </tbody>
+          </table>
         ),
       }}
     />
