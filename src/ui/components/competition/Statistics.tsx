@@ -6,7 +6,7 @@ import { EntityLink } from "@/ui/components/Link";
 import { Table } from "@/ui/components/Table";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { abbreviationPosition } from "@/ui/i18n/position";
+import { abbreviationPosition, rankPosition } from "@/ui/i18n/position";
 import type { Column } from "@/ui/table/logic";
 
 type Player = CompetitionPage["players"][number];
@@ -32,7 +32,7 @@ export function Statistics({ page }: { page: CompetitionPage }) {
   const players: Column<Player>[] = [
     { id: "player", title: t("column.player"), value: (p) => p.name },
     { id: "club", title: t("lab.col.club"), value: (p) => p.clubName },
-    { id: "pos", title: t("column.position"), value: (p) => abbreviationPosition(t, p.position) },
+    { id: "pos", title: t("column.position"), value: (p) => abbreviationPosition(t, p.position), sortValue: (p) => rankPosition(p.position) },
     { id: "age", title: t("column.age"), value: (p) => p.age, numeric: true },
     { id: "games", title: t("column.matches"), value: (p) => p.games, numeric: true },
     { id: "minutes", title: t("column.minutes"), value: (p) => p.minutes, numeric: true },

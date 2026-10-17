@@ -21,6 +21,11 @@ describe("tabela: ordenar", () => {
   it("números por valor, desc, e estável nos empates", () => {
     expect(sort(lines, columns, { column: "age", direction: "desc" }).map((l) => l.name)).toEqual(["Álvaro Dias", "Zé Maria", "alberto Sá", "Bruno Costa"]);
   });
+  it("sortValue manda na ordenação (posições do guarda-redes ao ponta de lança)", () => {
+    const rank = ["GK", "CB", "CM", "ST"];
+    const cols: Column<L>[] = [{ id: "pos", title: "Posição", value: (l) => l.pos, sortValue: (l) => rank.indexOf(l.pos) }];
+    expect(sort(lines, cols, { column: "pos", direction: "asc" }).map((l) => l.pos)).toEqual(["GK", "CB", "CM", "ST"]);
+  });
   it("sem ordem devolve cópia na ordem original", () => {
     const r = sort(lines, columns, null);
     expect(r).toEqual(lines);

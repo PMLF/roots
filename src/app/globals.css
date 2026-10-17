@@ -707,3 +707,7 @@ button.dev { border-style: dashed; }
 .renovacao-oferta { display: inline-flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .renovacao-oferta input { width: 6.5em; }
 .renovacao-oferta input[aria-label] + input { width: 3.5em; }
+/* Plantel: lesionados com a linha avermelhada e uma cruz vermelha ao lado do nome; bandeiras */
+.tabela tr.lesionado td { background: color-mix(in srgb, #d33 11%, transparent); }
+.lesao { color: #d12b2b; font-weight: 700; }
+.bandeira { font-size: 1.15em; line-height: 1; cursor: default; }
