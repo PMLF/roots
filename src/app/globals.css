@@ -702,3 +702,8 @@ button.dev { border-style: dashed; }
 .estrela-half { background: linear-gradient(90deg, var(--destaque) 50%, var(--linha, #c9ced6) 50%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .estrela-maybe { color: var(--destaque); opacity: .38; }
 .estrelas-intervalo { margin-left: .4em; color: var(--suave); font-size: .85em; }
+
+/* Plantel: lesionados com a linha avermelhada e uma cruz vermelha ao lado do nome; bandeiras */
+.tabela tr.lesionado td { background: color-mix(in srgb, #d33 11%, transparent); }
+.lesao { color: #d12b2b; font-weight: 700; }
+.bandeira { font-size: 1.15em; line-height: 1; cursor: default; }

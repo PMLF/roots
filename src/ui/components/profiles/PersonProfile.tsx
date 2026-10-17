@@ -7,6 +7,7 @@ import { Profile } from "@/ui/components/Profile";
 import { EntityLink } from "@/ui/components/Link";
 import { seasonName } from "@/engine/calendar/seasonName";
 import { Stars } from "@/ui/components/Stars";
+import { Flag } from "@/ui/components/Flag";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { namePosition, abbreviationPosition } from "@/ui/i18n/position";
@@ -43,7 +44,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   // ---- identidade ao lado do nome
   const data = [
     { label: t("person.birth"), value: `${p.birth} (${t("person.years", { n: p.age })})` },
-    { label: t("column.country"), value: country(p.nationality) },
+    { label: t("column.country"), value: <><Flag id={p.nationality} /> {country(p.nationality)}</> },
     ...(d.birthCity ? [{ label: t("person.birthCity"), value: <EntityLink k="city" id={d.birthCity.id}>{d.birthCity.name}</EntityLink> }] : []),
     ...(j ? [
       { label: t("person.body"), value: `${j.heightCm} cm · ${j.weightKg} kg` },

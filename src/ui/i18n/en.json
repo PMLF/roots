@@ -408,6 +408,8 @@
   "person.years": "{n, plural, one {# year} other {# years}}",
   "stars.value": "{n} stars",
   "stars.range": "{low} to {high} stars",
+  "column.wage": "Wage",
+  "squad.injured": "Injured",
   "column.potential": "Potential",
   "person.stars": "Level",
   "person.potentialStars": "Potential",

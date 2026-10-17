@@ -21,6 +21,7 @@ import { saveParameters, seasonYearContaining, saveInitialYear, seasonName } fro
 import { seasonData, pyramidData, currentSeason, divisionsHistory } from "../season/seasonPyramid";
 import { planView } from "../season/planView";
 import { confirmMatch, savePlan } from "../season/gamePlan";
+import { INJURY_EVENT } from "../injuries/state";
 import { cityProfile } from "../city/profile";
 import { competitionPage } from "../competition/profile";
 import { reputationLevel } from "../club/reputation";
@@ -151,12 +152,20 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         extraSquad: {},
         ...(clubSeason(repository, data, params, c.id) ? { season: clubSeason(repository, data, params, c.id) as NonNullable<ReturnType<typeof clubSeason>> } : {}),
       };
+      const today = repository.meta("date.today") ?? undefined;
+      const injured = new Set<string>();
+      for (const e of repository.eventsOf({ k: "club", id: c.id }, { type: INJURY_EVENT })) {
+        const until = (e.data as { until?: string }).until;
+        const who = e.entities.find((x) => x.k === "person" && x.roleKind === "injured");
+        if (who && until && today && e.date <= today && until > today) injured.add(who.id);
+      }
+      const ownClub = repository.meta("gamer.club") === c.id || seeAll;
       for (const j of output.squad) {
         const ct = repository.contract(j.id);
         const fields = seeAll ? undefined : view.profile(j.id)?.attributes?.fields;
         const level = playerLevel(repository, j.id, j.player?.position, fields, seeAll);
         const rating = playerRating(repository, j.id, level, view.profile(j.id)?.potential?.fields.potential, c.tier, params, seeAll);
-        output.extraSquad[j.id] = { ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}), ...(rating ? { rating } : {}) };
+        output.extraSquad[j.id] = { ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}), ...(rating ? { rating } : {}), ...(injured.has(j.id) ? { injured: true } : {}), ...(ownClub && ct ? { wage: ct.monthlyWage } : {}) };
       }
       if (seeAll) {
         const levels = output.squad.map((j) => output.extraSquad[j.id]?.level?.value).filter((v): v is number => v !== undefined);

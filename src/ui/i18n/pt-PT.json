@@ -408,6 +408,8 @@
   "person.years": "{n, plural, one {# ano} other {# anos}}",
   "stars.value": "{n} estrelas",
   "stars.range": "{low} a {high} estrelas",
+  "column.wage": "Salário",
+  "squad.injured": "Lesionado",
   "column.potential": "Potencial",
   "person.stars": "Nível",
   "person.potentialStars": "Potencial",

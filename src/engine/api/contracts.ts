@@ -116,7 +116,7 @@ export type ClubProfileData = {
   /** Divisão em que o clube esteve, por época (a história de subidas e descidas). */
   divisionsHistory: { season: number; label: string; tier: Tier; league: string }[];
   /** Por jogador do plantel: fim de contrato e nível geral. */
-  extraSquad: Record<string, { endContract?: string; level?: EstimatedLevel; rating?: StarRating }>;
+  extraSquad: Record<string, { endContract?: string; level?: EstimatedLevel; rating?: StarRating; injured?: boolean; /** Só no clube do gamer (ou em modo developer). */ wage?: number }>;
   /** Estatísticas da época atual (jogadores do plantel e tops do clube). */
   season?: ClubSeason;
   /** Por membro da equipa técnica: desde quando está no clube (contrato). */

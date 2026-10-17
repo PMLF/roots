@@ -11,6 +11,7 @@ import { EntityLink } from "@/ui/components/Link";
 import { ClubBudget } from "@/ui/components/profiles/ClubBudget";
 import { Table } from "@/ui/components/Table";
 import { Stars } from "@/ui/components/Stars";
+import { Flag } from "@/ui/components/Flag";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { abbreviationPosition } from "@/ui/i18n/position";
@@ -44,11 +45,13 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
     { id: "stars", title: t("column.level"), value: (p) => d.extraSquad[p.id]?.rating?.stars ?? 0, numeric: true },
     { id: "potential", title: t("column.potential"), value: (p) => d.extraSquad[p.id]?.rating?.potential?.high ?? 0, numeric: true },
     { id: "country", title: t("column.country"), value: (p) => country(p.nationality) },
+    { id: "wage", title: t("column.wage"), value: (p) => d.extraSquad[p.id]?.wage ?? 0, numeric: true },
+    { id: "games", title: t("column.matches"), value: (p) => d.season?.players[p.id]?.games ?? 0, numeric: true },
+    { id: "goals", title: t("column.goals"), value: (p) => d.season?.players[p.id]?.goals ?? 0, numeric: true },
     { id: "foot", title: t("column.pe"), value: (p) => (p.player ? t(`pe.${p.player.pe}` as Key) : "") },
     { id: "height", title: t("column.height"), value: (p) => p.player?.heightCm ?? 0, numeric: true },
     { id: "weight", title: t("column.weight"), value: (p) => p.player?.weightKg ?? 0, numeric: true },
     { id: "contract", title: t("column.contract"), value: (p) => d.extraSquad[p.id]?.endContract ?? "" },
-    { id: "status", title: t("column.state"), value: (p) => (p.player ? t(`state.${p.player.state}` as Key) : "") },
   ];
   // estatísticas da época atual (RZ-175); o xG por jogador não se guarda
   const ep = (p: ViewPerson) => d.season?.players[p.id];
@@ -75,12 +78,11 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
     countC("mpg", "column.minPerMatch", (p) => { const e = ep(p); return e && e.games ? Math.round(e.minutes / e.games) : 0; }),
     countC("yellow", "column.yellows", (p) => ep(p)?.yellow ?? 0),
     countC("red", "column.reds", (p) => ep(p)?.red ?? 0),
-    { id: "status", title: t("column.state"), value: (p) => (p.player ? t(`state.${p.player.state}` as Key) : "") },
   ];
   const [view, setView] = useState<"profile" | "season" | "discipline">("profile");
   const viewColumns = view === "season" ? seasonCol : view === "discipline" ? disciplineCol : squad;
   const seasonCell = {
-    name: name, potential: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating?.potential; return r ? <Stars range={r} /> : unknown; }, stars: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating; return r ? <Stars value={r.stars} /> : unknown; },
+    name: (p: ViewPerson) => <>{name(p)}{d.extraSquad[p.id]?.injured && <span className="lesao" role="img" aria-label={t("squad.injured")} title={t("squad.injured")}> ✚</span>}</>, country: (p: ViewPerson) => <Flag id={p.nationality} />, wage: (p: ViewPerson) => { const w = d.extraSquad[p.id]?.wage; return w !== undefined ? eur.format(w) : unknown; }, potential: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating?.potential; return r ? <Stars range={r} /> : unknown; }, stars: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating; return r ? <Stars value={r.stars} /> : unknown; },
     rating: (p: ViewPerson) => (ep(p)?.rating !== undefined ? dec(ep(p)?.rating ?? 0, 2) : "—"),
     g90: (p: ViewPerson) => (ep(p)?.minutes ? dec(g90(p), 2) : "—"),
   };
@@ -94,7 +96,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
           <option value="discipline">{t("squad.view.discipline")}</option>
         </select>
       </label>
-      <Table key={view} id={`plantel-${view}`} fileName={`plantel-${view}-${d.id}`} columns={viewColumns} lines={d.squad} rowKey={(p) => p.id} cell={seasonCell} initialOrder={view === "profile" ? { column: "pos", direction: "asc" } : { column: view === "season" ? "ga" : "minutes", direction: "desc" }} />
+      <Table key={view} id={`plantel-${view}`} fileName={`plantel-${view}-${d.id}`} columns={viewColumns} lines={d.squad} rowKey={(p) => p.id} cell={seasonCell} lineClass={(p) => (d.extraSquad[p.id]?.injured ? "lesionado" : undefined)} initialOrder={view === "profile" ? { column: "pos", direction: "asc" } : { column: view === "season" ? "ga" : "minutes", direction: "desc" }} />
     </>
   );
   const tp = d.season?.tops;
