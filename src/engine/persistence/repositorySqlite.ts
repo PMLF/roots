@@ -8,6 +8,7 @@ import type { EventsFilter, RecentFilter, Repository } from "./repository";
 import type {
   StandingsAdjustment,
   RoleRecord,
+  ContractClauses,
   ContractRecord,
   IsoDate,
   RefEntity,
@@ -183,7 +184,7 @@ export class SqliteRepository implements Repository {
         tick();
       }
       for (const c of batch.contracts) {
-        this.d.run("INSERT INTO contract (person, club, monthly_wage, start_date, end_date) VALUES (?,?,?,?,?)", [c.person, c.club, c.monthlyWage, c.start, c.end]);
+        this.d.run("INSERT INTO contract (person, club, monthly_wage, start_date, end_date, clauses) VALUES (?,?,?,?,?,?)", [c.person, c.club, c.monthlyWage, c.start, c.end, c.clauses ? JSON.stringify(c.clauses) : null]);
         tick();
       }
       for (const c of batch.roles) {
@@ -284,7 +285,7 @@ export class SqliteRepository implements Repository {
     ]);
   }
   saveContract(c: ContractRecord): void {
-    this.d.run("INSERT INTO contract (person, club, monthly_wage, start_date, end_date) VALUES (?,?,?,?,?)", [c.person, c.club, c.monthlyWage, c.start, c.end]);
+    this.d.run("INSERT INTO contract (person, club, monthly_wage, start_date, end_date, clauses) VALUES (?,?,?,?,?,?)", [c.person, c.club, c.monthlyWage, c.start, c.end, c.clauses ? JSON.stringify(c.clauses) : null]);
   }
   playersByState(state: PlayerState): PlayerRecord[] {
     return this.d.all("SELECT * FROM player WHERE state = ? ORDER BY person", [state]).map((r) => this.playerOf(r));
@@ -374,7 +375,7 @@ export class SqliteRepository implements Repository {
   }
   contract(person: string): ContractRecord | undefined {
     const r = this.d.all("SELECT * FROM contract WHERE person = ? ORDER BY id DESC LIMIT 1", [person])[0];
-    return r ? { person: txt(r.person), club: txt(r.club), monthlyWage: within(r.monthly_wage), start: txt(r.start_date), end: txt(r.end_date) } : undefined;
+    return r ? { person: txt(r.person), club: txt(r.club), monthlyWage: within(r.monthly_wage), start: txt(r.start_date), end: txt(r.end_date), ...(r.clauses !== null && r.clauses !== undefined ? { clauses: JSON.parse(txt(r.clauses)) as ContractClauses } : {}) } : undefined;
   }
   role(person: string): RoleRecord | undefined {
     const r = this.d.all("SELECT * FROM role WHERE person = ?", [person])[0];

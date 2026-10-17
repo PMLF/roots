@@ -24,3 +24,9 @@ Verão (1 jul – 1 set) e inverno (1 – 31 jan). Corre uma ronda à segunda-fe
 - **Ganância** do agente: sobe o ordenado pedido (`wageByGreed`) e a comissão (`commissionRate` do ordenado anual × `commissionByGreed`). A comissão paga-se pelo orçamento de transferências do clube e **sai do circuito dos clubes** (livro `transfers`); o evento `TRANSFER`/`PLAYER_SIGNED` traz o agente como entidade e a `commission` nos dados.
 - **Ganância** alta e **lealdade** baixa do agente empurram o jogador a aceitar sair (`consentByGreed`, `consentByLoyalty`).
 - Falta: agentes por ocupação/idade e reforma, mudança de agente, comissões escondidas e propostas ao gamer (RZ-165/207).
+
+## Cláusula de revenda (RZ-207, fatia a)
+- O contrato passa a ter `clauses` (JSON, migração V8). Primeira cláusula: `resale { club, pct }` — o clube que vendeu o jogador fica com `pct` (8-20 %) de uma venda futura.
+- Ao vender, o vendedor negoceia a cláusula com probabilidade `market.clauses.resaleProbability` (sobe com a ganância do presidente). No contrato novo fica só a cláusula mais recente.
+- Numa venda com cláusula, o clube de origem recebe `pct × valor` e o vendedor recebe o resto (o dinheiro continua a conservar-se); o evento `TRANSFER` traz o clube de origem (`roleKind: "resale"`) e `resaleCut`.
+- Próximas fatias: cláusula de rescisão, bónus por golos, «regresso à terra» e a compensação de formação (Parking lot).
