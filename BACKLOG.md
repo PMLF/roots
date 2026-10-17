@@ -260,6 +260,7 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 
 ## 11. Parking lot (ideias por entrar)
 
+- **Perda de talento da formação** (Pedro, 17-10-2026): os clubes que apostam nos jovens perdem-nos muitas vezes para clubes maiores, por verbas avultadas ou a custo zero (nas distritais e no CP é comum ser a custo zero). Ideia: caça aos jovens (e fim de contrato) por clubes de escalão superior; compensação de formação / mecanismo de solidariedade e primeiro contrato profissional (jovem sem contrato profissional sai livre); pesos por escalão em `parameters.ts`. Natural de juntar ao RZ-207 (cláusulas: % de revenda, rescisão) e ao RZ-205 (mercado); testar a seguir se o mercado já produz este padrão sem regra nova.
 - **xG por jogador**: guardar a qualidade de cada remate (facto de remate com xG) nos jogos para mostrar xG/xA por jogador na ficha do clube e na do jogador (pedido a 16-10-2026; hoje só há xG por equipa em `jogo`).
 - **Ticker do Início e jogo do gamer** (16-10-2026): a fita de resultados só mostra os jogos jogados em «Avançar»; o jogo do gamer, que agora acaba ao vivo, não entra nela. Decidir se entra (fita a ler dos eventos em vez do último avanço).
 - **App companheira da save do FM**: acompanha a evolução fictícia da Charneca, de Caldas e do Machico (população, turismo, estádios, infraestrutura) — teste barato antes de investir no jogo todo.
