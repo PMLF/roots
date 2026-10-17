@@ -76,13 +76,15 @@ export type RenewalLine = {
   agent?: string;
   decision?: { kind: "renew"; wage: number; years: number; release: number | null } | { kind: "release" };
   /** Rondas já feitas com o agente e, se a porta fechou, porquê. */
-  negotiation?: { round: number; roundsLeft: number; closed?: "refused" | "level" | "distance" };
+  negotiation?: { round: number; roundsLeft: number; closed?: "refused" | "level" | "distance"; reopens?: string };
+  /** Valores sugeridos para os dropdowns da proposta. */
+  suggestions: { wages: number[]; releases: number[] };
 };
 export type RenewalTermsView = { wage: number; years: number; release: number | null };
 export type NegotiationResult =
   | { status: "accepted"; terms: RenewalTermsView }
   | { status: "counter"; terms: RenewalTermsView; round: number; roundsLeft: number; reason?: "distance" }
-  | { status: "closed"; reason: "refused" | "level" | "distance" };
+  | { status: "closed"; reason: "refused" | "level" | "distance"; reopens?: string };
 export type RenewalsData = { season: number; nextSeasonStart: string; lines: RenewalLine[] };
 
 export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string };

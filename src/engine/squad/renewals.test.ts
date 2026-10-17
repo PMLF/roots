@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PARAMETERS as P } from "../config/parameters";
-import { acceptFloor, clauseFactor, expiringPlayers, negotiateRenewal, renewalAsk, renewalInterest, setDecision } from "./renewals";
+import { acceptFloor, clauseFactor, expiringPlayers, negotiateRenewal, renewalAsk, renewalInterest, renewalSuggestions, setDecision } from "./renewals";
 import { data, fresh, run } from "./testWorld.testlib";
 
 const club = data.clubs.find((c) => c.tier === "thirdLeague")!;
@@ -44,6 +44,23 @@ describe("renovações do clube do gamer", () => {
     const r = fresh("neg-low");
     expect(negotiateRenewal(r, data, P, club, 1, open, terms(50, 2, null))).toEqual({ status: "closed", reason: "refused" });
     expect(negotiateRenewal(r, data, P, club, 1, open, terms(999999, 2, null))).toEqual({ status: "closed", reason: "refused" });
+  });
+  it("depois de o agente desistir só volta a falar passado um mês", () => {
+    const r = fresh("neg-cooldown");
+    r.setMeta("date.today", "2026-10-01");
+    const closed = negotiateRenewal(r, data, P, club, 1, open, terms(50, 2, null));
+    expect(closed).toEqual({ status: "closed", reason: "refused", reopens: "2026-10-31" });
+    r.setMeta("date.today", "2026-10-30");
+    expect(negotiateRenewal(r, data, P, club, 1, open, terms(999999, 2, null))).toMatchObject({ status: "closed", reopens: "2026-10-31" });
+    r.setMeta("date.today", "2026-10-31");
+    expect(negotiateRenewal(r, data, P, club, 1, open, terms(999999, 2, null))!.status).toBe("accepted");
+  });
+  it("as sugestões são crescentes e cobrem valores à volta do ordenado", () => {
+    const ask = renewalAsk(repo, data, P, club, open)!;
+    const sug = renewalSuggestions(ask, repo.contract(open)!.monthlyWage);
+    expect(sug.wages.length).toBeGreaterThanOrEqual(4);
+    expect([...sug.wages].sort((a, b) => a - b)).toEqual(sug.wages);
+    expect(sug.releases.length).toBeGreaterThan(0);
   });
   it("a cláusula pesa no ordenado e o agente corta uma acima do teto", () => {
     const r = fresh("neg-clause");

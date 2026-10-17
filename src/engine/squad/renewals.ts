@@ -2,6 +2,7 @@ import type { Params, Tier } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
+import { dayNumber, fromDayNumber } from "../calendar/dates";
 import { agentTraits } from "../agent/assign";
 import { ageAt } from "../calendar/dates";
 import { marketValue } from "../market/value";
@@ -17,12 +18,12 @@ export type RenewalAsk = RenewalTerms & { releaseCeiling: number };
 /** Decisão do gamer sobre um contrato a expirar: renovar com estas condições ou deixar sair. */
 export type RenewalDecision = ({ kind: "renew" } & RenewalTerms) | { kind: "release" };
 /** Estado da negociação com o agente: rondas feitas e, se acabou sem acordo, porquê. */
-export type NegotiationState = { round: number; closed?: NegotiationClosed; accepted?: boolean };
+export type NegotiationState = { round: number; closed?: NegotiationClosed; /** Dia em que o agente voltou a falar (fecho = 1 mês depois). */ reopens?: IsoDate; accepted?: boolean };
 export type NegotiationClosed = "refused" | "level" | "distance";
 export type NegotiationReply =
   | { status: "accepted"; terms: RenewalTerms }
   | { status: "counter"; terms: RenewalTerms; round: number; roundsLeft: number; reason?: "distance" }
-  | { status: "closed"; reason: NegotiationClosed };
+  | { status: "closed"; reason: NegotiationClosed; reopens?: IsoDate };
 
 const key = (season: number, person: string) => `renewal.${season}.${person}`;
 
@@ -116,17 +117,41 @@ export function renewalInterest(repo: Repository, data: BaseData, params: Params
   return { interested: true };
 }
 
+/** O dia 30 dias depois de `d` (vazio se não há data). */
+function monthAfter(d: string): IsoDate | undefined {
+  return d ? fromDayNumber(dayNumber(d as IsoDate) + 30) : undefined;
+}
+
+/** Valores sugeridos para os campos da proposta, à medida do jogador: ordenados à volta do meio entre o atual e o pedido e cláusulas em torno da referência. */
+export function renewalSuggestions(ask: RenewalAsk, currentWage: number): { wages: number[]; releases: number[] } {
+  const base = (currentWage + ask.wage) / 2;
+  const nice = (v: number) => {
+    const step = 10 ** Math.max(1, Math.floor(Math.log10(Math.max(v, 10))) - 1);
+    return Math.max(50, Math.round(v / step) * step);
+  };
+  const wages = [...new Set([0.75, 0.9, 1, 1.1, 1.25, 1.5, 2].map((m) => nice(base * m)))].sort((a, b) => a - b);
+  const ref = ask.release ?? 0;
+  const releases = ref > 0 ? [...new Set([0.5, 1, 1.5, 2, 3].map((m) => nice(ref * m)))].sort((a, b) => a - b) : [];
+  return { wages, releases };
+}
+
 /** Uma ronda de negociação: o agente aceita, contrapropõe (mexe no ordenado e, se preciso, nos anos e na cláusula) ou fecha a porta. */
 export function negotiateRenewal(repo: Repository, data: BaseData, params: Params, club: BaseClub, season: number, person: string, offer: RenewalTerms): NegotiationReply | undefined {
   const n = params.squadCycle.contracts.negotiation;
-  const state = negotiationOf(repo, season, person);
-  if (state.closed) return { status: "closed", reason: state.closed };
+  let state = negotiationOf(repo, season, person);
+  const today = repo.meta("date.today") ?? "";
+  if (state.closed) {
+    // o agente só volta a falar passado um mês; depois recomeça-se do zero
+    if (state.reopens && today >= state.reopens) { state = { round: 0 }; saveNegotiation(repo, season, person, state); }
+    else return { status: "closed", reason: state.closed, ...(state.reopens ? { reopens: state.reopens } : {}) };
+  }
   const ask = renewalAsk(repo, data, params, club, person);
   if (!ask) return undefined;
   const interest = renewalInterest(repo, data, params, club, person);
   if (!interest.interested) {
-    saveNegotiation(repo, season, person, { ...state, closed: interest.reason });
-    return { status: "closed", reason: interest.reason };
+    const reopens = monthAfter(today);
+    saveNegotiation(repo, season, person, { ...state, closed: interest.reason, ...(reopens ? { reopens } : {}) });
+    return { status: "closed", reason: interest.reason, ...(reopens ? { reopens } : {}) };
   }
   const years = clamp(Math.round(offer.years), 1, n.maxYears);
   const reference = ask.release ?? 0;
@@ -141,8 +166,10 @@ export function negotiateRenewal(repo: Repository, data: BaseData, params: Param
   }
   const round = state.round + 1;
   if ((offer.wage < reserve && offer.wage < ask.wage * n.walkAway) || round > n.maxRounds) {
-    saveNegotiation(repo, season, person, { round, closed: distanceBound ? "distance" : "refused" });
-    return { status: "closed", reason: distanceBound ? "distance" : "refused" };
+    const reason = distanceBound ? "distance" : "refused";
+    const reopens = monthAfter(today);
+    saveNegotiation(repo, season, person, { round, closed: reason, ...(reopens ? { reopens } : {}) });
+    return { status: "closed", reason, ...(reopens ? { reopens } : {}) };
   }
   const demand = ask.wage * clauseFactor(params, clause, reference);
   const wage = offer.wage >= reserve ? Math.round(offer.wage) : Math.max(reserve, Math.round((offer.wage + (demand - offer.wage) * n.concession ** round) / 10) * 10);

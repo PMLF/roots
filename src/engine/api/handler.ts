@@ -1,7 +1,7 @@
 import { setBudget, clubBudget } from "../club/budget";
 import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
 import { ageAt, createDate } from "../calendar/dates";
-import { decisionOf, expiringPlayers, negotiateRenewal, negotiationOf, renewalAsk, setDecision } from "../squad/renewals";
+import { decisionOf, expiringPlayers, negotiateRenewal, negotiationOf, renewalAsk, renewalSuggestions, setDecision } from "../squad/renewals";
 import { DEFAULT_PARAMETERS, type Params, type Tier } from "../config/parameters";
 import { SCHEMA_VERSION as DB_SCHEMA } from "../persistence/schema";
 import type { Repository } from "../persistence/repository";
@@ -425,9 +425,11 @@ function renewalsOf(r: Repository, data: BaseData, params: Params): RenewalsData
     const ask = renewalAsk(r, data, params, club, id);
     if (!person || !player || !ct || !ask) continue;
     const decision = decisionOf(r, season, id);
-    const neg = negotiationOf(r, season, id);
+    const stored = negotiationOf(r, season, id);
+    // passado o mês de espera, a negociação volta a estar aberta (recomeça na próxima proposta)
+    const neg = stored.closed && stored.reopens && today >= stored.reopens ? { round: 0 } : stored;
     const agent = player.agent ? r.person(player.agent)?.sportingName : undefined;
-    lines.push({ id, name: person.sportingName, position: player.positions[0]?.pos ?? "", age: ageAt(person.birth, today), endContract: ct.end, currentWage: ct.monthlyWage, ...(ct.clauses?.release !== undefined ? { currentRelease: ct.clauses.release } : {}), ask: { wage: ask.wage, years: ask.years, release: ask.release }, ...(agent ? { agent } : {}), ...(decision ? { decision } : {}), ...(neg.round > 0 || neg.closed ? { negotiation: { round: neg.round, roundsLeft: Math.max(0, params.squadCycle.contracts.negotiation.maxRounds - neg.round), ...(neg.closed ? { closed: neg.closed } : {}) } } : {}) });
+    lines.push({ id, name: person.sportingName, position: player.positions[0]?.pos ?? "", age: ageAt(person.birth, today), endContract: ct.end, currentWage: ct.monthlyWage, ...(ct.clauses?.release !== undefined ? { currentRelease: ct.clauses.release } : {}), ask: { wage: ask.wage, years: ask.years, release: ask.release }, suggestions: renewalSuggestions(ask, ct.monthlyWage), ...(agent ? { agent } : {}), ...(decision ? { decision } : {}), ...(neg.round > 0 || neg.closed ? { negotiation: { round: neg.round, roundsLeft: Math.max(0, params.squadCycle.contracts.negotiation.maxRounds - neg.round), ...(neg.closed ? { closed: neg.closed } : {}), ...(neg.reopens ? { reopens: neg.reopens } : {}) } } : {}) });
   }
   return { season, nextSeasonStart, lines: lines.sort((a, b) => b.currentWage - a.currentWage) };
 }

@@ -1078,5 +1078,7 @@
   "renewals.agreed": "Acordo fechado com {name}. O contrato novo começa na próxima época.",
   "renewals.closed.refused": "O agente de {name} não quer negociar mais: as propostas ficaram longe do que o jogador pretende.",
   "renewals.closed.level": "{name} não vê neste clube o nível que procura e não quer renovar.",
-  "renewals.closed.distance": "{name} não se muda tão longe por este ordenado e o agente encerrou a conversa."
+  "renewals.closed.distance": "{name} não se muda tão longe por este ordenado e o agente encerrou a conversa.",
+  "renewals.reopens": "Só volta a falar a partir de {date}.",
+  "renewals.locked": "Depois da primeira proposta só saem daqui com acordo, deixando o jogador sair ou se o agente desistir."
 }
