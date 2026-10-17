@@ -63,6 +63,20 @@ export type PersonTruth = {
   quality?: Record<string, number>;
 };
 
+/** Contrato a expirar no clube do gamer (RZ-165): pedido do jogador e decisão já tomada. */
+export type RenewalLine = {
+  id: string;
+  name: string;
+  position: string;
+  age: number;
+  endContract: string;
+  currentWage: number;
+  ask: { wage: number; years: number };
+  agent?: string;
+  decision?: { kind: "renew"; wage: number; years: number } | { kind: "release" };
+};
+export type RenewalsData = { season: number; nextSeasonStart: string; lines: RenewalLine[] };
+
 export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string };
 
 export type PersonProfileData = {
@@ -252,6 +266,12 @@ export type EngineRequests = {
   /** Ofertas de clubes quando o gamer está sem clube. */
   offers: { input: null; output: { unemployed: boolean; previous?: string; offers: ClubOffer[] } };
   acceptOffer: { input: { id: string }; output: { id: string } };
+  /** Contratos a expirar no clube do gamer, com o pedido de cada jogador (RZ-165). Quem não tiver decisão renova pela fórmula do escalão. */
+  renewals: { input: null; output: RenewalsData };
+  /** O gamer oferece condições a um jogador: aceita se chegarem ao patamar dele; senão devolve o pedido. Guarda a decisão se aceitar. */
+  negotiateRenewal: { input: { person: string; wage: number; years: number }; output: { accepted: boolean; ask: { wage: number; years: number } } };
+  /** O gamer decide deixar sair um jogador com contrato a expirar. */
+  releaseExpiring: { input: { person: string }; output: null };
   chooseClub: { input: { id: string; force?: boolean }; output: { id: string } };
   /** O plano de jogo (tática e onze) do clube do gamer. */
   plan: { input: null; output: ViewPlan | null };

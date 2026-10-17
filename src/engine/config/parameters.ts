@@ -491,6 +491,8 @@ export type Params = {
       renewMax: number;
       /** Ordenado de renovação relativo à fórmula do escalão (1 = igual). */
       renewalWageFactor: number;
+      /** Renovações do clube do gamer (RZ-165): o jogador aceita ofertas a partir de `acceptFloor` × o pedido; a lealdade (por ponto acima de 10) e ser da terra baixam esse patamar; o pedido sobe com a ganância do agente (por ponto acima do pivô); anos pedidos. */
+      negotiation: { acceptFloor: number; floorByLoyalty: number; floorNative: number; floorMin: number; askYears: number };
     };
     squad: {
       /** Jogadores acima do plantel-alvo que a formação ainda pode juntar. */
@@ -896,7 +898,7 @@ export const DEFAULT_PARAMETERS: Params = {
   squadCycle: {
     development: { growthShare: 0.4, yearlyNoise: 0.45, declineAge: 30, declineBase: 0.2, declinePerYear: 0.12, physicalExtra: 0.25, mentalGain: 0.1, offPositionWeight: 0.7 },
     retirement: { fromAge: 33, baseProbability: 0.06, perYear: 0.14, goalkeeperExtraYears: 3, maxAge: 40, freeMultiplier: 1.6 },
-    contracts: { yearsMin: 1, yearsMax: 3, renewBase: 0.7, renewPerQualityPoint: 0.1, renewPerOldYear: 0.08, oldAge: 31, renewMin: 0.05, renewMax: 0.95, renewalWageFactor: 1 },
+    contracts: { yearsMin: 1, yearsMax: 3, renewBase: 0.7, renewPerQualityPoint: 0.1, renewPerOldYear: 0.08, oldAge: 31, renewMin: 0.05, renewMax: 0.95, renewalWageFactor: 1, negotiation: { acceptFloor: 0.92, floorByLoyalty: 0.01, floorNative: 0.04, floorMin: 0.6, askYears: 2 } },
     squad: { slack: 2, freeAgentTolerance: 2.5 },
     youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal", focus: { spread: 0.4, byPatience: 0.05, byAmbition: 0.03, min: 0.25, max: 1.9 }, agePenalty: 0.25, qualityByFocus: 0.6, potentialByFocus: 1.0, renewalYouthEffect: 0.2, renewalVeteranEffect: 0.12 },
   },

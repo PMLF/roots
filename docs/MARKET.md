@@ -42,3 +42,10 @@ Verão (1 jul – 1 set) e inverno (1 – 31 jan). Corre uma ronda à segunda-fe
 - O evento `PLAYER_SIGNED` traz o clube formador (`roleKind: "trainer"`) e a `compensation`. O dinheiro conserva-se.
 - Corrigido de caminho: sem clube do gamer definido, o mercado ignorava os livres (`undefined !== undefined`).
 - Falta: solidariedade em transferências com contrato (percentagem para clubes formadores), jovens sem contrato profissional e a decisão do clube formador de renovar a tempo.
+
+## Renovações do clube do gamer (RZ-165, fatia a)
+- Os contratos que acabam antes da próxima época aparecem em `renewals` (jogador, ordenado atual, pedido, decisão).
+- **Pedido** (`squad/renewals.ts`): fórmula de ordenado do escalão × `renewalWageFactor` × fator do agente (ganância), nunca abaixo de 95 % do ordenado atual; duração `negotiation.askYears`.
+- **Aceitação**: o jogador aceita ofertas a partir de `acceptFloor` × pedido; o patamar baixa com a lealdade (`floorByLoyalty`) e se o clube é da terra (`floorNative`), com mínimo `floorMin`. Se recusa, a resposta traz o pedido.
+- **Decisão**: `negotiateRenewal` (aceite fica registada) ou `releaseExpiring`; ficam em meta `renewal.<época>.<pessoa>` e a passagem de época aplica-as no clube do gamer. Sem decisão, o clube do gamer continua a renovar ao ordenado de fórmula (comportamento anterior).
+- Ainda sem UI.
