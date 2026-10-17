@@ -8,9 +8,11 @@
     "build": "pnpm assets:copy && next build",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.engine.json && tsc --noEmit -p tsconfig.worker.json",
     "lint": "eslint .",
-    "test": "vitest run",
+    "test": "vitest run --project fast",
+    "test:slow": "vitest run --project slow",
+    "test:all": "vitest run",
     "calibrate": "CALIBRATE_SEASONS=${CALIBRATE_SEASONS:-10} vitest run src/engine/lab/seasonCalibration.test.ts",
-    "ci": "pnpm typecheck && pnpm lint && pnpm test && pnpm build",
+    "ci": "pnpm typecheck && pnpm lint && pnpm test:all && pnpm build",
     "assets:copy": "node tools/copy-sqlite-wasm.mjs && node tools/copy-data.mjs"
   },
   "engines": {
