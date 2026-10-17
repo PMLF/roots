@@ -1054,5 +1054,22 @@
   "person.resale": "Cláusula de revenda",
   "person.resaleValue": "{pct} % de uma venda futura",
   "person.resaleClub": "Revenda para",
-  "person.noClause": "Sem cláusula"
+  "person.noClause": "Sem cláusula",
+  "menu.open": "Abrir menu",
+  "menu.close": "Fechar menu",
+  "menu.tabs": "Secções principais",
+  "career.title": "Percurso",
+  "career.date": "Data",
+  "career.event": "Evento",
+  "career.fee": "Valor",
+  "career.free": "Livre",
+  "career.empty": "Ainda não há movimentos registados: contratos, transferências e renovações aparecem aqui.",
+  "career.transfer": "Transferência",
+  "career.signed": "Contratado (livre)",
+  "career.renewed": "Renovou",
+  "career.released": "Saiu do clube",
+  "career.retired": "Reformou-se",
+  "club.seasons": "Épocas",
+  "column.tier": "Escalão",
+  "career.noMatches": "Sem jogos como jogador."
 }

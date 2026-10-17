@@ -41,4 +41,15 @@ describe("tabela do plantel", { timeout: 120000 }, () => {
     const withAgent = repository.clubPlayers(clubs[1]!.id).find((j) => j.agent);
     if (withAgent) expect((await handle({ id: 13, type: "personProfile", input: { id: withAgent.person } }, s))!.agent?.id).toBe(withAgent.agent);
   });
+
+  it("a ficha traz o percurso a partir dos eventos de contratos e transferências", async () => {
+    const clubs = await handle({ id: 30, type: "clubs", input: null }, s);
+    const who = repository.clubPlayers(clubs[3]!.id)[0]!.person;
+    const add = (type: string, date: string, entities: object[], data: object) => repository.appendEvent({ type, date, season: 1, visibility: "exposed", origin: "generated", entities, data } as never);
+    add("CONTRACT_RENEWED", "2026-06-30", [{ k: "person", id: who, roleKind: "player" }, { k: "club", id: clubs[3]!.id }], { wage: 1000, years: 2 });
+    add("TRANSFER", "2026-08-01", [{ k: "person", id: who, roleKind: "player" }, { k: "club", id: clubs[3]!.id, roleKind: "seller" }, { k: "club", id: clubs[4]!.id, roleKind: "buyer" }], { fee: 250000 });
+    const profile = (await handle({ id: 31, type: "personProfile", input: { id: who } }, s))!;
+    expect(profile.career?.map((c) => c.kind)).toEqual(["renewed", "transfer"]);
+    expect(profile.career?.[1]).toMatchObject({ fee: 250000, club: { id: clubs[4]!.id }, from: { id: clubs[3]!.id } });
+  });
 });

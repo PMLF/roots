@@ -1,6 +1,6 @@
 "use client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import type { KeyboardEvent, ReactNode } from "react";
+import { useEffect, type KeyboardEvent, type ReactNode } from "react";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import type { Key } from "@/ui/i18n";
 import { TABS, TAB_URL, urlTab, type ProfileEntityType } from "@/ui/links";
@@ -37,6 +37,10 @@ export function Profile({ type, title, subtitle, numbers = [], top, tabs }: Prop
     router.push(`${path}?${fresh.toString()}`, { scroll: false });
   };
   const label = (id: string) => t(`tab.${id}` as Key);
+  // Em ecrãs estreitos a fila de separadores desliza: o ativo tem de estar sempre à vista.
+  useEffect(() => {
+    document.getElementById(`sep-${active}`)?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [active]);
 
   const hotkeys = (e: KeyboardEvent<HTMLDivElement>) => {
     const i = ids.indexOf(active);

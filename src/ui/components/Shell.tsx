@@ -33,6 +33,9 @@ const MENU: ItemMenu[] = [
   { rowKey: "menu.lab", icon: "lab", href: "/lab/", whenActive: (c) => c.startsWith("/lab"), devOnly: true },
 ];
 
+/** As secções que ficam sempre à mão do polegar, em baixo, no telemóvel (as outras estão na gaveta). */
+const TABS: Key[] = ["menu.today", "menu.club", "menu.squad", "menu.tactic", "menu.matches"];
+
 type Theme = "auto" | "light" | "dark";
 const isTheme = (v: unknown): v is Theme => v === "auto" || v === "light" || v === "dark";
 const NEXT_THEME: Record<Theme, Theme> = { auto: "light", light: "dark", dark: "auto" };
@@ -52,6 +55,16 @@ export function Shell({ children }: { children: ReactNode }) {
   const [seeAll, setSeeAll] = useSeeAll();
   const [density, setDensity] = useState<Density>("normal");
   const [theme, setTheme] = useState<Theme>("auto");
+  // Telemóvel: o menu completo é uma gaveta aberta pelo hambúrguer; as 5 secções principais ficam em abas em baixo.
+  const [drawer, setDrawer] = useState(false);
+  useEffect(() => { setDrawer(false); }, [path]);
+  useEffect(() => {
+    if (!drawer) return;
+    document.querySelector<HTMLElement>(".menu-fechar")?.focus();
+    const hotkey = (e: KeyboardEvent) => { if (e.key === "Escape") { setDrawer(false); document.querySelector<HTMLElement>(".menu-abrir")?.focus(); } };
+    document.addEventListener("keydown", hotkey);
+    return () => document.removeEventListener("keydown", hotkey);
+  }, [drawer]);
 
   useEffect(() => {
     setDensity(read("raizes.density", isDensity) ?? "normal");
@@ -79,13 +92,14 @@ export function Shell({ children }: { children: ReactNode }) {
   const items = MENU.filter((m) => (!m.devOnly || dev) && !m.hidden);
   return (
     <div className="shell">
-      <nav className="menu" aria-label="Menu">
+      <nav className={`menu${drawer ? " aberto" : ""}`} aria-label="Menu" id="menu-principal">
         <div className="marca">
           <span className="marca-sinal"><Icon name="root" /></span>
           <div>
             <strong>{t("app.name")}</strong>
             <small>{t("app.subtitle")}</small>
           </div>
+          <button type="button" className="menu-fechar" aria-label={t("menu.close")} onClick={() => setDrawer(false)}><Icon name="close" /></button>
         </div>
         <ul>
           {items.filter((m) => !m.devOnly).map((m) => <ItemDoMenu key={m.rowKey} m={m} path={path} />)}
@@ -112,8 +126,10 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
         <Settings theme={theme} onTheme={toggleTheme} density={density} onDensity={toggleDensity} locale={locale} aoLocale={setLocale} />
       </nav>
+      {drawer && <div className="menu-fundo" onClick={() => setDrawer(false)} aria-hidden="true" />}
       {!matchInProgress && (
         <header className="topo">
+          <button type="button" className="menu-abrir" aria-label={t("menu.open")} aria-expanded={drawer} aria-controls="menu-principal" onClick={() => setDrawer(true)}><Icon name="menu" /></button>
           <Search />
         </header>
       )}
@@ -131,10 +147,13 @@ export function Shell({ children }: { children: ReactNode }) {
       <footer className={matchInProgress ? "barra barra-jogo" : "barra"}>
         <MatchProgress />
         <span>{t("bar.date")}: <b>{time.state ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${time.state.today}T00:00:00Z`)) : t("bar.noData")}</b></span>
-        <span>{t("bar.budget")}: <b>{t("bar.noData")}</b></span>
-        <span>{t("bar.mood")}: <b>{t("bar.noData")}</b></span>
         <AdvanceButton />
       </footer>
+      <nav className="abas" aria-label={t("menu.tabs")}>
+        <ul>
+          {TABS.map((k) => MENU.filter((m) => m.rowKey === k).map((m) => <ItemDoMenu key={m.rowKey} m={m} path={path} tab />))}
+        </ul>
+      </nav>
     </div>
   );
 }
@@ -154,7 +173,7 @@ function Settings({ theme, onTheme, density, onDensity, locale, aoLocale }: { th
   }, [isOpen]);
   return (
     <div className="definicoes" ref={inbox}>
-      <button type="button" className="definicoes-botao" aria-expanded={isOpen} aria-haspopup="true" aria-controls="menu-definicoes" onClick={() => setIsOpen((v) => !v)}>
+      <button type="button" className="definicoes-botao" aria-label={t("settings.label")} aria-expanded={isOpen} aria-haspopup="true" aria-controls="menu-definicoes" onClick={() => setIsOpen((v) => !v)}>
         <Icon name="settings" />
         <span>{t("settings.label")}</span>
       </button>
@@ -179,18 +198,18 @@ function InboxBadge() {
   return unread > 0 ? <span className="distintivo" aria-label={t("inbox.unread", { n: unread })}>{unread > 99 ? "99+" : unread}</span> : null;
 }
 
-function ItemDoMenu({ m, path }: { m: ItemMenu; path: string }) {
+function ItemDoMenu({ m, path, tab = false }: { m: ItemMenu; path: string; tab?: boolean }) {
   const { t } = useT();
   const active = m.whenActive(path);
   const content = (
     <>
       <Icon name={m.icon} />
-      {t(m.rowKey)}
-      {m.rowKey === "menu.today" && <InboxBadge />}
+      <span className="menu-texto">{t(m.rowKey)}</span>
+      {m.rowKey === "menu.today" && !tab && <InboxBadge />}
     </>
   );
   return (
-    <li aria-current={active ? "page" : undefined} className={active ? "active" : m.href ? undefined : "inativo"} title={m.href ? undefined : t("menu.soon")}>
+    <li aria-current={active ? "page" : undefined} className={active ? "ativo" : m.href ? undefined : "inativo"} title={m.href ? undefined : t("menu.soon")}>
       {m.href ? <Link href={m.href}>{content}</Link> : <span>{content}</span>}
     </li>
   );

@@ -35,7 +35,7 @@ import { Rng } from "../random/rng";
 import { startCompanies } from "../company/cycle";
 import { assignAgents } from "../agent/assign";
 import { potentialRange, referenceTier, starsOf } from "../world/stars";
-import type { RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
+import type { CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SCHEMA_VERSION = DB_SCHEMA;
@@ -111,6 +111,8 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const output: PersonProfileData = { profile, stats: view.playerStats(m.input.id), initialYear: params.calendar.initialYear };
       const contract = repository.contract(m.input.id);
       if (contract) output.contract = { start: contract.start, end: contract.end };
+      const career = personCareer(repository, data, m.input.id);
+      if (career.length > 0) output.career = career;
       const agentId = repository.player(m.input.id)?.agent;
       const agentName = agentId ? repository.person(agentId)?.sportingName : undefined;
       if (agentId && agentName) output.agent = { k: "person", id: agentId, name: agentName };
@@ -426,6 +428,29 @@ function renewalsOf(r: Repository, data: BaseData, params: Params): RenewalsData
     lines.push({ id, name: person.sportingName, position: player.positions[0]?.pos ?? "", age: ageAt(person.birth, today), endContract: ct.end, currentWage: ct.monthlyWage, ask, ...(agent ? { agent } : {}), ...(decision ? { decision } : {}) });
   }
   return { season, nextSeasonStart, lines: lines.sort((a, b) => b.currentWage - a.currentWage) };
+}
+
+const CAREER_KIND: Record<string, CareerLine["kind"]> = { TRANSFER: "transfer", PLAYER_SIGNED: "signed", CONTRACT_RENEWED: "renewed", CONTRACT_EXPIRED: "released", PLAYER_RETIRED: "retired" };
+
+/** Percurso de um jogador a partir dos eventos expostos de contratos e transferências (mais antigo primeiro). */
+function personCareer(r: Repository, data: BaseData, person: string): CareerLine[] {
+  const ref = (id: string | undefined): EntityRef | undefined => {
+    const c = id ? data.clubs.find((x) => x.id === id) : undefined;
+    return c ? { k: "club", id: c.id, name: c.name } : undefined;
+  };
+  return r.eventsOf({ k: "person", id: person })
+    .filter((e) => e.type in CAREER_KIND && e.visibility === "exposed")
+    .sort((a, b) => a.date.localeCompare(b.date) || a.id - b.id)
+    .map((e): CareerLine => {
+      const kind = CAREER_KIND[e.type] as CareerLine["kind"];
+      const clubs = e.entities.filter((x) => x.k === "club");
+      const buyer = clubs.find((x) => x.roleKind === "buyer")?.id;
+      const seller = clubs.find((x) => x.roleKind === "seller")?.id;
+      const main = ref(kind === "transfer" ? buyer : clubs.find((x) => !x.roleKind)?.id ?? clubs[0]?.id);
+      const from = kind === "transfer" ? ref(seller) : undefined;
+      const fee = kind === "transfer" ? (e.data as { fee?: number }).fee : undefined;
+      return { id: e.id, date: e.date, season: e.season, kind, ...(main ? { club: main } : {}), ...(from ? { from } : {}), ...(fee !== undefined ? { fee } : {}) };
+    });
 }
 
 function personTruth(r: Repository, id: string): PersonTruth | undefined {

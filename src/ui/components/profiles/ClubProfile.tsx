@@ -6,6 +6,7 @@ import { Chip } from "@/ui/components/Attributes";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { Card, Data, Top } from "@/ui/components/Card";
 import { Profile } from "@/ui/components/Profile";
+import { ClubMatches } from "@/ui/components/ClubMatches";
 import { DivisionsChart } from "@/ui/components/DivisionsChart";
 import { EntityLink } from "@/ui/components/Link";
 import { ClubBudget } from "@/ui/components/profiles/ClubBudget";
@@ -135,6 +136,12 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
     { id: "quality", title: t("column.quality"), value: (p) => { const q = truth?.staffQuality[p.id]; return q ? Object.entries(q).map(([k, v]) => `${t(`quality.${k}` as Key)} ${v}`).join(" · ") : "?"; } },
   ];
 
+  const seasonsColumns: Column<ClubProfileData["divisionsHistory"][number]>[] = [
+    { id: "season", title: t("column.season"), value: (h) => h.season },
+    { id: "league", title: t("stat.competition"), value: (h) => h.league },
+    { id: "tier", title: t("column.tier"), value: (h) => t(`tier.${h.tier}` as Key) },
+  ];
+
   // plantel em números
   const ages = d.squad.map((p) => p.age);
   const meanAge = ages.length ? (ages.reduce((s, x) => s + x, 0) / ages.length).toFixed(1) : undefined;
@@ -159,7 +166,6 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
         { label: t("club.nickname"), value: `${d.nickname} · ${d.mascot}` },
         ...(president ? [{ label: t("club.president"), value: name(president) }] : []),
         ...(d.rival ? [{ label: t("club.rival"), value: <EntityLink k="club" id={d.rival.id}>{d.rival.name}</EntityLink> }] : []),
-        { label: t("club.founded"), value: unknown },
       ]}
     />
   );
@@ -172,8 +178,6 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
           lines={[
             { label: t("club.size"), value: <b>{size}</b> },
             { label: t("club.division"), value: t(`tier.${d.tier}` as Key) },
-            { label: t("club.fans"), value: unknown },
-            { label: t("club.members"), value: unknown },
             ...(truth ? [{ label: t("dev.reputation"), value: n.format(truth.reputation) }] : []),
           ]}
         />
@@ -187,11 +191,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
               { label: t("finances.revenuesMonth"), value: eur.format(d.finances.lastClose.revenues) },
               { label: t("finances.expensesMonth"), value: eur.format(-d.finances.lastClose.expenses) },
             ] : []),
-            ...(d.finances.exact ? [] : [
-              { label: t("club.budget"), value: unknown },
-              { label: t("club.wageBill"), value: unknown },
-              { label: t("club.sponsorships"), value: unknown },
-            ]),
+            ...(d.sponsors.length ? [{ label: t("club.sponsorships"), value: d.sponsors.map((x) => x.name).join(", ") }] : []),
           ]}
         />
         {d.finances.budget && d.finances.balance !== undefined && <ClubBudget initial={d.finances.budget} balance={d.finances.balance} />}
@@ -206,7 +206,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
             { label: t("squad.foreigners"), value: d.squad.length ? `${foreigners} (${Math.round((foreigners / d.squad.length) * 100)}%)` : "—" },
             { label: t("squad.goalkeeper"), value: goalkeeper },
             { label: t("squad.averageLevel"), value: averageLevel ?? unknown },
-            { label: t("squad.injured"), value: unknown },
+            { label: t("squad.injured"), value: d.squad.filter((p) => d.extraSquad[p.id]?.injured).length },
           ]}
         />
       </Card>
@@ -230,9 +230,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
           <Data lines={technicalTeam.map((p) => ({ label: t(`fn.${p.fn}` as Key), value: name(p) }))} />
         )}
       </Card>
-      <Card title={t("card.divisions")} wide>
-        <DivisionsChart points={d.divisionsHistory} />
-      </Card>
+
     </div>
   );
 
@@ -255,6 +253,17 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
           squadTable
         ) : (
           <p className="vazio">{t("club.noWorld")}</p>
+        ),
+        matches: <ClubMatches club={d.id} league={d.league} />,
+        story: (
+          <>
+                  <Card title={t("card.divisions")} wide>
+        <DivisionsChart points={d.divisionsHistory} />
+      </Card>
+            <Card title={t("club.seasons")} wide>
+              <Table id="clube-epocas" fileName={`history-${d.id}`} columns={seasonsColumns} lines={[...d.divisionsHistory].reverse()} rowKey={(h) => String(h.season)} simple />
+            </Card>
+          </>
         ),
         staff: d.roles.length > 0 ? (
           <Table id="staff" fileName={`staff-${d.id}`} columns={staff} lines={d.roles} rowKey={(p) => p.id} cell={{ name: name }} />
