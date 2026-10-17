@@ -10,6 +10,7 @@ import { currentQuality } from "../world/player";
 import type { Attributes, Position } from "../world/types";
 import { developPlayer, expectedChange } from "./development";
 import { youthFocus } from "./youthFocus";
+import { createYouth } from "./youth";
 import { renewalProbability, retirementProbability, rolloverSquads } from "./rollover";
 
 const read = (f: string) => readFileSync(`data/${f}`, "utf8");
@@ -116,11 +117,29 @@ describe("ciclo anual dos plantéis (várias épocas)", () => {
     expect(free).toBeLessThan(free0 * 3);
   });
   it("a qualidade média por escalão não deriva mais de 1 ponto", () => {
-    for (const [tier, q] of Object.entries(q0)) expect(Math.abs(meanQuality(repo, tier) - q), tier).toBeLessThan(1);
+    // folga: clubes que apostam mais produzem mais jovens e melhores (covariância positiva), deriva ligeira por desenho
+    for (const [tier, q] of Object.entries(q0)) expect(Math.abs(meanQuality(repo, tier) - q), tier).toBeLessThan(1.25);
   });
 });
 
 describe("aposta nos jovens", () => {
+  it("quem aposta mais forma jovens com mais qualidade e potencial", () => {
+    const club = data.clubs.find((c) => c.tier === "secondLeague")!;
+    const sample = (focus: number) => {
+      let q = 0, pot = 0;
+      for (let i = 0; i < 300; i++) {
+        const target = 10 + P.squadCycle.youth.qualityByFocus * (focus - 1);
+        const k = createYouth(new Rng("y", `${focus}/${i}`), { id: `x${i}`, club: club as never, tier: "secondLeague", position: "CM", targetQuality: target, focus, wageScale: 1, seasonStart: "2027-07-01", years: 3, cities: data.cities as never, districtCities: [] }, P);
+        q += currentQuality(k.player.attributes as Attributes, "CM");
+        pot += k.player.potential;
+      }
+      return { q: q / 300, pot: pot / 300 };
+    };
+    const low = sample(0.4);
+    const high = sample(1.6);
+    expect(high.q - low.q).toBeGreaterThan(0.5);
+    expect(high.pot - low.pot).toBeGreaterThan(1.5);
+  });
   it("os clubes diferem na aposta e quem aposta mais tem plantéis mais jovens", { timeout: 120000 }, () => {
     const repo = fresh("focus");
     run(repo, 8);

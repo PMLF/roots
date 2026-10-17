@@ -511,6 +511,9 @@ export type Params = {
       focus: { spread: number; byPatience: number; byAmbition: number; min: number; max: number };
       /** Penalização na escolha de livres por ano acima de 26, para um clube com aposta 1 (escala com a aposta). */
       agePenalty: number;
+      /** Efeito da aposta (por unidade acima de 1) na qualidade e no potencial de quem sai da formação. */
+      qualityByFocus: number;
+      potentialByFocus: number;
       /** Efeito da aposta na renovação: sobe os jovens (≤ 21) e desce os veteranos (≥ 30), por unidade acima/abaixo de 1. */
       renewalYouthEffect: number;
       renewalVeteranEffect: number;
@@ -886,7 +889,7 @@ export const DEFAULT_PARAMETERS: Params = {
     retirement: { fromAge: 33, baseProbability: 0.06, perYear: 0.14, goalkeeperExtraYears: 3, maxAge: 40, freeMultiplier: 1.6 },
     contracts: { yearsMin: 1, yearsMax: 3, renewBase: 0.7, renewPerQualityPoint: 0.1, renewPerOldYear: 0.08, oldAge: 31, renewMin: 0.05, renewMax: 0.95, renewalWageFactor: 1 },
     squad: { slack: 2, freeAgentTolerance: 2.5 },
-    youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal", focus: { spread: 0.4, byPatience: 0.05, byAmbition: 0.03, min: 0.25, max: 1.9 }, agePenalty: 0.25, renewalYouthEffect: 0.2, renewalVeteranEffect: 0.12 },
+    youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal", focus: { spread: 0.4, byPatience: 0.05, byAmbition: 0.03, min: 0.25, max: 1.9 }, agePenalty: 0.25, qualityByFocus: 0.6, potentialByFocus: 1.0, renewalYouthEffect: 0.2, renewalVeteranEffect: 0.12 },
   },
   companies: {
     perCity: { base: 3, perDecade: 4, min: 2 },
