@@ -20,7 +20,8 @@ const data = d.data;
 
 describe("cláusula de rescisão (RZ-207)", () => {
   it("a probabilidade e o valor seguem os parâmetros e o agente ganancioso põe mais cláusulas", () => {
-    let low = 0, high = 0, n = 2000;
+    let low = 0, high = 0;
+    const n = 2000;
     const factors: number[] = [];
     for (let i = 0; i < n; i++) {
       if (releaseClause(new Rng("r", `l${i}`), 100_000, 10, P) !== undefined) low++;
