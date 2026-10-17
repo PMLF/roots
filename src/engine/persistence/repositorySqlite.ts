@@ -162,8 +162,8 @@ export class SqliteRepository implements Repository {
     ]);
   }
   private insertPlayer(j: PlayerRecord): void {
-    this.d.run("INSERT INTO player (person, positions, attributes, potential, height, weight, foot, club, state) VALUES (?,?,?,?,?,?,?,?,?)", [
-      j.person, JSON.stringify(j.positions), JSON.stringify(j.attributes), j.potential, j.heightCm, j.weightKg, j.pe, j.club ?? null, j.state,
+    this.d.run("INSERT INTO player (person, positions, attributes, potential, height, weight, foot, club, state, agent) VALUES (?,?,?,?,?,?,?,?,?,?)", [
+      j.person, JSON.stringify(j.positions), JSON.stringify(j.attributes), j.potential, j.heightCm, j.weightKg, j.pe, j.club ?? null, j.state, j.agent ?? null,
     ]);
   }
   saveWorld(batch: WorldBatchRecord, onProgress?: (done: number, total: number) => void): void {
@@ -277,8 +277,10 @@ export class SqliteRepository implements Repository {
     if (patch.state) next.state = patch.state;
     if (patch.club === null) delete next.club;
     else if (patch.club !== undefined) next.club = patch.club;
-    this.d.run("UPDATE player SET positions = ?, attributes = ?, potential = ?, club = ?, state = ? WHERE person = ?", [
-      JSON.stringify(next.positions), JSON.stringify(next.attributes), next.potential, next.club ?? null, next.state, person,
+    if (patch.agent === null) delete next.agent;
+    else if (patch.agent !== undefined) next.agent = patch.agent;
+    this.d.run("UPDATE player SET positions = ?, attributes = ?, potential = ?, club = ?, state = ?, agent = ? WHERE person = ?", [
+      JSON.stringify(next.positions), JSON.stringify(next.attributes), next.potential, next.club ?? null, next.state, next.agent ?? null, person,
     ]);
   }
   saveContract(c: ContractRecord): void {
@@ -357,7 +359,11 @@ export class SqliteRepository implements Repository {
       person: txt(r.person), positions: JSON.parse(txt(r.positions)) as { pos: string; aptitude: number }[], attributes: JSON.parse(txt(r.attributes)) as Record<string, number>,
       potential: within(r.potential), heightCm: within(r.height), weightKg: within(r.weight), pe: txt(r.foot) as "D" | "E" | "A",
       ...(r.club !== null ? { club: txt(r.club) } : {}), state: txt(r.state) as PlayerState,
+      ...(r.agent !== null && r.agent !== undefined ? { agent: txt(r.agent) } : {}),
     };
+  }
+  roleHolders(fn: string): string[] {
+    return this.d.all("SELECT person FROM role WHERE role_function = ? ORDER BY person", [fn]).map((r) => txt(r.person));
   }
   player(person: string): PlayerRecord | undefined {
     const r = this.d.all("SELECT * FROM player WHERE person = ?", [person])[0];

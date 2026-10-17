@@ -182,6 +182,8 @@ export type PlayerRecord = {
   pe: "D" | "E" | "A";
   club?: string;
   state: PlayerState;
+  /** Agente (pessoa com a função `agent`), se tiver (RZ-206). */
+  agent?: string;
 };
 export type PlayerState = "active" | "free" | "retired";
 /** Alterações permitidas a um jogador depois de criado (`club: null` = fica sem clube). */
@@ -191,6 +193,7 @@ export type PlayerPatch = {
   positions?: { pos: string; aptitude: number }[];
   club?: string | null;
   state?: PlayerState;
+  agent?: string | null;
 };
 export type ContractRecord = { person: string; club: string; monthlyWage: number; start: IsoDate; end: IsoDate };
 export type RoleRecord = { person: string; fn: string; club?: string; city?: string; quality?: Record<string, number> };

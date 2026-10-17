@@ -159,6 +159,8 @@ export interface Repository {
   player(person: string): PlayerRecord | undefined;
   contract(person: string): ContractRecord | undefined;
   role(person: string): RoleRecord | undefined;
+  /** Ids das pessoas com uma função (ex.: `agent`), por ordem de id. */
+  roleHolders(fn: string): string[];
   clubPlayers(club: string): PlayerRecord[];
 
   // --- empresas e patrocínios (RZ-219, RZ-311)

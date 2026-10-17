@@ -11,7 +11,9 @@ import { clubBalance } from "../club/finances";
 import { ensureBudgets } from "../club/budget";
 import { addDays } from "../calendar/dates";
 import { isMarketDay, marketRound, windowAt, type MarketSummary } from "./market";
+import { Rng } from "../random/rng";
 import { marketValue } from "./value";
+import { assignAgents } from "../agent/assign";
 
 const read = (f: string) => readFileSync(`data/${f}`, "utf8");
 const d = importData({ clubs: read("clubs.csv"), cities: read("cities.csv"), localities: read("localities.csv"), rivalries: read("rivalries.csv"), districts: read("districts.csv") });
@@ -23,19 +25,21 @@ const fresh = (seed: string) => {
   const repo = new MemoryRepository();
   repo.setMeta("seed", seed);
   repo.saveWorld(generateWorld({ seed, data, countries: pr.countries, params: P }));
+  assignAgents(repo, new Rng(seed, "agents"), P, (club) => data.clubs.find((c) => c.id === club)?.tier);
   ensureBudgets(repo, data, P, 1);
   return repo;
 };
 
 /** Corre todas as rondas de uma janela, dia a dia. */
 const runWindow = (repo: MemoryRepository, from: string, to: string, gamerClub?: string): MarketSummary => {
-  const total = { transfers: 0, freeSignings: 0, spent: 0 };
+  const total = { transfers: 0, freeSignings: 0, spent: 0, agentFees: 0 };
   for (let day = from; day <= to; day = addDays(day, 1)) {
     if (!isMarketDay(day, P)) continue;
     const r = marketRound(repo, data, P, day, 1, gamerClub ? { gamerClub } : {});
     total.transfers += r.transfers;
     total.freeSignings += r.freeSignings;
     total.spent += r.spent;
+    total.agentFees += r.agentFees;
   }
   return total;
 };
@@ -70,14 +74,20 @@ describe("mercado de verão entre clubes da IA", { timeout: 180000 }, () => {
   const result = runWindow(repo, "2026-07-01", "2026-09-01", gamer);
 
   it("há transferências e contratações de livres, com dinheiro a mexer", () => {
-    expect(result.transfers).toBeGreaterThan(100);
+    expect(result.transfers).toBeGreaterThan(60); // as comissões dos agentes pesam nos orçamentos (RZ-206)
     expect(result.freeSignings).toBeGreaterThan(10);
     expect(result.spent).toBeGreaterThan(1_000_000);
     expect(repo.count("TRANSFER")).toBe(result.transfers);
   });
-  it("o dinheiro conserva-se: o que um clube paga, outro recebe", () => {
+  it("o dinheiro conserva-se: o que um clube paga, outro recebe (menos as comissões, que saem para os agentes)", () => {
     const delta = data.clubs.reduce((t, c) => t + clubBalance(repo, c) - (balances.get(c.id) as number), 0);
-    expect(Math.abs(delta)).toBeLessThan(1);
+    expect(result.agentFees).toBeGreaterThan(0);
+    expect(Math.abs(delta + result.agentFees)).toBeLessThan(1);
+  });
+  it("as transferências de jogadores com agente trazem o agente e a comissão", () => {
+    const withAgent = repo.recentEvents({ types: ["TRANSFER"], limit: 100000 }).filter((e) => e.entities.some((x) => x.roleKind === "agent"));
+    expect(withAgent.length).toBeGreaterThan(5);
+    for (const e of withAgent) expect((e.data as { commission?: number }).commission).toBeGreaterThan(0);
   });
   it("o clube do gamer não compra nem vende", () => {
     expect(repo.clubPlayers(gamer).map((j) => j.person).sort()).toEqual(gamerSquad);
