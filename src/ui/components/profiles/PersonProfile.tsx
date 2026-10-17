@@ -7,7 +7,6 @@ import { Profile } from "@/ui/components/Profile";
 import { EntityLink } from "@/ui/components/Link";
 import { seasonName } from "@/engine/calendar/seasonName";
 import { Stars } from "@/ui/components/Stars";
-import { Value } from "@/ui/components/Value";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { namePosition, abbreviationPosition } from "@/ui/i18n/position";
@@ -20,7 +19,7 @@ const eur = (locale: string, n: number) => new Intl.NumberFormat(locale, { style
 export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boolean }) {
   const { t, locale } = useT();
   const country = useCountries();
-  const { exposed: p, attributes, potential, personality } = d.profile;
+  const { exposed: p, attributes, personality } = d.profile;
   const j = p.player;
   const truth = seeAll ? d.truth : undefined;
   const unknown = <span className="valor-estimado" title={t("person.unknown")}>?</span>;
@@ -37,11 +36,9 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   };
   const group = (id: string, ids: readonly string[]): AttributesGroup => ({ id, title: t(`group.${id}` as Key), lines: ids.map(line) });
   const groups: AttributesGroup[] = j
-    ? [group("tecnicos", TECHNICAL_ATTRIBUTES), group("mentais", MENTAL_ATTRIBUTES), group("fisicos", PHYSICAL_ATTRIBUTES), ...(j.position === "GK" ? [group("goalkeeper", GK_ATTRIBUTES)] : [])]
+    ? [group("technical", TECHNICAL_ATTRIBUTES), group("mental", MENTAL_ATTRIBUTES), group("physical", PHYSICAL_ATTRIBUTES), ...(j.position === "GK" ? [group("goalkeeper", GK_ATTRIBUTES)] : [])]
     : [];
 
-  const level = d.level ? (d.level.exact ? <b>{d.level.value}</b> : <Value v={showEstimate({ value: d.level.value, margin: d.level.margin, halfTime: [d.level.value - d.level.margin, d.level.value + d.level.margin] })} />) : unknown;
-  const potentialValue = truth?.potential !== undefined ? <b>{truth.potential}</b> : potential?.fields.potential ? <Value v={showEstimate(potential.fields.potential, potential.fields.potential)} /> : unknown;
 
   // ---- identidade ao lado do nome
   const data = [
@@ -147,8 +144,6 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
           lines={[
             ...(d.rating ? [{ label: t("person.stars"), value: <Stars value={d.rating.stars} /> }] : []),
             ...(d.rating?.potential ? [{ label: t("person.potentialStars"), value: <Stars range={d.rating.potential} /> }] : []),
-            { label: t("person.level"), value: level },
-            { label: t("person.potential"), value: potentialValue },
             { label: t("person.form"), value: unknown },
             { label: t("person.condition"), value: unknown },
             { label: t("person.morale"), value: unknown },
