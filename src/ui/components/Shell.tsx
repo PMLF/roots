@@ -154,7 +154,7 @@ function Settings({ theme, onTheme, density, onDensity, locale, aoLocale }: { th
   }, [isOpen]);
   return (
     <div className="definicoes" ref={inbox}>
-      <button type="button" className="definicoes-botao" aria-expanded={isOpen} aria-haspopup="true" aria-controls="menu-definicoes" onClick={() => setIsOpen((v) => !v)}>
+      <button type="button" className="definicoes-botao" aria-label={t("settings.label")} aria-expanded={isOpen} aria-haspopup="true" aria-controls="menu-definicoes" onClick={() => setIsOpen((v) => !v)}>
         <Icon name="settings" />
         <span>{t("settings.label")}</span>
       </button>

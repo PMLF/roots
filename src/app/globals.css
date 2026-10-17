@@ -177,14 +177,23 @@ legend { padding: 0 6px; color: var(--suave); }
 /* ---- Adaptação a ecrãs mais pequenos ---- */
 @media (max-width: 900px) {
   .shell { grid-template-columns: 1fr; grid-template-areas: "menu" "topo" "centro" "barra"; height: auto; }
-  .menu { flex-direction: row; align-items: center; padding: 8px 10px; border-right: 0; border-bottom: 1px solid var(--linha); }
-  .menu ul { display: flex; overflow: auto; }
+  /* Menu em duas linhas: marca e definições em cima; as secções numa fila que desliza na horizontal (sem esticar a página). */
+  .menu { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; padding: 8px 10px 0; border-right: 0; border-bottom: 1px solid var(--linha); overflow: visible; min-width: 0; }
+  .menu .marca { grid-column: 1; grid-row: 1; padding: 0 4px; }
+  .menu .definicoes { grid-column: 2; grid-row: 1; margin: 0; }
+  .menu > ul, .menu > div:not(.marca):not(.definicoes) { grid-column: 1 / -1; min-width: 0; }
+  .menu > ul { grid-row: 2; }
+  .menu > div:not(.marca):not(.definicoes) { grid-row: 3; }
+  .menu ul { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
+  .menu ul::-webkit-scrollbar { display: none; }
+  .menu li { flex: none; scroll-snap-align: start; }
+  .menu li a, .menu li > span { min-height: 44px; padding: 0 12px; white-space: nowrap; }
+  .menu li.ativo a { box-shadow: inset 0 -3px 0 var(--destaque); border-radius: var(--r-s) var(--r-s) 0 0; }
+  .menu-clube-dev { min-width: 220px; }
   .marca small, .menu-grupo { display: none; }
-  .menu { overflow: visible; }
-  .definicoes { margin-top: 0; margin-left: auto; }
-  .definicoes-menu { width: 220px; }
+  .definicoes-botao { min-height: 44px; min-width: 44px; justify-content: center; }
   .definicoes-botao span { display: none; }
-  .definicoes-menu { bottom: auto; top: calc(100% + 6px); left: auto; right: 0; }
+  .definicoes-menu { width: 220px; bottom: auto; top: calc(100% + 6px); left: auto; right: 0; }
   .centro { padding: 8px 16px 24px; }
   .topo { padding: 8px 16px; flex-wrap: wrap; }
 }
@@ -711,3 +720,26 @@ button.dev { border-style: dashed; }
 .tabela tr.lesionado td { background: color-mix(in srgb, #d33 11%, transparent); }
 .lesao { color: #d12b2b; font-weight: 700; }
 .bandeira { font-size: 1.15em; line-height: 1; cursor: default; }
+
+/* Telemóvel (RZ-223): tabelas dentro de cartões deslizam na horizontal em vez de saírem do cartão; nome sempre à vista */
+@media (max-width: 720px) {
+  .cartao .tabela { display: block; overflow-x: auto; max-width: 100%; }
+  .tabela td:first-child, .tabela th:first-child { position: sticky; left: 0; background: var(--painel); z-index: 1; }
+  .tabela td:first-child { white-space: nowrap; max-width: 9.5em; overflow: hidden; text-overflow: ellipsis; }
+}
+@media (max-width: 720px) {
+  .formulario input:not([type=checkbox]):not([type=radio]) { width: 100%; min-width: 0; }
+  .grafico { overflow-x: auto; }
+  .grafico svg { min-width: 520px; }
+  input, select, textarea { font-size: 16px; } /* evita o zoom automático do iOS ao focar */
+}
+@media (max-width: 480px) {
+  .formulario { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 720px) {
+  .separadores { scrollbar-width: none; }
+  .separadores::-webkit-scrollbar { display: none; }
+  .separadores button { flex: none; white-space: nowrap; min-height: 44px; }
+  .migalhas button, .migalhas a { min-height: 36px; display: inline-flex; align-items: center; }
+  .dados > div { min-height: 38px; align-items: center; }
+}

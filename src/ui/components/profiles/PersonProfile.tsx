@@ -146,8 +146,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
       <Card title={t("card.level")}>
         <Data
           lines={[
-            ...(d.rating ? [{ label: t("person.stars"), value: <Stars value={d.rating.stars} /> }] : []),
-            ...(d.rating?.potential ? [{ label: t("person.potentialStars"), value: <Stars range={d.rating.potential} /> }] : []),
+            { label: t("person.stars"), value: d.rating ? <Stars value={d.rating.stars} /> : unknown },
+            { label: t("person.potentialStars"), value: d.rating?.potential ? <Stars range={d.rating.potential} /> : unknown },
             { label: t("person.form"), value: unknown },
             { label: t("person.condition"), value: unknown },
             { label: t("person.morale"), value: unknown },
