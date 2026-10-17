@@ -175,27 +175,48 @@ legend { padding: 0 6px; color: var(--suave); }
 .lab-marcador { margin: 12px 0 4px; font-size: 22px; }
 
 /* ---- Adaptação a ecrãs mais pequenos ---- */
-@media (max-width: 900px) {
-  .shell { grid-template-columns: 1fr; grid-template-areas: "menu" "topo" "centro" "barra"; height: auto; }
-  /* Menu em duas linhas: marca e definições em cima; as secções numa fila que desliza na horizontal (sem esticar a página). */
-  .menu { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px 8px; padding: 8px 10px 0; border-right: 0; border-bottom: 1px solid var(--linha); overflow: visible; min-width: 0; }
-  .menu .marca { grid-column: 1; grid-row: 1; padding: 0 4px; }
-  .menu .definicoes { grid-column: 2; grid-row: 1; margin: 0; }
-  .menu > ul, .menu > div:not(.marca):not(.definicoes) { grid-column: 1 / -1; min-width: 0; }
-  .menu > ul { grid-row: 2; }
-  .menu > div:not(.marca):not(.definicoes) { grid-row: 3; }
-  .menu ul { display: flex; gap: 2px; overflow-x: auto; scrollbar-width: none; scroll-snap-type: x proximity; -webkit-overflow-scrolling: touch; }
-  .menu ul::-webkit-scrollbar { display: none; }
-  .menu li { flex: none; scroll-snap-align: start; }
-  .menu li a, .menu li > span { min-height: 44px; padding: 0 12px; white-space: nowrap; }
-  .menu li.ativo a { box-shadow: inset 0 -3px 0 var(--destaque); border-radius: var(--r-s) var(--r-s) 0 0; }
-  .menu-clube-dev { min-width: 220px; }
-  .marca small, .menu-grupo { display: none; }
-  .definicoes-botao { min-height: 44px; min-width: 44px; justify-content: center; }
-  .definicoes-botao span { display: none; }
-  .definicoes-menu { width: 220px; bottom: auto; top: calc(100% + 6px); left: auto; right: 0; }
+/* Telemóvel em pé: gaveta (hambúrguer) com o menu completo + 5 abas em baixo ao alcance do polegar. */
+.menu-abrir, .menu-fechar, .menu-fundo, .abas { display: none; }
+@media (max-width: 900px) and (orientation: portrait), (max-width: 640px) {
+  .shell { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; grid-template-areas: "topo" "centro" "barra" "abas"; height: 100vh; height: 100dvh; }
+  .menu { position: fixed; z-index: 40; inset: 0 auto 0 0; width: min(300px, 84vw); transform: translateX(-102%); visibility: hidden; transition: transform .2s ease, visibility 0s .2s; border-right: 1px solid var(--linha-forte); box-shadow: 0 0 30px rgba(0, 0, 0, .3); padding: 12px 10px calc(12px + env(safe-area-inset-bottom)); overflow-y: auto; }
+  .menu.aberto { transform: none; visibility: visible; transition: transform .2s ease; }
+  .menu-fundo { display: block; position: fixed; inset: 0; z-index: 30; background: rgba(0, 0, 0, .45); }
+  .menu .marca { padding-right: 0; }
+  .menu-fechar { display: grid; place-items: center; margin-left: auto; width: 44px; height: 44px; border: 0; background: none; color: var(--suave); border-radius: 999px; }
+  .menu-abrir { display: grid; place-items: center; flex: none; width: 44px; height: 44px; border: 0; background: none; color: var(--texto); border-radius: 999px; margin-left: -8px; }
+  .menu li a, .menu li > span { min-height: 48px; }
+  .menu-clube-dev { min-width: 0; }
+  .definicoes { margin-top: 12px; }
+  .definicoes-botao { min-height: 48px; }
+  .definicoes-menu { bottom: calc(100% + 6px); }
   .centro { padding: 8px 16px 24px; }
-  .topo { padding: 8px 16px; flex-wrap: wrap; }
+  .topo { padding: 6px 12px 6px 16px; flex-wrap: nowrap; }
+  .topo .pesquisa-botao { flex: 1; min-width: 0; min-height: 44px; }
+  .barra { padding: 6px 16px; }
+  .abas { display: block; grid-area: abas; background: var(--painel); border-top: 1px solid var(--linha-forte); padding-bottom: env(safe-area-inset-bottom); }
+  .abas ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .abas li a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; padding: 6px 2px; color: var(--suave); font-size: 11px; border-top: 3px solid transparent; }
+  .abas li.ativo a { color: var(--destaque-texto); border-top-color: var(--destaque); font-weight: 600; }
+  .abas .menu-texto { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .abas li a:hover { text-decoration: none; }
+}
+/* Telemóvel deitado (pouca altura): barra lateral só com ícones e a página com toda a largura; sem abas nem gaveta. */
+@media (orientation: landscape) and (max-height: 520px) and (max-width: 1100px) and (min-width: 641px) {
+  .shell { grid-template-columns: 56px minmax(0, 1fr); height: 100vh; height: 100dvh; }
+  .menu { padding: 6px 4px; gap: 6px; align-items: center; }
+  .menu .marca { padding: 0; }
+  .marca div, .menu-grupo, .menu-texto { display: none; }
+  .menu ul { gap: 0; }
+  .menu li a, .menu li > span { justify-content: center; min-height: 38px; min-width: 44px; padding: 0; }
+  .definicoes { margin-top: 0; }
+  .definicoes-botao { justify-content: center; padding: 0; min-height: 38px; }
+  .menu-clube-dev, .menu-interruptor { display: none; }
+  .definicoes-botao span { display: none; }
+  .definicoes-menu { left: 100%; bottom: 0; width: 220px; }
+  .centro { padding: 6px 16px 16px; }
+  .topo { padding: 4px 16px; }
+  .barra { padding: 4px 16px; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
@@ -722,7 +743,7 @@ button.dev { border-style: dashed; }
 .bandeira { font-size: 1.15em; line-height: 1; cursor: default; }
 
 /* Telemóvel (RZ-223): tabelas dentro de cartões deslizam na horizontal em vez de saírem do cartão; nome sempre à vista */
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .cartao .tabela { display: block; overflow-x: auto; max-width: 100%; }
   .tabela td:first-child, .tabela th:first-child { position: sticky; left: 0; background: var(--painel); z-index: 1; }
   .tabela td:first-child { white-space: nowrap; max-width: 9.5em; overflow: hidden; text-overflow: ellipsis; }
@@ -743,3 +764,4 @@ button.dev { border-style: dashed; }
   .migalhas button, .migalhas a { min-height: 36px; display: inline-flex; align-items: center; }
   .dados > div { min-height: 38px; align-items: center; }
 }
+.formulario input:not([type=checkbox]):not([type=radio]) { width: 100%; min-width: 0; }

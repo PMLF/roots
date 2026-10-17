@@ -1054,5 +1054,8 @@
   "person.resale": "Resale clause",
   "person.resaleValue": "{pct}% of a future sale",
   "person.resaleClub": "Resale goes to",
-  "person.noClause": "No clause"
+  "person.noClause": "No clause",
+  "menu.open": "Open menu",
+  "menu.close": "Close menu",
+  "menu.tabs": "Main sections"
 }

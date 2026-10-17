@@ -84,3 +84,10 @@ Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já 
 - **Caixa de entrada**: cada mensagem tem o seu botão (lida/por ler) e há «Marcar todas como lidas» no topo; no cartão do Início, o ponto da mensagem faz de botão. Nada se marca sozinho.
 - **Cores dos clubes**: `AmostraClube` (retângulo 12×8 px, discreto) vem antes do nome em toda a `Ligacao` de clube; as cores vêm do motor uma só vez (`useCoresClubes`).
 
+## Telemóvel (RZ-223)
+- **Em pé (≤ 900 px):** o menu completo é uma gaveta aberta pelo hambúrguer (Esc, toque no fundo ou escolher uma secção fecham-na; o foco vai para o botão de fechar). Em baixo ficam 5 abas (Início, Clube, Plantel, Tática, Jogos) com ícone e texto, 56 px de altura, por cima da barra de data e «Avançar». Alvos de toque ≥ 44 px.
+- **Deitado (pouca altura):** barra lateral só com ícones, sem abas nem gaveta.
+- **Não forçamos o modo deitado:** o browser só permite bloquear a orientação em ecrã inteiro e o iOS Safari não o suporta; desenha-se primeiro para estar em pé, e o deitado é uma adaptação, não um requisito.
+- **Tabelas:** deslizam na horizontal dentro do cartão, com a primeira coluna (o nome) fixa. Onde faltar espaço, mostra-se o essencial e o resto fica na ficha (entrar mais a fundo).
+- Auditoria: Chromium a 320, 375, 768, 812×375 e 1280 px; nenhum ecrã do menu pode ter scroll horizontal da página nem conteúdo cortado dentro de cartões.
+

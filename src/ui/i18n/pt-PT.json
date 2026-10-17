@@ -1054,5 +1054,8 @@
   "person.resale": "Cláusula de revenda",
   "person.resaleValue": "{pct} % de uma venda futura",
   "person.resaleClub": "Revenda para",
-  "person.noClause": "Sem cláusula"
+  "person.noClause": "Sem cláusula",
+  "menu.open": "Abrir menu",
+  "menu.close": "Fechar menu",
+  "menu.tabs": "Secções principais"
 }
