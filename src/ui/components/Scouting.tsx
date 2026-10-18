@@ -1,10 +1,10 @@
 "use client";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type { ScoutOrderInput, ScoutOrderOutput, ScoutRow, ScoutingData } from "@/engine/api/contracts";
+import { useCallback, useEffect, useState } from "react";
+import type { ScoutOrderInput, ScoutRow, ScoutingData } from "@/engine/api/contracts";
 import { POSITIONS } from "@/engine/world/types";
 import { Card } from "@/ui/components/Card";
+import { BusyDialog, ObserveDialog } from "@/ui/components/ScoutDialogs";
 import { BidDialog } from "@/ui/components/BidDialog";
-import { CloseButton } from "@/ui/components/CloseButton";
 import { Flag } from "@/ui/components/Flag";
 import { EntityLink } from "@/ui/components/Link";
 import { Stars } from "@/ui/components/Stars";
@@ -16,65 +16,6 @@ import { abbreviationPosition, namePosition } from "@/ui/i18n/position";
 import type { Column } from "@/ui/table/logic";
 
 type Origin = "all" | "domestic" | "foreign" | "free";
-
-/** Popup para pedir ao olheiro uma observação de um jogador: uma semana (estimativas e pistas) ou um mês (tudo). */
-function ObserveDialog({ row, data, onClose, onDone }: { row: ScoutRow; data: ScoutingData; onClose: () => void; onDone: () => void }) {
-  const { t, locale } = useT();
-  const engine = useEngine();
-  const ref = useRef<HTMLDialogElement>(null);
-  const eur = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-  const [kind, setKind] = useState<"week" | "month">(row.knowledge === "week" ? "month" : "week");
-  const [error, setError] = useState<string | undefined>(undefined);
-  const [busy, setBusy] = useState(false);
-  useEffect(() => { ref.current?.showModal(); }, []);
-  const mult = row.club?.foreign ? data.cost.foreignMultiplier : 1;
-  const cost = { week: data.cost.week * mult, month: data.cost.month * mult };
-  const submit = async () => {
-    if (!engine) return;
-    setBusy(true);
-    const r: ScoutOrderOutput = await engine.call("scoutOrder", { kind, person: row.id });
-    setBusy(false);
-    if (r.ok) { onDone(); ref.current?.close(); } else setError(t(`scouting.error.${r.reason}` as Key));
-  };
-  return (
-    <dialog ref={ref} className="popup" aria-labelledby="h-observe" onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
-      <div className="popup-corpo">
-        <CloseButton onClose={() => ref.current?.close()} />
-        <h2 id="h-observe">{t("scouting.observeTitle", { name: row.name })}</h2>
-        <form className="formulario" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
-          {(["week", "month"] as const).map((k) => (
-            <label key={k} className="opcao-linha">
-              <input type="radio" name="observe" checked={kind === k} onChange={() => setKind(k)} />
-              <span><b>{t(`scouting.observe.${k}` as Key)}</b> · {eur.format(cost[k])}<br /><small className="suave">{t(`scouting.observe.${k}.help` as Key)}</small></span>
-            </label>
-          ))}
-          {error && <p className="erro" role="alert">{error}</p>}
-          <div className="acoes-popup">
-            <button type="submit" disabled={busy}>{t("scouting.order")}</button>
-            <button type="button" className="secundario" onClick={() => ref.current?.close()}>{t("renewals.close")}</button>
-          </div>
-        </form>
-      </div>
-    </dialog>
-  );
-}
-
-/** Aviso quando não cabe mais nenhuma ordem: todos os olheiros estão ocupados (ou o clube não tem olheiros). */
-function BusyDialog({ capacity, running, onClose }: { capacity: number; running: number; onClose: () => void }) {
-  const { t } = useT();
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => { ref.current?.showModal(); }, []);
-  return (
-    <dialog ref={ref} className="popup" aria-labelledby="h-busy" onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
-      <div className="popup-corpo">
-        <CloseButton onClose={() => ref.current?.close()} />
-        <h2 id="h-busy">{t(capacity === 0 ? "scouting.noScoutTitle" : "scouting.busyTitle")}</h2>
-        <p>{capacity === 0 ? t("scouting.error.noScout") : t("scouting.busyBody", { n: running })}</p>
-        <div className="acoes-popup"><button type="button" onClick={() => ref.current?.close()}>{t("renewals.close")}</button></div>
-      </div>
-    </dialog>
-  );
-}
 
 export function Scouting() {
   const { t, locale } = useT();
