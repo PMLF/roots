@@ -29,7 +29,7 @@ describe("renovações do clube do gamer", () => {
   const terms = (w: number, y: number, r: number | null) => ({ wage: w, years: y, release: r });
   const open = squad.find((p) => renewalInterest(repo, data, P, club, p).interested && acceptFloor(repo, P, club, p) >= 0.85)!;
   it("aceita ao pedido; abaixo do patamar contrapropõe e, ao igualar a contraproposta, aceita", () => {
-    const r = fresh("neg-b");
+    const r = fresh("renewals");
     const ask = renewalAsk(r, data, P, club, open)!;
     const first = negotiateRenewal(r, data, P, club, 1, open, terms(Math.floor(ask.wage * 0.7), 2, ask.release))!;
     expect(first.status).toBe("counter");
@@ -37,16 +37,16 @@ describe("renovações do clube do gamer", () => {
     expect(first.terms.wage).toBeGreaterThan(Math.floor(ask.wage * 0.7));
     expect(first.round).toBe(1);
     expect(negotiateRenewal(r, data, P, club, 1, open, first.terms)!.status).toBe("accepted");
-    const c = fresh("neg-c");
+    const c = fresh("renewals");
     expect(negotiateRenewal(c, data, P, club, 1, open, terms(renewalAsk(c, data, P, club, open)!.wage, 2, renewalAsk(c, data, P, club, open)!.release))!.status).toBe("accepted");
   });
   it("uma oferta demasiado baixa fecha a negociação e ela não reabre", () => {
-    const r = fresh("neg-low");
+    const r = fresh("renewals");
     expect(negotiateRenewal(r, data, P, club, 1, open, terms(50, 2, null))).toEqual({ status: "closed", reason: "refused" });
     expect(negotiateRenewal(r, data, P, club, 1, open, terms(999999, 2, null))).toEqual({ status: "closed", reason: "refused" });
   });
   it("depois de o agente desistir só volta a falar passado um mês", () => {
-    const r = fresh("neg-cooldown");
+    const r = fresh("renewals");
     r.setMeta("date.today", "2026-10-01");
     const closed = negotiateRenewal(r, data, P, club, 1, open, terms(50, 2, null));
     expect(closed).toEqual({ status: "closed", reason: "refused", reopens: "2026-10-31" });
@@ -63,7 +63,7 @@ describe("renovações do clube do gamer", () => {
     expect(sug.releases.length).toBeGreaterThan(0);
   });
   it("a cláusula pesa no ordenado e o agente corta uma acima do teto", () => {
-    const r = fresh("neg-clause");
+    const r = fresh("renewals");
     const ask = renewalAsk(r, data, P, club, open)!;
     expect(clauseFactor(P, null, ask.release!)).toBeGreaterThan(clauseFactor(P, ask.release!, ask.release!));
     expect(clauseFactor(P, ask.release! / 2, ask.release!)).toBeLessThan(1);

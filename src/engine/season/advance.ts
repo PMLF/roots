@@ -22,6 +22,7 @@ import { ensureBudgets } from "../club/budget";
 import { closeUntilMonths, post } from "../club/finances";
 import { postBroadcast } from "../broadcast/featured";
 import { isMarketDay, marketRound } from "../market/market";
+import { dailyBids, lockedPlayers } from "../market/bids";
 import { isInSecondDistrict } from "./districts";
 import { CP_FINAL_COMPETITION, generateCpFinal, generateCpFinalSemi } from "./cpFinalPhase";
 import { advanceCompetitions } from "./competitions";
@@ -212,7 +213,10 @@ export function advanceDay(repo: Repository, base: BaseData, params: Params, gam
     // fecho mensal das finanças (RZ-114): ao passar para o dia 1 de um mês
     if (tomorrow.endsWith("-01")) closeUntilMonths(repo, data, params, tomorrow, season, (c) => !isInSecondDistrict(c.league));
     // mercado de transferências entre clubes da IA nas janelas (RZ-205/213)
-    if (isMarketDay(tomorrow, params)) marketRound(repo, data, params, tomorrow, season, gamerClub ? { gamerClub } : {});
+    if (isMarketDay(tomorrow, params)) marketRound(repo, data, params, tomorrow, season, { ...(gamerClub ? { gamerClub } : {}), locked: lockedPlayers(repo) });
+    // acordos do gamer que esperavam pela janela (RZ-231)
+    const gamerBase = gamerClub ? data.clubs.find((c) => c.id === gamerClub) : undefined;
+    if (gamerBase) dailyBids(repo, data, params, gamerBase, tomorrow, season);
     // olheiros do gamer: fecham as observações e pesquisas que chegaram ao fim (RZ-230)
     if (gamerClub) {
       for (const o of completeOrders(repo, data, params, gamerClub, tomorrow, season)) {

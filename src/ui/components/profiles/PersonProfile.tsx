@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import type { CareerLine, PersonProfileData } from "@/engine/api/contracts";
+import type { BidView, CareerLine, PersonProfileData } from "@/engine/api/contracts";
 import { PHYSICAL_ATTRIBUTES, GK_ATTRIBUTES, MENTAL_ATTRIBUTES, TECHNICAL_ATTRIBUTES } from "@/engine/world/types";
 import { Attributes, Chip, type AttributesGroup, type AttributeLine } from "@/ui/components/Attributes";
 import { Card, Data, Top } from "@/ui/components/Card";
@@ -11,6 +11,7 @@ import { EntityLink } from "@/ui/components/Link";
 import { seasonName } from "@/engine/calendar/seasonName";
 import { Stars } from "@/ui/components/Stars";
 import { Flag } from "@/ui/components/Flag";
+import { BidDialog } from "@/ui/components/BidDialog";
 import { RenewalDialog } from "@/ui/components/RenewalDialog";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -31,6 +32,11 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   const inside = truth ?? d.known;
   const [renewing, setRenewing] = useState(false);
   const [agreed, setAgreed] = useState(false);
+  const [bidding, setBidding] = useState(false);
+  // estado da negociação; o popup atualiza-o à medida que a conversa avança
+  const [bidView, setBidView] = useState<BidView | undefined>(undefined);
+  const bid = bidView ? (bidView.stage === "closed" ? undefined : { stage: bidView.stage, ...(bidView.moving ? { moving: { club: bidView.moving.club, date: bidView.moving.date } } : {}) }) : d.bid;
+  const joined = bidView?.stage === "done";
   const unknown = <span className="valor-estimado" title={t("person.unknown")}>?</span>;
 
   // ---- atributos de 1 a 20
@@ -113,6 +119,9 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
           { label: t("person.clause"), value: d.clauses ? (d.clauses.release !== undefined ? eur(locale, d.clauses.release) : t("person.noClause")) : unknown },
         ]}
       />
+    {joined && <p><b>{t("bid.doneNow", { name: p.sportingName })}</b></p>}
+    {bid?.moving && <p><b>{t("bid.moving", { club: bid.moving.club, date: bid.moving.date })}</b></p>}
+    {d.biddable && !joined && !bid?.moving && bid?.stage !== "agreed" && <p><button type="button" onClick={() => setBidding(true)}>{t(bid ? "bid.continue" : "bid.make")}</button></p>}
     {d.renewable && (agreed ? <p><b>{t("renewals.done")}</b></p> : <p><button type="button" onClick={() => setRenewing(true)}>{t("renewals.renewContract")}</button></p>)}
       </Card>
   );
@@ -222,7 +231,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     <Profile
       type="person"
       title={p.sportingName}
-      top={<><Top title={p.sportingName} labels={labels} card={<Data lines={data} />} />{renewing && <RenewalDialog person={p.id} name={p.sportingName} onClose={() => setRenewing(false)} onAgreed={() => setAgreed(true)} />}</>}
+      top={<><Top title={p.sportingName} labels={labels} card={<Data lines={data} />} />{bidding && <BidDialog person={p.id} name={p.sportingName} onClose={() => setBidding(false)} onChanged={setBidView} />}{renewing && <RenewalDialog person={p.id} name={p.sportingName} onClose={() => setRenewing(false)} onAgreed={() => setAgreed(true)} />}</>}
       omit={["career"]}
       tabs={{ summary, story }}
     />

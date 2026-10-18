@@ -244,7 +244,13 @@ export function generateWorld(e: WorldInput): WorldBatch {
       const targetQ = clamp(rng.gauss(target.mean + m.qualityByReputation * (repNorm - st.meanRep), target.deviation), 1, 20);
       createPlayer(c, rng, { pos, tier, targetQ, club: cl, foreignerP: pEstr, lod: 1, wageScale });
     }
-    STAFF_FUNCTIONS.slice(0, m.staffPerClub).forEach(({ fn, areas }) => {
+    // olheiros: mais nas ligas altas e em clubes de mais reputação; as distritais têm um, no máximo, e podem não ter
+    const sc = m.scouts[tier];
+    const scouts = rng.prob(sc.chance) ? Math.round(sc.min + (sc.max - sc.min) * repNorm) : 0;
+    for (let i = 0; i < scouts; i++) {
+      createRole(c, rng, "scout", "staff", 42, { club: cl.id, quality: { scouting: clamp(Math.round(rng.gauss(target.mean + 0.5, 2)), 1, 20) } });
+    }
+    STAFF_FUNCTIONS.filter((f) => f.fn !== "scout").slice(0, m.staffPerClub - 1).forEach(({ fn, areas }) => {
       const quality = Object.fromEntries(areas.map((a) => [a, clamp(Math.round(rng.gauss(target.mean + 0.5, 2)), 1, 20)]));
       const estr = fn === "coach" && rng.prob(Math.min(0.5, pEstr));
       const country = estr ? rng.weighted(foreigners, (p) => weightForPortugal(p, tier)) : undefined;

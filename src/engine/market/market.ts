@@ -55,7 +55,7 @@ type Budget = { season: number; wageBillMax: number; transfers: number };
 const TIER_ORDER: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
 const median = (xs: number[]): number => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)] ?? 1;
 
-export function marketRound(repo: Repository, data: BaseData, params: Params, date: IsoDate, season: number, o: { gamerClub?: ClubId } = {}): MarketSummary {
+export function marketRound(repo: Repository, data: BaseData, params: Params, date: IsoDate, season: number, o: { gamerClub?: ClubId; locked?: Set<string> } = {}): MarketSummary {
   const summary: MarketSummary = { transfers: 0, freeSignings: 0, spent: 0, agentFees: 0, releases: 0, compensation: 0 };
   const win = windowAt(date, params);
   if (!win || repo.peopleTotal() === 0) return summary;
@@ -71,7 +71,7 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
   const byPos = new Map<Position, Entry[]>();
   const index = (e: Entry) => byPos.set(e.position, [...(byPos.get(e.position) ?? []), e]);
   for (const c of clubs) {
-    const list = repo.clubPlayers(c.id).filter((j) => j.state === "active").map((j): Entry => {
+    const list = repo.clubPlayers(c.id).filter((j) => j.state === "active" && !o.locked?.has(j.person)).map((j): Entry => {
       const position = (j.positions[0]?.pos ?? "CM") as Position;
       return { record: j, club: c.id, position, quality: currentQuality(j.attributes as Attributes, position) };
     });
@@ -79,6 +79,7 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
     for (const e of list) index(e);
   }
   for (const j of repo.playersByState("free")) {
+    if (o.locked?.has(j.person)) continue;
     const position = (j.positions[0]?.pos ?? "CM") as Position;
     index({ record: j, position, quality: currentQuality(j.attributes as Attributes, position) });
   }
