@@ -84,13 +84,13 @@ export function potentialEQuality(rng: Rng, target: number, age: number, m: Para
   return { current, potential: clamp(current + margin, current, 20) };
 }
 
-export function generateBody(rng: Rng, pos: Position): { heightCm: number; weightKg: number; pe: "D" | "E" | "A" } {
+export function generateBody(rng: Rng, pos: Position): { heightCm: number; weightKg: number; foot: "R" | "L" | "B" } {
   const base = pos === "GK" ? 188 : pos === "CB" ? 184 : pos === "ST" ? 181 : ["RW", "LW", "AM"].includes(pos) ? 175 : 178;
   const heightCm = Math.round(clamp(rng.gauss(base, 5), 160, 205));
   const weightKg = Math.round(clamp((heightCm - 100) * 0.92 + rng.gauss(0, 4), 55, 100));
   const r = rng.float();
-  const pe = r < 0.7 ? "D" : r < 0.95 ? "E" : "A";
-  return { heightCm, weightKg, pe };
+  const foot = r < 0.7 ? "R" : r < 0.95 ? "L" : "B";
+  return { heightCm, weightKg, foot };
 }
 
 export { POSITIONS };

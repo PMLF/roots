@@ -33,13 +33,34 @@ describe("tabela do plantel", { timeout: 120000 }, () => {
     repository.setMeta("gamer.club", clubs[0]!.id);
     const mine = repository.clubPlayers(clubs[0]!.id)[0]!.person;
     const theirs = repository.clubPlayers(clubs[1]!.id)[0]!.person;
-    for (const p of [mine, theirs]) repository.saveContract({ ...repository.contract(p)!, clauses: { release: 1234567, resale: { club: clubs[2]!.id, pct: 0.2 } } });
+    for (const p of [mine, theirs]) repository.saveContract({ ...repository.contract(p)!, clauses: { release: 1234567 } });
     const own = (await handle({ id: 11, type: "personProfile", input: { id: mine } }, s))!;
     const other = (await handle({ id: 12, type: "personProfile", input: { id: theirs } }, s))!;
-    expect(own.clauses).toMatchObject({ release: 1234567, resale: { pct: 0.2, club: { id: clubs[2]!.id } } });
+    expect(own.clauses).toMatchObject({ release: 1234567 });
     expect(other.clauses).toBeUndefined();
     const withAgent = repository.clubPlayers(clubs[1]!.id).find((j) => j.agent);
     if (withAgent) expect((await handle({ id: 13, type: "personProfile", input: { id: withAgent.person } }, s))!.agent?.id).toBe(withAgent.agent);
+  });
+
+  it("a tabela História traz uma linha por profissão com os dados de cada uma", async () => {
+    const clubIds = (await handle({ id: 89, type: "clubs", input: null }, s)).map((c) => c.id);
+    const cityIds = [...new Set(repository.companies().map((c) => c.city))];
+    const roles = [...clubIds.flatMap((c) => repository.publicRoles({ club: c })), ...cityIds.flatMap((c) => repository.publicRoles({ city: c }))];
+    const profile = async (id: string) => (await handle({ id: 90, type: "personProfile", input: { id } }, s))!;
+    const mayor = roles.find((r) => r.fn === "mayor")!;
+    const mayorRows = (await profile(mayor.id)).history!;
+    expect(mayorRows.every((r) => r.profession === "mayor")).toBe(true);
+    expect(mayorRows[0]).toMatchObject({ profession: "mayor", season: 1 });
+    const boss = roles.find((r) => r.fn === "businessperson" && repository.companies().some((c) => c.owner === r.id))!;
+    const bossRows = (await profile(boss.id)).history!;
+    expect(bossRows.length).toBeGreaterThan(0);
+    expect(bossRows[0]).toMatchObject({ profession: "businessperson" });
+    expect((bossRows[0] as { employees: number }).employees).toBeGreaterThan(0);
+    const coach = roles.find((r) => r.fn === "coach" && r.club)!;
+    expect((await profile(coach.id)).history![0]).toMatchObject({ profession: "staff", fn: "coach", wins: 0, draws: 0, losses: 0 });
+    const clubs = await handle({ id: 91, type: "clubs", input: null }, s);
+    const keeper = repository.clubPlayers(clubs[2]!.id).find((j) => j.positions[0]?.pos === "GK")!;
+    expect((await profile(keeper.person)).history![0]).toMatchObject({ profession: "goalkeeper", cleanSheets: 0 });
   });
 
   it("a ficha traz o percurso a partir dos eventos de contratos e transferências", async () => {

@@ -103,6 +103,12 @@ export type StandingsLine = {
 /** Estatísticas de um jogador numa competição e época, com a nota média das participações com nota. */
 export type PlayerCompetitionStats = PlayerStatLine & { avgRating?: number; ratedGames: number };
 
+/** Nota média e jogos sem sofrer de um jogador numa época e clube (todas as competições). */
+export type PlayerSeasonExtra = { season: number; club: string; avgRating?: number; ratedGames: number; cleanSheets: number };
+
+/** Vitórias, empates e derrotas de um clube numa época (soma das classificações). */
+export type ClubSeasonRecord = { season: number; wins: number; draws: number; losses: number };
+
 export type PlayerStatLine = {
   player: string;
   season: number;
@@ -179,7 +185,7 @@ export type PlayerRecord = {
   potential: number;
   heightCm: number;
   weightKg: number;
-  pe: "D" | "E" | "A";
+  foot: "R" | "L" | "B";
   club?: string;
   state: PlayerState;
   /** Agente (pessoa com a função `agent`), se tiver (RZ-206). */
@@ -198,8 +204,8 @@ export type PlayerPatch = {
   agent?: string | null;
   trainedAt?: string | null;
 };
-/** Cláusulas do contrato (RZ-207). `resale`: o clube de origem fica com `pct` (0-1) do valor de uma venda futura. */
-export type ContractClauses = { resale?: { club: string; pct: number }; /** Valor (euros) que qualquer clube pode pagar para levar o jogador sem o vendedor poder recusar. */ release?: number };
+/** Cláusulas do contrato (RZ-207). `release`: valor que qualquer clube pode pagar para levar o jogador. */
+export type ContractClauses = { /** Valor (euros) que qualquer clube pode pagar para levar o jogador sem o vendedor poder recusar. */ release?: number };
 export type ContractRecord = { person: string; club: string; monthlyWage: number; start: IsoDate; end: IsoDate; clauses?: ContractClauses };
 export type RoleRecord = { person: string; fn: string; club?: string; city?: string; quality?: Record<string, number> };
 // ---------- localidades (RZ-136)
@@ -236,7 +242,7 @@ export type PublicPerson = {
   roles: string[];
   club?: string;
   fn?: string;
-  player?: { position: string; heightCm: number; weightKg: number; pe: "D" | "E" | "A"; state: PlayerState };
+  player?: { position: string; heightCm: number; weightKg: number; foot: "R" | "L" | "B"; state: PlayerState };
 };
 
 /** Entrada do índice de pesquisa de pessoas: só factos públicos. */

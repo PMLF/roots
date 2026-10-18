@@ -31,7 +31,7 @@ import type {
   NewMatch,
   StandingsLine,
   PlayerStatLine,
-  PlayerCompetitionStats,
+  PlayerCompetitionStats, PlayerSeasonExtra, ClubSeasonRecord,
   Scorer,
   CardRecord,
   Observation,
@@ -164,7 +164,7 @@ export class SqliteRepository implements Repository {
   }
   private insertPlayer(j: PlayerRecord): void {
     this.d.run("INSERT INTO player (person, positions, attributes, potential, height, weight, foot, club, state, agent, trained_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)", [
-      j.person, JSON.stringify(j.positions), JSON.stringify(j.attributes), j.potential, j.heightCm, j.weightKg, j.pe, j.club ?? null, j.state, j.agent ?? null, j.trainedAt ?? null,
+      j.person, JSON.stringify(j.positions), JSON.stringify(j.attributes), j.potential, j.heightCm, j.weightKg, j.foot, j.club ?? null, j.state, j.agent ?? null, j.trainedAt ?? null,
     ]);
   }
   saveWorld(batch: WorldBatchRecord, onProgress?: (done: number, total: number) => void): void {
@@ -323,7 +323,7 @@ export class SqliteRepository implements Repository {
       ...(club !== null && club !== undefined ? { club: txt(club) } : {}),
       ...(r.role_function !== null && r.role_function !== undefined ? { fn: txt(r.role_function) } : {}),
       ...(pos !== undefined
-        ? { player: { position: pos, heightCm: within(r.height), weightKg: within(r.weight), pe: txt(r.foot) as "D" | "E" | "A", state: txt(r.state) as PlayerState } }
+        ? { player: { position: pos, heightCm: within(r.height), weightKg: within(r.weight), foot: txt(r.foot) as "R" | "L" | "B", state: txt(r.state) as PlayerState } }
         : {}),
     };
   }
@@ -360,7 +360,7 @@ export class SqliteRepository implements Repository {
   private playerOf(r: SqlLine): PlayerRecord {
     return {
       person: txt(r.person), positions: JSON.parse(txt(r.positions)) as { pos: string; aptitude: number }[], attributes: JSON.parse(txt(r.attributes)) as Record<string, number>,
-      potential: within(r.potential), heightCm: within(r.height), weightKg: within(r.weight), pe: txt(r.foot) as "D" | "E" | "A",
+      potential: within(r.potential), heightCm: within(r.height), weightKg: within(r.weight), foot: txt(r.foot) as "R" | "L" | "B",
       ...(r.club !== null ? { club: txt(r.club) } : {}), state: txt(r.state) as PlayerState,
       ...(r.agent !== null && r.agent !== undefined ? { agent: txt(r.agent) } : {}),
       ...(r.trained_at !== null && r.trained_at !== undefined ? { trainedAt: txt(r.trained_at) } : {}),
@@ -738,6 +738,23 @@ export class SqliteRepository implements Repository {
         player: txt(r.player), season: within(r.season), club: txt(r.club), competition: txt(r.competition), matches: within(r.matches),
         minutes: within(r.minutes), goals: within(r.goals), assists: within(r.assists), yellows: within(r.yellows), reds: within(r.reds),
       }));
+  }
+
+  clubSeasonRecords(club: string): ClubSeasonRecord[] {
+    return this.d
+      .all("SELECT season, SUM(wins) AS w, SUM(draws) AS d, SUM(losses) AS l FROM standings WHERE club = ? GROUP BY season ORDER BY season", [club])
+      .map((r): ClubSeasonRecord => ({ season: within(r.season), wins: within(r.w), draws: within(r.d), losses: within(r.l) }));
+  }
+
+  playerSeasonExtras(player: string): PlayerSeasonExtra[] {
+    return this.d
+      .all(
+        `SELECT j.season AS season, a.club AS club, AVG(a.rating) AS mean, COUNT(a.rating) AS n,
+           SUM(CASE WHEN a.minutes > 0 AND ((a.club = j.home AND j.away_goals = 0) OR (a.club = j.away AND j.home_goals = 0)) THEN 1 ELSE 0 END) AS clean
+         FROM appearance a JOIN match j ON j.id = a.match WHERE a.player = ? GROUP BY j.season, a.club ORDER BY j.season, a.club`,
+        [player],
+      )
+      .map((r): PlayerSeasonExtra => ({ season: within(r.season), club: txt(r.club), ratedGames: within(r.n), cleanSheets: within(r.clean), ...(within(r.n) > 0 ? { avgRating: within(r.mean) } : {}) }));
   }
 
   playerStatsForCompetition(competition: string, season: number): PlayerCompetitionStats[] {

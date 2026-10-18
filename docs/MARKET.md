@@ -25,11 +25,8 @@ Verão (1 jul – 1 set) e inverno (1 – 31 jan). Corre uma ronda à segunda-fe
 - **Ganância** alta e **lealdade** baixa do agente empurram o jogador a aceitar sair (`consentByGreed`, `consentByLoyalty`).
 - Falta: agentes por ocupação/idade e reforma, mudança de agente, comissões escondidas e propostas ao gamer (RZ-165/207).
 
-## Cláusula de revenda (RZ-207, fatia a)
-- O contrato passa a ter `clauses` (JSON, migração V8). Primeira cláusula: `resale { club, pct }` — o clube que vendeu o jogador fica com `pct` (8-20 %) de uma venda futura.
-- Ao vender, o vendedor negoceia a cláusula com probabilidade `market.clauses.resaleProbability` (sobe com a ganância do presidente). No contrato novo fica só a cláusula mais recente.
-- Numa venda com cláusula, o clube de origem recebe `pct × valor` e o vendedor recebe o resto (o dinheiro continua a conservar-se); o evento `TRANSFER` traz o clube de origem (`roleKind: "resale"`) e `resaleCut`.
-- Próximas fatias: cláusula de rescisão, bónus por golos, «regresso à terra» e a compensação de formação (Parking lot).
+## Cláusulas (RZ-207)
+- O contrato tem `clauses` (JSON). Hoje só a cláusula de rescisão `release`. A cláusula de revenda foi retirada (18-10-2026): não vamos usá-la.
 
 ## Cláusula de rescisão (RZ-207, fatia b)
 - Um contrato novo (assinatura no mercado ou renovação na passagem de época) pode levar `clauses.release`: um valor (1,2-2,2 × o valor de mercado) que **qualquer clube pode pagar sem o vendedor poder recusar**. Probabilidade `market.clauses.releaseProbability`, mais alta com agente ganancioso (`releaseByAgentGreed`, relativo ao pivô).

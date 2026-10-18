@@ -19,6 +19,7 @@ import { isInSecondDistrict } from "../season/districts";
 import { acceptOffer, resign, isUnemployed, gamerOffers } from "../season/coachMarket";
 import { advance, timeState } from "../season/advance";
 import { saveParameters, seasonYearContaining, saveInitialYear, seasonName } from "../season/saveYear";
+import { personHistory } from "./personHistory";
 import { seasonData, pyramidData, currentSeason, divisionsHistory } from "../season/seasonPyramid";
 import { planView } from "../season/planView";
 import { confirmMatch, savePlan } from "../season/gamePlan";
@@ -105,11 +106,13 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       return find(m.input.q, searchIndex(repository, current), m.input.limit ?? 12);
     }
     case "personProfile": {
-      const { repository, data, params } = await context(servicos);
+      const { repository, data, base, params } = await context(servicos);
       const view = gamerView(repository);
       const profile = ownProfile(repository, view, m.input.id);
       if (!profile) return null;
       const output: PersonProfileData = { profile, stats: view.playerStats(m.input.id), initialYear: params.calendar.initialYear };
+      const history = personHistory(repository, data, base, params, m.input.id, currentSeason(repository));
+      if (history.length > 0) output.history = history;
       const contract = repository.contract(m.input.id);
       if (contract) output.contract = { start: contract.start, end: contract.end };
       const career = personCareer(repository, data, m.input.id);
@@ -117,12 +120,8 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const agentId = repository.player(m.input.id)?.agent;
       const agentName = agentId ? repository.person(agentId)?.sportingName : undefined;
       if (agentId && agentName) output.agent = { k: "person", id: agentId, name: agentName };
-      if (contract?.clauses && (m.input.seeAll === true || (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club))) {
-        const resaleClub = contract.clauses.resale ? data.clubs.find((c) => c.id === contract.clauses?.resale?.club) : undefined;
-        output.clauses = {
-          ...(contract.clauses.release !== undefined ? { release: contract.clauses.release } : {}),
-          ...(contract.clauses.resale && resaleClub ? { resale: { club: { k: "club", id: resaleClub.id, name: resaleClub.name }, pct: contract.clauses.resale.pct } } : {}),
-        };
+      if (contract && (m.input.seeAll === true || (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club))) {
+        output.clauses = contract.clauses?.release !== undefined ? { release: contract.clauses.release } : {};
       }
       const level = playerLevel(repository, m.input.id, profile.exposed.player?.position, profile.attributes?.fields, m.input.seeAll === true);
       if (level) output.level = level;

@@ -24,7 +24,7 @@ import type {
   NewMatch,
   StandingsLine,
   PlayerStatLine,
-  PlayerCompetitionStats,
+  PlayerCompetitionStats, PlayerSeasonExtra, ClubSeasonRecord,
   Scorer,
   Observation,
   NewObservation,
@@ -115,6 +115,10 @@ export interface Repository {
   competitionMatches(competition: string, season: number): Match[];
   standings(competition: string, season: number): StandingsLine[];
   playerStats(player: string): PlayerStatLine[];
+  /** Vitórias, empates e derrotas do clube em cada época (ligas). */
+  clubSeasonRecords(club: string): ClubSeasonRecord[];
+  /** Nota média das participações com nota e jogos sem sofrer (com minutos em campo), por época e clube. */
+  playerSeasonExtras(player: string): PlayerSeasonExtra[];
   /** Estatísticas de todos os jogadores numa competição e época (golos, assistências, cartões, nota média). Só quem já jogou ou foi convocado. */
   playerStatsForCompetition(competition: string, season: number): PlayerCompetitionStats[];
   /** Acrescenta uma sanção retroativa: não reescreve nenhum jogo nem evento. */

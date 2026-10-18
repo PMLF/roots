@@ -102,7 +102,6 @@ export function CityProfile({ d }: { d: CityProfileData }) {
         { label: t("city.sector"), value: sectors.map(sectorName).join(" · ") },
         { label: t("city.district"), value: d.district },
         ...(d.hub ? [{ label: t("city.region"), value: d.hub }] : []),
-        { label: t("city.clubs"), value: d.clubs.length },
       ]}
     />
   );
@@ -116,7 +115,7 @@ export function CityProfile({ d }: { d: CityProfileData }) {
               { label: t("city.mayor"), value: <EntityLink k="person" id={d.mayor.person.id}>{d.mayor.person.name}</EntityLink> },
               { label: t("mayor.term"), value: `${d.mayor.sinceTerm}–${d.mayor.untilTerm}` },
               { label: t("mayor.support"), value: <span className="nivel-linha"><BarLevel level={d.mayor.sportSupport} /><b>{level(d.mayor.sportSupport)}</b></span> },
-              { label: t("mayor.reputation"), value: d.mayor.profile.length > 0 ? d.mayor.profile.map((p) => t(`mayor.profile.${p}` as Key)).join(" · ") : "—" },
+              { label: t("mayor.reputation"), value: d.mayor.profile.length > 0 ? ((txt) => txt.charAt(0).toUpperCase() + txt.slice(1))(d.mayor.profile.map((p) => t(`mayor.profile.${p}` as Key)).join(" · ")) : "—" },
               { label: t("city.budget"), value: <span className="nivel-linha"><BarLevel level={d.budget} /><b>{level(d.budget)}</b></span> },
             ]}
           />

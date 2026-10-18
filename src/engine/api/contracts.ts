@@ -92,7 +92,19 @@ export type ClubOffer = { id: string; name: string; league: string; tier: Tier; 
 /** Uma passagem pela carreira de um jogador (eventos públicos de contratos e transferências). */
 export type CareerLine = { id: number; date: string; season: number; kind: "transfer" | "signed" | "renewed" | "released" | "retired" | "current"; club?: EntityRef; from?: EntityRef; fee?: number };
 
+/**
+ * Uma linha da tabela «História» de uma pessoa (uma por profissão e período). A interface escolhe as colunas conforme
+ * as profissões presentes: jogador/guarda-redes e pessoal de clube vêm por época e clube; autarca e empresário por ano e localidade.
+ */
+export type HistoryRow =
+  | { profession: "player" | "goalkeeper"; season: number; club: EntityRef; matches: number; goals: number; assists: number; cleanSheets: number; avgRating?: number }
+  | { profession: "mayor"; season: number; place: EntityRef; populationChange?: number }
+  | { profession: "businessperson"; season: number; place: EntityRef; company: string; employees: number; sponsored: EntityRef[] }
+  | { profession: "staff"; fn: string; season: number; club: EntityRef; wins: number; draws: number; losses: number };
+
 export type PersonProfileData = {
+  /** Tabela «História» (RZ-229): linhas por profissão, das mais recentes para as mais antigas. */
+  history?: HistoryRow[];
   profile: PersonProfile;
   club?: EntityRef;
   birthCity?: EntityRef;
@@ -113,7 +125,7 @@ export type PersonProfileData = {
   /** Agente do jogador (público). */
   agent?: EntityRef;
   /** Cláusulas do contrato: só no teu clube (ou em modo developer). */
-  clauses?: { release?: number; resale?: { club: EntityRef; pct: number } };
+  clauses?: { release?: number };
   level?: EstimatedLevel;
   /** Estrelas (RZ-916): qualidade relativa ao escalão onde joga e intervalo de potencial. */
   rating?: StarRating;

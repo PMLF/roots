@@ -540,6 +540,8 @@ export type Params = {
     scaleWeight: Record<"local" | "regional" | "national" | "international", { base: number; perDecade: number }>;
     /** Capacidade (volume de negócio, €) mediana por escala e desvio do logaritmo. */
     capital: { median: Record<"local" | "regional" | "national" | "international", number>; sigma: number };
+    /** Volume de negócio (€) por empregado, por escala: serve para estimar o número de empregados da empresa. */
+    capitalPerEmployee: Record<"local" | "regional" | "national" | "international", number>;
     /** Evolução anual do capital: crescimento médio, efeito da economia da cidade (±metade da escala), desvio. */
     evolution: { growth: number; economyEffect: number; sigma: number; closureProbability: number; lowCapitalShare: number; lowCapitalClosure: number; foundingRate: number };
     sponsorship: {
@@ -626,7 +628,7 @@ export type Params = {
     /** Agentes (RZ-206): quota de jogadores com agente por escalão do clube; peso de cada cliente já tido (agentes grandes atraem mais); comissão (fração do ordenado anual) e subida da comissão e do ordenado pedido por ponto de ganância acima de 10; efeito da ganância e da lealdade do agente no consentimento do jogador; pivôs = ganância e lealdade médias dos agentes (acima/abaixo disto o efeito é positivo/negativo, para o agente típico não mexer no equilíbrio do mercado). */
     agents: { share: Record<Tier, number>; popularity: number; commissionRate: number; commissionByGreed: number; wageByGreed: number; consentByGreed: number; consentByLoyalty: number; greedPivot: number; loyaltyPivot: number };
     /** Cláusulas (RZ-207): probabilidade de o clube vendedor negociar uma percentagem de revenda (sobe com a ganância do presidente por ponto acima de 10) e intervalo dessa percentagem (fração do valor da venda futura); cláusula de rescisão num contrato novo: probabilidade base, subida por ponto de ganância do agente acima do pivô, e múltiplo do valor de mercado. */
-    clauses: { resaleProbability: number; resaleByGreed: number; resalePct: [number, number]; releaseProbability: number; releaseByAgentGreed: number; releaseFactor: [number, number] };
+    clauses: { releaseProbability: number; releaseByAgentGreed: number; releaseFactor: [number, number] };
     /** Compensação de formação (RZ-207): quem contrata um livre com esta idade ou menos, formado noutro clube, paga ao clube formador `byTier` × ordenado anual do novo contrato (por escalão do clube formador; nas distritais costuma ser zero). */
     training: { ageMax: number; byTier: Record<Tier, number> };
   };
@@ -915,6 +917,7 @@ export const DEFAULT_PARAMETERS: Params = {
     perCity: { base: 3, perDecade: 4, min: 2 },
     scaleWeight: { local: { base: 1, perDecade: 0 }, regional: { base: 0.3, perDecade: 0.35 }, national: { base: 0.02, perDecade: 0.12 }, international: { base: 0.004, perDecade: 0.04 } },
     capital: { median: { local: 300_000, regional: 3_000_000, national: 50_000_000, international: 600_000_000 }, sigma: 0.9 },
+    capitalPerEmployee: { local: 15_000, regional: 60_000, national: 250_000, international: 600_000 },
     evolution: { growth: 0.03, economyEffect: 0.06, sigma: 0.18, closureProbability: 0.012, lowCapitalShare: 0.15, lowCapitalClosure: 0.15, foundingRate: 0.5 },
     sponsorship: {
       slots: { firstLeague: ["shirt", "stadium", "youth"], secondLeague: ["shirt", "stadium", "youth"], thirdLeague: ["shirt", "stadium"], cp: ["shirt", "stadium"], district: ["shirt"] },
@@ -989,7 +992,7 @@ export const DEFAULT_PARAMETERS: Params = {
     saleToBudget: 0.6,
     consent: { up: 0.9, down: 0.35, byAmbition: 0.03, byLoyalty: 0.025, byWageRatio: 0.5 },
     agents: { share: { firstLeague: 0.85, secondLeague: 0.55, thirdLeague: 0.3, cp: 0.12, district: 0.04 }, popularity: 0.5, commissionRate: 0.08, commissionByGreed: 0.05, wageByGreed: 0.012, consentByGreed: 0.012, consentByLoyalty: 0.015, greedPivot: 14.4, loyaltyPivot: 7 },
-    clauses: { resaleProbability: 0.3, resaleByGreed: 0.02, resalePct: [0.08, 0.2], releaseProbability: 0.2, releaseByAgentGreed: 0.02, releaseFactor: [1.2, 2.2] },
+    clauses: { releaseProbability: 0.2, releaseByAgentGreed: 0.02, releaseFactor: [1.2, 2.2] },
     training: { ageMax: 23, byTier: { firstLeague: 1.2, secondLeague: 0.8, thirdLeague: 0.4, cp: 0.08, district: 0 } },
   },
   knowledge: {

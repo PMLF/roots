@@ -593,8 +593,8 @@ export function repositoryContract(name: string, create: () => Repository): void
         { id: "p3", name: "Luca Rossi", sportingName: "Luca Rossi", birth: "1998-01-01", nationality: "it", roles: ["player"], personality: { loyalty: 5 }, archetype: "mercenary", lod: 2 },
       ],
       players: [
-        { person: "p1", positions: [{ pos: "CM", aptitude: 20 }, { pos: "DM", aptitude: 12 }], attributes: { pass: 14 }, potential: 15.5, heightCm: 180, weightKg: 75, pe: "D", club: "X", state: "active" },
-        { person: "p3", positions: [{ pos: "PL", aptitude: 20 }], attributes: { finishing: 12 }, potential: 12, heightCm: 184, weightKg: 80, pe: "E", state: "free" },
+        { person: "p1", positions: [{ pos: "CM", aptitude: 20 }, { pos: "DM", aptitude: 12 }], attributes: { pass: 14 }, potential: 15.5, heightCm: 180, weightKg: 75, foot: "R", club: "X", state: "active" },
+        { person: "p3", positions: [{ pos: "PL", aptitude: 20 }], attributes: { finishing: 12 }, potential: 12, heightCm: 184, weightKg: 80, foot: "L", state: "free" },
       ],
       contracts: [{ person: "p1", club: "X", monthlyWage: 1200, start: "2025-07-01", end: "2028-06-30" }],
       roles: [{ person: "p2", fn: "president", club: "X", city: "porto" }],
@@ -615,7 +615,7 @@ export function repositoryContract(name: string, create: () => Repository): void
       const r = create();
       r.saveWorld(batch());
       const f = r.publicPerson("p1")!;
-      expect(f).toMatchObject({ sportingName: "João Silva", club: "X", birthCity: "porto", player: { position: "CM", heightCm: 180, pe: "D", state: "active" } });
+      expect(f).toMatchObject({ sportingName: "João Silva", club: "X", birthCity: "porto", player: { position: "CM", heightCm: 180, foot: "R", state: "active" } });
       const text = JSON.stringify(f);
       for (const banned of ["potential", "attributes", "personality", "loyalty", "aptitude", "archetype", "wage"]) expect(text).not.toContain(banned);
       expect(r.publicPerson("p3")?.player?.state).toBe("free");
@@ -653,7 +653,7 @@ export function repositoryContract(name: string, create: () => Repository): void
       r.saveWorld(batch());
       r.addPeople({
         people: [{ id: "p4", name: "Rui Novo", sportingName: "Rui Novo", birth: "2009-02-02", nationality: "pt", roles: ["player"], personality: { loyalty: 8 }, archetype: "common", lod: 2 }],
-        players: [{ person: "p4", positions: [{ pos: "CM", aptitude: 20 }], attributes: { pass: 6 }, potential: 14, heightCm: 172, weightKg: 62, pe: "D", club: "X", state: "active" }],
+        players: [{ person: "p4", positions: [{ pos: "CM", aptitude: 20 }], attributes: { pass: 6 }, potential: 14, heightCm: 172, weightKg: 62, foot: "R", club: "X", state: "active" }],
         contracts: [{ person: "p4", club: "X", monthlyWage: 300, start: "2026-07-01", end: "2029-06-30" }],
         roles: [],
       });
@@ -680,8 +680,8 @@ export function repositoryContract(name: string, create: () => Repository): void
       r.saveContract({ person: "p1", club: "Y", monthlyWage: 2000, start: "2026-07-01", end: "2027-06-30" });
       expect(r.contract("p1")).toMatchObject({ club: "Y", monthlyWage: 2000 });
       expect(r.contract("p1")?.clauses).toBeUndefined();
-      r.saveContract({ person: "p1", club: "Y", monthlyWage: 2100, start: "2026-07-01", end: "2027-06-30", clauses: { resale: { club: "X", pct: 0.15 } } });
-      expect(r.contract("p1")?.clauses).toEqual({ resale: { club: "X", pct: 0.15 } });
+      r.saveContract({ person: "p1", club: "Y", monthlyWage: 2100, start: "2026-07-01", end: "2027-06-30", clauses: { release: 5000000 } });
+      expect(r.contract("p1")?.clauses).toEqual({ release: 5000000 });
       r.saveContract({ person: "p1", club: "Y", monthlyWage: 2000, start: "2026-07-01", end: "2027-06-30" });
 
       expect(() =>

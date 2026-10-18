@@ -27,7 +27,7 @@ import type {
   NewMatch,
   StandingsLine,
   PlayerStatLine,
-  PlayerCompetitionStats,
+  PlayerCompetitionStats, PlayerSeasonExtra, ClubSeasonRecord,
   Scorer,
   CardRecord,
   Observation,
@@ -336,7 +336,7 @@ export class MemoryRepository implements Repository {
       roles: [...p.roles],
       ...(club !== undefined ? { club } : {}),
       ...(c ? { fn: c.fn } : {}),
-      ...(j ? { player: { position: j.positions[0]!.pos, heightCm: j.heightCm, weightKg: j.weightKg, pe: j.pe, state: j.state } } : {}),
+      ...(j ? { player: { position: j.positions[0]!.pos, heightCm: j.heightCm, weightKg: j.weightKg, foot: j.foot, state: j.state } } : {}),
     };
   }
   publicPerson(id: string): PublicPerson | undefined {
@@ -686,6 +686,18 @@ export class MemoryRepository implements Repository {
       .sort((a, b) => b.points - a.points || b.scoredGoals - b.concededGoals - (a.scoredGoals - a.concededGoals) || b.scoredGoals - a.scoredGoals || cmp(a.club, b.club));
   }
 
+  clubSeasonRecords(club: string): ClubSeasonRecord[] {
+    const acc = new Map<number, ClubSeasonRecord>();
+    for (const [k, r] of this.standing.entries()) {
+      const [, season, c] = k.split("\u0000") as [string, string, string];
+      if (c !== club) continue;
+      const a = acc.get(Number(season)) ?? { season: Number(season), wins: 0, draws: 0, losses: 0 };
+      a.wins += r.wins; a.draws += r.draws; a.losses += r.losses;
+      acc.set(Number(season), a);
+    }
+    return [...acc.values()].sort((a, b) => a.season - b.season);
+  }
+
   playerStats(player: string): PlayerStatLine[] {
     return [...this.stats.entries()]
       .map(([k, s]) => {
@@ -694,6 +706,21 @@ export class MemoryRepository implements Repository {
       })
       .filter((l) => l.player === player)
       .sort((a, b) => a.season - b.season || cmp(a.competition, b.competition) || cmp(a.club, b.club));
+  }
+
+  playerSeasonExtras(player: string): PlayerSeasonExtra[] {
+    const acc = new Map<string, PlayerSeasonExtra & { sum: number }>();
+    for (const r of this.matches.values()) {
+      const p = r.part.find((x) => x.player === player);
+      if (!p) continue;
+      const key = `${r.match.season}\u0000${p.club}`;
+      const a = acc.get(key) ?? { season: r.match.season, club: p.club, ratedGames: 0, cleanSheets: 0, sum: 0 };
+      if (p.rating !== undefined) { a.sum += p.rating; a.ratedGames++; }
+      const conceded = p.club === r.match.home ? r.match.awayGoals : r.match.homeGoals;
+      if (p.minutes > 0 && conceded === 0) a.cleanSheets++;
+      acc.set(key, a);
+    }
+    return [...acc.values()].map(({ sum, ...a }): PlayerSeasonExtra => ({ ...a, ...(a.ratedGames > 0 ? { avgRating: sum / a.ratedGames } : {}) })).sort((a, b) => a.season - b.season || cmp(a.club, b.club));
   }
 
   playerStatsForCompetition(competition: string, season: number): PlayerCompetitionStats[] {
