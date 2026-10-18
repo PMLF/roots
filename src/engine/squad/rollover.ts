@@ -22,6 +22,7 @@ import { decisionOf, negotiationOf } from "./renewals";
 import { marketValue } from "../market/value";
 import { releaseClause } from "../market/clauses";
 import { agentTraits } from "../agent/assign";
+import { rolloverForeign } from "./foreign";
 import { TIER_BONUS, youthFocus } from "./youthFocus";
 
 export type RolloverSummary = { retired: number; developed: number; expired: number; renewed: number; released: number; signedFree: number; youth: number; emergencyYouth: number };
@@ -253,6 +254,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
       summary.signedFree++;
     }
   }
+  rolloverForeign(repo, params, { season: o.season, seasonStart: o.seasonStart }, batch, newId);
   if (batch.people.length > 0) repo.addPeople(batch);
   repo.setMeta(`rollover.${o.season}`, JSON.stringify(summary));
   return summary;

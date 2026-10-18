@@ -3,6 +3,7 @@
  * mesma seed + mesmos dados + mesmos parâmetros → mesmo mundo. Cada clube tem o seu fluxo
  * aleatório (derivado do id), por isso acrescentar um clube não muda os outros.
  */
+import { foreignClubs } from "./foreign";
 import { Rng, clamp } from "../random/rng";
 import { createDate, addDays } from "../calendar/dates";
 import type { Tier, Params } from "../config/parameters";
@@ -123,11 +124,11 @@ function hometown(c: Ctx, rng: Rng, country: Country, club: BaseClub | undefined
 function createPlayer(
   c: Ctx,
   rng: Rng,
-  o: { pos: Position; tier: Tier; targetQ: number; club?: BaseClub; foreignerP: number; lod: 1 | 2; wageScale: number },
+  o: { pos: Position; tier: Tier; targetQ: number; club?: BaseClub; foreignerP: number; lod: 1 | 2; wageScale: number; country?: Country },
 ): void {
   const m = c.params.world;
   const age = playerAge(rng, m);
-  const country = chooseCountry(c, rng, o.tier, o.foreignerP, o.targetQ);
+  const country = o.country ?? chooseCountry(c, rng, o.tier, o.foreignerP, o.targetQ);
   const birthCity = hometown(c, rng, country, o.club);
   const natural = birthCity !== undefined && birthCity === o.club?.city;
   const person = createPerson(c, rng, {
@@ -301,5 +302,19 @@ export function generateWorld(e: WorldInput): WorldBatch {
     createPlayer(c, freeRng, { pos, tier, targetQ, foreignerP: params.foreigners[tier] * 1.1, lod: 2, wageScale: 1 });
   }
   progress("free", m.free, m.free);
+
+  // ---------- ligas estrangeiras (RZ-230): só jogadores, para o olheiro descobrir
+  const foreignById = new Map(e.countries.map((p) => [p.id, p]));
+  for (const fc of foreignClubs(e.seed, e.countries, params)) {
+    const rng = c.seed.derive(`clube/${fc.id}`);
+    const country = foreignById.get(fc.country) as Country;
+    const target = m.targetQuality[fc.tier];
+    const pseudo = { id: fc.id, name: fc.name, city: "", district: "", tier: fc.tier } as unknown as BaseClub;
+    const squad = { ...m.squad, [fc.tier]: m.foreignLeagues.squad };
+    for (const pos of distributePositions(squad[fc.tier], m.placesByPosition)) {
+      const targetQ = clamp(rng.gauss(target.mean + (country.tradition - 70) / 40, target.deviation), 1, 20);
+      createPlayer(c, rng, { pos, tier: fc.tier, targetQ, club: pseudo, foreignerP: 0, lod: 2, wageScale: 1, country });
+    }
+  }
   return batch;
 }

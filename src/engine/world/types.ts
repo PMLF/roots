@@ -38,7 +38,7 @@ export type NewPlayer = {
   potential: number;
   heightCm: number;
   weightKg: number;
-  pe: "D" | "E" | "A";
+  foot: "R" | "L" | "B";
   club?: string;
   trainedAt?: string;
   state: "active" | "free";

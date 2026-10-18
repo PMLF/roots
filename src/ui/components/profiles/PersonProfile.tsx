@@ -5,6 +5,7 @@ import { PHYSICAL_ATTRIBUTES, GK_ATTRIBUTES, MENTAL_ATTRIBUTES, TECHNICAL_ATTRIB
 import { Attributes, Chip, type AttributesGroup, type AttributeLine } from "@/ui/components/Attributes";
 import { Card, Data, Top } from "@/ui/components/Card";
 import { Table } from "@/ui/components/Table";
+import { PersonHistoryTable } from "@/ui/components/profiles/PersonHistoryTable";
 import { Profile } from "@/ui/components/Profile";
 import { EntityLink } from "@/ui/components/Link";
 import { seasonName } from "@/engine/calendar/seasonName";
@@ -55,9 +56,10 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     ...(d.birthCity ? [{ label: t("person.birthCity"), value: <EntityLink k="city" id={d.birthCity.id}>{d.birthCity.name}</EntityLink> }] : []),
     ...(j ? [
       { label: t("person.body"), value: `${j.heightCm} cm · ${j.weightKg} kg` },
-      { label: t("column.pe"), value: t(`pe.${j.pe}` as Key) },
+      { label: t("column.foot"), value: t(`foot.${j.foot}` as Key) },
     ] : []),
     ...(d.club ? [{ label: t("entity.club"), value: <EntityLink k="club" id={d.club.id}>{d.club.name}</EntityLink> }] : []),
+    ...(d.foreignClub ? [{ label: t("entity.club"), value: d.foreignClub.name }] : []),
     ...(d.contract ? [{ label: t("person.contractUntil"), value: d.contract.end }] : []),
     ...(j ? [{ label: t("person.state"), value: t(`state.${j.state}` as Key) }] : []),
   ];
@@ -66,7 +68,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
       {j && <Chip tone="destaque">{namePosition(t, j.position)}</Chip>}
       {!j && p.fn && <Chip tone="destaque">{t(`fn.${p.fn}` as Key)}</Chip>}
       {d.club && <Chip><EntityLink k="club" id={d.club.id}>{d.club.name}</EntityLink></Chip>}
-      {!d.club && j?.state === "free" && <Chip tone="suave">{t("state.free")}</Chip>}
+      {d.foreignClub && <Chip>{d.foreignClub.name}</Chip>}
+      {!d.club && !d.foreignClub && j?.state === "free" && <Chip tone="suave">{t("state.free")}</Chip>}
     </>
   );
 
@@ -108,8 +111,6 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
           { label: t("person.wage"), value: (d.wage ?? truth?.monthlyWage) !== undefined ? `${eur(locale, (d.wage ?? truth?.monthlyWage) as number)}/${t("person.month")}` : unknown },
           ...(d.agent ? [{ label: t("person.agent"), value: <EntityLink k="person" id={d.agent.id}>{d.agent.name}</EntityLink> }] : []),
           { label: t("person.clause"), value: d.clauses ? (d.clauses.release !== undefined ? eur(locale, d.clauses.release) : t("person.noClause")) : unknown },
-          { label: t("person.resale"), value: d.clauses ? (d.clauses.resale ? t("person.resaleValue", { pct: Math.round(d.clauses.resale.pct * 100) }) : t("person.noClause")) : unknown },
-          ...(d.clauses?.resale ? [{ label: t("person.resaleClub"), value: <EntityLink k="club" id={d.clauses.resale.club.id}>{d.clauses.resale.club.name}</EntityLink> }] : []),
         ]}
       />
     {d.renewable && (agreed ? <p><b>{t("renewals.done")}</b></p> : <p><button type="button" onClick={() => setRenewing(true)}>{t("renewals.renewContract")}</button></p>)}
@@ -195,6 +196,13 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     { id: "fee", title: t("career.fee"), value: (c) => c.fee ?? 0, numeric: true },
   ];
   const story = (
+    <div className="cartoes">
+      {d.history && d.history.length > 0 && (
+        <Card title={t("tab.story")} wide>
+          <PersonHistoryTable rows={d.history} initialYear={d.initialYear} />
+        </Card>
+      )}
+      {d.career && d.career.length > 0 && (
     <Card title={t("career.title")} wide>
       <Table
         id="pessoa-percurso" columns={careerColumns} lines={d.career ?? []} rowKey={(c) => String(c.id)} simple
@@ -206,6 +214,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
         }}
       />
     </Card>
+      )}
+    </div>
   );
 
   return (
@@ -213,8 +223,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
       type="person"
       title={p.sportingName}
       top={<><Top title={p.sportingName} labels={labels} card={<Data lines={data} />} />{renewing && <RenewalDialog person={p.id} name={p.sportingName} onClose={() => setRenewing(false)} onAgreed={() => setAgreed(true)} />}</>}
-      omit={j ? [] : ["career"]}
-      tabs={{ summary, ...(j ? { career: statistics } : {}), story }}
+      omit={["career"]}
+      tabs={{ summary, story }}
     />
   );
 }

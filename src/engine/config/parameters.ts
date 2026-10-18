@@ -440,6 +440,8 @@ export type Params = {
     /** Jogadores sem clube e pessoas fora do plantel. */
     free: number;
     staffPerClub: number;
+    /** Ligas estrangeiras inventadas (RZ-230): quantos países, quantos clubes por país e jogadores por clube. */
+    foreignLeagues: { countries: number; clubsPerCountry: number; squad: number };
     /** Pessoas fora dos plantéis (GERACAO_MUNDO §1). */
     others: { businesspeople: number; fansOfficials: number; agents: number; referees: number; journalists: number; freeStaff: number };
     /** Salário mensal (€) de um jogador médio do escalão e elasticidade por ponto de qualidade (exp). */
@@ -540,6 +542,8 @@ export type Params = {
     scaleWeight: Record<"local" | "regional" | "national" | "international", { base: number; perDecade: number }>;
     /** Capacidade (volume de negócio, €) mediana por escala e desvio do logaritmo. */
     capital: { median: Record<"local" | "regional" | "national" | "international", number>; sigma: number };
+    /** Volume de negócio (€) por empregado, por escala: serve para estimar o número de empregados da empresa. */
+    capitalPerEmployee: Record<"local" | "regional" | "national" | "international", number>;
     /** Evolução anual do capital: crescimento médio, efeito da economia da cidade (±metade da escala), desvio. */
     evolution: { growth: number; economyEffect: number; sigma: number; closureProbability: number; lowCapitalShare: number; lowCapitalClosure: number; foundingRate: number };
     sponsorship: {
@@ -626,11 +630,25 @@ export type Params = {
     /** Agentes (RZ-206): quota de jogadores com agente por escalão do clube; peso de cada cliente já tido (agentes grandes atraem mais); comissão (fração do ordenado anual) e subida da comissão e do ordenado pedido por ponto de ganância acima de 10; efeito da ganância e da lealdade do agente no consentimento do jogador; pivôs = ganância e lealdade médias dos agentes (acima/abaixo disto o efeito é positivo/negativo, para o agente típico não mexer no equilíbrio do mercado). */
     agents: { share: Record<Tier, number>; popularity: number; commissionRate: number; commissionByGreed: number; wageByGreed: number; consentByGreed: number; consentByLoyalty: number; greedPivot: number; loyaltyPivot: number };
     /** Cláusulas (RZ-207): probabilidade de o clube vendedor negociar uma percentagem de revenda (sobe com a ganância do presidente por ponto acima de 10) e intervalo dessa percentagem (fração do valor da venda futura); cláusula de rescisão num contrato novo: probabilidade base, subida por ponto de ganância do agente acima do pivô, e múltiplo do valor de mercado. */
-    clauses: { resaleProbability: number; resaleByGreed: number; resalePct: [number, number]; releaseProbability: number; releaseByAgentGreed: number; releaseFactor: [number, number] };
+    clauses: { releaseProbability: number; releaseByAgentGreed: number; releaseFactor: [number, number] };
     /** Compensação de formação (RZ-207): quem contrata um livre com esta idade ou menos, formado noutro clube, paga ao clube formador `byTier` × ordenado anual do novo contrato (por escalão do clube formador; nas distritais costuma ser zero). */
     training: { ageMax: number; byTier: Record<Tier, number> };
   };
   /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
+  /** Scouting do gamer (RZ-230): quantos jogadores aparecem, quanto custa observar e quanto demora. */
+  scouting: {
+    /** Fração dos jogadores nacionais visíveis: base + por olheiro (máx.); os estrangeiros só uma fração disso. */
+    reach: { base: number; perScout: number; max: number; foreignFactor: number };
+    days: { week: number; month: number; search: number };
+    /** Custo (€) de uma observação de uma semana, de um mês e de uma pesquisa por posição; estrangeiros custam mais (viagens). */
+    cost: { week: number; month: number; search: number; foreignMultiplier: number };
+    /** Um mês de observação sobe a qualidade; nunca passa do máximo. */
+    monthBoost: number;
+    monthQualityMax: number;
+    /** Qualidade (0-1) das estimativas que a pesquisa por posição já traz. */
+    searchQuality: number;
+    search: { results: number; slack: number; potentialDiscount: number; noise: number; reachFactor: number };
+  };
   knowledge: {
     /** Épocas sem nova observação a partir das quais a ficha mostra "desatualizado". */
     seasonsAfterOutdated: number;
@@ -898,6 +916,7 @@ export const DEFAULT_PARAMETERS: Params = {
     placesByPosition: { GK: 3, RB: 2, CB: 4, LB: 2, DM: 2, CM: 3, AM: 2, RW: 2, LW: 2, ST: 3 },
     free: 3000,
     staffPerClub: 6,
+    foreignLeagues: { countries: 8, clubsPerCountry: 6, squad: 18 },
     others: { businesspeople: 500, fansOfficials: 400, agents: 150, referees: 250, journalists: 200, freeStaff: 500 },
     wage: { average: { firstLeague: 9000, secondLeague: 3500, thirdLeague: 1400, cp: 700, district: 250 }, elasticity: 0.22, yearsContractMin: 1, yearsContractMax: 4 },
     age: { min: 16, max: 38, mean: 26, deviation: 4.5, trainedAtStartMax: 22 },
@@ -915,6 +934,7 @@ export const DEFAULT_PARAMETERS: Params = {
     perCity: { base: 3, perDecade: 4, min: 2 },
     scaleWeight: { local: { base: 1, perDecade: 0 }, regional: { base: 0.3, perDecade: 0.35 }, national: { base: 0.02, perDecade: 0.12 }, international: { base: 0.004, perDecade: 0.04 } },
     capital: { median: { local: 300_000, regional: 3_000_000, national: 50_000_000, international: 600_000_000 }, sigma: 0.9 },
+    capitalPerEmployee: { local: 15_000, regional: 60_000, national: 250_000, international: 600_000 },
     evolution: { growth: 0.03, economyEffect: 0.06, sigma: 0.18, closureProbability: 0.012, lowCapitalShare: 0.15, lowCapitalClosure: 0.15, foundingRate: 0.5 },
     sponsorship: {
       slots: { firstLeague: ["shirt", "stadium", "youth"], secondLeague: ["shirt", "stadium", "youth"], thirdLeague: ["shirt", "stadium"], cp: ["shirt", "stadium"], district: ["shirt"] },
@@ -989,8 +1009,17 @@ export const DEFAULT_PARAMETERS: Params = {
     saleToBudget: 0.6,
     consent: { up: 0.9, down: 0.35, byAmbition: 0.03, byLoyalty: 0.025, byWageRatio: 0.5 },
     agents: { share: { firstLeague: 0.85, secondLeague: 0.55, thirdLeague: 0.3, cp: 0.12, district: 0.04 }, popularity: 0.5, commissionRate: 0.08, commissionByGreed: 0.05, wageByGreed: 0.012, consentByGreed: 0.012, consentByLoyalty: 0.015, greedPivot: 14.4, loyaltyPivot: 7 },
-    clauses: { resaleProbability: 0.3, resaleByGreed: 0.02, resalePct: [0.08, 0.2], releaseProbability: 0.2, releaseByAgentGreed: 0.02, releaseFactor: [1.2, 2.2] },
+    clauses: { releaseProbability: 0.2, releaseByAgentGreed: 0.02, releaseFactor: [1.2, 2.2] },
     training: { ageMax: 23, byTier: { firstLeague: 1.2, secondLeague: 0.8, thirdLeague: 0.4, cp: 0.08, district: 0 } },
+  },
+  scouting: {
+    reach: { base: 0.03, perScout: 0.06, max: 0.6, foreignFactor: 0.15 },
+    days: { week: 7, month: 30, search: 14 },
+    cost: { week: 300, month: 900, search: 450, foreignMultiplier: 3 },
+    monthBoost: 0.3,
+    monthQualityMax: 0.97,
+    searchQuality: 0.25,
+    search: { results: 10, slack: 1, potentialDiscount: 2, noise: 0.8, reachFactor: 3 },
   },
   knowledge: {
     seasonsAfterOutdated: 2,

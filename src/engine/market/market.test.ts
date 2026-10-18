@@ -32,7 +32,7 @@ const fresh = (seed: string) => {
 
 /** Corre todas as rondas de uma janela, dia a dia. */
 const runWindow = (repo: MemoryRepository, from: string, to: string, gamerClub?: string): MarketSummary => {
-  const total = { transfers: 0, freeSignings: 0, spent: 0, agentFees: 0, resale: 0, releases: 0, compensation: 0 };
+  const total = { transfers: 0, freeSignings: 0, spent: 0, agentFees: 0, releases: 0, compensation: 0 };
   for (let day = from; day <= to; day = addDays(day, 1)) {
     if (!isMarketDay(day, P)) continue;
     const r = marketRound(repo, data, P, day, 1, gamerClub ? { gamerClub } : {});
@@ -40,7 +40,6 @@ const runWindow = (repo: MemoryRepository, from: string, to: string, gamerClub?:
     total.freeSignings += r.freeSignings;
     total.spent += r.spent;
     total.agentFees += r.agentFees;
-    total.resale += r.resale;
     total.releases += r.releases;
     total.compensation += r.compensation;
   }

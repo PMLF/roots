@@ -25,11 +25,8 @@ Verão (1 jul – 1 set) e inverno (1 – 31 jan). Corre uma ronda à segunda-fe
 - **Ganância** alta e **lealdade** baixa do agente empurram o jogador a aceitar sair (`consentByGreed`, `consentByLoyalty`).
 - Falta: agentes por ocupação/idade e reforma, mudança de agente, comissões escondidas e propostas ao gamer (RZ-165/207).
 
-## Cláusula de revenda (RZ-207, fatia a)
-- O contrato passa a ter `clauses` (JSON, migração V8). Primeira cláusula: `resale { club, pct }` — o clube que vendeu o jogador fica com `pct` (8-20 %) de uma venda futura.
-- Ao vender, o vendedor negoceia a cláusula com probabilidade `market.clauses.resaleProbability` (sobe com a ganância do presidente). No contrato novo fica só a cláusula mais recente.
-- Numa venda com cláusula, o clube de origem recebe `pct × valor` e o vendedor recebe o resto (o dinheiro continua a conservar-se); o evento `TRANSFER` traz o clube de origem (`roleKind: "resale"`) e `resaleCut`.
-- Próximas fatias: cláusula de rescisão, bónus por golos, «regresso à terra» e a compensação de formação (Parking lot).
+## Cláusulas (RZ-207)
+- O contrato tem `clauses` (JSON). Hoje só a cláusula de rescisão `release`. A cláusula de revenda foi retirada (18-10-2026): não vamos usá-la.
 
 ## Cláusula de rescisão (RZ-207, fatia b)
 - Um contrato novo (assinatura no mercado ou renovação na passagem de época) pode levar `clauses.release`: um valor (1,2-2,2 × o valor de mercado) que **qualquer clube pode pagar sem o vendedor poder recusar**. Probabilidade `market.clauses.releaseProbability`, mais alta com agente ganancioso (`releaseByAgentGreed`, relativo ao pivô).
@@ -56,3 +53,22 @@ Três variáveis: **ordenado mensal, anos (1-5) e cláusula de rescisão** (ou s
 - **Cláusula**: mais alta (ou nenhuma) custa ordenado (`clauseWage` por referência acima de 1); a referência é o valor de mercado × meio do intervalo de `market.clauses.releaseFactor`.
 - **Interesse** (`renewalInterest`): um jogador muito acima do nível do escalão (`level.margin` desvios), ambicioso e pouco leal não quer renovar; em escalões baixos (`distance.tiers`), quem não é da terra nem do distrito só fica por `distance.wageFactor` × o ordenado médio do escalão. Naturais e leais ficam isentos.
 - A decisão aceite guarda `release` e é aplicada em `rollover`. Parâmetros em `squadCycle.contracts.negotiation`.
+
+## Mercado do gamer (pedido de 18-10-2026) — desenho e fatias
+
+**Princípio:** o gamer não vê o mundo; descobre-o pelos olheiros, paga a observação, e só então faz propostas informadas. Tudo o que é negociação usa o mesmo molde das renovações: popup com dropdowns, sem fechar a meio.
+
+### M1 — Scouting (RZ-230, feito)
+- Página `/scouting` («Scouting» no menu): tabela de jogadores que **aparecem conforme os olheiros** do clube (`scouting.reach`: base + por olheiro, máx.; monótono — mais olheiros mostram sempre um superconjunto; o sorteio é estável por época). Inclui livres e **ligas estrangeiras** (`world.foreignLeagues`: 8 países × 6 clubes inventados × 18 jogadores, ids `x-…`, sem página: o nome do clube não é ligação, o jogador sim). Os estrangeiros aparecem a `foreignFactor` (15 %) do alcance.
+- Os estrangeiros evoluem na passagem de época (`squad/foreign.ts`: desenvolvimento, reforma, renovação automática e jovens para repor o plantel).
+- **Informação:** sem observação nada se sabe («?»). **Uma semana** (`scouting.cost.week`, ×`foreignMultiplier` para estrangeiros): estimativas das capacidades com margem de erro e pistas da personalidade (rótulos extremos). **Um mês** (`cost.month`): qualidade alta e **toda** a personalidade (`known` na ficha). A qualidade vem do melhor olheiro (`knowledge.qualityPerSource.scout` ± qualidade do olheiro).
+- **Pesquisa por posição** (`cost.search`, 14 dias): lista de até `search.results` jogadores da posição (idade e «só sem clube» opcionais) com nível ou potencial que interessem ao clube (mediana da posição − folga), a partir de um alcance 3× o normal; vêm só com estimativas fracas (`searchQuality`), é preciso observar para saber mais.
+- Cada olheiro faz **uma ordem de cada vez**; cada ordem paga-se (categoria `staff`) e não há ordens sem caixa. O fim da ordem gera evento privado `SCOUT_REPORT`/`SCOUT_SEARCH` e mensagem na caixa de entrada.
+- Estado em meta: `scouting.orders`, `scouting.found`, `scouted.<jogador>`; clubes estrangeiros em `foreign.clubs`.
+- Limite conhecido: todos os clubes têm 1 olheiro; contratar mais olheiros chega com o staff (RZ-208).
+
+### M2 — Propostas do gamer (RZ-231, por fazer)
+Botão «Fazer proposta» na ficha/tabela: popup ao **clube vendedor** (valor, com dropdown de sugestões; contrapropostas) e depois ao **agente** (ordenado, duração, cláusula), mais informação ⇒ propostas mais adequadas e mais fáceis de aceitar (o consentimento do jogador e a abertura do clube usam a informação que o gamer tem). Livres: só contrato. Acordo fechado: se a janela está aberta (julho, agosto, janeiro) o jogador transfere-se; se não, fica **«vai mudar-se para X em Y»** na ficha (`moving`) e passa na abertura.
+
+### M3 — Propostas da IA ao gamer (RZ-232, por fazer)
+A IA faz propostas por jogadores do clube do gamer (quase só com a janela aberta); entram em **«Exige decisão»** (nenhuma se perde); o gamer aceita, rejeita ou contrapropõe; se aceitar e o jogador aceitar o contrato proposto, transfere-se com a janela aberta. Transferências importantes e as do clube do gamer geram notícias.

@@ -53,7 +53,7 @@ export function validateWorld(batch: WorldBatch, data: BaseData, countries: read
   const tierOf = new Map(data.clubs.map((c) => [c.id, c.tier] as const));
   const acc = new Map<Tier, { n: number; q: number; e: number }>();
   for (const j of batch.players) {
-    if (!j.club) continue;
+    if (!j.club || !tierOf.has(j.club)) continue;
     const tier = tierOf.get(j.club) as Tier;
     const person = batch.people.find((x) => x.id === j.person);
     void person;
@@ -64,7 +64,7 @@ export function validateWorld(batch: WorldBatch, data: BaseData, countries: read
   }
   const nacion = new Map(batch.people.map((x) => [x.id, x.nationality] as const));
   for (const j of batch.players) {
-    if (!j.club) continue;
+    if (!j.club || !tierOf.has(j.club)) continue;
     const a = acc.get(tierOf.get(j.club) as Tier);
     if (a && nacion.get(j.person) !== "pt") a.e++;
   }

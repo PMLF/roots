@@ -92,7 +92,55 @@ export type ClubOffer = { id: string; name: string; league: string; tier: Tier; 
 /** Uma passagem pela carreira de um jogador (eventos públicos de contratos e transferências). */
 export type CareerLine = { id: number; date: string; season: number; kind: "transfer" | "signed" | "renewed" | "released" | "retired" | "current"; club?: EntityRef; from?: EntityRef; fee?: number };
 
+/**
+ * Uma linha da tabela «História» de uma pessoa (uma por profissão e período). A interface escolhe as colunas conforme
+ * as profissões presentes: jogador/guarda-redes e pessoal de clube vêm por época e clube; autarca e empresário por ano e localidade.
+ */
+export type HistoryRow =
+  | { profession: "player" | "goalkeeper"; season: number; club: EntityRef; matches: number; goals: number; assists: number; cleanSheets: number; avgRating?: number }
+  | { profession: "mayor"; season: number; place: EntityRef; populationChange?: number }
+  | { profession: "businessperson"; season: number; place: EntityRef; company: string; employees: number; sponsored: EntityRef[] }
+  | { profession: "staff"; fn: string; season: number; club: EntityRef; wins: number; draws: number; losses: number };
+
+/** Uma linha da tabela de scouting (RZ-230): só o que o gamer sabe do jogador. */
+export type ScoutRow = {
+  id: string;
+  name: string;
+  age: number;
+  position: string;
+  nationality: string;
+  /** Clube atual; os de ligas estrangeiras não têm página (`foreign`). */
+  club?: { id: string; name: string; foreign: boolean };
+  contractEnd?: string;
+  /** Estrelas estimadas: só existem depois de uma observação. */
+  rating?: StarRating;
+  /** O que se sabe: nada, uma observação de semana ou mês. */
+  knowledge: "none" | "week" | "month";
+  /** Apareceu numa pesquisa por posição (e não pelo alcance dos olheiros). */
+  found?: boolean;
+  /** Já há uma ordem do olheiro em curso sobre ele. */
+  busy?: "week" | "month";
+  /** Vai mudar-se para outro clube (acordo fechado fora da janela). */
+  moving?: { club: string; date: string };
+};
+export type ScoutOrderView = { id: number; kind: "week" | "month" | "search"; person?: EntityRef; position?: string; start: string; end: string; cost: number; done: boolean; results?: number };
+export type ScoutingData = {
+  rows: ScoutRow[];
+  orders: ScoutOrderView[];
+  scouts: { count: number; quality: number };
+  cost: { week: number; month: number; search: number; foreignMultiplier: number };
+  balance: number;
+  /** Quantas ordens ao mesmo tempo (uma por olheiro). */
+  capacity: number;
+};
+export type ScoutOrderInput = { kind: "week" | "month" | "search"; person?: string; position?: string; minAge?: number; maxAge?: number; freeOnly?: boolean };
+export type ScoutOrderOutput = { ok: true } | { ok: false; reason: "noScout" | "busy" | "noCash" | "invalid" | "own" };
+
 export type PersonProfileData = {
+  /** Clube de uma liga estrangeira (sem página). */
+  foreignClub?: { name: string };
+  /** Tabela «História» (RZ-229): linhas por profissão, das mais recentes para as mais antigas. */
+  history?: HistoryRow[];
   profile: PersonProfile;
   club?: EntityRef;
   birthCity?: EntityRef;
@@ -113,7 +161,7 @@ export type PersonProfileData = {
   /** Agente do jogador (público). */
   agent?: EntityRef;
   /** Cláusulas do contrato: só no teu clube (ou em modo developer). */
-  clauses?: { release?: number; resale?: { club: EntityRef; pct: number } };
+  clauses?: { release?: number };
   level?: EstimatedLevel;
   /** Estrelas (RZ-916): qualidade relativa ao escalão onde joga e intervalo de potencial. */
   rating?: StarRating;
@@ -245,6 +293,10 @@ export type EngineRequests = {
   /** O mundo do save, se já foi criado (não gera nada). */
   worldState: { input: null; output: CreatedWorldSummary | null };
   clubs: { input: null; output: SummaryClub[] };
+  /** Pesquisa de jogadores com o alcance dos olheiros (RZ-230). */
+  scouting: { input: null; output: ScoutingData };
+  /** Pede ao olheiro uma observação (semana/mês) ou uma pesquisa por posição. */
+  scoutOrder: { input: ScoutOrderInput; output: ScoutOrderOutput };
   countries: { input: null; output: { id: string; name: string }[] };
   /** Pesquisa global por nome (clubes, cidades, pessoas). */
   find: { input: { q: string; limit?: number }; output: SearchResult[] };

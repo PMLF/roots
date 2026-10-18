@@ -19,6 +19,10 @@ import { isInSecondDistrict } from "../season/districts";
 import { acceptOffer, resign, isUnemployed, gamerOffers } from "../season/coachMarket";
 import { advance, timeState } from "../season/advance";
 import { saveParameters, seasonYearContaining, saveInitialYear, seasonName } from "../season/saveYear";
+import { foreignClubs } from "../world/foreign";
+import { foundBySearch, isVisible, orders, placeOrder, scoutedLevel, scoutsOf, worldPlayers } from "../scouting/scouting";
+import { foreignClubList } from "../squad/foreign";
+import { personHistory } from "./personHistory";
 import { seasonData, pyramidData, currentSeason, divisionsHistory } from "../season/seasonPyramid";
 import { planView } from "../season/planView";
 import { confirmMatch, savePlan } from "../season/gamePlan";
@@ -36,7 +40,7 @@ import { Rng } from "../random/rng";
 import { startCompanies } from "../company/cycle";
 import { assignAgents } from "../agent/assign";
 import { potentialRange, referenceTier, starsOf } from "../world/stars";
-import type { CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
+import type { ScoutingData, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SCHEMA_VERSION = DB_SCHEMA;
@@ -105,11 +109,13 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       return find(m.input.q, searchIndex(repository, current), m.input.limit ?? 12);
     }
     case "personProfile": {
-      const { repository, data, params } = await context(servicos);
+      const { repository, data, base, params } = await context(servicos);
       const view = gamerView(repository);
       const profile = ownProfile(repository, view, m.input.id);
       if (!profile) return null;
       const output: PersonProfileData = { profile, stats: view.playerStats(m.input.id), initialYear: params.calendar.initialYear };
+      const history = personHistory(repository, data, base, params, m.input.id, currentSeason(repository));
+      if (history.length > 0) output.history = history;
       const contract = repository.contract(m.input.id);
       if (contract) output.contract = { start: contract.start, end: contract.end };
       const career = personCareer(repository, data, m.input.id);
@@ -117,12 +123,8 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const agentId = repository.player(m.input.id)?.agent;
       const agentName = agentId ? repository.person(agentId)?.sportingName : undefined;
       if (agentId && agentName) output.agent = { k: "person", id: agentId, name: agentName };
-      if (contract?.clauses && (m.input.seeAll === true || (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club))) {
-        const resaleClub = contract.clauses.resale ? data.clubs.find((c) => c.id === contract.clauses?.resale?.club) : undefined;
-        output.clauses = {
-          ...(contract.clauses.release !== undefined ? { release: contract.clauses.release } : {}),
-          ...(contract.clauses.resale && resaleClub ? { resale: { club: { k: "club", id: resaleClub.id, name: resaleClub.name }, pct: contract.clauses.resale.pct } } : {}),
-        };
+      if (contract && (m.input.seeAll === true || (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club))) {
+        output.clauses = contract.clauses?.release !== undefined ? { release: contract.clauses.release } : {};
       }
       const level = playerLevel(repository, m.input.id, profile.exposed.player?.position, profile.attributes?.fields, m.input.seeAll === true);
       if (level) output.level = level;
@@ -134,8 +136,17 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         const inside = personTruth(repository, m.input.id);
         if (inside) output.known = { personality: inside.personality, ...(inside.quality ? { quality: inside.quality } : {}) };
       }
+      else if (scoutedLevel(repository, m.input.id) === "month") {
+        // um mês de observação dá a informação toda sobre o jogador
+        const inside = personTruth(repository, m.input.id);
+        if (inside) output.known = { personality: inside.personality };
+      }
       const club = profile.exposed.club ? data.clubs.find((c) => c.id === profile.exposed.club) : undefined;
       if (club) output.club = { k: "club", id: club.id, name: club.name };
+      else if (profile.exposed.club) {
+        const fc = foreignClubList(repository).find((x) => x.id === profile.exposed.club);
+        if (fc) output.foreignClub = { name: fc.name };
+      }
       // quem não tem movimentos (treinador, presidente…) fica com uma linha: a época atual e o clube
       if ((output.career ?? []).length === 0) output.career = [{ id: 0, date: repository.meta("date.today") ?? "", season: Number(repository.meta("season") ?? 1), kind: "current", ...(club ? { club: { k: "club" as const, id: club.id, name: club.name } } : {}) }];
       if (club && repository.meta("gamer.club") === club.id && contract && expiringPlayers(repository, club.id, createDate(params.calendar.initialYear + Number(repository.meta("season") ?? 1), params.calendar.seasonStartMonth, 1)).includes(m.input.id)) output.renewable = true;
@@ -222,6 +233,17 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         history,
       };
       return output;
+    }
+    case "scouting": {
+      const { repository, data, params } = await context(servicos);
+      return scoutingData(repository, data, params);
+    }
+    case "scoutOrder": {
+      const { repository, data, params } = await context(servicos);
+      const club = gamerClubOf(repository, data);
+      if (!club) return { ok: false, reason: "noScout" };
+      const r = placeOrder(repository, data, params, club, (repository.meta("date.today") ?? "") as string, m.input);
+      return r.ok ? { ok: true } : r;
     }
     case "cityProfile": {
       const { repository, data, base, params } = await context(servicos);
@@ -415,6 +437,56 @@ function playerRating(r: Repository, id: string, level: EstimatedLevel | undefin
   return rating;
 }
 
+/** Tabela de scouting do gamer: o que os olheiros alcançam, o que já foi observado e o que apareceu nas pesquisas. */
+function scoutingData(r: Repository, data: BaseData, params: Params): ScoutingData {
+  const club = gamerClubOf(r, data);
+  const view = gamerView(r);
+  const today = (r.meta("date.today") ?? "") as string;
+  const season = Number(r.meta("season") ?? 1);
+  const seed = r.meta("seed") ?? "?";
+  const foreign = foreignClubList(r);
+  const foreignName = new Map(foreign.map((c) => [c.id, c.name] as const));
+  const scouts = club ? scoutsOf(r, club.id) : { count: 0, quality: 0 };
+  const found = foundBySearch(r);
+  const list = orders(r);
+  const busy = new Map(list.filter((o) => !o.done && o.person).map((o) => [o.person as string, o.kind as "week" | "month"] as const));
+  const rows: ScoutRow[] = [];
+  if (club) {
+    for (const j of worldPlayers(r, data, foreign.map((c) => c.id))) {
+      if (j.club === club.id) continue;
+      const level = scoutedLevel(r, j.person);
+      const isFound = found.has(j.person);
+      if (!level && !isFound && !isVisible(seed, season, club.id, scouts.count, j, params)) continue;
+      const p = r.person(j.person);
+      if (!p) continue;
+      const pos = j.positions[0]?.pos ?? "";
+      const profile = view.profile(j.person);
+      const lvl = playerLevel(r, j.person, pos, profile?.attributes?.fields, false);
+      const rating = playerRating(r, j.person, lvl, profile?.potential?.fields.potential, club.tier, params, false);
+      const ct = r.contract(j.person);
+      const dataClub = j.club ? data.clubs.find((c) => c.id === j.club) : undefined;
+      rows.push({
+        id: j.person, name: p.sportingName, age: ageAt(p.birth, today), position: pos, nationality: p.nationality,
+        ...(j.club ? { club: { id: j.club, name: dataClub?.name ?? foreignName.get(j.club) ?? j.club, foreign: !dataClub } } : {}),
+        ...(ct ? { contractEnd: ct.end } : {}),
+        ...(rating ? { rating } : {}),
+        knowledge: level ?? "none",
+        ...(isFound ? { found: true } : {}),
+        ...(busy.has(j.person) ? { busy: busy.get(j.person) as "week" | "month" } : {}),
+      });
+    }
+  }
+  const names = (id: string): EntityRef => ({ k: "person", id, name: r.person(id)?.sportingName ?? id });
+  return {
+    rows,
+    orders: list.slice().reverse().slice(0, 20).map((o): ScoutOrderView => ({ id: o.id, kind: o.kind, ...(o.person ? { person: names(o.person) } : {}), ...(o.position ? { position: o.position } : {}), start: o.start, end: o.end, cost: o.cost, done: !!o.done, ...(o.results ? { results: o.results.length } : {}) })),
+    scouts,
+    cost: { ...params.scouting.cost },
+    balance: club ? clubBalance(r, club) : 0,
+    capacity: scouts.count,
+  };
+}
+
 function gamerClubOf(r: Repository, data: BaseData): BaseClub | undefined {
   const id = r.meta("gamer.club");
   return id ? data.clubs.find((c) => c.id === id) : undefined;
@@ -555,6 +627,7 @@ async function createWorld(seed: string, servicos: Servicos, onProgress: (p: Wor
     repository.setMeta("seed", seed);
     repository.setMeta("start.year", String(year));
     repository.setMeta("world.players", String(batch.players.length));
+    repository.setMeta("foreign.clubs", JSON.stringify(foreignClubs(seed, countries, params)));
     saveStartLocalities(repository, data, year);
     repository.saveWorld(batch, (done, total) => onProgress({ phase: "save", done, total }));
     onProgress({ phase: "companies", done: 0, total: 1 });

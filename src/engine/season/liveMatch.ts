@@ -29,7 +29,7 @@ export type LiveLine = {
   /** Notificar: golos, cartões, penáltis, lesões e substituições. Os remates e cantos só enchem o feed. */
   important: boolean;
   /** Num golo: o que muda no jogo, do ponto de vista de quem marca (para o comentário). */
-  situation?: "opens" | "empata" | "vira" | "aumenta" | "reduz";
+  situation?: "opens" | "equalises" | "turns" | "rises" | "drops";
   /** Marcador depois deste lance. */
   homeGoals: number;
   awayGoals: number;
@@ -204,7 +204,7 @@ export function matchLines(events: readonly MatchEvent[], duration: number, name
       if (e.outcome === "goal") {
         const ownSquad = e.side === "home" ? gc : gf;
         const their = e.side === "home" ? gf : gc;
-        situation = ownSquad + their === 0 ? "opens" : ownSquad + 1 === their ? "empata" : ownSquad + 1 < their ? "reduz" : ownSquad === their ? "vira" : "aumenta";
+        situation = ownSquad + their === 0 ? "opens" : ownSquad + 1 === their ? "equalises" : ownSquad + 1 < their ? "drops" : ownSquad === their ? "turns" : "rises";
         if (e.side === "home") gc++; else gf++;
       }
       out.push({ ...base(e), type: e.outcome === "goal" ? "goal" : "shot", ...(situation ? { situation } : {}), player: e.player, name: name(e.player), ...(e.assistant ? { assistant: name(e.assistant), assistantId: e.assistant } : {}), outcome: e.outcome, important: e.outcome === "goal", ...scorer() });
