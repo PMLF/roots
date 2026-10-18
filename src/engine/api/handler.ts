@@ -1,6 +1,9 @@
 import { setBudget, clubBudget } from "../club/budget";
 import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
 import { ageAt, createDate } from "../calendar/dates";
+import type { IsoDate } from "../persistence/types";
+import { agentOffer, bids, cancelBid, clubOffer, feeSuggestions, finalizeBid, informationOf, openBid, termSuggestions, type Bid } from "../market/bids";
+import { windowAt } from "../market/market";
 import { decisionOf, expiringPlayers, negotiateRenewal, negotiationOf, renewalAsk, renewalSuggestions, setDecision } from "../squad/renewals";
 import { DEFAULT_PARAMETERS, type Params, type Tier } from "../config/parameters";
 import { SCHEMA_VERSION as DB_SCHEMA } from "../persistence/schema";
@@ -40,7 +43,7 @@ import { Rng } from "../random/rng";
 import { startCompanies } from "../company/cycle";
 import { assignAgents } from "../agent/assign";
 import { potentialRange, referenceTier, starsOf } from "../world/stars";
-import type { ScoutingData, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
+import type { BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SCHEMA_VERSION = DB_SCHEMA;
@@ -123,6 +126,13 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const agentId = repository.player(m.input.id)?.agent;
       const agentName = agentId ? repository.person(agentId)?.sportingName : undefined;
       if (agentId && agentName) output.agent = { k: "person", id: agentId, name: agentName };
+      const gamerBase = gamerClubOf(repository, data);
+      const asPlayer = repository.player(m.input.id);
+      if (gamerBase && asPlayer && asPlayer.state !== "retired" && asPlayer.club !== gamerBase.id) {
+        output.biddable = true;
+        const open = bids(repository).find((b) => b.person === m.input.id && (b.stage === "club" || b.stage === "agent" || b.stage === "agreed"));
+        if (open) output.bid = { stage: open.stage as "club" | "agent" | "agreed", ...(open.moving ? { moving: { club: gamerBase.name, date: open.moving.date } } : {}) };
+      }
       if (contract && (m.input.seeAll === true || (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club))) {
         output.clauses = contract.clauses?.release !== undefined ? { release: contract.clauses.release } : {};
       }
@@ -315,6 +325,14 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (r.status === "accepted") setDecision(repository, season, m.input.person, { kind: "renew", ...r.terms });
       return r;
     }
+    case "bids": {
+      const { repository, data, params } = await context(servicos);
+      return bids(repository).filter((b) => b.stage !== "done").map((b) => bidViewOf(repository, data, params, b));
+    }
+    case "bid": {
+      const { repository, data, params } = await context(servicos);
+      return bidAction(repository, data, params, m.input);
+    }
     case "releaseExpiring": {
       const { repository, data, params } = await context(servicos);
       if (!renewalsOf(repository, data, params).lines.some((l) => l.id === m.input.person)) throw new Error("O jogador não tem contrato a expirar no teu clube.");
@@ -493,6 +511,61 @@ function gamerClubOf(r: Repository, data: BaseData): BaseClub | undefined {
 }
 
 /** Contratos a expirar no clube do gamer, com pedido e decisão (RZ-165). */
+function bidViewOf(r: Repository, data: BaseData, params: Params, b: Bid): BidView {
+  const club = gamerClubOf(r, data);
+  const today = (r.meta("date.today") ?? "") as IsoDate;
+  const person = r.person(b.person);
+  const player = r.player(b.person);
+  const neg = negotiationOf(r, `bid.${b.id}`, b.person);
+  const sellerName = b.seller ? (data.clubs.find((c) => c.id === b.seller)?.name ?? foreignClubList(r).find((c) => c.id === b.seller)?.name) : undefined;
+  const agent = player?.agent ? r.person(player.agent)?.sportingName : undefined;
+  const release = informationOf(r, b.person) >= 1 ? r.contract(b.person)?.clauses?.release : undefined;
+  const terms = club && b.stage === "agent" ? termSuggestions(r, data, params, club, b) : undefined;
+  const closed = b.closed ?? neg.closed;
+  return {
+    person: b.person, name: person?.sportingName ?? b.person, stage: b.stage, ...(sellerName ? { seller: sellerName } : {}), ...(release !== undefined ? { release } : {}),
+    ...(b.fee !== undefined ? { fee: b.fee } : {}), ...(b.ask !== undefined && b.stage === "club" ? { ask: b.ask } : {}),
+    feeSuggestions: b.stage === "club" && club ? feeSuggestions(r, data, params, b, today) : [],
+    ...(terms ? { terms: { ask: terms.ask, wages: terms.wages, releases: terms.releases, ...(terms.minWage ? { minWage: terms.minWage } : {}) } } : {}),
+    ...(agent ? { agent } : {}),
+    round: b.stage === "club" ? b.clubRound : neg.round,
+    roundsLeft: Math.max(0, (b.stage === "club" ? params.market.bids.maxRounds - b.clubRound : params.squadCycle.contracts.negotiation.maxRounds - neg.round)),
+    ...(closed ? { closed } : {}), ...(b.reopens ? { reopens: b.reopens } : {}), ...(b.moving ? { moving: b.moving } : {}),
+    windowOpen: Boolean(windowAt(today, params)),
+    cash: club ? clubBalance(r, club) : 0,
+  };
+}
+
+function bidAction(r: Repository, data: BaseData, params: Params, a: BidAction): BidResult {
+  const club = gamerClubOf(r, data);
+  if (!club) return { ok: false, reason: "noClub" };
+  const today = (r.meta("date.today") ?? "") as IsoDate;
+  const season = Number(r.meta("season") ?? 1);
+  const opened = openBid(r, data, params, club, today, a.person);
+  if (!opened.ok) return opened;
+  let bid = opened.bid;
+  const view = (reply?: BidReply): BidResult => {
+    const fresh = bids(r).find((x) => x.id === bid.id);
+    return { ok: true, bid: bidViewOf(r, data, params, fresh ?? bid), ...(reply ? { reply } : {}) };
+  };
+  if (a.action === "open") return view();
+  if (a.action === "cancel") { cancelBid(r, params, today, bid); return { ok: true, bid: { ...bidViewOf(r, data, params, bid), stage: "closed" } }; }
+  if (a.action === "fee" && bid.stage === "club") {
+    const rep = clubOffer(r, data, params, club, today, bid, a.fee);
+    return view({ status: rep.status, ...(rep.status === "closed" ? { reason: rep.reason } : {}) });
+  }
+  if (a.action === "terms" && bid.stage === "agent") {
+    const rep = agentOffer(r, data, params, club, today, season, bid, { wage: a.wage, years: a.years, release: a.release });
+    if (!rep) return { ok: false, reason: "invalid" };
+    if (rep.status === "accepted") {
+      bid = bids(r).find((x) => x.id === bid.id) ?? bid;
+      if (bid.stage === "agreed") finalizeBid(r, data, params, club, today, season, bid);
+    }
+    return view({ status: rep.status, ...(rep.status === "closed" || rep.status === "blocked" ? { reason: rep.reason } : {}), ...(rep.status === "counter" ? { terms: rep.terms } : {}) });
+  }
+  return view();
+}
+
 function renewalsOf(r: Repository, data: BaseData, params: Params): RenewalsData {
   const season = Number(r.meta("season") ?? 1);
   const nextSeasonStart = createDate(params.calendar.initialYear + season, params.calendar.seasonStartMonth, 1);

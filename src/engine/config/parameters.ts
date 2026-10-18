@@ -442,6 +442,8 @@ export type Params = {
     staffPerClub: number;
     /** Ligas estrangeiras inventadas (RZ-230): quantos países, quantos clubes por país e jogadores por clube. */
     foreignLeagues: { countries: number; clubsPerCountry: number; squad: number };
+    /** Olheiros por clube no início, por escalão: sobe com a reputação (entre mínimo e máximo); `chance` = probabilidade de ter algum (distritais). */
+    scouts: Record<Tier, { min: number; max: number; chance: number }>;
     /** Pessoas fora dos plantéis (GERACAO_MUNDO §1). */
     others: { businesspeople: number; fansOfficials: number; agents: number; referees: number; journalists: number; freeStaff: number };
     /** Salário mensal (€) de um jogador médio do escalão e elasticidade por ponto de qualidade (exp). */
@@ -633,6 +635,14 @@ export type Params = {
     clauses: { releaseProbability: number; releaseByAgentGreed: number; releaseFactor: [number, number] };
     /** Compensação de formação (RZ-207): quem contrata um livre com esta idade ou menos, formado noutro clube, paga ao clube formador `byTier` × ordenado anual do novo contrato (por escalão do clube formador; nas distritais costuma ser zero). */
     training: { ageMax: number; byTier: Record<Tier, number> };
+    /** Propostas do gamer (RZ-231): o vendedor fecha a porta abaixo de `walkAway` × pedido; cede `concession`^ronda da distância; `maxRounds` rondas; um mês de espera depois de fechar. */
+    bids: {
+      walkAway: number; concession: number; maxRounds: number; waitDays: number;
+      /** Desvio (fração) das sugestões sem informação nenhuma sobre o jogador; desce com a observação (semana: metade; mês: zero). */
+      suggestionNoise: number;
+      /** Descer de escalão: o jogador pede `stepBackWage` × o ordenado atual, a não ser no fim da carreira (idade ≥ `endOfCareerAge`) ou se for da terra do clube. */
+      stepBackWage: number; endOfCareerAge: number;
+    };
   };
   /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
   /** Scouting do gamer (RZ-230): quantos jogadores aparecem, quanto custa observar e quanto demora. */
@@ -917,6 +927,7 @@ export const DEFAULT_PARAMETERS: Params = {
     free: 3000,
     staffPerClub: 6,
     foreignLeagues: { countries: 8, clubsPerCountry: 6, squad: 18 },
+    scouts: { firstLeague: { min: 3, max: 6, chance: 1 }, secondLeague: { min: 2, max: 4, chance: 1 }, thirdLeague: { min: 1, max: 2, chance: 1 }, cp: { min: 1, max: 1, chance: 0.8 }, district: { min: 1, max: 1, chance: 0.4 } },
     others: { businesspeople: 500, fansOfficials: 400, agents: 150, referees: 250, journalists: 200, freeStaff: 500 },
     wage: { average: { firstLeague: 9000, secondLeague: 3500, thirdLeague: 1400, cp: 700, district: 250 }, elasticity: 0.22, yearsContractMin: 1, yearsContractMax: 4 },
     age: { min: 16, max: 38, mean: 26, deviation: 4.5, trainedAtStartMax: 22 },
@@ -1011,6 +1022,7 @@ export const DEFAULT_PARAMETERS: Params = {
     agents: { share: { firstLeague: 0.85, secondLeague: 0.55, thirdLeague: 0.3, cp: 0.12, district: 0.04 }, popularity: 0.5, commissionRate: 0.08, commissionByGreed: 0.05, wageByGreed: 0.012, consentByGreed: 0.012, consentByLoyalty: 0.015, greedPivot: 14.4, loyaltyPivot: 7 },
     clauses: { releaseProbability: 0.2, releaseByAgentGreed: 0.02, releaseFactor: [1.2, 2.2] },
     training: { ageMax: 23, byTier: { firstLeague: 1.2, secondLeague: 0.8, thirdLeague: 0.4, cp: 0.08, district: 0 } },
+    bids: { walkAway: 0.6, concession: 0.55, maxRounds: 4, waitDays: 30, suggestionNoise: 0.3, stepBackWage: 1.4, endOfCareerAge: 33 },
   },
   scouting: {
     reach: { base: 0.03, perScout: 0.06, max: 0.6, foreignFactor: 0.15 },

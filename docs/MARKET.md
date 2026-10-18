@@ -67,8 +67,15 @@ Três variáveis: **ordenado mensal, anos (1-5) e cláusula de rescisão** (ou s
 - Estado em meta: `scouting.orders`, `scouting.found`, `scouted.<jogador>`; clubes estrangeiros em `foreign.clubs`.
 - Limite conhecido: todos os clubes têm 1 olheiro; contratar mais olheiros chega com o staff (RZ-208).
 
-### M2 — Propostas do gamer (RZ-231, por fazer)
-Botão «Fazer proposta» na ficha/tabela: popup ao **clube vendedor** (valor, com dropdown de sugestões; contrapropostas) e depois ao **agente** (ordenado, duração, cláusula), mais informação ⇒ propostas mais adequadas e mais fáceis de aceitar (o consentimento do jogador e a abertura do clube usam a informação que o gamer tem). Livres: só contrato. Acordo fechado: se a janela está aberta (julho, agosto, janeiro) o jogador transfere-se; se não, fica **«vai mudar-se para X em Y»** na ficha (`moving`) e passa na abertura.
+### M2 — Propostas do gamer (RZ-231, feito)
+Motor em `src/engine/market/bids.ts`; estado em meta `market.bids`. «Fazer proposta» na tabela de scouting e na ficha; popup `BidDialog` com as mesmas regras do popup das renovações (dropdowns; depois da primeira proposta só se sai com acordo, desistindo ou quando a outra parte fecha a porta).
+- **Clube vendedor** (livres saltam este passo): pede `valor de mercado × (askBase + askByGreed × (ganância do presidente − 10))`, ×1,25 se o jogador é dos titulares da posição. Abaixo de `walkAway` do pedido, ou passadas `maxRounds`, fecha a porta `waitDays` dias; cede `concession` por ronda. Não vende se o plantel ficar abaixo do alvo −2. Pagar a **cláusula de rescisão** dispensa o acordo do clube (precisa de caixa).
+- **Agente**: o mesmo motor das renovações com o clube do gamer como comprador. Descer de escalão só por mais dinheiro (`stepBackWage`× o ordenado atual), exceto fim de carreira (`endOfCareerAge`) e jogadores da terra. Bloqueios: caixa (valor + comissão + compensação de formação) e massa salarial (`wageSlack`).
+- **Informação**: as sugestões dos dropdowns têm um desvio de até `suggestionNoise` sem observação, que desaparece com a de um mês (metade com a de uma semana). A cláusula de rescisão só aparece no popup com a observação de um mês.
+- **Acordo**: com a janela aberta o jogador muda-se logo (evento `TRANSFER` ou `PLAYER_SIGNED`); senão fica `moving` («Muda-se para X a Y» na ficha) e `dailyBids` executa-o na abertura. Os jogadores com acordo ficam fora do mercado da IA (`lockedPlayers`).
+- **Exige decisão**: as negociações em curso aparecem com «Continuar negociação»; os acordos à espera da janela, como aviso.
+- Olheiros por clube (`world.scouts`): mais nos escalões altos e nos clubes de reputação alta; distritais com no máximo um, e há quem não tenha.
+- Fora desta fatia: botão nos plantéis de outros clubes (RZ-227).
 
 ### M3 — Propostas da IA ao gamer (RZ-232, por fazer)
 A IA faz propostas por jogadores do clube do gamer (quase só com a janela aberta); entram em **«Exige decisão»** (nenhuma se perde); o gamer aceita, rejeita ou contrapropõe; se aceitar e o jogador aceitar o contrato proposto, transfere-se com a janela aberta. Transferências importantes e as do clube do gamer geram notícias.

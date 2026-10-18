@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ScoutOrderInput, ScoutOrderOutput, ScoutRow, ScoutingData } from "@/engine/api/contracts";
 import { POSITIONS } from "@/engine/world/types";
 import { Card } from "@/ui/components/Card";
+import { BidDialog } from "@/ui/components/BidDialog";
 import { CloseButton } from "@/ui/components/CloseButton";
 import { Flag } from "@/ui/components/Flag";
 import { EntityLink } from "@/ui/components/Link";
@@ -67,6 +68,7 @@ export function Scouting() {
   const [origin, setOrigin] = useState<Origin>("all");
   const [onlyKnown, setOnlyKnown] = useState(false);
   const [target, setTarget] = useState<ScoutRow | undefined>(undefined);
+  const [bidTarget, setBidTarget] = useState<ScoutRow | undefined>(undefined);
   const [search, setSearch] = useState<{ position: string; minAge: string; maxAge: string; freeOnly: boolean }>({ position: "ST", minAge: "", maxAge: "", freeOnly: false });
   const [message, setMessage] = useState<string | undefined>(undefined);
   const load = useCallback(() => { engine?.call("scouting", null).then(setD); }, [engine]);
@@ -154,10 +156,16 @@ export function Scouting() {
             potential: (r) => (r.rating?.potential ? <Stars range={r.rating.potential} /> : <span className="suave">?</span>),
             contract: (r) => r.contractEnd ?? "—",
             knowledge: (r) => t(`scouting.knowledge.${r.knowledge}` as Key),
-            action: (r) => (r.busy ? <span className="suave">{t("scouting.observing")}</span> : <button type="button" className="secundario" disabled={!free || r.knowledge === "month"} onClick={() => setTarget(r)}>{t("scouting.observe")}</button>),
+            action: (r) => (
+              <span className="acoes-linha">
+                {r.busy ? <span className="suave">{t("scouting.observing")}</span> : <button type="button" className="secundario" disabled={!free || r.knowledge === "month"} onClick={() => setTarget(r)}>{t("scouting.observe")}</button>}
+                <button type="button" className="secundario" onClick={() => setBidTarget(r)}>{t("bid.make")}</button>
+              </span>
+            ),
           }}
         />
       </Card>
+      {bidTarget && <BidDialog person={bidTarget.id} name={bidTarget.name} onClose={() => { setBidTarget(undefined); load(); }} />}
       {target && <ObserveDialog row={target} data={d} onClose={() => setTarget(undefined)} onDone={load} />}
     </div>
   );

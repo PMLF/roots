@@ -25,21 +25,21 @@ export type NegotiationReply =
   | { status: "counter"; terms: RenewalTerms; round: number; roundsLeft: number; reason?: "distance" }
   | { status: "closed"; reason: NegotiationClosed; reopens?: IsoDate };
 
-const key = (season: number, person: string) => `renewal.${season}.${person}`;
+const key = (season: number | string, person: string) => `renewal.${season}.${person}`;
 
 export function decisionOf(repo: Repository, season: number, person: string): RenewalDecision | undefined {
   const raw = repo.meta(key(season, person));
   return raw ? (JSON.parse(raw) as RenewalDecision) : undefined;
 }
 
-const negKey = (season: number, person: string) => `renewal.negotiation.${season}.${person}`;
+const negKey = (season: number | string, person: string) => `renewal.negotiation.${season}.${person}`;
 
-export function negotiationOf(repo: Repository, season: number, person: string): NegotiationState {
+export function negotiationOf(repo: Repository, season: number | string, person: string): NegotiationState {
   const raw = repo.meta(negKey(season, person));
   return raw ? (JSON.parse(raw) as NegotiationState) : { round: 0 };
 }
 
-function saveNegotiation(repo: Repository, season: number, person: string, n: NegotiationState): void {
+function saveNegotiation(repo: Repository, season: number | string, person: string, n: NegotiationState): void {
   repo.setMeta(negKey(season, person), JSON.stringify(n));
 }
 
@@ -57,7 +57,7 @@ export function renewalAsk(repo: Repository, data: BaseData, params: Params, clu
   const j = repo.player(person);
   const ct = repo.contract(person);
   const pos = j?.positions[0]?.pos;
-  if (!j || !ct || !pos) return undefined;
+  if (!j || !pos) return undefined;
   const tier: Tier = club.tier;
   const sameTier = data.clubs.filter((c) => c.tier === tier);
   const wageScale = clamp((club.finances / median(sameTier.map((c) => c.finances))) ** 0.4, 0.4, 2.5);
@@ -65,7 +65,7 @@ export function renewalAsk(repo: Repository, data: BaseData, params: Params, clu
   const ag = agentTraits(repo, j.agent);
   const agentFactor = ag ? 1 + params.market.agents.wageByGreed * (ag.greed - params.market.agents.greedPivot) : 1;
   const formula = wageFor(params, tier, quality, wageScale) * params.squadCycle.contracts.renewalWageFactor * agentFactor;
-  const wage = Math.max(50, Math.round(Math.max(formula, ct.monthlyWage * 0.95) / 10) * 10);
+  const wage = Math.max(50, Math.round(Math.max(formula, (ct?.monthlyWage ?? 0) * 0.95) / 10) * 10);
   const ref = releaseReference(repo, params, person, wage);
   return { wage, years: params.squadCycle.contracts.negotiation.askYears, release: ref, releaseCeiling: Math.round((ref * params.squadCycle.contracts.negotiation.clauseCeiling) / 1000) * 1000 };
 }
@@ -136,7 +136,7 @@ export function renewalSuggestions(ask: RenewalAsk, currentWage: number): { wage
 }
 
 /** Uma ronda de negociação: o agente aceita, contrapropõe (mexe no ordenado e, se preciso, nos anos e na cláusula) ou fecha a porta. */
-export function negotiateRenewal(repo: Repository, data: BaseData, params: Params, club: BaseClub, season: number, person: string, offer: RenewalTerms): NegotiationReply | undefined {
+export function negotiateRenewal(repo: Repository, data: BaseData, params: Params, club: BaseClub, season: number | string, person: string, offer: RenewalTerms, extra: { minWage?: number } = {}): NegotiationReply | undefined {
   const n = params.squadCycle.contracts.negotiation;
   let state = negotiationOf(repo, season, person);
   const today = repo.meta("date.today") ?? "";
@@ -158,8 +158,9 @@ export function negotiateRenewal(repo: Repository, data: BaseData, params: Param
   const clause = offer.release !== null && offer.release > ask.releaseCeiling ? ask.releaseCeiling : offer.release;
   const clauseOk = clause === offer.release;
   const base = Math.round((ask.wage * acceptFloor(repo, params, club, person) * clauseFactor(params, offer.release, reference)) / 10) * 10;
-  const reserve = Math.max(base, interest.minWage ?? 0);
-  const distanceBound = interest.minWage !== undefined && interest.minWage >= base;
+  const floorWage = Math.max(interest.minWage ?? 0, extra.minWage ?? 0) || undefined;
+  const reserve = Math.max(base, floorWage ?? 0);
+  const distanceBound = floorWage !== undefined && floorWage >= base;
   if (offer.wage >= reserve && clauseOk) {
     saveNegotiation(repo, season, person, { ...state, accepted: true });
     return { status: "accepted", terms: { wage: Math.round(offer.wage), years, release: offer.release } };

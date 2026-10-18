@@ -85,6 +85,37 @@ export type NegotiationResult =
   | { status: "accepted"; terms: RenewalTermsView }
   | { status: "counter"; terms: RenewalTermsView; round: number; roundsLeft: number; reason?: "distance" }
   | { status: "closed"; reason: "refused" | "level" | "distance"; reopens?: string };
+/** Proposta do gamer por um jogador de outro clube (RZ-231): estado da conversa com o clube e depois com o agente. */
+export type BidView = {
+  person: string;
+  name: string;
+  stage: "club" | "agent" | "agreed" | "closed" | "done";
+  seller?: string;
+  /** Cláusula de rescisão, só se o gamer a conhece (observação de um mês). */
+  release?: number;
+  fee?: number;
+  /** Última contraproposta do clube. */
+  ask?: number;
+  feeSuggestions: number[];
+  terms?: { ask: RenewalTermsView; wages: number[]; releases: number[]; minWage?: number };
+  agent?: string;
+  round: number;
+  roundsLeft: number;
+  closed?: "refused" | "squad" | "level" | "distance" | "cash" | "gone";
+  reopens?: string;
+  moving?: { club: string; date: string };
+  /** Mercado aberto hoje. */
+  windowOpen: boolean;
+  /** Dinheiro disponível para transferências. */
+  cash: number;
+};
+export type BidAction =
+  | { person: string; action: "open" }
+  | { person: string; action: "fee"; fee: number }
+  | { person: string; action: "terms"; wage: number; years: number; release: number | null }
+  | { person: string; action: "cancel" };
+export type BidReply = { status: "accepted" | "counter" | "closed" | "blocked"; reason?: string; /** Contraproposta do agente. */ terms?: RenewalTermsView };
+export type BidResult = { ok: true; bid: BidView; reply?: BidReply } | { ok: false; reason: "own" | "invalid" | "retired" | "noClub" };
 export type RenewalsData = { season: number; nextSeasonStart: string; lines: RenewalLine[] };
 
 export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string };
@@ -154,6 +185,10 @@ export type PersonProfileData = {
   career?: CareerLine[];
   /** O contrato acaba esta época e o jogador é do teu clube: pode abrir-se a renovação. */
   renewable?: boolean;
+  /** O gamer pode fazer uma proposta por este jogador (RZ-231). */
+  biddable?: boolean;
+  /** Negociação em curso (aberta) ou acordo à espera da janela: «vai mudar-se para X em Y». */
+  bid?: { stage: "club" | "agent" | "agreed"; moving?: { club: string; date: string } };
   /** Quem é do teu clube conhece-se por dentro: personalidade e qualidades (só os campos ocultos do jogo ficam de fora). */
   known?: { personality: PersonTruth["personality"]; quality?: PersonTruth["quality"] };
   /** Ordenado mensal: só no teu clube (ou em modo developer). */
@@ -345,6 +380,8 @@ export type EngineRequests = {
   acceptOffer: { input: { id: string }; output: { id: string } };
   /** Contratos a expirar no clube do gamer, com o pedido de cada jogador (RZ-165). Quem não tiver decisão renova pela fórmula do escalão. */
   renewals: { input: null; output: RenewalsData };
+  bid: { input: BidAction; output: BidResult };
+  bids: { input: null; output: BidView[] };
   /** Uma ronda com o agente: aceita (guarda a decisão), contrapropõe novas condições ou fecha a negociação. */
   negotiateRenewal: { input: { person: string; wage: number; years: number; release: number | null }; output: NegotiationResult };
   /** O gamer decide deixar sair um jogador com contrato a expirar. */

@@ -28,11 +28,21 @@ describe("scouting", { timeout: 120000 }, () => {
     expect(reach(100, P)).toBe(P.scouting.reach.max);
     await handle({ id: 1, type: "createWorld", input: { seed: "scouting" } }, s);
     const clubs = await handle({ id: 2, type: "clubs", input: null }, s);
-    repository.setMeta("gamer.club", clubs[0]!.id);
+    const count = (id: string) => repository.publicRoles({ club: id }).filter((p) => p.fn === "scout").length;
+    const best = clubs.reduce((a, c) => (count(c.id) > count(a.id) ? c : a));
+    repository.setMeta("gamer.club", best.id);
     repository.setMeta("date.today", "2026-10-15");
-    repository.setMeta("balance." + clubs[0]!.id, "100000");
+    repository.setMeta("balance." + best.id, "100000");
+    // olheiros: mais nas ligas altas; nas distritais no máximo um e há quem não tenha
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const byLeague = (p: (l: string) => boolean) => clubs.filter((c) => p(c.league)).map((c) => count(c.id));
+    const district = byLeague((l) => l.startsWith("Distrital"));
+    expect(Math.max(...district)).toBeLessThanOrEqual(1);
+    expect(Math.min(...district)).toBe(0);
+    expect(mean(byLeague((l) => l === "Primeira Liga"))).toBeGreaterThan(mean(district) + 2);
     const d = await handle({ id: 3, type: "scouting", input: null }, s);
-    expect(d.scouts.count).toBe(1);
+    expect(d.scouts.count).toBe(count(best.id));
+    expect(d.scouts.count).toBeGreaterThan(2);
     expect(d.rows.length).toBeGreaterThan(200);
     const foreign = d.rows.filter((r) => r.club?.foreign).length;
     const domestic = d.rows.filter((r) => r.club && !r.club.foreign).length;
@@ -49,7 +59,9 @@ describe("scouting", { timeout: 120000 }, () => {
     expect(await handle({ id: 12, type: "scoutOrder", input: { kind: "week", person: target.id } }, s)).toEqual({ ok: true });
     const mid = await handle({ id: 13, type: "scouting", input: null }, s);
     expect(mid.balance).toBe(cash0 - before.cost.week);
-    // só há um olheiro: não cabe outra ordem ao mesmo tempo
+    expect(mid.orders.length).toBe(1);
+    // cada olheiro faz uma ordem de cada vez: com todos ocupados não cabe outra
+    for (let i = 1; i < before.capacity; i++) expect(await handle({ id: 14 + i, type: "scoutOrder", input: { kind: "week", person: before.rows[i]!.id } }, s)).toEqual({ ok: true });
     expect(await handle({ id: 14, type: "scoutOrder", input: { kind: "month", person: target.id } }, s)).toEqual({ ok: false, reason: "busy" });
     await until("2026-10-24");
     const week = (await handle({ id: 20, type: "scouting", input: null }, s)).rows.find((r) => r.id === target.id)!;
@@ -66,8 +78,7 @@ describe("scouting", { timeout: 120000 }, () => {
   });
 
   it("sem caixa não há observação", async () => {
-    const clubs = await handle({ id: 50, type: "clubs", input: null }, s);
-    repository.setMeta("balance." + clubs[0]!.id, "10");
+    repository.setMeta("balance." + repository.meta("gamer.club"), "10");
     const d = await handle({ id: 51, type: "scouting", input: null }, s);
     expect(await handle({ id: 52, type: "scoutOrder", input: { kind: "month", person: d.rows[0]!.id } }, s)).toEqual({ ok: false, reason: "noCash" });
   });

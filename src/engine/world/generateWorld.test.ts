@@ -100,7 +100,7 @@ describe("determinismo e independência", () => {
     expect(a).toEqual(world("s1"));
     const b = world("s2");
     expect(b.people.map((p) => p.name)).not.toEqual(a.people.map((p) => p.name));
-    expect(b.people.length).toBe(a.people.length);
+    expect(Math.abs(b.people.length - a.people.length)).toBeLessThan(a.people.length * 0.02); // o número de olheiros depende do sorteio
   });
   it("acrescentar um clube não muda os plantéis dos clubes de outros escalões", () => {
     const base = world("s3");
