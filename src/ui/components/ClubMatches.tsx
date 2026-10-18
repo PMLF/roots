@@ -39,7 +39,7 @@ export function ClubMatches({ club, league }: { club: string; league?: string })
       {page.preview && <p className="aviso-previa">{t("competition.preview")}</p>}
       <Card title={<EntityLink k="competition" id={page.league}>{page.league}</EntityLink>} wide>
         <Table
-          id="jogos-clube" fileName={`fixtures-${club}`} columns={columns} lines={lines} rowKey={(l) => l.id}
+          id="jogos-clube" columns={columns} lines={lines} rowKey={(l) => l.id}
           initialOrder={{ column: "round", direction: "asc" }}
           cell={{ opponent: (l) => (l.bye ? t("matches.bye") : <EntityLink k="club" id={l.opponent}>{l.opponentName}</EntityLink>), result: (l) => l.result || "—" }}
         />

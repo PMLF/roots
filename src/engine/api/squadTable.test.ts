@@ -52,4 +52,30 @@ describe("tabela do plantel", { timeout: 120000 }, () => {
     expect(profile.career?.map((c) => c.kind)).toEqual(["renewed", "transfer"]);
     expect(profile.career?.[1]).toMatchObject({ fee: 250000, club: { id: clubs[4]!.id }, from: { id: clubs[3]!.id } });
   });
+
+  it("os jogadores do teu clube conhecem-se por inteiro e o contrato a expirar pode renovar-se", async () => {
+    const clubs = await handle({ id: 40, type: "clubs", input: null }, s);
+    repository.setMeta("gamer.club", clubs[0]!.id);
+    const mine = repository.clubPlayers(clubs[0]!.id)[0]!.person;
+    repository.saveContract({ ...repository.contract(mine)!, end: "2027-06-30" });
+    const own = (await handle({ id: 41, type: "personProfile", input: { id: mine } }, s))!;
+    expect(own.profile.attributes && Object.values(own.profile.attributes.fields).every((f) => f.margin === 0)).toBe(true);
+    expect(own.rating?.potential).toBeDefined();
+    expect(own.wage).toBe(repository.contract(mine)!.monthlyWage);
+    expect(own.renewable).toBe(true);
+    const theirs = repository.clubPlayers(clubs[1]!.id)[0]!.person;
+    const other = (await handle({ id: 42, type: "personProfile", input: { id: theirs } }, s))!;
+    expect(other.wage).toBeUndefined();
+    expect(other.renewable).toBeUndefined();
+    const squad = (await handle({ id: 43, type: "clubProfile", input: { id: clubs[0]!.id } }, s))!;
+    expect(squad.extraSquad[mine]?.renewable).toBe(true);
+    expect(squad.extraSquad[mine]?.rating).toBeDefined();
+  });
+
+  it("uma pessoa sem movimentos fica com uma linha de percurso (a época atual)", async () => {
+    const clubs = await handle({ id: 50, type: "clubs", input: null }, s);
+    const coach = (await handle({ id: 51, type: "clubProfile", input: { id: clubs[7]!.id } }, s))!.roles.find((r) => r.fn === "coach")!;
+    const p = (await handle({ id: 52, type: "personProfile", input: { id: coach.id } }, s))!;
+    expect(p.career?.length).toBeGreaterThan(0);
+  });
 });

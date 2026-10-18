@@ -16,7 +16,7 @@ import { useT } from "@/ui/i18n/LocaleProvider";
 import { matchStatistics, scorerAt, liveTable, positionZone } from "@/ui/match/matchView";
 
 type T = (c: Key, v?: Record<string, string | number>) => string;
-const VARIANTS: Record<string, number> = { "jogo.golo.abre": 2, "jogo.golo.empata": 2, "jogo.golo.vira": 2, "jogo.golo.aumenta": 2, "jogo.golo.reduz": 2, "jogo.remate.defendido": 3, "jogo.remate.fora": 3, "jogo.remate.bloqueado": 3, "jogo.remate.golo": 3, "jogo.canto": 2, "jogo.penalti": 2, "jogo.amarelo": 2, "jogo.vermelho": 2, "jogo.lesao": 2 };
+const VARIANTS: Record<string, number> = { "match.goal.opens": 2, "match.goal.equalises": 2, "match.goal.turns": 2, "match.goal.rises": 2, "match.goal.drops": 2, "match.shot.saved": 3, "match.shot.away": 3, "match.shot.blocked": 3, "match.shot.goal": 3, "match.corner": 2, "match.penalty": 2, "match.yellow": 2, "match.red": 2, "match.injury": 2 };
 
 /** Frase do comentário: várias por tipo de lance, escolhida de forma estável pelo minuto e pelo nome (RZ-131). */
 function phrase(base: string, l: LiveLine, t: T): string {
@@ -41,10 +41,10 @@ function lineText(l: LiveLine, t: T): string {
     case "start": return t("match.start");
     case "goal": return phrase(`match.goal.${l.situation ?? "opens"}`, l, t);
     case "shot": return phrase(`match.shot.${l.outcome ?? "away"}`, l, t);
-    case "corner": return phrase("jogo.canto", l, t);
-    case "penalty": return phrase("jogo.penalti", l, t);
-    case "card": return l.colour === "red" && l.secondYellow ? phrase("match.secondYellow", l, t) : phrase(l.colour === "red" ? "jogo.vermelho" : "jogo.amarelo", l, t);
-    case "injury": return phrase("jogo.lesao", l, t);
+    case "corner": return phrase("match.corner", l, t);
+    case "penalty": return phrase("match.penalty", l, t);
+    case "card": return l.colour === "red" && l.secondYellow ? phrase("match.secondYellow", l, t) : phrase(l.colour === "red" ? "match.red" : "match.yellow", l, t);
+    case "injury": return phrase("match.injury", l, t);
     case "substitution": return t("match.substitution", { playerOut: MARK.name, playerIn: MARK.playerIn });
     case "halfTime": return t("match.halfTime");
     case "end": return t("match.end");

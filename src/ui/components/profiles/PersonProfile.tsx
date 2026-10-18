@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import type { CareerLine, PersonProfileData } from "@/engine/api/contracts";
 import { PHYSICAL_ATTRIBUTES, GK_ATTRIBUTES, MENTAL_ATTRIBUTES, TECHNICAL_ATTRIBUTES } from "@/engine/world/types";
 import { Attributes, Chip, type AttributesGroup, type AttributeLine } from "@/ui/components/Attributes";
@@ -9,6 +10,7 @@ import { EntityLink } from "@/ui/components/Link";
 import { seasonName } from "@/engine/calendar/seasonName";
 import { Stars } from "@/ui/components/Stars";
 import { Flag } from "@/ui/components/Flag";
+import { RenewalDialog } from "@/ui/components/RenewalDialog";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { namePosition, abbreviationPosition } from "@/ui/i18n/position";
@@ -25,6 +27,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   const { exposed: p, attributes, personality } = d.profile;
   const j = p.player;
   const truth = seeAll ? d.truth : undefined;
+  const [renewing, setRenewing] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const unknown = <span className="valor-estimado" title={t("person.unknown")}>?</span>;
 
   // ---- atributos de 1 a 20
@@ -69,7 +73,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   const stats = d.stats;
   const sum = (k: "matches" | "minutes" | "goals" | "assists" | "yellows" | "reds") => stats.reduce((s, x) => s + x[k], 0);
   const statistics = (
-    <Card title={t("card.stats")} wide>
+    <Card title={j ? t("card.stats") : t("career.asPlayer")} wide>
       {stats.length === 0 ? (
         <>
           <p className="vazio">{t("person.noStats")}</p>
@@ -100,14 +104,15 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
         lines={[
           { label: t("person.contractUntil"), value: d.contract?.end ?? unknown },
           { label: t("person.atClubSince"), value: d.contract?.start ?? unknown },
-          { label: t("person.wage"), value: truth?.monthlyWage !== undefined ? `${eur(locale, truth.monthlyWage)}/${t("person.month")}` : unknown },
+          { label: t("person.wage"), value: (d.wage ?? truth?.monthlyWage) !== undefined ? `${eur(locale, (d.wage ?? truth?.monthlyWage) as number)}/${t("person.month")}` : unknown },
           ...(d.agent ? [{ label: t("person.agent"), value: <EntityLink k="person" id={d.agent.id}>{d.agent.name}</EntityLink> }] : []),
           { label: t("person.clause"), value: d.clauses ? (d.clauses.release !== undefined ? eur(locale, d.clauses.release) : t("person.noClause")) : unknown },
           { label: t("person.resale"), value: d.clauses ? (d.clauses.resale ? t("person.resaleValue", { pct: Math.round(d.clauses.resale.pct * 100) }) : t("person.noClause")) : unknown },
           ...(d.clauses?.resale ? [{ label: t("person.resaleClub"), value: <EntityLink k="club" id={d.clauses.resale.club.id}>{d.clauses.resale.club.name}</EntityLink> }] : []),
         ]}
       />
-    </Card>
+    {d.renewable && (agreed ? <p><b>{t("renewals.done")}</b></p> : <p><button type="button" onClick={() => setRenewing(true)}>{t("renewals.renewContract")}</button></p>)}
+      </Card>
   );
 
   const cardPersonality = (
@@ -174,6 +179,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
           <p className="vazio">{t("role.qualitiesUnknown")}</p>
         )}
       </Card>
+      {stats.length > 0 && statistics}
       {cardPersonality}
       {cardDev}
     </div>
@@ -181,6 +187,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
 
   const eurShort = (n: number) => eur(locale, n);
   const careerColumns: Column<CareerLine>[] = [
+    { id: "season", title: t("column.season"), value: (c) => c.season, numeric: true },
     { id: "date", title: t("career.date"), value: (c) => c.date },
     { id: "event", title: t("career.event"), value: (c) => t(`career.${c.kind}` as Key) },
     { id: "club", title: t("entity.club"), value: (c) => c.club?.name ?? "" },
@@ -188,18 +195,15 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   ];
   const story = (
     <Card title={t("career.title")} wide>
-      {(d.career ?? []).length === 0 ? (
-        <p className="vazio">{t("career.empty")}</p>
-      ) : (
-        <Table
-          id="pessoa-percurso" fileName={`career-${p.id}`} columns={careerColumns} lines={d.career ?? []} rowKey={(c) => String(c.id)} simple
-          initialOrder={{ column: "date", direction: "desc" }}
-          cell={{
-            club: (c) => (c.club ? <>{c.from && <><EntityLink k="club" id={c.from.id}>{c.from.name}</EntityLink> → </>}<EntityLink k="club" id={c.club.id}>{c.club.name}</EntityLink></> : "—"),
-            fee: (c) => (c.fee !== undefined ? (c.fee > 0 ? eurShort(c.fee) : t("career.free")) : "—"),
-          }}
-        />
-      )}
+      <Table
+        id="pessoa-percurso" columns={careerColumns} lines={d.career ?? []} rowKey={(c) => String(c.id)} simple
+        initialOrder={{ column: "date", direction: "desc" }}
+        cell={{
+          season: (c) => seasonName(c.season, d.initialYear),
+          club: (c) => (c.club ? <>{c.from && <><EntityLink k="club" id={c.from.id}>{c.from.name}</EntityLink> → </>}<EntityLink k="club" id={c.club.id}>{c.club.name}</EntityLink></> : "—"),
+          fee: (c) => (c.fee !== undefined ? (c.fee > 0 ? eurShort(c.fee) : t("career.free")) : "—"),
+        }}
+      />
     </Card>
   );
 
@@ -207,8 +211,9 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     <Profile
       type="person"
       title={p.sportingName}
-      top={<Top title={p.sportingName} labels={labels} card={<Data lines={data} />} />}
-      tabs={{ summary, ...(j ? { career: statistics } : { career: <p className="vazio">{t("career.noMatches")}</p> }), story }}
+      top={<><Top title={p.sportingName} labels={labels} card={<Data lines={data} />} />{renewing && <RenewalDialog person={p.id} name={p.sportingName} onClose={() => setRenewing(false)} onAgreed={() => setAgreed(true)} />}</>}
+      omit={j ? [] : ["career"]}
+      tabs={{ summary, ...(j ? { career: statistics } : {}), story }}
     />
   );
 }

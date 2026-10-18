@@ -61,7 +61,7 @@ export function Statistics({ page }: { page: CompetitionPage }) {
       <Card title={t("statistics.teams")} wide>
         <Table
           id="estatisticas-equipas"
-          fileName={`teams-${page.league}`}
+         
           columns={teams}
           lines={page.table}
           rowKey={(r) => r.club}
@@ -79,7 +79,7 @@ export function Statistics({ page }: { page: CompetitionPage }) {
         ) : (
           <Table
             id="estatisticas-jogadores"
-            fileName={`players-${page.league}`}
+           
             columns={players}
             lines={page.players}
             rowKey={(p) => p.player}

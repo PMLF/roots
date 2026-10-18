@@ -17,12 +17,14 @@ type Props = {
   top?: ReactNode;
   /** Conteúdo por separador; os que faltam aparecem como "em breve", na ordem fixa do tipo. */
   tabs: Tabs;
+  /** Separadores que esta ficha não tem (por exemplo «Carreira» nas pessoas que não são jogadores). */
+  omit?: readonly string[];
 };
 
 /** Estrutura comum a todas as entidades (TOM_E_UX §3.2): cabeçalho, números-chave, separadores fixos, ligações. */
-export function Profile({ type, title, subtitle, numbers = [], top, tabs }: Props) {
+export function Profile({ type, title, subtitle, numbers = [], top, tabs, omit = [] }: Props) {
   const { t } = useT();
-  const ids = TABS[type];
+  const ids = TABS[type].filter((id) => !omit.includes(id));
   const router = useRouter();
   const path = usePathname();
   const params = useSearchParams();

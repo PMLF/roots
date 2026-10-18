@@ -107,3 +107,13 @@ Linhas que mostravam sempre «?»/«—» porque o motor não tem o dado foram r
 - **Cidade**: o cartão da Câmara (autarca + orçamento) é o primeiro do resumo e já não há separador «Autarca»; «O que o setor traz à cidade» (lista horizontal) divide a linha com «Acontecimentos»; a história dos indicadores usa as barras 1-5. As barras estavam vazias porque o CSS esperava `.cheio` e o componente punha `.full`.
 - **Finanças do teu clube**: o orçamento é decidido pelo presidente; a UI só mostra orçamento salarial total, margem salarial e verba de transferências que resta (o `setBudget` fica no motor).
 - **Renovações**: já não há ecrã. O plantel mostra «Renovar» nos contratos que acabam esta época e abre `RenewalDialog`.
+
+## Feedback de UI (17-10-2026, 2.ª ronda)
+- **Notícias** deixou de ter página e item de menu (o motor e o painel do Início mantêm-se). **Breadcrumbs** removidos: fica só o botão «Voltar». **CSV** removido de todas as tabelas.
+- **Data** no canto superior direito de todas as páginas; a **barra de baixo** mostra o essencial do teu clube e cidade (`ClubBar`): próximo jogo, lugar e pontos na liga, caixa, margem salarial, lesionados e apoio da Câmara. Em ecrãs estreitos a barra só tem o botão Avançar.
+- **Selects** com a seta afastada da borda; a vista do plantel está na barra da tabela, ao lado do filtro e das colunas (`toolbar`).
+- **Popup de renovação**: bloqueado depois da primeira proposta (sem fechar, Esc nem clique fora) até haver acordo, «Deixar sair» ou o agente desistir; depois de desistir só volta a falar um mês depois; ordenado e cláusula são dropdowns com valores sugeridos à medida do jogador (cláusula inclui «Sem cláusula»). O botão «Renovar» está também na ficha do jogador.
+- **Pessoas**: sem separador «Carreira» nos que não são jogadores (card «Carreira como jogador» no Resumo, só se houve carreira); «História» tem sempre uma tabela, com pelo menos uma linha (época atual). Localidades também.
+- **Jogadores do teu clube** conhecem-se por inteiro: atributos exatos, potencial com margem pequena, ordenado, nível e estrelas, sem depender de observações (`ownProfile`).
+- **Substituições**: estrelas de nível de cada jogador (`stars` no `LivePlayer` do clube do gamer), botão de confirmar à direita e as cores de aptidão a funcionar (o CSS usava os nomes antigos `apt-bom/medio/mau`; o código usa `good/average/bad`).
+- **Eventos do jogo** traduzidos: as chaves dos comentários ainda eram as portuguesas antigas (`jogo.*`) em vez de `match.*`.

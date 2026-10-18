@@ -7,9 +7,15 @@ import { useT } from "@/ui/i18n/LocaleProvider";
 import type { Key } from "@/ui/i18n";
 
 type Field = "wage" | "years" | "release";
-type Form = { wage: string; years: string; release: string; noClause: boolean };
+type Form = { wage: string; years: string; release: string };
 
-const toForm = (x: { wage: number; years: number; release: number | null }): Form => ({ wage: String(x.wage), years: String(x.years), release: x.release === null ? "" : String(x.release), noClause: x.release === null });
+const NONE = "none";
+const toForm = (x: { wage: number; years: number; release: number | null }): Form => ({ wage: String(x.wage), years: String(x.years), release: x.release === null ? NONE : String(x.release) });
+/** Sugestões mais o valor atual do campo (por exemplo uma contraproposta), sem repetidos e por ordem. */
+const withValue = (values: number[], current: string): number[] => {
+  const n = Number(current);
+  return [...new Set(Number.isFinite(n) && n > 0 ? [...values, n] : values)].sort((a, b) => a - b);
+};
 
 /**
  * Popup de renovação: propões ordenado, duração e cláusula de rescisão; o agente aceita, contrapropõe (os campos que mudou ficam
@@ -40,6 +46,9 @@ export function RenewalDialog({ person, name, onClose, onAgreed }: { person: str
   const closedReason = reply?.status === "closed" ? reply.reason : line?.negotiation?.closed;
   const agreed = reply?.status === "accepted" || line?.decision?.kind === "renew";
   const finished = Boolean(closedReason) || agreed || line?.decision?.kind === "release";
+  // depois da primeira proposta só se sai com acordo, «Deixar sair» ou quando o agente desiste
+  const locked = !finished && ((line?.negotiation?.round ?? 0) > 0 || reply?.status === "counter");
+  const reopens = reply?.status === "closed" ? reply.reopens : line?.negotiation?.reopens;
 
   const edit = (patch: Partial<Form>, field: Field) => {
     setForm((f) => (f ? { ...f, ...patch } : f));
@@ -49,7 +58,7 @@ export function RenewalDialog({ person, name, onClose, onAgreed }: { person: str
   const propose = async () => {
     if (!form || !line) return;
     const wage = Math.round(Number(form.wage)), years = Math.round(Number(form.years));
-    const release = form.noClause ? null : Math.round(Number(form.release));
+    const release = form.release === NONE ? null : Math.round(Number(form.release));
     if (!(wage > 0) || !(years >= 1) || (release !== null && !(release > 0))) { setError(t("renewals.invalid")); return; }
     setError(undefined);
     setBusy(true);
@@ -78,7 +87,7 @@ export function RenewalDialog({ person, name, onClose, onAgreed }: { person: str
   };
 
   const message = (() => {
-    if (closedReason) return { tone: "erro", text: t(`renewals.closed.${closedReason}` as Key, { name }) };
+    if (closedReason) return { tone: "erro", text: `${t(`renewals.closed.${closedReason}` as Key, { name })}${reopens ? ` ${t("renewals.reopens", { date: reopens })}` : ""}` };
     if (line?.decision?.kind === "release") return { tone: "suave", text: t("renewals.willLeave") };
     if (agreed) return { tone: "ok", text: t("renewals.agreed", { name }) };
     if (reply?.status === "counter") return { tone: "aviso", text: t(reply.reason === "distance" ? "renewals.counterDistance" : "renewals.counter", { left: reply.roundsLeft }) };
@@ -87,8 +96,8 @@ export function RenewalDialog({ person, name, onClose, onAgreed }: { person: str
   const mark = (f: Field) => (changed[f] !== undefined ? <small className="alterado-nota">{t("renewals.was", { value: changed[f] as string })}</small> : null);
 
   return (
-    <dialog ref={ref} className="popup popup-renovacao" aria-labelledby="h-renovacao" onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
-      <CloseButton onClose={() => ref.current?.close()} />
+    <dialog ref={ref} className="popup popup-renovacao" aria-labelledby="h-renovacao" onClose={onClose} onCancel={(e) => { if (locked) e.preventDefault(); }} onClick={(e) => { if (e.target === ref.current && !locked) ref.current?.close(); }}>
+      {!locked && <CloseButton onClose={() => ref.current?.close()} />}
       <h2 id="h-renovacao">{t("renewals.title", { name })}</h2>
       {!line || !form ? (
         <p>{error ?? t("profile.loading")}</p>
@@ -97,7 +106,9 @@ export function RenewalDialog({ person, name, onClose, onAgreed }: { person: str
           <p className="suave">{t("renewals.currentContract", { wage: eur.format(line.currentWage), date: line.endContract })}{line.agent ? ` · ${t("renewals.agent", { name: line.agent })}` : ""}</p>
           <label className={changed.wage !== undefined ? "alterado" : undefined}>
             <span>{t("renewals.wageField")}</span>
-            <input type="number" min={50} step={1} inputMode="numeric" disabled={finished || busy} value={form.wage} onChange={(e) => edit({ wage: e.target.value }, "wage")} />
+            <select disabled={finished || busy} value={form.wage} onChange={(e) => edit({ wage: e.target.value }, "wage")}>
+              {withValue(line.suggestions.wages, form.wage).map((w) => <option key={w} value={w}>{eur.format(w)}</option>)}
+            </select>
             {mark("wage")}
           </label>
           <label className={changed.years !== undefined ? "alterado" : undefined}>
@@ -109,19 +120,19 @@ export function RenewalDialog({ person, name, onClose, onAgreed }: { person: str
           </label>
           <label className={changed.release !== undefined ? "alterado" : undefined}>
             <span>{t("renewals.releaseField")}</span>
-            <input type="number" min={1} step={1} inputMode="numeric" disabled={finished || busy || form.noClause} value={form.release} placeholder={form.noClause ? t("renewals.noClause") : ""} onChange={(e) => edit({ release: e.target.value }, "release")} />
+            <select disabled={finished || busy} value={form.release} onChange={(e) => edit({ release: e.target.value }, "release")}>
+              <option value={NONE}>{t("renewals.noClause")}</option>
+              {withValue(line.suggestions.releases, form.release === NONE ? "" : form.release).map((v) => <option key={v} value={v}>{eur.format(v)}</option>)}
+            </select>
             {mark("release")}
           </label>
-          <label className="caixa-marcar">
-            <input type="checkbox" disabled={finished || busy} checked={form.noClause} onChange={(e) => edit({ noClause: e.target.checked, release: e.target.checked || form.release !== "" ? form.release : String(line.currentRelease ?? line.ask.release ?? 100000) }, "release")} />
-            <span>{t("renewals.noClause")}</span>
-          </label>
+          {locked && <p className="suave"><small>{t("renewals.locked")}</small></p>}
           {message && <p className={`mensagem-renovacao ${message.tone}`} role="status">{message.text}</p>}
           {error && <p className="erro" role="alert">{error}</p>}
           <div className="acoes-popup">
             {!finished && <button type="submit" disabled={busy}>{t("renewals.propose")}</button>}
             {!finished && <button type="button" className="secundario" disabled={busy} onClick={() => void release()}>{t("renewals.release")}</button>}
-            <button type="button" className="secundario" onClick={() => ref.current?.close()}>{t("renewals.close")}</button>
+            {!locked && <button type="button" className="secundario" onClick={() => ref.current?.close()}>{t("renewals.close")}</button>}
           </div>
         </form>
       )}

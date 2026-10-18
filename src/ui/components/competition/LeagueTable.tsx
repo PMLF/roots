@@ -32,7 +32,7 @@ export function LeagueTable({ page, compact = false }: { page: CompetitionPage; 
       <Table
         id={compact ? "liga-compacta" : "league"}
         simple
-        fileName={`table-${page.league}`}
+       
         columns={columns}
         lines={page.table}
         rowKey={(l) => l.club}

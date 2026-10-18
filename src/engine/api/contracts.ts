@@ -76,19 +76,21 @@ export type RenewalLine = {
   agent?: string;
   decision?: { kind: "renew"; wage: number; years: number; release: number | null } | { kind: "release" };
   /** Rondas já feitas com o agente e, se a porta fechou, porquê. */
-  negotiation?: { round: number; roundsLeft: number; closed?: "refused" | "level" | "distance" };
+  negotiation?: { round: number; roundsLeft: number; closed?: "refused" | "level" | "distance"; reopens?: string };
+  /** Valores sugeridos para os dropdowns da proposta. */
+  suggestions: { wages: number[]; releases: number[] };
 };
 export type RenewalTermsView = { wage: number; years: number; release: number | null };
 export type NegotiationResult =
   | { status: "accepted"; terms: RenewalTermsView }
   | { status: "counter"; terms: RenewalTermsView; round: number; roundsLeft: number; reason?: "distance" }
-  | { status: "closed"; reason: "refused" | "level" | "distance" };
+  | { status: "closed"; reason: "refused" | "level" | "distance"; reopens?: string };
 export type RenewalsData = { season: number; nextSeasonStart: string; lines: RenewalLine[] };
 
 export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string };
 
 /** Uma passagem pela carreira de um jogador (eventos públicos de contratos e transferências). */
-export type CareerLine = { id: number; date: string; season: number; kind: "transfer" | "signed" | "renewed" | "released" | "retired"; club?: EntityRef; from?: EntityRef; fee?: number };
+export type CareerLine = { id: number; date: string; season: number; kind: "transfer" | "signed" | "renewed" | "released" | "retired" | "current"; club?: EntityRef; from?: EntityRef; fee?: number };
 
 export type PersonProfileData = {
   profile: PersonProfile;
@@ -102,6 +104,10 @@ export type PersonProfileData = {
   contract?: { start: string; end: string };
   /** Percurso: transferências, contratações, renovações, saídas e reforma, do mais antigo para o mais recente. */
   career?: CareerLine[];
+  /** O contrato acaba esta época e o jogador é do teu clube: pode abrir-se a renovação. */
+  renewable?: boolean;
+  /** Ordenado mensal: só no teu clube (ou em modo developer). */
+  wage?: number;
   /** Agente do jogador (público). */
   agent?: EntityRef;
   /** Cláusulas do contrato: só no teu clube (ou em modo developer). */

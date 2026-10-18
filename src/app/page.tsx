@@ -160,7 +160,6 @@ export default function Start() {
               {news.map((n) => <li key={n.id}><NewsItemView n={n} compact /></li>)}
             </ul>
           )}
-          <p className="painel-rodape"><Link href="/news/">{t("news.seeAll")}</Link></p>
         </section>
       </div>
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { presetColumns, filter, sort, paraCsv, nextOrder, type Column } from "./logic";
+import { presetColumns, filter, sort, nextOrder, type Column } from "./logic";
 
 type L = { name: string; age: number; pos: string };
 const lines: L[] = [
@@ -45,10 +45,6 @@ describe("tabela: filtrar, exportar, conjuntos", () => {
     expect(filter(lines, columns, "alvaro cb").map((l) => l.name)).toEqual(["Álvaro Dias"]);
     expect(filter(lines, columns, "   ")).toHaveLength(4);
     expect(filter(lines, columns, "31")).toHaveLength(2);
-  });
-  it("CSV com ; BOM e aspas", () => {
-    const csv = paraCsv([{ name: 'Rui "Pé" Alves; Jr', age: 20, pos: "CM" }], columns);
-    expect(csv).toBe('﻿Nome;Idade;Posição\r\n"Rui ""Pé"" Alves; Jr";20;CM\r\n');
   });
   it("conjunto de colunas mantém a ordem e ignora ids em falta", () => {
     expect(presetColumns(columns, { name: "x", columns: ["pos", "name", "fantasma"] }).map((c) => c.id)).toEqual(["pos", "name"]);

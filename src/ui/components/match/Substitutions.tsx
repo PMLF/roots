@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { LivePlayer, LiveMatch, LiveSubs } from "@/engine/season/liveMatch";
 import { CloseButton } from "@/ui/components/CloseButton";
+import { Stars } from "@/ui/components/Stars";
 import { EventIcon } from "@/ui/components/EventIcon";
 import { abbreviationPosition } from "@/ui/i18n/position";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -116,6 +117,7 @@ export function SubstitutionsInMatch({ match, busy, error, onConfirm, onClose }:
                     <span className="pos">{abbreviationPosition(t, j.position)}</span>
                     <span className="subs-nome">{j.name}</span>
                     <span className="inds">
+                      {j.stars !== undefined && <Stars value={j.stars} />}
                       {j.yellows > 0 && <span className="ind"><EventIcon rowKey="card" colour="yellow" /></span>}
                       {j.injured && <span className="ind"><EventIcon rowKey="injury" /></span>}
                       {s && <i className="semaforo" aria-label={hint(s)} />}
@@ -137,7 +139,10 @@ export function SubstitutionsInMatch({ match, busy, error, onConfirm, onClose }:
                   <button type="button" className={`subs-jogador${selected?.id === j.id ? " escolhido" : ""}${s ? ` apt-${s.level}` : ""}`} aria-pressed={selected?.id === j.id} title={hint(s)} disabled={blocked} onClick={() => click("playerIn", j.id)} {...draggable("playerIn", j.id, !blocked)}>
                     <span className="pos">{abbreviationPosition(t, j.position)}</span>
                     <span className="subs-nome">{j.name}</span>
-                    {s && <i className="semaforo" aria-label={hint(s)} />}
+                    <span className="inds">
+                      {j.stars !== undefined && <Stars value={j.stars} />}
+                      {s && <i className="semaforo" aria-label={hint(s)} />}
+                    </span>
                   </button>
                 </li>
               );

@@ -10,6 +10,7 @@ import { useInboxUnread } from "@/ui/useCash";
 import { AdvanceButton } from "@/ui/components/AdvanceButton";
 import { Icon, type IconName } from "@/ui/components/Icon";
 import { Search } from "@/ui/components/Search";
+import { ClubBar } from "@/ui/components/ClubBar";
 import { useTime } from "@/ui/useTime";
 import { ClubSelector, useClubs } from "@/ui/components/WithClub";
 import { MatchProgress, useOngoingMatch } from "@/ui/components/GameProgress";
@@ -20,7 +21,6 @@ type ItemMenu = { rowKey: Key; icon: IconName; href?: string; whenActive: (path:
 // Máximo 2 níveis (TOM_E_UX §3.5): secção no menu, separadores dentro da página. Sem href = ainda não existe.
 const MENU: ItemMenu[] = [
   { rowKey: "menu.today", icon: "today", href: "/", whenActive: (c) => c === "/" },
-  { rowKey: "menu.news", icon: "news", href: "/news/", whenActive: (c) => c.startsWith("/news") },
   { rowKey: "menu.inbox", icon: "inbox", href: "/inbox/", whenActive: (c) => c.startsWith("/inbox"), hidden: true },
   { rowKey: "menu.competitions", icon: "competitions", href: "/competitions/", whenActive: (c) => c.startsWith("/competitions") },
   { rowKey: "menu.club", icon: "club", href: "/club/", whenActive: (c) => c.startsWith("/club") },
@@ -130,22 +130,20 @@ export function Shell({ children }: { children: ReactNode }) {
         <header className="topo">
           <button type="button" className="menu-abrir" aria-label={t("menu.open")} aria-expanded={drawer} aria-controls="menu-principal" onClick={() => setDrawer(true)}><Icon name="menu" /></button>
           <Search />
+          <span className="data-topo">{time.state ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${time.state.today}T00:00:00Z`)) : ""}</span>
         </header>
       )}
       <main className="centro">
         {path !== "/" && !matchInProgress && (
           <nav className="migalhas" aria-label={t("breadcrumbs.label")}>
             <button type="button" onClick={() => router.back()}>← {t("breadcrumbs.back")}</button>
-            <Link href="/">{t("menu.today")}</Link>
-            <span aria-hidden="true">›</span>
-            <span aria-current="page">{t(path.startsWith("/profile") ? "breadcrumbs.profile" : path.startsWith("/match") ? "breadcrumbs.match" : path.startsWith("/prematch") ? "prematch.title" : (MENU.find((m) => m.href && m.href !== "/" && m.whenActive(path))?.rowKey ?? "menu.world"))}</span>
           </nav>
         )}
         {children}
       </main>
       <footer className={matchInProgress ? "barra barra-jogo" : "barra"}>
         <MatchProgress />
-        <span>{t("bar.date")}: <b>{time.state ? new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(`${time.state.today}T00:00:00Z`)) : t("bar.noData")}</b></span>
+        <ClubBar club={ownClub} time={time} />
         <AdvanceButton />
       </footer>
       <nav className="abas" aria-label={t("menu.tabs")}>

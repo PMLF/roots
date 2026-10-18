@@ -3,7 +3,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { save, read } from "@/ui/storage";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { presetColumns, filter, sort, paraCsv, nextOrder, type Column, type Order } from "@/ui/table/logic";
+import { presetColumns, filter, sort, nextOrder, type Column, type Order } from "@/ui/table/logic";
 
 type Props<L> = {
   /** Identifica a tabela para guardar as colunas escolhidas. */
@@ -13,7 +13,8 @@ type Props<L> = {
   rowKey: (l: L) => string;
   /** Como mostrar uma célula (por omissão, o valor da coluna). Usar `<Ligacao>` para nomes. */
   cell?: Partial<Record<string, (l: L) => ReactNode>>;
-  fileName?: string;
+  /** Controlos extra no início da barra (por exemplo a escolha de vista). */
+  toolbar?: ReactNode;
   initialOrder?: Order;
   /** Sem filtro, escolha de colunas nem exportação (tabelas pequenas em cartões). */
   simple?: boolean;
@@ -29,7 +30,7 @@ function readOrder(v: string | null, columns: readonly { id: string }[]): Order 
 const isTextList = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
 
 /** A tabela única do jogo (TOM_E_UX §3.6): ordenar, filtrar, escolher colunas, exportar, setas e Enter. */
-export function Table<L>({ id, columns, lines, rowKey, cell = {}, fileName, initialOrder = null, simple = false, lineClass }: Props<L>) {
+export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initialOrder = null, simple = false, lineClass }: Props<L>) {
   const { t } = useT();
   const params = useSearchParams();
   // A ordenação escolhida fica no URL (`sort=coluna:asc|desc`, sem nova entrada no histórico) para sobreviver a «Voltar».
@@ -75,16 +76,6 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, fileName, init
     save(`raizes.columns.${id}`, fresh);
   };
 
-  const exported = () => {
-    const blob = new Blob([paraCsv(shown, visibleColumns)], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${fileName ?? id}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const hotkeys = (e: KeyboardEvent<HTMLTableSectionElement>) => {
     const domLines = Array.from(body.current?.querySelectorAll<HTMLTableRowElement>("tr") ?? []);
     const i = domLines.findIndex((r) => r === document.activeElement);
@@ -100,6 +91,7 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, fileName, init
   return (
     <div className="tabela-caixa">
       {!simple && <div className="tabela-barra">
+        {toolbar}
         <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={t("table.filter")} aria-label={t("table.filter")} />
         <span className="suave">{t("table.lines", { n: shown.length, total: lines.length })}</span>
         <div className="seletor-ligas seletor-tabela" ref={selector}>
@@ -122,7 +114,6 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, fileName, init
             </div>
           )}
         </div>
-        <button type="button" onClick={exported}>{t("table.export")}</button>
       </div>}
       <table className="tabela densa">
         <thead>
