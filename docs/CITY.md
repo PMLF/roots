@@ -159,3 +159,108 @@ No MVP, os **patrocínios dependem do setor** da cidade (sem empresas individuai
 - **Armazenamento:** sem tabela nova. O estado de cada cidade é o último evento **privado** `CIDADE_EPOCA` (números verdadeiros, `valida` = época a que se aplica); antes do primeiro fecho, o estado de arranque reconstrói-se da seed. Tudo reconstruível a partir do log.
 - **Fora do MVP, por decisão:** localidades dentro do concelho continuam com a evolução própria (RZ-309); a população do concelho e a das localidades ainda não estão ligadas.
 
+
+## 12. Interação cidade – empresas – clubes (desenho, 18-10-2026)
+
+Decisões do Pedro: serviços **saúde, educação, mobilidade, habitação e segurança**; qualidade do viveiro **sobretudo da cidade**; equilíbrio por **custos do sucesso** (sem tetos artificiais); **uma só página «Local»** com secções por nível. Todos os números são **ponto de partida**, a calibrar com o harness (RZ-123) e vivem em `parameters.ts`.
+
+### 12.1 O ciclo e as ligações
+
+Três atores — **cidade** (concelho e localidade), **empresas** e **clubes** — ligados por sinais claros. Cada ligação tem **origem, destino, ritmo e efeito**; nada mexe em nada «por magia».
+
+| De → Para | Sinal | Ritmo | Efeito |
+|---|---|---|---|
+| Cidade → clube | população × cultura de futebol × educação | anual | **teto do viveiro** (§12.3) |
+| Cidade → clube | economia + empresas locais | anual | patrocínios (já existem), oferta de mecenas |
+| Cidade → clube | orgulho, mobilidade, segurança | por jogo | assistência (bacia × acesso × risco) |
+| Cidade → clube | saúde | por lesão | dias de recuperação (−/+ até 15 %) |
+| Cidade → clube | habitação (custo de vida) | anual | ordenados pedidos e custo das obras |
+| Cidade → clube | orçamento e prioridades da Câmara | anual | apoio a obras, prémio do Estado, renda do estádio |
+| Clube → cidade | resultados, subidas, títulos | época | orgulho, notoriedade, turismo, cultura de futebol |
+| Clube → cidade | assistência e estádio | época | emprego local, valor do solo em redor, população (lenta) |
+| Clube → cidade | escolinhas e formação | época | cultura de futebol e educação desportiva |
+| Empresas → cidade | emprego (trabalhadores) e capital | anual | `emprego` e `economia` calculados a partir delas (§12.5) |
+| Empresas → clube | patrocínio, mecenato, obras, direitos | contrato | dinheiro e contrapartidas |
+| Cidade → empresas | economia, população | anual | crescimento e falência (já existe) |
+| Autarca → tudo | orçamento por área | anual | serviços, projetos, licenças |
+
+### 12.2 Variáveis novas: os serviços
+
+Cinco variáveis 0-100 por **concelho**, ocultas, mostradas em palavras com tendência (como em §11), com alvo por tamanho e setor e regressão anual de 20 % como as existentes (§11):
+
+| Serviço | O que o move | Efeito principal |
+|---|---|---|
+| `saude` | orçamento municipal para saúde, população, empresas `health`, eventos (incêndios, crises) | recuperação de lesões; atração de população |
+| `educacao` | orçamento para educação, universidade (evento existente), população jovem | **qualidade do viveiro** (§12.3) |
+| `mobilidade` | transportes e estacionamento (RZ-303/304), obras, autoestrada | assistência (quem vem de fora), turismo, acesso ao estádio |
+| `habitacao` | custo do solo e rendas: população, turismo, estádio e obras na zona | ordenados pedidos, custo das obras, saída de jovens |
+| `seguranca` | orçamento, desemprego, dimensão | risco de incidentes em jogos de grande afluência, turismo |
+
+`transportes`, `estacionamento` e `valor do solo` da §2 passam a ser **`mobilidade`** e **`habitacao`** (menos variáveis, mais legíveis); os projetos (RZ-303/304) mexem nelas diretamente.
+
+### 12.3 O viveiro vem da cidade
+
+Dois passos, para que a terra defina o **teto** e o clube decida **quanto desse teto aproveita**:
+
+1. **Teto do concelho** (por ano): `teto = f(população^0,6 × cultura_futebol × (0,6 + 0,4 × educacao))`. Define o **número** de jovens a nascer com potencial de formação (já existe: população × cultura) e desloca a **média do potencial** da geração (p. ex. de −0,5 a +0,5 desvios). Uma aldeia com muita tradição e boa escola dá poucos mas bons; uma cidade grande dá muitos, a qualidade média acompanha a educação.
+2. **Aproveitamento do clube** (0,4 a 1,0 do teto): escolinhas e equipas jovens, treinadores de formação e centro de treinos/academia (RZ-303), tempo de investimento (a formação demora anos a render), e `presidente paciente` (`youthFocus`). Um clube pobre numa terra rica aproveita pouco; um clube rico numa terra pobre aproveita muito mas o teto é baixo. Sobretudo cidade: a diferença entre extremos do teto (~×3) é maior que entre extremos do aproveitamento (×2,5).
+
+Aos **jogadores da terra** (RZ-207) soma-se o efeito «orgulho»: mais jovens do concelho a querer ficar. Quem sai do viveiro e não fica pode ser **comprado por um clube maior** (custo do sucesso, §12.7).
+
+### 12.4 O clube devolve à cidade
+
+Fecho de época, em `cidades.ts` (já faz título/subida/descida): acrescenta-se **assistência média** (emprego e turismo de dia de jogo), **estádio** (obras dão emprego e puxam o solo), **escolinhas** (cultura de futebol e educação desportiva, lenta: ~+1/ano no máximo), **população** (RZ-309: ±3 %/ano, ligada à economia e ao orgulho; a da localidade segue a do concelho com a fatia do clube). Nenhum efeito é imediato: tudo é **anual e lento**, para a cidade parecer viva e não um botão.
+
+### 12.5 As empresas no meio
+
+Papéis (cada um com ligação a RZ já existente):
+
+- **Empregadores** — cada empresa tem `employees` (função do capital, escala e setor). `emprego` do concelho passa a ser **calculado** a partir da população ativa e do total de postos nas empresas locais; um fecho grande (RZ-219) mexe visivelmente no emprego e na economia (já há o evento «fábrica fecha»: passa a ser consequência de uma empresa real). **Dependência**: um concelho com uma empresa dominante sofre mais quando ela falha.
+- **Patrocinadores** (existe) — com **concentração**: uma empresa que patrocina clube e estádio e a câmara é uma relação a vigiar (influência, §12.6).
+- **Mecenas** — empresários doam para obras (estádio, escolinhas, serviços) com **contrapartida** (naming, visibilidade, influência, favor). A decisão depende da personalidade do dono (`PERSONALIDADE`: vaidade, generosidade, integridade).
+- **Fornecedores de obras** (RZ-303) — empresas `construction`: o custo e o atraso dependem da escala e da integridade do dono (obra barata e atrasada vs. cara e certa); ligadas a licenças e corrupção (RZ-127).
+- **Parceiros de serviços** — empresas `health`, `transport`, `energy`, `media` financiam ou executam parte dos serviços (mexem em `saude`, `mobilidade`) quando o orçamento da Câmara não chega.
+- **Compradores de direitos** (RZ-218, existe) e **lobby** — donos podem apoiar candidatos nas eleições e pedir terrenos e licenças; **interesses em conflito** geram notícias e decisões.
+
+### 12.6 O autarca e o orçamento
+
+- **Orçamento municipal** (já existe, relativo em palavras): receita por habitante + transferências do Estado + prémio do Estado (RZ-112/307).
+- **Repartição por áreas** (desporto, saúde, educação, mobilidade, habitação, segurança, cultura): o autarca reparte-o pela sua **função de utilidade** (§3: custo, visibilidade, paciência, integridade, retorno eleitoral) e pelo **humor da cidade** (o que está pior pesa mais). O gamer só **influencia** (propõe projetos, cofinancia, promete); os projetos competem pelo mesmo orçamento.
+- **Eleições** (RZ-308, 4 em 4 anos): reeleição = f(orgulho, emprego, serviços, escândalos, obras prometidas e cumpridas). Autarca novo ⇒ **novas prioridades** (e novas relações com empresas). Promessas falhadas custam confiança.
+
+### 12.7 Custos do sucesso (anti-bola-de-neve)
+
+Em vez de tetos, **crescer custa**; tudo é efeito de variáveis que já existem, anual e visível nas páginas:
+
+1. **Habitação**: mais população e estádio ⇒ solo e rendas caros ⇒ ordenados pedidos e obras mais caras; jovens saem para fora (menos teto no viveiro a prazo).
+2. **Expectativas**: orgulho alto sobe o limiar de «bom resultado»; derrotas e descidas doem mais quanto mais alto se subiu (queda de orgulho assimétrica).
+3. **Ordenados e reputação**: jogadores e agentes pedem mais a clubes com reputação alta (já na renovação); a massa salarial sobe mais depressa que a receita se o clube não fizer vendas.
+4. **Concorrência**: os clubes maiores compram os melhores jovens (propostas da IA, M3) e clubes vizinhos disputam a bacia de adeptos quando também sobem.
+5. **Pressão**: Câmara e empresários exigem retorno (naming, assistência, obras); mecenas com contrapartidas limitam a margem.
+6. **Congestionamento**: assistência alta com `mobilidade`/`seguranca` baixas gera incidentes, coimas e quebra de turismo até haver obra.
+7. **Dependência**: patrocinador ou empregador dominante que falha deixa um buraco.
+
+**Calibração** (RZ-123, 50 épocas): distribuição de reputação e de caixa (sem clube a «fugir»: quantis estáveis), mobilidade de escalão, taxa de underdogs que sobem e se mantêm, proporção de clubes com saldo negativo, e que a população das cidades não diverja (cidades pequenas não desaparecem; grandes não explodem).
+
+### 12.8 Uma só página «Local»
+
+`/profile/?type=locality&id=…` passa a ser a **única** página de lugar (aldeia, vila ou cidade); `type=city` redireciona para a **sede** do concelho. Dados: **população, clubes, empresas, cultura de futebol e pessoas** são da localidade; **serviços, Câmara, política e orçamento** são do concelho e aparecem como contexto.
+
+| Secção | Aldeia | Vila | Cidade (sede) |
+|---|---|---|---|
+| Resumo (indicadores em palavras e tendência) | sim | sim | sim |
+| Clubes e estádios | sim | sim | sim |
+| Pessoas (autarca/presidente de junta, empresários, adeptos) | curto | sim | sim |
+| Empresas (as maiores por setor e emprego) | só locais | sim | sim, com filtros |
+| Serviços (os cinco) | só os do concelho, resumidos | sim | sim |
+| Câmara (orçamento, prioridades, projetos, eleições) | cartão «Câmara de X» (ligação à sede) | cartão | secção completa |
+| História e acontecimentos | sim | sim | sim |
+
+### 12.9 Fatias (ordem sugerida) — ver BACKLOG RZ-233…RZ-238
+
+1. **RZ-233** serviços (estado, evolução, eventos, palavras).
+2. **RZ-238** página «Local» única (UI cedo, para mostrar as fatias seguintes).
+3. **RZ-234** viveiro da cidade (teto × aproveitamento).
+4. **RZ-235** empresas ↔ cidade (empregos, mecenato, fornecedores).
+5. **RZ-236** orçamento municipal, autarca e eleições.
+6. **RZ-237** custos do sucesso e calibração de 50 épocas.
