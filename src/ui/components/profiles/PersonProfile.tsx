@@ -27,6 +27,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   const { exposed: p, attributes, personality } = d.profile;
   const j = p.player;
   const truth = seeAll ? d.truth : undefined;
+  const inside = truth ?? d.known;
   const [renewing, setRenewing] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const unknown = <span className="valor-estimado" title={t("person.unknown")}>?</span>;
@@ -117,8 +118,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
 
   const cardPersonality = (
     <Card title={t("person.personality")}>
-      {truth ? (
-        <Data lines={Object.entries(truth.personality).map(([k, v]) => ({ label: t(`trait.${k}` as Key), value: <b className="attr attr-exato" data-banda={v <= 6 ? 1 : v <= 10 ? 2 : v <= 13 ? 3 : v <= 16 ? 4 : 5}>{v}</b> }))} />
+      {inside ? (
+        <Data lines={Object.entries(inside.personality).map(([k, v]) => ({ label: t(`trait.${k}` as Key), value: <b className="attr attr-exato" data-banda={v <= 6 ? 1 : v <= 10 ? 2 : v <= 13 ? 3 : v <= 16 ? 4 : 5}>{v}</b> }))} />
       ) : personality ? (
         <p>
           {personality.labels.length > 0 ? personality.labels.map((r) => t(`trait.${r.trait}.${r.strip}` as Key)).join(" · ") : t("person.noMarkedTraits")}
@@ -173,8 +174,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
         />
       </Card>
       <Card title={t("role.qualities")}>
-        {truth?.quality ? (
-          <Data lines={Object.entries(truth.quality).map(([k, v]) => ({ label: t(`quality.${k}` as Key), value: <b className="attr attr-exato" data-banda={v <= 6 ? 1 : v <= 10 ? 2 : v <= 13 ? 3 : v <= 16 ? 4 : 5}>{v}</b> }))} />
+        {inside?.quality ? (
+          <Data lines={Object.entries(inside.quality).map(([k, v]) => ({ label: t(`quality.${k}` as Key), value: <b className="attr attr-exato" data-banda={v <= 6 ? 1 : v <= 10 ? 2 : v <= 13 ? 3 : v <= 16 ? 4 : 5}>{v}</b> }))} />
         ) : (
           <p className="vazio">{t("role.qualitiesUnknown")}</p>
         )}

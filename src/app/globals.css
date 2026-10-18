@@ -398,7 +398,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .feed { list-style: none; padding: 0; display: grid; gap: 0.25rem; }
 .feed li { padding: 0.25rem 0.5rem; border-left: 3px solid transparent; }
 .feed li.importante { border-left-color: currentColor; font-weight: 600; }
-.feed li.feed-remate, .feed li.feed-canto { opacity: 0.7; }
+.feed li.feed-shot, .feed li.feed-corner { opacity: 0.7; }
 
 .jogo-grelha { display: grid; gap: 1rem; align-items: start; }
 @media (min-width: 900px) { .jogo-grelha { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
@@ -605,12 +605,12 @@ button.dev { border-style: dashed; }
 .painel-eventos .feed { display: flex; flex-direction: row; gap: 4px; overflow-x: auto; max-height: none; margin: 0; padding: 0 0 6px; list-style: none; }
 .painel-eventos .feed > li { flex: 0 0 auto; width: clamp(200px, 19vw, 236px); display: grid; gap: 3px; align-content: start; border: 0; border-left: 1px solid var(--linha); border-radius: 0; padding: 4px 12px; font-size: 13px; line-height: 1.35; overflow-wrap: anywhere; opacity: 1; font-weight: 400; }
 .painel-eventos .feed > li:first-child { border-left: 0; padding-left: 0; }
-.painel-eventos .feed > li.feed-golo { background: var(--destaque-fundo); border-radius: var(--r-s); border-left-color: transparent; padding-left: 12px; font-weight: 600; }
-.painel-eventos .feed > li.feed-cartao-amarelo { background: color-mix(in srgb, #e0b100 24%, transparent); border-radius: var(--r-s); border-left-color: transparent; padding-left: 12px; }
-.painel-eventos .feed > li.feed-cartao-vermelho { background: color-mix(in srgb, #d32f2f 24%, transparent); border-radius: var(--r-s); border-left-color: transparent; padding-left: 12px; }
-.painel-eventos .feed > li.feed-lesao { background: color-mix(in srgb, #f07f1a 26%, transparent); border-radius: var(--r-s); border-left-color: transparent; padding-left: 12px; }
-.painel-eventos .feed > li.feed-substituicao { background: linear-gradient(135deg, color-mix(in srgb, #1a7f37 26%, transparent), color-mix(in srgb, #d32f2f 26%, transparent)); border-radius: var(--r-s); border-left-color: transparent; padding-left: 12px; }
-.painel-eventos .feed > li.feed-remate, .painel-eventos .feed > li.feed-canto { opacity: .75; }
+.painel-eventos .feed > li.feed-goal { background: var(--destaque-fundo); border-radius: var(--r-s); border-left-color: transparent; padding-left: 12px; font-weight: 600; }
+.painel-eventos .feed > li.feed-cartao-yellow { background: color-mix(in srgb, #e0b100 24%, transparent); border-radius: var(--r-s); border-left-color: transparent; padding-left: 12px; }
+.painel-eventos .feed > li.feed-cartao-red { background: color-mix(in srgb, #d32f2f 24%, transparent); border-radius: var(--r-s); border-left-color: transparent; padding-left: 12px; }
+.painel-eventos .feed > li.feed-injury { background: color-mix(in srgb, #f07f1a 26%, transparent); border-radius: var(--r-s); border-left-color: transparent; padding-left: 12px; }
+.painel-eventos .feed > li.feed-substitution { background: linear-gradient(135deg, color-mix(in srgb, #1a7f37 26%, transparent), color-mix(in srgb, #d32f2f 26%, transparent)); border-radius: var(--r-s); border-left-color: transparent; padding-left: 12px; }
+.painel-eventos .feed > li.feed-shot, .painel-eventos .feed > li.feed-corner { opacity: .75; }
 .feed-cab { display: flex; align-items: center; gap: 6px; color: var(--suave); font-size: 12px; min-width: 0; }
 .feed-cab b { color: var(--texto); font-variant-numeric: tabular-nums; }
 .feed-clube { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -618,13 +618,13 @@ button.dev { border-style: dashed; }
 .feed-assist { font-size: 12px; color: var(--suave); font-weight: 400; }
 .ev-icone { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .ev-icone .ev-cheio { fill: currentColor; }
-.ev-golo, .ev-remate-golo { width: 24px; height: 24px; color: var(--destaque); stroke-width: 1.8; }
-.ev-penalti { color: var(--destaque); }
-.ev-cartao.ev-amarelo { color: #e0b100; }
-.ev-cartao.ev-vermelho { color: #d32f2f; }
-.ev-lesao { color: #d32f2f; }
-.ev-substituicao { color: var(--texto); }
-.ev-remate-defendido, .ev-remate-fora, .ev-remate-bloqueado, .ev-canto { color: var(--suave); }
+.ev-goal, .ev-shot-goal { width: 24px; height: 24px; color: var(--destaque); stroke-width: 1.8; }
+.ev-penalty { color: var(--destaque); }
+.ev-card.ev-yellow { color: #e0b100; }
+.ev-card.ev-red { color: #d32f2f; }
+.ev-injury { color: #d32f2f; }
+.ev-substitution { color: var(--texto); }
+.ev-shot-saved, .ev-shot-away, .ev-shot-blocked, .ev-corner { color: var(--suave); }
 .painel-eventos .feed > li.vazio { width: auto; border: 0; padding: 0; }
 .barra-ocupacao { display: inline-block; width: 90px; height: 6px; background: var(--linha); border-radius: 3px; overflow: hidden; }
 .barra-ocupacao i { display: block; height: 100%; background: var(--destaque); }
@@ -792,3 +792,16 @@ select:disabled { cursor: default; }
 .definicoes-linha select, .idioma select, .velocidade select { padding-right: 30px; }
 .acoes-linha { display: inline-flex; gap: 6px; }
 .acoes-linha button { padding: 2px 10px; font-size: 13px; }
+
+.resultado-jogo { display: inline-flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+.bola-resultado { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--suave); }
+.bola-resultado.res-win { background: #1a9f4a; }
+.bola-resultado.res-draw { background: #e0b100; }
+.bola-resultado.res-loss { background: #d32f2f; }
+
+/* Colunas redimensionáveis */
+.tabela th.com-redimensao { position: relative; overflow: hidden; text-overflow: ellipsis; }
+.tabela .redimensionar { position: absolute; top: 0; right: 0; width: 8px; height: 100%; cursor: col-resize; touch-action: none; user-select: none; }
+.tabela .redimensionar::after { content: ""; position: absolute; top: 25%; bottom: 25%; right: 3px; width: 1px; background: var(--linha-forte); }
+.tabela .redimensionar:hover::after { background: var(--destaque); width: 2px; }
+.tabela[style*="table-layout"] td { overflow: hidden; text-overflow: ellipsis; }

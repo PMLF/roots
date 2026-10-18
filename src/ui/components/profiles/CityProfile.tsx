@@ -2,6 +2,8 @@
 import type { CityProfileData, ViewCityLevel } from "@/engine/api/contracts";
 import { Chip } from "@/ui/components/Attributes";
 import { Card, Data, Top } from "@/ui/components/Card";
+import { Table } from "@/ui/components/Table";
+import type { Column } from "@/ui/table/logic";
 import { Profile } from "@/ui/components/Profile";
 import { EntityLink } from "@/ui/components/Link";
 import type { Key } from "@/ui/i18n";
@@ -98,7 +100,8 @@ export function CityProfile({ d }: { d: CityProfileData }) {
       lines={[
         { label: t("city.population"), value: n.format(d.population) },
         { label: t("city.sector"), value: sectors.map(sectorName).join(" · ") },
-        ...(d.mayor ? [{ label: t("city.mayor"), value: <EntityLink k="person" id={d.mayor.person.id}>{d.mayor.person.name}</EntityLink> }] : []),
+        { label: t("city.district"), value: d.district },
+        ...(d.hub ? [{ label: t("city.region"), value: d.hub }] : []),
         { label: t("city.clubs"), value: d.clubs.length },
       ]}
     />
@@ -144,24 +147,29 @@ export function CityProfile({ d }: { d: CityProfileData }) {
     </div>
   );
 
+  const clubColumns: Column<CityProfileData["clubs"][number]>[] = [
+    { id: "club", title: t("column.club"), value: (c) => c.ref.name },
+    { id: "league", title: t("club.division"), value: (c) => c.league },
+    { id: "stadium", title: t("card.stadium"), value: (c) => c.stadium.name },
+    { id: "capacity", title: t("stadium.capacity"), value: (c) => c.stadium.capacity, numeric: true },
+    { id: "ownership", title: t("stadium.ownership"), value: (c) => t(`ownership.${c.stadium.ownership}` as Key) },
+  ];
+  const indicatorColumns: Column<CityProfileData["historyPopulation"][number]>[] = [
+    { id: "season", title: t("column.season"), value: (p) => p.season, sortValue: (p) => p.season },
+    ...d.indicators.map((i): Column<CityProfileData["historyPopulation"][number]> => ({ id: i.id, title: t(`city.indicator.${i.id}` as Key), value: (p) => i.history.find((h) => h.season === p.season)?.level ?? 0 })),
+  ];
   const clubs = (
     <div className="cartoes">
       <Card title={t("city.clubs")} wide>
         {d.clubs.length > 0 ? (
-          <table className="tabela">
-            <thead><tr><th>{t("column.club")}</th><th>{t("club.division")}</th><th>{t("card.stadium")}</th><th className="num">{t("stadium.capacity")}</th><th>{t("stadium.ownership")}</th></tr></thead>
-            <tbody>
-              {d.clubs.map((c) => (
-                <tr key={c.ref.id}>
-                  <td><EntityLink k="club" id={c.ref.id}>{c.ref.name}</EntityLink></td>
-                  <td><EntityLink k="competition" id={c.league}>{c.league}</EntityLink></td>
-                  <td>{c.stadium.name}</td>
-                  <td className="num">{n.format(c.stadium.capacity)}</td>
-                  <td>{t(`ownership.${c.stadium.ownership}` as Key)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Table
+            id="cidade-clubes" simple columns={clubColumns} lines={d.clubs} rowKey={(c) => c.ref.id}
+            cell={{
+              club: (c) => <EntityLink k="club" id={c.ref.id}>{c.ref.name}</EntityLink>,
+              league: (c) => <EntityLink k="competition" id={c.league}>{c.league}</EntityLink>,
+              capacity: (c) => n.format(c.stadium.capacity),
+            }}
+          />
         ) : (
           <p className="vazio">{t("city.noClubs")}</p>
         )}
@@ -182,21 +190,10 @@ export function CityProfile({ d }: { d: CityProfileData }) {
         <ChartPopulation points={d.historyPopulation} />
       </Card>
       <Card title={t("city.indicatorsHistory")} wide>
-        <div className="tabela-caixa">
-          <table className="tabela">
-            <thead>
-              <tr><th>{t("column.season")}</th>{d.indicators.map((i) => <th key={i.id}>{t(`city.indicator.${i.id}` as Key)}</th>)}</tr>
-            </thead>
-            <tbody>
-              {[...d.historyPopulation].reverse().map((p) => (
-                <tr key={p.season}>
-                  <th scope="row">{p.label}</th>
-                  {d.indicators.map((i) => <td key={i.id}><LevelCell level={i.history.find((h) => h.season === p.season)!.level} word={level(i.history.find((h) => h.season === p.season)!.level)} /></td>)}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          id="cidade-indicadores" simple columns={indicatorColumns} lines={[...d.historyPopulation].reverse()} rowKey={(p) => String(p.season)}
+          cell={{ season: (p) => p.label, ...Object.fromEntries(d.indicators.map((i) => [i.id, (p: (typeof d.historyPopulation)[number]) => { const l = i.history.find((h) => h.season === p.season)!.level; return <LevelCell level={l} word={level(l)} />; }])) }}
+        />
       </Card>
     </div>
   );

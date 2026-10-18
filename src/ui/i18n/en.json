@@ -1093,5 +1093,11 @@
   "squad.scout": "Scout",
   "squad.offer": "Make an offer",
   "squad.marketSoon": "Available once the gamer market is ready",
-  "column.actions": "Actions"
+  "column.actions": "Actions",
+  "matches.outcome.win": "win",
+  "matches.outcome.draw": "draw",
+  "matches.outcome.loss": "loss",
+  "city.district": "District",
+  "city.region": "Region",
+  "table.resize": "Resize column {column} (double-click to reset)"
 }

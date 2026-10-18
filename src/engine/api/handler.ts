@@ -130,6 +130,10 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const rating = playerRating(repository, m.input.id, level, profile.potential?.fields.potential, ratingClub?.tier, params, m.input.seeAll === true);
       if (rating) output.rating = rating;
       if (m.input.seeAll) output.truth = personTruth(repository, m.input.id);
+      else if (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club) {
+        const inside = personTruth(repository, m.input.id);
+        if (inside) output.known = { personality: inside.personality, ...(inside.quality ? { quality: inside.quality } : {}) };
+      }
       const club = profile.exposed.club ? data.clubs.find((c) => c.id === profile.exposed.club) : undefined;
       if (club) output.club = { k: "club", id: club.id, name: club.name };
       // quem não tem movimentos (treinador, presidente…) fica com uma linha: a época atual e o clube
