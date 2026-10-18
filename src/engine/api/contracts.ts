@@ -106,6 +106,8 @@ export type PersonProfileData = {
   career?: CareerLine[];
   /** O contrato acaba esta época e o jogador é do teu clube: pode abrir-se a renovação. */
   renewable?: boolean;
+  /** Quem é do teu clube conhece-se por dentro: personalidade e qualidades (só os campos ocultos do jogo ficam de fora). */
+  known?: { personality: PersonTruth["personality"]; quality?: PersonTruth["quality"] };
   /** Ordenado mensal: só no teu clube (ou em modo developer). */
   wage?: number;
   /** Agente do jogador (público). */

@@ -13,7 +13,7 @@ export function ClubBudget({ budget }: { budget: Budget }) {
   return (
     <Data lines={[
       { label: t("finances.wageBudget"), value: eur.format(budget.wageBillMax) },
-      { label: t("finances.wageLeft"), value: <span className={left < 0 ? "error" : undefined}>{eur.format(left)}{left < 0 ? ` · ${t("finances.aboveBudget")}` : ""}</span> },
+      { label: t("finances.wageLeft"), value: <span className={left < 0 ? "erro" : undefined}>{eur.format(left)}</span> },
       { label: t("finances.transferLeft"), value: eur.format(budget.transfers) },
     ]} />
   );

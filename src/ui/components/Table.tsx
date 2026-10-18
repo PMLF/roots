@@ -1,6 +1,6 @@
 "use client";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { save, read } from "@/ui/storage";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { presetColumns, filter, sort, nextOrder, type Column, type Order } from "@/ui/table/logic";
@@ -27,6 +27,7 @@ function readOrder(v: string | null, columns: readonly { id: string }[]): Order 
   return column && (direction === "asc" || direction === "desc") && columns.some((c) => c.id === column) ? { column, direction } : undefined;
 }
 
+const isWidths = (v: unknown): v is Record<string, number> => typeof v === "object" && v !== null && !Array.isArray(v) && Object.values(v).every((x) => typeof x === "number");
 const isTextList = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
 
 /** A tabela única do jogo (TOM_E_UX §3.6): ordenar, filtrar, escolher colunas, exportar, setas e Enter. */
@@ -46,6 +47,29 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initi
   const [text, setText] = useState("");
   const [visible, setVisible] = useState<string[] | undefined>(undefined);
   const [choose, setChoose] = useState(false);
+  // larguras das colunas, ajustáveis a arrastar a borda do cabeçalho (como no Excel); guardam-se por tabela
+  const [widths, setWidths] = useState<Record<string, number>>({});
+  const tableRef = useRef<HTMLTableElement>(null);
+  useEffect(() => { setWidths(read(`raizes.widths.${id}`, isWidths) ?? {}); }, [id]);
+  const startResize = (e: PointerEvent<HTMLSpanElement>, columnId: string) => {
+    const head = tableRef.current?.querySelectorAll<HTMLTableCellElement>("thead th");
+    if (!head) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const start: Record<string, number> = {};
+    visibleColumns.forEach((c, i) => { start[c.id] = widths[c.id] ?? Math.round(head[i]?.getBoundingClientRect().width ?? 100); });
+    const x0 = e.clientX;
+    const from = start[columnId] ?? 100;
+    let last = start;
+    const handle = e.currentTarget;
+    handle.setPointerCapture(e.pointerId);
+    const move = (ev: globalThis.PointerEvent) => { last = { ...start, [columnId]: Math.max(40, Math.round(from + ev.clientX - x0)) }; setWidths(last); };
+    const end = () => { handle.removeEventListener("pointermove", move); handle.removeEventListener("pointerup", end); handle.removeEventListener("pointercancel", end); save(`raizes.widths.${id}`, last); };
+    handle.addEventListener("pointermove", move);
+    handle.addEventListener("pointerup", end);
+    handle.addEventListener("pointercancel", end);
+  };
+  const resetWidths = () => { setWidths({}); save(`raizes.widths.${id}`, null); };
   const body = useRef<HTMLTableSectionElement>(null);
   const selector = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -115,15 +139,16 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initi
           )}
         </div>
       </div>}
-      <table className="tabela densa">
+      <table ref={tableRef} className="tabela densa" style={visibleColumns.every((c) => widths[c.id] !== undefined) ? { tableLayout: "fixed", width: visibleColumns.reduce((n, c) => n + (widths[c.id] ?? 0), 0) } : undefined}>
         <thead>
           <tr>
             {visibleColumns.map((c) => (
-              <th key={c.id} className={c.numeric ? "within" : undefined} aria-sort={order?.column === c.id ? (order.direction === "asc" ? "ascending" : "descending") : "none"}>
+              <th key={c.id} className={`${c.numeric ? "within " : ""}com-redimensao`} style={widths[c.id] !== undefined ? { width: widths[c.id] } : undefined} aria-sort={order?.column === c.id ? (order.direction === "asc" ? "ascending" : "descending") : "none"}>
                 <button type="button" className="cabecalho" onClick={() => setOrder((o) => nextOrder(o, c.id))}>
                   {c.title}
                   <span className="seta" aria-hidden="true">{order?.column === c.id ? (order.direction === "asc" ? "▲" : "▼") : "↕"}</span>
                 </button>
+                <span className="redimensionar" role="separator" aria-orientation="vertical" aria-label={t("table.resize", { column: c.title })} onPointerDown={(e) => startResize(e, c.id)} onDoubleClick={resetWidths} />
               </th>
             ))}
           </tr>

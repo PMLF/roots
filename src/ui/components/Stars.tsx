@@ -20,7 +20,6 @@ export function Stars({ value, range }: { value?: number; range?: { low: number;
   return (
     <span className="estrelas" role="img" aria-label={label} title={label}>
       {fills.map((f, i) => <span key={i} className={`estrela estrela-${f}`} aria-hidden="true">★</span>)}
-      {range && range.high > range.low && <small className="estrelas-intervalo">{fmt(range.low)}–{fmt(range.high)}</small>}
     </span>
   );
 }

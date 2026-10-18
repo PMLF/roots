@@ -1093,5 +1093,11 @@
   "squad.scout": "Observar",
   "squad.offer": "Fazer proposta",
   "squad.marketSoon": "Disponível quando o mercado do gamer estiver pronto",
-  "column.actions": "Ações"
+  "column.actions": "Ações",
+  "matches.outcome.win": "vitória",
+  "matches.outcome.draw": "empate",
+  "matches.outcome.loss": "derrota",
+  "city.district": "Distrito",
+  "city.region": "Região",
+  "table.resize": "Ajustar a largura da coluna {column} (duplo clique repõe)"
 }
