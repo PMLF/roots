@@ -116,6 +116,31 @@ export type BidAction =
   | { person: string; action: "cancel" };
 export type BidReply = { status: "accepted" | "counter" | "closed" | "blocked"; reason?: string; /** Contraproposta do agente. */ terms?: RenewalTermsView };
 export type BidResult = { ok: true; bid: BidView; reply?: BidReply } | { ok: false; reason: "own" | "invalid" | "retired" | "noClub" };
+/** Proposta da IA por um jogador do gamer (RZ-232). */
+export type OfferView = {
+  id: number;
+  person: string;
+  name: string;
+  position: string;
+  age: number;
+  buyer: { id: string; name: string };
+  /** Valor proposto neste momento. */
+  fee: number;
+  /** Contrato que o comprador oferece ao jogador. */
+  wage: number;
+  years: number;
+  release: number | null;
+  currentWage: number;
+  /** Valor de mercado (o gamer conhece o seu plantel). */
+  value: number;
+  expires: string;
+  round: number;
+  roundsLeft: number;
+  /** Valores para contrapropor. */
+  suggestions: number[];
+};
+export type OfferAction = { id: number; action: "accept" | "reject" } | { id: number; action: "counter"; fee: number };
+export type OfferAnswer = { ok: true; status: "done" | "counter" | "refused" | "withdrawn" | "rejected" | "expired"; offer?: OfferView } | { ok: false };
 export type RenewalsData = { season: number; nextSeasonStart: string; lines: RenewalLine[] };
 
 export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string };
@@ -382,6 +407,8 @@ export type EngineRequests = {
   renewals: { input: null; output: RenewalsData };
   bid: { input: BidAction; output: BidResult };
   bids: { input: null; output: BidView[] };
+  transferOffers: { input: null; output: OfferView[] };
+  offerReply: { input: OfferAction; output: OfferAnswer };
   /** Uma ronda com o agente: aceita (guarda a decisão), contrapropõe novas condições ou fecha a negociação. */
   negotiateRenewal: { input: { person: string; wage: number; years: number; release: number | null }; output: NegotiationResult };
   /** O gamer decide deixar sair um jogador com contrato a expirar. */

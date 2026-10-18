@@ -63,7 +63,7 @@ Três variáveis: **ordenado mensal, anos (1-5) e cláusula de rescisão** (ou s
 - Os estrangeiros evoluem na passagem de época (`squad/foreign.ts`: desenvolvimento, reforma, renovação automática e jovens para repor o plantel).
 - **Informação:** sem observação nada se sabe («?»). **Uma semana** (`scouting.cost.week`, ×`foreignMultiplier` para estrangeiros): estimativas das capacidades com margem de erro e pistas da personalidade (rótulos extremos). **Um mês** (`cost.month`): qualidade alta e **toda** a personalidade (`known` na ficha). A qualidade vem do melhor olheiro (`knowledge.qualityPerSource.scout` ± qualidade do olheiro).
 - **Pesquisa por posição** (`cost.search`, 14 dias): lista de até `search.results` jogadores da posição (idade e «só sem clube» opcionais) com nível ou potencial que interessem ao clube (mediana da posição − folga), a partir de um alcance 3× o normal; vêm só com estimativas fracas (`searchQuality`), é preciso observar para saber mais.
-- Cada olheiro faz **uma ordem de cada vez**; cada ordem paga-se (categoria `staff`) e não há ordens sem caixa. O fim da ordem gera evento privado `SCOUT_REPORT`/`SCOUT_SEARCH` e mensagem na caixa de entrada.
+- Cada olheiro faz até `scouting.perScout` (10) ordens em simultâneo (observações e pesquisas); com tudo ocupado o gamer vê um aviso. Cada ordem paga-se (categoria `staff`) e não há ordens sem caixa. O fim da ordem gera evento privado `SCOUT_REPORT`/`SCOUT_SEARCH` e mensagem na caixa de entrada.
 - Estado em meta: `scouting.orders`, `scouting.found`, `scouted.<jogador>`; clubes estrangeiros em `foreign.clubs`.
 - Limite conhecido: todos os clubes têm 1 olheiro; contratar mais olheiros chega com o staff (RZ-208).
 
@@ -77,5 +77,9 @@ Motor em `src/engine/market/bids.ts`; estado em meta `market.bids`. «Fazer prop
 - Olheiros por clube (`world.scouts`): mais nos escalões altos e nos clubes de reputação alta; distritais com no máximo um, e há quem não tenha.
 - Fora desta fatia: botão nos plantéis de outros clubes (RZ-227).
 
-### M3 — Propostas da IA ao gamer (RZ-232, por fazer)
-A IA faz propostas por jogadores do clube do gamer (quase só com a janela aberta); entram em **«Exige decisão»** (nenhuma se perde); o gamer aceita, rejeita ou contrapropõe; se aceitar e o jogador aceitar o contrato proposto, transfere-se com a janela aberta. Transferências importantes e as do clube do gamer geram notícias.
+### M3 — Propostas da IA ao gamer (RZ-232, feito)
+`src/engine/market/offers.ts`, estado em meta `market.offers`. Só com a janela aberta: cada dia, cada jogador do plantel do gamer tem `market.offers.dailyChance` de gerar uma proposta (sem repetir durante `sameWindowDays`). O comprador é um clube até um escalão acima ou abaixo do do gamer que precisa do jogador (nível útil para o seu escalão), pode pagar (caixa e orçamento de transferências) e a que o jogador aceitaria juntar-se (`renewalInterest`). Valor = valor de mercado × `feeSpread`; o contrato oferecido é o do pedido de renovação com o comprador como clube. Válida `validDays` ou até ao fecho da janela.
+- **Exige decisão**: cada proposta pendente tem «Responder» (`OfferDialog`): aceitar, rejeitar ou contrapropor (dropdown). O comprador aceita até um teto (valor de mercado × `maxMult`, limitado ao que pode gastar); acima disso cede `concession`^ronda da distância até `maxRounds`, e desiste se o pedido for exagerado. Depois de contrapropor o popup não se fecha até haver acordo, rejeição ou desistência.
+- **Execução**: valor acordado ⇒ o jogador ainda aceita (ou recusa) o contrato do comprador; se aceita, muda-se logo (a janela está aberta), com dinheiro, contrato e evento `TRANSFER`; sai do onze guardado.
+- **Notícias**: `TRANSFER` é notícia para todos acima de `market.news.minFee` (campo `important` no evento) e sempre no clube do gamer; os livres só no clube do gamer; a proposta recebida (`TRANSFER_OFFER`) vai para a caixa de entrada. Os eventos de scouting e propostas passaram a `exposed` para a caixa de entrada os mostrar (antes os relatórios do olheiro não apareciam).
+- Fora desta fatia: a IA acionar a cláusula de rescisão por jogadores do gamer; propostas fora da janela.

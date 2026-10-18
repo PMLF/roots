@@ -59,6 +59,23 @@ function ObserveDialog({ row, data, onClose, onDone }: { row: ScoutRow; data: Sc
   );
 }
 
+/** Aviso quando não cabe mais nenhuma ordem: todos os olheiros estão ocupados (ou o clube não tem olheiros). */
+function BusyDialog({ capacity, running, onClose }: { capacity: number; running: number; onClose: () => void }) {
+  const { t } = useT();
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => { ref.current?.showModal(); }, []);
+  return (
+    <dialog ref={ref} className="popup" aria-labelledby="h-busy" onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
+      <div className="popup-corpo">
+        <CloseButton onClose={() => ref.current?.close()} />
+        <h2 id="h-busy">{t(capacity === 0 ? "scouting.noScoutTitle" : "scouting.busyTitle")}</h2>
+        <p>{capacity === 0 ? t("scouting.error.noScout") : t("scouting.busyBody", { n: running })}</p>
+        <div className="acoes-popup"><button type="button" onClick={() => ref.current?.close()}>{t("renewals.close")}</button></div>
+      </div>
+    </dialog>
+  );
+}
+
 export function Scouting() {
   const { t, locale } = useT();
   const engine = useEngine();
@@ -68,6 +85,7 @@ export function Scouting() {
   const [origin, setOrigin] = useState<Origin>("all");
   const [onlyKnown, setOnlyKnown] = useState(false);
   const [target, setTarget] = useState<ScoutRow | undefined>(undefined);
+  const [showBusy, setShowBusy] = useState(false);
   const [bidTarget, setBidTarget] = useState<ScoutRow | undefined>(undefined);
   const [search, setSearch] = useState<{ position: string; minAge: string; maxAge: string; freeOnly: boolean }>({ position: "ST", minAge: "", maxAge: "", freeOnly: false });
   const [message, setMessage] = useState<string | undefined>(undefined);
@@ -82,6 +100,7 @@ export function Scouting() {
   const free = d.orders.filter((o) => !o.done).length < d.capacity;
   const submitSearch = async () => {
     if (!engine) return;
+    if (!free) { setShowBusy(true); return; }
     const input: ScoutOrderInput = { kind: "search", position: search.position, ...(search.minAge ? { minAge: Number(search.minAge) } : {}), ...(search.maxAge ? { maxAge: Number(search.maxAge) } : {}), ...(search.freeOnly ? { freeOnly: true } : {}) };
     const r = await engine.call("scoutOrder", input);
     setMessage(r.ok ? t("scouting.searchOrdered") : t(`scouting.error.${r.reason}` as Key));
@@ -130,7 +149,7 @@ export function Scouting() {
           <label>{t("scouting.minAge")}<input type="number" min={15} max={45} value={search.minAge} onChange={(e) => setSearch({ ...search, minAge: e.target.value })} /></label>
           <label>{t("scouting.maxAge")}<input type="number" min={15} max={45} value={search.maxAge} onChange={(e) => setSearch({ ...search, maxAge: e.target.value })} /></label>
           <label className="caixa"><input type="checkbox" checked={search.freeOnly} onChange={(e) => setSearch({ ...search, freeOnly: e.target.checked })} /> {t("scouting.freeOnly")}</label>
-          <button type="submit" disabled={!free || d.capacity === 0}>{t("scouting.searchButton", { cost: eur.format(d.cost.search) })}</button>
+          <button type="submit">{t("scouting.searchButton", { cost: eur.format(d.cost.search) })}</button>
         </form>
         {message && <p role="status">{message}</p>}
         {d.orders.length > 0 && (
@@ -158,13 +177,14 @@ export function Scouting() {
             knowledge: (r) => t(`scouting.knowledge.${r.knowledge}` as Key),
             action: (r) => (
               <span className="acoes-linha">
-                {r.busy ? <span className="suave">{t("scouting.observing")}</span> : <button type="button" className="secundario" disabled={!free || r.knowledge === "month"} onClick={() => setTarget(r)}>{t("scouting.observe")}</button>}
+                {r.busy ? <span className="suave">{t("scouting.observing")}</span> : <button type="button" className="secundario" disabled={r.knowledge === "month"} onClick={() => (free ? setTarget(r) : setShowBusy(true))}>{t("scouting.observe")}</button>}
                 <button type="button" className="secundario" onClick={() => setBidTarget(r)}>{t("bid.make")}</button>
               </span>
             ),
           }}
         />
       </Card>
+      {showBusy && <BusyDialog capacity={d.capacity} running={d.orders.filter((o) => !o.done).length} onClose={() => setShowBusy(false)} />}
       {bidTarget && <BidDialog person={bidTarget.id} name={bidTarget.name} onClose={() => { setBidTarget(undefined); load(); }} />}
       {target && <ObserveDialog row={target} data={d} onClose={() => setTarget(undefined)} onDone={load} />}
     </div>

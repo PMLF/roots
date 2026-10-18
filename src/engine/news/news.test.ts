@@ -64,9 +64,14 @@ describe("notícias e caixa de entrada", () => {
     await handle({ id: 59, type: "markMessage", input: { id: target.id, isRead: true } }, s);
     expect((await handle({ id: 60, type: "inbox", input: {} }, s)).unread).toBe(0);
     // novos jogos voltam a trazer mensagens por ler
-    const r = await handle({ id: 53, type: "advance", input: { mode: "nextMatch" } }, s);
-    if (r.pause) { await handle({ id: 54, type: "confirmMatch", input: { match: r.pause.match } }, s); await handle({ id: 55, type: "advance", input: { mode: "day" } }, s); }
-    expect((await handle({ id: 56, type: "inbox", input: {} }, s)).unread).toBeGreaterThan(0);
+    // (só os jogos contra rivais, lesões e propostas dão mensagem: avança-se até haver uma)
+    let unread = 0;
+    for (let i = 0; i < 12 && unread === 0; i++) {
+      const r = await handle({ id: 100 + i * 3, type: "advance", input: { mode: "nextMatch" } }, s);
+      if (r.pause) { await handle({ id: 101 + i * 3, type: "confirmMatch", input: { match: r.pause.match } }, s); await handle({ id: 102 + i * 3, type: "advance", input: { mode: "day" } }, s); }
+      unread = (await handle({ id: 56, type: "inbox", input: {} }, s)).unread;
+    }
+    expect(unread).toBeGreaterThan(0);
   }, 180000);
 
   it("o gamer demitido continua a ver a sua carreira na caixa", async () => {

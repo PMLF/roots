@@ -23,6 +23,7 @@ import type { Attributes, Position } from "../world/types";
 import { foreignClubList } from "../squad/foreign";
 import { marketValue } from "./value";
 import { windowAt } from "./market";
+import { isImportantFee } from "./newsworthy";
 
 export type BidStage = "club" | "agent" | "agreed" | "closed" | "done";
 export type BidClosed = "refused" | "squad" | "level" | "distance" | "cash" | "gone";
@@ -284,7 +285,7 @@ export function executeBid(repo: Repository, data: BaseData, params: Params, clu
     repo.appendEvent({
       type: "TRANSFER", date: today, season, visibility: "exposed", origin: "generated",
       entities: [{ k: "person", id: bid.person, roleKind: "player" }, { k: "club", id: bid.seller, roleKind: "seller" }, { k: "club", id: club.id, roleKind: "buyer" }, ...agent],
-      data: { fee, wage: terms.wage, years: terms.years, window: windowAt(today, params)?.id ?? "", ...(commission > 0 ? { commission } : {}), ...(isForeignClub(bid.seller) ? { foreign: foreignClubList(repo).find((c) => c.id === bid.seller)?.name ?? "" } : {}) },
+      data: { fee, wage: terms.wage, years: terms.years, window: windowAt(today, params)?.id ?? "", ...(isImportantFee(params, fee) ? { important: 1 } : {}), ...(commission > 0 ? { commission } : {}), ...(isForeignClub(bid.seller) ? { foreign: foreignClubList(repo).find((c) => c.id === bid.seller)?.name ?? "" } : {}) },
     });
   } else {
     repo.appendEvent({

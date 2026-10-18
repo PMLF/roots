@@ -60,7 +60,8 @@ describe("scouting", { timeout: 120000 }, () => {
     const mid = await handle({ id: 13, type: "scouting", input: null }, s);
     expect(mid.balance).toBe(cash0 - before.cost.week);
     expect(mid.orders.length).toBe(1);
-    // cada olheiro faz uma ordem de cada vez: com todos ocupados não cabe outra
+    // cada olheiro faz até `perScout` ordens em simultâneo: com tudo ocupado não cabe outra
+    expect(before.capacity).toBe(before.scouts.count * P.scouting.perScout);
     for (let i = 1; i < before.capacity; i++) expect(await handle({ id: 14 + i, type: "scoutOrder", input: { kind: "week", person: before.rows[i]!.id } }, s)).toEqual({ ok: true });
     expect(await handle({ id: 14, type: "scoutOrder", input: { kind: "month", person: target.id } }, s)).toEqual({ ok: false, reason: "busy" });
     await until("2026-10-24");

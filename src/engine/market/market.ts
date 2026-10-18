@@ -21,6 +21,7 @@ import { contractDates, wageFor } from "../squad/youth";
 import { isInSecondDistrict } from "../season/districts";
 import { marketValue } from "./value";
 import { releaseClause } from "./clauses";
+import { isImportantFee } from "./newsworthy";
 import { agentTraits } from "../agent/assign";
 import type { ContractClauses } from "../persistence/types";
 
@@ -236,7 +237,7 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
       repo.appendEvent({
         type: "TRANSFER", date, season, visibility: "exposed", origin: "generated",
         entities: [{ k: "person", id: e.record.person, roleKind: "player" }, { k: "club", id: seller.id, roleKind: "seller" }, { k: "club", id: club.id, roleKind: "buyer" }, ...(e.record.agent ? [{ k: "person" as const, id: e.record.agent, roleKind: "agent" }] : [])],
-        data: { fee: paid, wage, years, window: win.id, ...(commission > 0 ? { commission } : {}), ...(viaRelease ? { release: true } : {}) },
+        data: { fee: paid, wage, years, window: win.id, ...(isImportantFee(params, paid) ? { important: 1 } : {}), ...(commission > 0 ? { commission } : {}), ...(viaRelease ? { release: true } : {}) },
       });
     } else {
       repo.appendEvent({
