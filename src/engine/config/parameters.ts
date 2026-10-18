@@ -636,6 +636,10 @@ export type Params = {
     /** Compensação de formação (RZ-207): quem contrata um livre com esta idade ou menos, formado noutro clube, paga ao clube formador `byTier` × ordenado anual do novo contrato (por escalão do clube formador; nas distritais costuma ser zero). */
     training: { ageMax: number; byTier: Record<Tier, number> };
     /** Propostas do gamer (RZ-231): o vendedor fecha a porta abaixo de `walkAway` × pedido; cede `concession`^ronda da distância; `maxRounds` rondas; um mês de espera depois de fechar. */
+    /** Propostas da IA por jogadores do gamer (RZ-232): chance diária por jogador com a janela aberta, validade, folga máxima sobre o valor, rondas e cedência do comprador. */
+    offers: { dailyChance: number; validDays: number; feeSpread: [number, number]; maxMult: number; maxRounds: number; concession: number; minAge: number; sameWindowDays: number };
+    /** Valor (€) a partir do qual uma transferência entre outros clubes é notícia. */
+    news: { minFee: number };
     bids: {
       walkAway: number; concession: number; maxRounds: number; waitDays: number;
       /** Desvio (fração) das sugestões sem informação nenhuma sobre o jogador; desce com a observação (semana: metade; mês: zero). */
@@ -649,6 +653,8 @@ export type Params = {
   scouting: {
     /** Fração dos jogadores nacionais visíveis: base + por olheiro (máx.); os estrangeiros só uma fração disso. */
     reach: { base: number; perScout: number; max: number; foreignFactor: number };
+    /** Ordens (observações e pesquisas) em simultâneo por olheiro. */
+    perScout: number;
     days: { week: number; month: number; search: number };
     /** Custo (€) de uma observação de uma semana, de um mês e de uma pesquisa por posição; estrangeiros custam mais (viagens). */
     cost: { week: number; month: number; search: number; foreignMultiplier: number };
@@ -1022,10 +1028,13 @@ export const DEFAULT_PARAMETERS: Params = {
     agents: { share: { firstLeague: 0.85, secondLeague: 0.55, thirdLeague: 0.3, cp: 0.12, district: 0.04 }, popularity: 0.5, commissionRate: 0.08, commissionByGreed: 0.05, wageByGreed: 0.012, consentByGreed: 0.012, consentByLoyalty: 0.015, greedPivot: 14.4, loyaltyPivot: 7 },
     clauses: { releaseProbability: 0.2, releaseByAgentGreed: 0.02, releaseFactor: [1.2, 2.2] },
     training: { ageMax: 23, byTier: { firstLeague: 1.2, secondLeague: 0.8, thirdLeague: 0.4, cp: 0.08, district: 0 } },
+    offers: { dailyChance: 0.012, validDays: 10, feeSpread: [0.85, 1.15], maxMult: 1.3, maxRounds: 3, concession: 0.5, minAge: 16, sameWindowDays: 45 },
+    news: { minFee: 400000 },
     bids: { walkAway: 0.6, concession: 0.55, maxRounds: 4, waitDays: 30, suggestionNoise: 0.3, stepBackWage: 1.4, endOfCareerAge: 33 },
   },
   scouting: {
     reach: { base: 0.03, perScout: 0.06, max: 0.6, foreignFactor: 0.15 },
+    perScout: 10,
     days: { week: 7, month: 30, search: 14 },
     cost: { week: 300, month: 900, search: 450, foreignMultiplier: 3 },
     monthBoost: 0.3,

@@ -2,9 +2,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { BidView, CompetitionPage, ClubProfileData, CreatedWorldSummary } from "@/engine/api/contracts";
+import type { BidView, OfferView, CompetitionPage, ClubProfileData, CreatedWorldSummary } from "@/engine/api/contracts";
 import type { NewsItem } from "@/engine/news/news";
 import { BidDialog } from "@/ui/components/BidDialog";
+import { OfferDialog } from "@/ui/components/OfferDialog";
 import { ResignButton, ChooseInitialClub } from "@/ui/components/WithClub";
 import { ResultsFita } from "@/ui/components/ResultsStrip";
 import { NewsItemView } from "@/ui/components/NewsItem";
@@ -59,6 +60,10 @@ export default function Start() {
   const [resuming, setResuming] = useState<BidView | undefined>(undefined);
   const loadBids = () => { engine?.call("bids", null).then(setOpenBids).catch(() => undefined); };
   useEffect(loadBids, [engine, world, time.state?.today]);
+  const [offersIn, setOffersIn] = useState<OfferView[]>([]);
+  const [answering, setAnswering] = useState<OfferView | undefined>(undefined);
+  const loadOffers = () => { engine?.call("transferOffers", null).then(setOffersIn).catch(() => undefined); };
+  useEffect(loadOffers, [engine, world, time.state?.today]);
   const pendingBids = openBids.filter((b) => b.stage === "club" || b.stage === "agent");
   const agreedBids = openBids.filter((b) => b.stage === "agreed" && b.moving);
 
@@ -92,7 +97,7 @@ export default function Start() {
   }
 
   const homeAway = next && club ? (next.home ? [club.profile.name, next.opponentName] : [next.opponentName, club.profile.name]) : [];
-  const decisions = (time.pause ? 1 : 0) + (world && !mine ? 1 : 0) + pendingBids.length;
+  const decisions = (time.pause ? 1 : 0) + (world && !mine ? 1 : 0) + pendingBids.length + offersIn.length;
 
   return (
     <section className="inicio">
@@ -154,6 +159,13 @@ export default function Start() {
               <p className="acoes"><button type="button" className="primario" onClick={() => setResuming(b)}>{t("bid.continue")}</button></p>
             </div>
           ))}
+          {offersIn.map((o) => (
+            <div className="decisao" key={o.id}>
+              <p><b>{t("offer.decision", { name: o.name })}</b> <span className="suave">· {o.buyer.name}</span></p>
+              <p className="acoes"><button type="button" className="primario" onClick={() => setAnswering(o)}>{t("offer.answer")}</button></p>
+            </div>
+          ))}
+          {answering && <OfferDialog offer={answering} onClose={() => { setAnswering(undefined); loadOffers(); }} onAnswered={loadOffers} />}
           {agreedBids.map((b) => <p className="suave" key={b.person}>{t("bid.todayAgreed", { name: b.name, date: b.moving?.date ?? "" })}</p>)}
           {resuming && <BidDialog person={resuming.person} name={resuming.name} onClose={() => { setResuming(undefined); loadBids(); }} />}
           {world && !mine && <ChooseInitialClub />}

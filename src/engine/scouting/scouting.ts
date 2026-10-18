@@ -94,7 +94,7 @@ export function placeOrder(repo: Repository, data: BaseData, params: Params, clu
   const scouts = scoutsOf(repo, club.id);
   if (scouts.count === 0) return { ok: false, reason: "noScout" };
   const list = orders(repo);
-  if (list.filter((o) => !o.done).length >= scouts.count) return { ok: false, reason: "busy" };
+  if (list.filter((o) => !o.done).length >= scouts.count * params.scouting.perScout) return { ok: false, reason: "busy" };
   if (input.kind === "search" ? !input.position : !input.person || !repo.player(input.person)) return { ok: false, reason: "invalid" };
   if (input.person && repo.player(input.person)?.club === club.id) return { ok: false, reason: "own" };
   const cost = orderCost(repo, params, input);

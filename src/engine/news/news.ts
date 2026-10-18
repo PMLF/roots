@@ -12,7 +12,7 @@ import type { IsoDate } from "../persistence/types";
 export type NewsItemType =
   | "hattrick" | "red" | "two_yellows" | "rout" | "comeback_goal" | "stoppage_goal" | "serious_injury"
   | "champion" | "cup_upset" | "state_prize" | "promotion" | "relegation" | "second_district" | "district_return" | "locality" | "city_event"
-  | "outcome" | "injury" | "resignation" | "sacked" | "signed" | "scout_report" | "scout_search";
+  | "outcome" | "injury" | "resignation" | "sacked" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer";
 
 export type NewsItemLink = { k: "club" | "person" | "locality" | "competition" | "city"; id: string; name: string };
 
@@ -35,13 +35,13 @@ export type Message = NewsItem & { isRead: boolean };
 /** Quantas variantes de texto existem por tipo (a interface tem as frases `noticia.<tipo>.<n>.titulo|corpo`). */
 export const VARIANTS: Record<NewsItemType, number> = {
   hattrick: 2, red: 2, two_yellows: 2, rout: 2, comeback_goal: 2, stoppage_goal: 2, serious_injury: 2,
-  champion: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1, scout_report: 1, scout_search: 1,
+  champion: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1,
 };
 
 /** Tipos de evento que dão notícia para toda a gente. */
-const NEWS_ITEM_EVENTS = ["HATTRICK", "RED_CARD", "ROUT", "NOTABLE_GOAL", "INJURY", "CHAMPION", "CUP_UPSET", "STATE_PRIZE", "SECOND_DISTRICT_RELEGATION", "DISTRICT_RETURN", "PROMOTION", "RELEGATION", "LOCALITY_STATUS", "CITY_EVENT"] as const;
+const NEWS_ITEM_EVENTS = ["HATTRICK", "RED_CARD", "ROUT", "NOTABLE_GOAL", "INJURY", "CHAMPION", "CUP_UPSET", "STATE_PRIZE", "SECOND_DISTRICT_RELEGATION", "DISTRICT_RETURN", "PROMOTION", "RELEGATION", "LOCALITY_STATUS", "CITY_EVENT", "TRANSFER", "PLAYER_SIGNED"] as const;
 /** A caixa de entrada junta o que é pessoal: o resultado do teu jogo, qualquer lesão do teu plantel, a tua carreira. */
-const INBOX_EVENTS = [...NEWS_ITEM_EVENTS, "MATCH_PLAYED", "GAMER_RESIGNATION", "GAMER_HIRED", "SCOUT_REPORT", "SCOUT_SEARCH"] as const;
+const INBOX_EVENTS = [...NEWS_ITEM_EVENTS, "MATCH_PLAYED", "GAMER_RESIGNATION", "GAMER_HIRED", "SCOUT_REPORT", "SCOUT_SEARCH", "TRANSFER_OFFER"] as const;
 /** Lesões a partir desta gravidade são notícia no mundo; no teu plantel, todas. */
 const NEWS_ITEM_SEVERITY = 4;
 
@@ -160,6 +160,22 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
       return inboxOnly && club ? base(d.reason === "secondDistrict" ? "sacked" : "resignation", { club: c.clubName(club.id) }, [lc(club.id)]) : undefined;
     case "GAMER_HIRED":
       return inboxOnly && club ? base("signed", { club: c.clubName(club.id) }, [lc(club.id)]) : undefined;
+    case "TRANSFER": {
+      // notícia se for do teu clube ou se o valor é importante (marcado no evento)
+      if (!our && !d.important) return undefined;
+      const seller = e.entities.find((x) => x.k === "club" && x.roleKind === "seller");
+      const buyer = e.entities.find((x) => x.k === "club" && x.roleKind === "buyer");
+      if (!person || !buyer) return undefined;
+      const sellerName = typeof d.foreign === "string" && d.foreign ? d.foreign : seller ? c.clubName(seller.id) : "";
+      return base("transfer", { player: c.personName(person.id), from: sellerName, to: c.clubName(buyer.id), fee: within(d.fee) }, [lp(person.id), ...(seller && !seller.id.startsWith("x-") ? [lc(seller.id)] : []), lc(buyer.id)]);
+    }
+    case "PLAYER_SIGNED":
+      // contratações de livres só são notícia no teu clube
+      return our && person && club ? base("transfer_free", { player: c.personName(person.id), club: c.clubName(club.id) }, [lp(person.id), lc(club.id)]) : undefined;
+    case "TRANSFER_OFFER": {
+      const buyer = e.entities.find((x) => x.k === "club" && x.roleKind === "buyer");
+      return inboxOnly && our && person && buyer ? base("transfer_offer", { player: c.personName(person.id), club: c.clubName(buyer.id), fee: within(d.fee) }, [lp(person.id), lc(buyer.id)]) : undefined;
+    }
     case "SCOUT_REPORT":
       return inboxOnly && our && person ? base("scout_report", { player: c.personName(person.id), kind: String(d.kind ?? "week") }, [lp(person.id)]) : undefined;
     case "SCOUT_SEARCH":

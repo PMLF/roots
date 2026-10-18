@@ -13,6 +13,7 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead }: { n: NewsIt
     values.from = t(`status.${values.from}` as Key).toLowerCase();
     values.to = t(`status.${values.to}` as Key).toLowerCase();
   }
+  if (typeof values.fee === "number") values.fee = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(values.fee);
   const base = `newsItem.${type}.${n.variant}`;
   if (compact) {
     return (

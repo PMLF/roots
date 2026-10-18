@@ -2,6 +2,8 @@ import { setBudget, clubBudget } from "../club/budget";
 import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
 import { ageAt, createDate } from "../calendar/dates";
 import type { IsoDate } from "../persistence/types";
+import { pendingOffers, respondOffer, type Offer } from "../market/offers";
+import { valueOf } from "../market/bids";
 import { agentOffer, bids, cancelBid, clubOffer, feeSuggestions, finalizeBid, informationOf, openBid, termSuggestions, type Bid } from "../market/bids";
 import { windowAt } from "../market/market";
 import { decisionOf, expiringPlayers, negotiateRenewal, negotiationOf, renewalAsk, renewalSuggestions, setDecision } from "../squad/renewals";
@@ -43,7 +45,7 @@ import { Rng } from "../random/rng";
 import { startCompanies } from "../company/cycle";
 import { assignAgents } from "../agent/assign";
 import { potentialRange, referenceTier, starsOf } from "../world/stars";
-import type { BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
+import type { OfferView, BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SCHEMA_VERSION = DB_SCHEMA;
@@ -329,6 +331,21 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const { repository, data, params } = await context(servicos);
       return bids(repository).filter((b) => b.stage !== "done").map((b) => bidViewOf(repository, data, params, b));
     }
+    case "transferOffers": {
+      const { repository, data, params } = await context(servicos);
+      return pendingOffers(repository).map((o) => offerViewOf(repository, data, params, o)).filter((v): v is OfferView => v !== undefined);
+    }
+    case "offerReply": {
+      const { repository, data, params } = await context(servicos);
+      const club = gamerClubOf(repository, data);
+      if (!club) return { ok: false };
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      const r = respondOffer(repository, data, params, club, today, Number(repository.meta("season") ?? 1), m.input.id, m.input.action === "counter" ? { kind: "counter", fee: m.input.fee } : { kind: m.input.action });
+      if (!r) return { ok: false };
+      const again = r.status === "counter" ? pendingOffers(repository).find((o) => o.id === m.input.id) : undefined;
+      const view = again ? offerViewOf(repository, data, params, again) : undefined;
+      return { ok: true, status: r.status, ...(view ? { offer: view } : {}) };
+    }
     case "bid": {
       const { repository, data, params } = await context(servicos);
       return bidAction(repository, data, params, m.input);
@@ -501,7 +518,7 @@ function scoutingData(r: Repository, data: BaseData, params: Params): ScoutingDa
     scouts,
     cost: { ...params.scouting.cost },
     balance: club ? clubBalance(r, club) : 0,
-    capacity: scouts.count,
+    capacity: scouts.count * params.scouting.perScout,
   };
 }
 
@@ -511,6 +528,23 @@ function gamerClubOf(r: Repository, data: BaseData): BaseClub | undefined {
 }
 
 /** Contratos a expirar no clube do gamer, com pedido e decisão (RZ-165). */
+function offerViewOf(r: Repository, data: BaseData, params: Params, o: Offer): OfferView | undefined {
+  const person = r.person(o.person);
+  const player = r.player(o.person);
+  const ct = r.contract(o.person);
+  const buyer = data.clubs.find((c) => c.id === o.buyer);
+  const today = (r.meta("date.today") ?? "") as IsoDate;
+  if (!person || !player || !ct || !buyer) return undefined;
+  const value = valueOf(r, params, o.person, today);
+  const nice = (v: number) => Math.round(v / 1000) * 1000;
+  return {
+    id: o.id, person: o.person, name: person.sportingName, position: player.positions[0]?.pos ?? "", age: ageAt(person.birth, today),
+    buyer: { id: buyer.id, name: buyer.name }, fee: o.fee, wage: o.wage, years: o.years, release: o.release, currentWage: ct.monthlyWage, value,
+    expires: o.expires, round: o.round, roundsLeft: Math.max(0, params.market.offers.maxRounds - o.round),
+    suggestions: [...new Set([1.1, 1.25, 1.4, 1.6, 2].map((m) => nice(Math.max(o.fee, value) * m)))].filter((v) => v > o.fee).sort((a, b) => a - b),
+  };
+}
+
 function bidViewOf(r: Repository, data: BaseData, params: Params, b: Bid): BidView {
   const club = gamerClubOf(r, data);
   const today = (r.meta("date.today") ?? "") as IsoDate;

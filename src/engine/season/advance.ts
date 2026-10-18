@@ -23,6 +23,7 @@ import { closeUntilMonths, post } from "../club/finances";
 import { postBroadcast } from "../broadcast/featured";
 import { isMarketDay, marketRound } from "../market/market";
 import { dailyBids, lockedPlayers } from "../market/bids";
+import { dailyOffers } from "../market/offers";
 import { isInSecondDistrict } from "./districts";
 import { CP_FINAL_COMPETITION, generateCpFinal, generateCpFinalSemi } from "./cpFinalPhase";
 import { advanceCompetitions } from "./competitions";
@@ -216,12 +217,12 @@ export function advanceDay(repo: Repository, base: BaseData, params: Params, gam
     if (isMarketDay(tomorrow, params)) marketRound(repo, data, params, tomorrow, season, { ...(gamerClub ? { gamerClub } : {}), locked: lockedPlayers(repo) });
     // acordos do gamer que esperavam pela janela (RZ-231)
     const gamerBase = gamerClub ? data.clubs.find((c) => c.id === gamerClub) : undefined;
-    if (gamerBase) dailyBids(repo, data, params, gamerBase, tomorrow, season);
+    if (gamerBase) { dailyBids(repo, data, params, gamerBase, tomorrow, season); dailyOffers(repo, data, params, gamerBase, tomorrow, season); }
     // olheiros do gamer: fecham as observações e pesquisas que chegaram ao fim (RZ-230)
     if (gamerClub) {
       for (const o of completeOrders(repo, data, params, gamerClub, tomorrow, season)) {
         repo.appendEvent({
-          type: o.kind === "search" ? "SCOUT_SEARCH" : "SCOUT_REPORT", date: tomorrow, season, visibility: "private", origin: "generated",
+          type: o.kind === "search" ? "SCOUT_SEARCH" : "SCOUT_REPORT", date: tomorrow, season, visibility: "exposed", origin: "generated",
           entities: [{ k: "club", id: gamerClub }, ...(o.person ? [{ k: "person" as const, id: o.person, roleKind: "scouted" }] : [])],
           data: o.kind === "search" ? { position: o.position ?? "", n: o.results?.length ?? 0 } : { kind: o.kind },
         });
