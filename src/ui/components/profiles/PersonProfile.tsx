@@ -59,6 +59,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
       { label: t("column.foot"), value: t(`foot.${j.foot}` as Key) },
     ] : []),
     ...(d.club ? [{ label: t("entity.club"), value: <EntityLink k="club" id={d.club.id}>{d.club.name}</EntityLink> }] : []),
+    ...(d.foreignClub ? [{ label: t("entity.club"), value: d.foreignClub.name }] : []),
     ...(d.contract ? [{ label: t("person.contractUntil"), value: d.contract.end }] : []),
     ...(j ? [{ label: t("person.state"), value: t(`state.${j.state}` as Key) }] : []),
   ];
@@ -67,7 +68,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
       {j && <Chip tone="destaque">{namePosition(t, j.position)}</Chip>}
       {!j && p.fn && <Chip tone="destaque">{t(`fn.${p.fn}` as Key)}</Chip>}
       {d.club && <Chip><EntityLink k="club" id={d.club.id}>{d.club.name}</EntityLink></Chip>}
-      {!d.club && j?.state === "free" && <Chip tone="suave">{t("state.free")}</Chip>}
+      {d.foreignClub && <Chip>{d.foreignClub.name}</Chip>}
+      {!d.club && !d.foreignClub && j?.state === "free" && <Chip tone="suave">{t("state.free")}</Chip>}
     </>
   );
 

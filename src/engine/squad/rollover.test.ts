@@ -7,6 +7,7 @@ import { developPlayer, expectedChange } from "./development";
 import { createYouth } from "./youth";
 import { renewalProbability, retirementProbability, rolloverSquads } from "./rollover";
 import { MemoryRepository } from "../persistence/repositoryMemory";
+import { foreignClubList } from "./foreign";
 import { data, fresh, run, tiers } from "./testWorld.testlib";
 
 describe("desenvolvimento", () => {
@@ -102,3 +103,20 @@ describe("determinismo e clube do gamer", () => {
     expect(rolloverSquads(repo, data, P, { season: 1, seasonStart: "2027-07-01", tiers })).toMatchObject({ youth: 0, retired: 0 });
   });
 });
+
+describe("ligas estrangeiras", () => {
+  it("mantêm o plantel cheio, com idades plausíveis, depois de uma passagem de época", { timeout: 60000 }, () => {
+    const repo = fresh("foreign");
+    const clubs = foreignClubList(repo);
+    expect(clubs.length).toBe(P.world.foreignLeagues.countries * P.world.foreignLeagues.clubsPerCountry);
+    run(repo, 1);
+    for (const c of clubs) {
+      const squad = repo.clubPlayers(c.id).filter((j) => j.state === "active");
+      expect(squad.length).toBe(P.world.foreignLeagues.squad);
+      const ages = squad.map((j) => 2027 - Number((repo.person(j.person) as { birth: string }).birth.slice(0, 4)));
+      expect(Math.max(...ages)).toBeLessThan(P.squadCycle.retirement.maxAge + 2);
+      expect(squad.every((j) => repo.person(j.person)?.nationality === c.country)).toBe(true);
+    }
+  });
+});
+

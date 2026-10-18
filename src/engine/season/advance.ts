@@ -4,6 +4,7 @@
  * do homem do jogo; nível 1, RZ-109). Lesões e suspensões contam: quem está lesionado ou suspenso não entra no onze e as
  * histórias saem dos jogos como em qualquer outro. Puro em relação ao tempo real: a data vive no save (`data.hoje`).
  */
+import { completeOrders } from "../scouting/scouting";
 import { zoneSizes } from "../competition/profile";
 import { weekDay, addDays } from "../calendar/dates";
 import type { Params } from "../config/parameters";
@@ -212,6 +213,16 @@ export function advanceDay(repo: Repository, base: BaseData, params: Params, gam
     if (tomorrow.endsWith("-01")) closeUntilMonths(repo, data, params, tomorrow, season, (c) => !isInSecondDistrict(c.league));
     // mercado de transferências entre clubes da IA nas janelas (RZ-205/213)
     if (isMarketDay(tomorrow, params)) marketRound(repo, data, params, tomorrow, season, gamerClub ? { gamerClub } : {});
+    // olheiros do gamer: fecham as observações e pesquisas que chegaram ao fim (RZ-230)
+    if (gamerClub) {
+      for (const o of completeOrders(repo, data, params, gamerClub, tomorrow, season)) {
+        repo.appendEvent({
+          type: o.kind === "search" ? "SCOUT_SEARCH" : "SCOUT_REPORT", date: tomorrow, season, visibility: "private", origin: "generated",
+          entities: [{ k: "club", id: gamerClub }, ...(o.person ? [{ k: "person" as const, id: o.person, roleKind: "scouted" }] : [])],
+          data: o.kind === "search" ? { position: o.position ?? "", n: o.results?.length ?? 0 } : { kind: o.kind },
+        });
+      }
+    }
     // Sem clube, chegam ofertas novas todas as segundas-feiras.
     if (isUnemployed(repo) && weekDay(tomorrow) === 1) updateOffers(repo, data, params, tomorrow);
     return { date: today, matches };

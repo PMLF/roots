@@ -805,3 +805,13 @@ select:disabled { cursor: default; }
 .tabela .redimensionar::after { content: ""; position: absolute; top: 25%; bottom: 25%; right: 3px; width: 1px; background: var(--linha-forte); }
 .tabela .redimensionar:hover::after { background: var(--destaque); width: 2px; }
 .tabela[style*="table-layout"] td { overflow: hidden; text-overflow: ellipsis; }
+
+/* Scouting (RZ-230): pedido de pesquisa numa só linha e opções de observação */
+.formulario.linha-filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 8px 0; }
+.linha-filtros label { display: grid; gap: 4px; }
+.linha-filtros label.caixa { display: flex; align-items: center; gap: 6px; padding-bottom: 8px; }
+.linha-filtros input[type="number"] { width: 6.5rem; }
+.linha-filtros input[type="checkbox"], .tabela-barra input[type="checkbox"] { width: auto; height: auto; margin: 0; }
+.opcao-linha { display: flex !important; gap: 10px; align-items: flex-start; padding: 8px 0; }
+.opcao-linha input { width: auto; margin-top: 4px; }
+.formulario .acoes-popup { justify-content: flex-end; } .formulario .acoes-popup button { width: auto; }

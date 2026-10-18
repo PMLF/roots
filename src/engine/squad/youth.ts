@@ -40,16 +40,20 @@ export type YouthInput = {
   districtCities: readonly BaseCity[];
   /** Aposta do clube nos jovens (1 = média): sobe o potencial de quem sai da formação. */
   focus?: number;
+  /** Jovem de fora (ligas estrangeiras): nacionalidade e família de nomes do país; sem cidade natal. */
+  nationality?: string;
+  nameFamily?: string;
 };
 
 export function createYouth(rng: Rng, o: YouthInput, params: Params): NewPlayerKit {
   const y = params.squadCycle.youth;
   const age = rng.integer(y.ageMin, y.ageMax);
-  const name = generateName(rng, y.nameFamily);
+  const name = generateName(rng, o.nameFamily ?? y.nameFamily);
   const roll = rng.float();
-  const pool = roll < y.hometownProbability ? undefined : o.districtCities.length > 0 && roll < 0.85 ? o.districtCities : o.cities;
-  const birthCity = pool ? rng.weighted(pool, (c) => Math.sqrt(c.population)).id : o.club.city;
-  const natural = birthCity === o.club.city;
+  const abroad = o.nationality !== undefined && o.nationality !== "pt";
+  const pool = abroad ? undefined : roll < y.hometownProbability ? undefined : o.districtCities.length > 0 && roll < 0.85 ? o.districtCities : o.cities;
+  const birthCity = abroad ? undefined : pool ? rng.weighted(pool, (c) => Math.sqrt(c.population)).id : o.club.city;
+  const natural = !abroad && birthCity === o.club.city;
   const { personality, archetype } = generatePersonality(rng, "player", { cityNatural: natural, hardOrigin: false }, params.personality.traitMin, params.personality.traitMax);
   const { current, potential } = potentialEQuality(rng, o.targetQuality, age, params.world);
   const attributes = generateAttributes(rng, o.position, current, age);
@@ -58,8 +62,8 @@ export function createYouth(rng: Rng, o: YouthInput, params: Params): NewPlayerK
     name: name.full,
     sportingName: name.sporting,
     birth: addDays(o.seasonStart, -Math.round((age + rng.float()) * 365.25)),
-    nationality: "pt",
-    birthCity,
+    nationality: o.nationality ?? "pt",
+    ...(birthCity !== undefined ? { birthCity } : {}),
     roles: ["player"],
     personality,
     archetype,

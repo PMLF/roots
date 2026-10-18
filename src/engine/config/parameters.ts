@@ -440,6 +440,8 @@ export type Params = {
     /** Jogadores sem clube e pessoas fora do plantel. */
     free: number;
     staffPerClub: number;
+    /** Ligas estrangeiras inventadas (RZ-230): quantos países, quantos clubes por país e jogadores por clube. */
+    foreignLeagues: { countries: number; clubsPerCountry: number; squad: number };
     /** Pessoas fora dos plantéis (GERACAO_MUNDO §1). */
     others: { businesspeople: number; fansOfficials: number; agents: number; referees: number; journalists: number; freeStaff: number };
     /** Salário mensal (€) de um jogador médio do escalão e elasticidade por ponto de qualidade (exp). */
@@ -633,6 +635,20 @@ export type Params = {
     training: { ageMax: number; byTier: Record<Tier, number> };
   };
   /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
+  /** Scouting do gamer (RZ-230): quantos jogadores aparecem, quanto custa observar e quanto demora. */
+  scouting: {
+    /** Fração dos jogadores nacionais visíveis: base + por olheiro (máx.); os estrangeiros só uma fração disso. */
+    reach: { base: number; perScout: number; max: number; foreignFactor: number };
+    days: { week: number; month: number; search: number };
+    /** Custo (€) de uma observação de uma semana, de um mês e de uma pesquisa por posição; estrangeiros custam mais (viagens). */
+    cost: { week: number; month: number; search: number; foreignMultiplier: number };
+    /** Um mês de observação sobe a qualidade; nunca passa do máximo. */
+    monthBoost: number;
+    monthQualityMax: number;
+    /** Qualidade (0-1) das estimativas que a pesquisa por posição já traz. */
+    searchQuality: number;
+    search: { results: number; slack: number; potentialDiscount: number; noise: number; reachFactor: number };
+  };
   knowledge: {
     /** Épocas sem nova observação a partir das quais a ficha mostra "desatualizado". */
     seasonsAfterOutdated: number;
@@ -900,6 +916,7 @@ export const DEFAULT_PARAMETERS: Params = {
     placesByPosition: { GK: 3, RB: 2, CB: 4, LB: 2, DM: 2, CM: 3, AM: 2, RW: 2, LW: 2, ST: 3 },
     free: 3000,
     staffPerClub: 6,
+    foreignLeagues: { countries: 8, clubsPerCountry: 6, squad: 18 },
     others: { businesspeople: 500, fansOfficials: 400, agents: 150, referees: 250, journalists: 200, freeStaff: 500 },
     wage: { average: { firstLeague: 9000, secondLeague: 3500, thirdLeague: 1400, cp: 700, district: 250 }, elasticity: 0.22, yearsContractMin: 1, yearsContractMax: 4 },
     age: { min: 16, max: 38, mean: 26, deviation: 4.5, trainedAtStartMax: 22 },
@@ -994,6 +1011,15 @@ export const DEFAULT_PARAMETERS: Params = {
     agents: { share: { firstLeague: 0.85, secondLeague: 0.55, thirdLeague: 0.3, cp: 0.12, district: 0.04 }, popularity: 0.5, commissionRate: 0.08, commissionByGreed: 0.05, wageByGreed: 0.012, consentByGreed: 0.012, consentByLoyalty: 0.015, greedPivot: 14.4, loyaltyPivot: 7 },
     clauses: { releaseProbability: 0.2, releaseByAgentGreed: 0.02, releaseFactor: [1.2, 2.2] },
     training: { ageMax: 23, byTier: { firstLeague: 1.2, secondLeague: 0.8, thirdLeague: 0.4, cp: 0.08, district: 0 } },
+  },
+  scouting: {
+    reach: { base: 0.03, perScout: 0.06, max: 0.6, foreignFactor: 0.15 },
+    days: { week: 7, month: 30, search: 14 },
+    cost: { week: 300, month: 900, search: 450, foreignMultiplier: 3 },
+    monthBoost: 0.3,
+    monthQualityMax: 0.97,
+    searchQuality: 0.25,
+    search: { results: 10, slack: 1, potentialDiscount: 2, noise: 0.8, reachFactor: 3 },
   },
   knowledge: {
     seasonsAfterOutdated: 2,

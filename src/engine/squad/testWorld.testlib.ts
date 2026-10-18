@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { DEFAULT_PARAMETERS as P } from "../config/parameters";
 import { importData } from "../data/importData";
 import { MemoryRepository } from "../persistence/repositoryMemory";
+import { foreignClubs } from "../world/foreign";
 import { generateWorld } from "../world/generateWorld";
 import { importCountries } from "../world/countries";
 import { currentQuality } from "../world/player";
@@ -18,6 +19,7 @@ export const tiers = new Map(data.clubs.map((c) => [c.id, c.tier] as const));
 export const fresh = (seed: string) => {
   const repo = new MemoryRepository();
   repo.setMeta("seed", seed);
+  repo.setMeta("foreign.clubs", JSON.stringify(foreignClubs(seed, pr.countries, P)));
   repo.saveWorld(generateWorld({ seed, data, countries: pr.countries, params: P }));
   return repo;
 };
