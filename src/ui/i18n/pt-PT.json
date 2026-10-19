@@ -1297,5 +1297,7 @@
   "person.forSale": "À venda",
   "person.putForSale": "Pôr à venda",
   "person.removeFromSale": "Retirar da venda",
-  "match.subs.injuryForced": "Há um jogador lesionado: escolhe quem entra para o lugar dele. A equipa joga com menos um até fazeres a troca."
+  "match.subs.injuryForced": "Há um jogador lesionado: escolhe quem entra para o lugar dele. A equipa joga com menos um até fazeres a troca.",
+  "attributes.best": "Melhores",
+  "attributes.worst": "Piores"
 }

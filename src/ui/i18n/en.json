@@ -1297,5 +1297,7 @@
   "person.forSale": "For sale",
   "person.putForSale": "Put up for sale",
   "person.removeFromSale": "Remove from sale",
-  "match.subs.injuryForced": "A player is injured: choose who comes on in his place. The team plays a man short until you make the change."
+  "match.subs.injuryForced": "A player is injured: choose who comes on in his place. The team plays a man short until you make the change.",
+  "attributes.best": "Best",
+  "attributes.worst": "Weakest"
 }
