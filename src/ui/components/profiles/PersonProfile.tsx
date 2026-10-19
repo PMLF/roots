@@ -177,7 +177,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
 
   const summary = j ? (
     <div className="cartoes">
-      <div className="cartoes-atributos">
+      <div className={`cartoes-atributos${cardPositions ? "" : " sozinho"}`}>
         <Card title={t("card.attributes")}>
           {!attributes && !truth && <p className="suave">{t("person.unobservedShort")}</p>}
           <Attributes groups={groups} />

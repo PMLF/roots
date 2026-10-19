@@ -101,3 +101,8 @@ Motor em `src/engine/market/bids.ts`; estado em meta `market.bids`. «Fazer prop
 ## Jogadores à venda (RZ-242)
 - O gamer põe jogadores à venda no plantel e na ficha (`setForSale`, meta `market.forSale`). À venda: a chance diária de proposta ×`offers.forSaleChance` (5) e o valor ×`offers.forSaleFee` (0,93).
 - Propor sem massa salarial (`BidView.wageRoom`) ou sem orçamento de transferências fica bloqueado, com a mensagem a vermelho.
+
+## Negociação no mesmo dia (RZ-243)
+- As rondas com o clube e com o agente respondem **no mesmo dia** (`replyDelay` = 0); a espera é só entre fases: acordo com o clube → o agente atende no dia seguinte (`agentFrom`); acordo com o agente → confirmação (e mensagem na caixa) no dia seguinte (`confirmFrom`). No último dia da janela (deadline day) é tudo logo. `BidView.waitUntil` diz até quando.
+- A margem salarial é **anual** (orçamento salarial por ano menos a massa atual ×12). Comprar gasta a verba de transferências (`adjustTransfers`) e vender soma-a; a margem acompanha os contratos.
+- Slider no ecrã do clube: reparte o mesmo bolo entre margem salarial e verba de transferências (esta nunca passa do caixa).

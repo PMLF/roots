@@ -327,14 +327,14 @@ export type SubmitInput = { kind: "fee"; fee: number } | { kind: "terms"; terms:
 export type Resolved = { status: "accepted" | "counter" | "closed" | "blocked"; reason?: string; terms?: RenewalTerms };
 
 /** As rondas da negociação respondem no mesmo dia: a espera é só entre fases (clube → agente → confirmação). */
-export const replyDelay = (_repo: Repository, _params: Params, _today: IsoDate, _bid: Bid): number => 0;
+export const replyDelay = (): number => 0;
 
 /** Primeiro dia em que a fase seguinte avança: amanhã, ou hoje no último dia da janela (deadline day). */
 export const nextPhaseDay = (params: Params, today: IsoDate): IsoDate => (windowAt(today, params)?.last ? today : addDays(today, 1));
 
 /** Envia uma proposta: responde logo no último dia da janela, senão fica pendente. Devolve a resposta se já chegou. */
 export function submitBid(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid, input: SubmitInput): Resolved | "pending" {
-  const delay = replyDelay(repo, params, today, bid);
+  const delay = replyDelay();
   const due = addDays(today, delay);
   const pending = input.kind === "fee" ? { kind: "fee" as const, fee: input.fee, due } : { kind: "terms" as const, terms: input.terms, due };
   const next: Bid = { ...bid, pending, ...(input.kind === "terms" ? { lastTerms: input.terms } : {}) };

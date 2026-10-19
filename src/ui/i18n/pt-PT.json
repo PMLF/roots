@@ -1304,5 +1304,6 @@
   "bid.waitConfirm": "O agente aceitou. A transferência só se confirma a partir de {date}: receberás uma mensagem na caixa de entrada.",
   "finances.slider": "Reparte a verba entre salários e transferências",
   "finances.sliderWages": "Mais salários",
-  "finances.sliderTransfers": "Mais transferências"
+  "finances.sliderTransfers": "Mais transferências",
+  "menu.more": "Mais"
 }

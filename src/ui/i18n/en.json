@@ -1304,5 +1304,6 @@
   "bid.waitConfirm": "The agent agreed. The transfer can only be confirmed from {date}: you will get a message in your inbox.",
   "finances.slider": "Split the budget between wages and transfers",
   "finances.sliderWages": "More wages",
-  "finances.sliderTransfers": "More transfers"
+  "finances.sliderTransfers": "More transfers",
+  "menu.more": "More"
 }

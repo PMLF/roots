@@ -199,8 +199,9 @@ legend { padding: 0 6px; color: var(--suave); }
   .barra { padding: 6px 16px; }
   .abas { display: block; grid-area: abas; background: var(--painel); border-top: 1px solid var(--linha-forte); padding-bottom: env(safe-area-inset-bottom); }
   .abas ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); }
-  .abas li a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; padding: 6px 2px; color: var(--suave); font-size: 11px; border-top: 3px solid transparent; }
-  .abas li.ativo a { color: var(--destaque-texto); border-top-color: var(--destaque); font-weight: 600; }
+  .abas li a, .abas li button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 56px; padding: 6px 2px; color: var(--suave); font-size: 11px; border-top: 3px solid transparent; }
+  .abas li button { width: 100%; background: none; border: 0; border-top: 3px solid transparent; border-radius: 0; cursor: pointer; font: inherit; font-size: 11px; }
+  .abas li.ativo a, .abas li.ativo button { color: var(--destaque-texto); border-top-color: var(--destaque); font-weight: 600; }
   .abas .menu-texto { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .abas li a:hover { text-decoration: none; }
 }
@@ -880,3 +881,9 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .slider-orcamento { display: grid; gap: 4px; margin-top: 10px; }
 .slider-orcamento input[type="range"] { width: 100%; accent-color: var(--destaque); min-height: 44px; }
 .slider-extremos { display: flex; justify-content: space-between; color: var(--suave); }
+.cartoes-atributos.sozinho { grid-template-columns: minmax(0, 1fr); }
+
+/* Indicador de tempo a passar no botão Avançar */
+.rodar { display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: rodar 0.7s linear infinite; }
+@keyframes rodar { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .rodar { animation-duration: 2s; } }
