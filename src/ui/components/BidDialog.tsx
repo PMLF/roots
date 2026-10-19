@@ -41,7 +41,8 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
   const take = useCallback((b: BidView) => {
     setBid(b);
     if (b.stage === "club") setFee((f) => (b.ask !== undefined ? String(b.ask) : f || String(b.feeSuggestions[Math.floor(b.feeSuggestions.length / 2)] ?? "")));
-    if (b.terms) setTerms((x) => x ?? { wage: String(b.terms?.wages[Math.floor((b.terms?.wages.length ?? 0) / 2)] ?? b.terms?.ask.wage ?? ""), years: String(b.terms?.ask.years ?? 2), release: b.terms?.ask.release ? String(b.terms.ask.release) : NONE });
+    if (b.counter) setTerms({ wage: String(b.counter.wage), years: String(b.counter.years), release: b.counter.release === null ? NONE : String(b.counter.release) });
+    else if (b.terms) setTerms((x) => x ?? { wage: String(b.terms?.wages[Math.floor((b.terms?.wages.length ?? 0) / 2)] ?? b.terms?.ask.wage ?? ""), years: String(b.terms?.ask.years ?? 2), release: b.terms?.ask.release ? String(b.terms.ask.release) : NONE });
   }, []);
   useEffect(() => {
     engine?.call("bid", { person, action: "open" }).then((r) => { if (r.ok) take(r.bid); else setError(t("bid.error")); }).catch(() => setError(t("bid.error")));
@@ -90,13 +91,18 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
   })();
   const message = (() => {
     if (!bid || banner) return undefined;
-    if (waiting) return { tone: "aviso", text: t("bid.waiting", { who: t(waiting.kind === "fee" ? "bid.waiting.club" : "bid.waiting.agent"), date: waiting.due }) };
+    if (waiting) return { tone: "ok", text: t("bid.waiting", { who: t(waiting.kind === "fee" ? "bid.waiting.club" : "bid.waiting.agent"), date: waiting.due }) };
     if (bid.lastReply?.status === "blocked" || reply?.status === "blocked") return { tone: "erro", text: t(`bid.blocked.${(reply?.reason ?? bid.lastReply?.reason) === "wageBudget" ? "wageBudget" : "cash"}` as Key) };
-    if (bid.stage === "club" && bid.lastReply?.status === "counter") return { tone: "aviso", text: t("bid.clubCounter", { club: bid.seller ?? "", fee: eur.format(bid.ask ?? 0), left: bid.roundsLeft }) };
+    if (bid.stage === "club" && bid.lastReply?.status === "counter") return { tone: "aviso", text: t("bid.clubCounter", { club: bid.seller ?? "", fee: eur.format(bid.ask ?? 0) }) };
     if (bid.stage === "agent" && bid.fee !== undefined && bid.lastReply?.kind === "fee") return { tone: "ok", text: t("bid.clubAgreed", { club: bid.seller ?? "", fee: eur.format(bid.fee) }) };
-    if (bid.stage === "agent" && bid.lastReply?.status === "counter") return { tone: "aviso", text: t("renewals.counter", { left: bid.roundsLeft }) };
+    if (bid.stage === "agent" && bid.lastReply?.status === "counter") return { tone: "aviso", text: t("bid.agentCounter") };
     return undefined;
   })();
+  const counter = bid?.counter;
+  const same = (f: "wage" | "years" | "release") => !counter || !terms || (f === "release" ? terms.release === (counter.release === null ? NONE : String(counter.release)) : terms[f] === String(counter[f]));
+  const changed = (f: "wage" | "years" | "release") => Boolean(counter && terms && counter[f] !== counter.sent[f] && same(f));
+  const feeCounter = bid?.stage === "club" && bid.lastReply?.status === "counter" && bid.ask !== undefined;
+  const accepting = (feeCounter && Number(fee) === bid?.ask) || (Boolean(counter) && same("wage") && same("years") && same("release"));
   const info = bid ? [
     ...(bid.position ? [{ label: t("bid.info.position"), value: namePosition(t, bid.position) }] : []),
     ...(bid.age !== undefined ? [{ label: t("bid.info.age"), value: bid.age }] : []),
@@ -117,7 +123,7 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
           <Data lines={info} />
           {banner && <div className={`resultado-negocio ${banner.tone}`} role="status"><Icon name={banner.tone === "ok" ? "check" : "close"} /><div><b>{banner.title}</b><span>{banner.body}</span></div></div>}
           {turn && bid.stage === "club" && (
-            <label className={bid.lastReply?.status === "counter" ? "alterado" : undefined}>
+            <label className={feeCounter && Number(fee) === bid.ask ? "alterado" : undefined}>
               <span>{t("bid.feeField")}</span>
               <select disabled={busy} value={fee} onChange={(e) => setFee(e.target.value)}>
                 {withValue(bid.feeSuggestions, fee).map((v) => <option key={v} value={v}>{eur.format(v)}</option>)}
@@ -126,19 +132,19 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
           )}
           {turn && bid.stage === "agent" && bid.terms && terms && (
             <>
-              <label>
+              <label className={changed("wage") ? "alterado" : undefined}>
                 <span>{t("renewals.wageField")}</span>
                 <select disabled={busy} value={terms.wage} onChange={(e) => setTerms({ ...terms, wage: e.target.value })}>
                   {withValue(bid.terms.wages, terms.wage).map((w) => <option key={w} value={w}>{eur.format(w)}</option>)}
                 </select>
               </label>
-              <label>
+              <label className={changed("years") ? "alterado" : undefined}>
                 <span>{t("renewals.yearsField")}</span>
                 <select disabled={busy} value={terms.years} onChange={(e) => setTerms({ ...terms, years: e.target.value })}>
                   {[1, 2, 3, 4, 5].map((y) => <option key={y} value={y}>{t("renewals.years", { n: y })}</option>)}
                 </select>
               </label>
-              <label>
+              <label className={changed("release") ? "alterado" : undefined}>
                 <span>{t("renewals.releaseField")}</span>
                 <select disabled={busy} value={terms.release} onChange={(e) => setTerms({ ...terms, release: e.target.value })}>
                   <option value={NONE}>{t("renewals.noClause")}</option>
@@ -153,7 +159,7 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
           {(turn || toConfirm || waiting) && (
             <div className="acoes-popup">
               {(started || toConfirm) && !waiting && <button type="button" className="perigo" disabled={busy} onClick={() => void send({ action: "cancel" })}>{t("bid.withdraw")}</button>}
-              {turn && <button type="submit" className="primario" disabled={busy}>{t("renewals.propose")}</button>}
+              {turn && <button type="submit" className="primario" disabled={busy}>{t(accepting ? "bid.accept" : "renewals.propose")}</button>}
               {toConfirm && <button type="button" className="primario" disabled={busy} onClick={() => void send({ action: "confirm" })}>{t("bid.confirm")}</button>}
             </div>
           )}

@@ -18,7 +18,7 @@ export type RenewalAsk = RenewalTerms & { releaseCeiling: number };
 /** Decisão do gamer sobre um contrato a expirar: renovar com estas condições ou deixar sair. */
 export type RenewalDecision = ({ kind: "renew" } & RenewalTerms) | { kind: "release" };
 /** Estado da negociação com o agente: rondas feitas e, se acabou sem acordo, porquê. */
-export type NegotiationState = { round: number; closed?: NegotiationClosed; /** Dia em que o agente voltou a falar (fecho = 1 mês depois). */ reopens?: IsoDate; accepted?: boolean };
+export type NegotiationState = { round: number; closed?: NegotiationClosed; /** Dia em que o agente voltou a falar (fecho = 1 mês depois). */ reopens?: IsoDate; accepted?: boolean; /** Última contraproposta do agente: aceitá-la fecha o negócio. */ counter?: RenewalTerms };
 export type NegotiationClosed = "refused" | "level" | "distance";
 export type NegotiationReply =
   | { status: "accepted"; terms: RenewalTerms }
@@ -161,7 +161,9 @@ export function negotiateRenewal(repo: Repository, data: BaseData, params: Param
   const floorWage = Math.max(interest.minWage ?? 0, extra.minWage ?? 0) || undefined;
   const reserve = Math.max(base, floorWage ?? 0);
   const distanceBound = floorWage !== undefined && floorWage >= base;
-  if (offer.wage >= reserve && clauseOk) {
+  const lastCounter = state.counter;
+  const takesCounter = lastCounter !== undefined && offer.wage >= lastCounter.wage && offer.release === lastCounter.release;
+  if ((offer.wage >= reserve && clauseOk) || takesCounter) {
     saveNegotiation(repo, season, person, { ...state, accepted: true });
     return { status: "accepted", terms: { wage: Math.round(offer.wage), years, release: offer.release } };
   }
@@ -175,7 +177,7 @@ export function negotiateRenewal(repo: Repository, data: BaseData, params: Param
   const demand = ask.wage * clauseFactor(params, clause, reference);
   const wage = offer.wage >= reserve ? Math.round(offer.wage) : Math.max(reserve, Math.round((offer.wage + (demand - offer.wage) * n.concession ** round) / 10) * 10);
   const counterYears = Math.abs(years - ask.years) >= 2 ? ask.years : years;
-  saveNegotiation(repo, season, person, { round });
+  saveNegotiation(repo, season, person, { round, counter: { wage, years: counterYears, release: clause } });
   return { status: "counter", terms: { wage, years: counterYears, release: clause }, round, roundsLeft: n.maxRounds - round, ...(distanceBound ? { reason: "distance" as const } : {}) };
 }
 

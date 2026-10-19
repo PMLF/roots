@@ -108,6 +108,8 @@ export type BidView = {
   closed?: "refused" | "squad" | "level" | "distance" | "cash" | "gone";
   reopens?: string;
   moving?: { club: string; date: string };
+  /** Contraproposta do agente e o que o gamer tinha enviado (para assinalar os campos alterados). */
+  counter?: { wage: number; years: number; release: number | null; sent: { wage: number; years: number; release: number | null } };
   /** Proposta enviada à espera de resposta (chega em `due`). */
   pending?: { kind: "fee" | "terms"; due: string };
   /** Última resposta recebida. */

@@ -90,3 +90,9 @@ Motor em `src/engine/market/bids.ts`; estado em meta `market.bids`. «Fazer prop
 - **Confirmação**: o acordo com o agente deixa a proposta em `agreed` sem `moving`; o gamer confirma (`confirm`) em «Exige decisão» até `market.bids.confirmDays` (7) ou o acordo caduca. Só depois muda já (janela aberta) ou fica marcado. «Negociação por X» deixa de aparecer quando há acordo; propostas pendentes aparecem só como informação.
 - **Observação de um mês** dá a informação toda: atributos exatos, potencial, posições, contrato e personalidade na ficha.
 - Resultados dos olheiros na caixa de entrada ligam à página Olheiros.
+
+### Ajustes 19-10 (tarde)
+- Aceitar a contraproposta (valor ao clube; condições ao agente) fecha o negócio: guarda-se a última contraproposta (`bid.ask`, `negotiation.counter`). Mais uma ronda escondida se a oferta está a ≥ `bids.closeBonus` do pedido; o número de rondas deixa de ser mostrado.
+- Preço do vendedor sobe com a importância do jogador no plantel (`bids.importance`) e com a qualidade acima do escalão (`bids.qualityPremium`).
+- Valores mais realistas: `market.ageFactor` ×3,5 (valores e cláusulas), ordenados médios 11 000/4 200/1 600/800/280 €/mês, `news.minFee` 1,5 M€.
+- UI: campos alterados pelo agente a amarelo, botão «Aceitar» quando se repete a contraproposta, popup de proposta recebida redesenhado, Observar/Fazer proposta na ficha, separador «Contrato e personalidade», nível e potencial no cartão do topo.

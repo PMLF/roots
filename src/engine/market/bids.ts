@@ -46,6 +46,8 @@ export type Bid = {
   pending?: { kind: "fee"; fee: number; due: IsoDate } | { kind: "terms"; terms: RenewalTerms; due: IsoDate };
   /** Última resposta recebida (para o popup e a caixa de entrada). */
   lastReply?: { status: "accepted" | "counter" | "closed" | "blocked"; kind: "fee" | "terms"; date: IsoDate; reason?: string; terms?: RenewalTerms };
+  /** Últimas condições que o gamer enviou ao agente (para assinalar o que o agente mexeu). */
+  lastTerms?: RenewalTerms;
   /** Dia em que o agente aceitou: o gamer tem `bids.confirmDays` para confirmar a transferência. */
   agreedOn?: IsoDate;
   /** O clube/agente só volta a falar depois desta data. */
@@ -96,10 +98,18 @@ export function sellerAsk(repo: Repository, data: BaseData, params: Params, bid:
   const value = valueOf(repo, params, bid.person, today);
   const greed = isForeignClub(bid.seller) ? 10 : presidentGreed(repo, bid.seller);
   const pos = repo.player(bid.person)?.positions[0]?.pos;
-  const mates = repo.clubPlayers(bid.seller).filter((x) => x.positions[0]?.pos === pos);
-  const q = (id: string) => { const j = repo.player(id); return j ? currentQuality(j.attributes as Attributes, pos as Position) : 0; };
-  const starter = mates.filter((x) => q(x.person) > q(bid.person)).length < 2;
-  return Math.round((value * (mk.askBase + mk.askByGreed * (greed - 10)) * (starter && !isForeignClub(bid.seller) ? 1.25 : 1)) / 1000) * 1000;
+  const quality = (id: string) => { const j = repo.player(id); const ps = j?.positions[0]?.pos; return j && ps ? currentQuality(j.attributes as Attributes, ps as Position) : 0; };
+  const squad = repo.clubPlayers(bid.seller);
+  const mine = quality(bid.person);
+  const better = squad.filter((x) => x.person !== bid.person && quality(x.person) > mine).length;
+  const mates = squad.filter((x) => x.positions[0]?.pos === pos);
+  const starter = mates.filter((x) => quality(x.person) > mine).length < 2;
+  const importance = mk.bids.importance.find(([rank]) => better <= rank)?.[1] ?? 1;
+  const seller = data.clubs.find((c) => c.id === bid.seller);
+  const tq = seller ? params.world.targetQuality[seller.tier] : undefined;
+  const premium = tq ? 1 + mk.bids.qualityPremium * Math.max(0, (mine - tq.mean) / tq.deviation) : 1;
+  const mult = isForeignClub(bid.seller) ? 1 : importance * (starter ? 1.1 : 1) * premium;
+  return Math.round((value * (mk.askBase + mk.askByGreed * (greed - 10)) * mult) / 1000) * 1000;
 }
 
 export type OpenError = "own" | "invalid" | "retired";
@@ -171,13 +181,14 @@ export function clubOffer(repo: Repository, data: BaseData, params: Params, club
     if (size - 1 < params.world.squad[seller.tier] - 2) return close("squad");
   }
   const ask = sellerAsk(repo, data, params, bid, today);
-  if (fee >= ask) {
+  // quem aceita o que o clube acabou de pedir não leva nova contraproposta
+  if (fee >= ask || (bid.clubRound > 0 && bid.ask !== undefined && fee >= bid.ask)) {
     if (!paid(fee)) return close("cash");
     update(repo, { ...bid, stage: "agent", fee, ask: fee });
     return { status: "accepted", fee };
   }
   const round = bid.clubRound + 1;
-  if (fee < ask * b.walkAway || round > b.maxRounds) return close("refused");
+  if (fee < ask * b.walkAway || round > b.maxRounds + (fee >= ask * b.closeBonus ? 1 : 0)) return close("refused");
   const counter = Math.min(ask, Math.max(fee + 1000, Math.round((ask - (ask - fee) * (1 - b.concession ** round)) / 1000) * 1000));
   update(repo, { ...bid, clubRound: round, ask: counter });
   return { status: "counter", fee: counter, round, roundsLeft: b.maxRounds - round };
@@ -317,7 +328,7 @@ export function submitBid(repo: Repository, data: BaseData, params: Params, club
   const delay = replyDelay(repo, params, today, bid);
   const due = addDays(today, delay);
   const pending = input.kind === "fee" ? { kind: "fee" as const, fee: input.fee, due } : { kind: "terms" as const, terms: input.terms, due };
-  const next: Bid = { ...bid, pending };
+  const next: Bid = { ...bid, pending, ...(input.kind === "terms" ? { lastTerms: input.terms } : {}) };
   update(repo, next);
   if (delay > 0) return "pending";
   return resolvePending(repo, data, params, club, today, season, next) ?? "pending";

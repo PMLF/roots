@@ -6,7 +6,7 @@ export const PROFILE_TYPES: readonly ProfileEntityType[] = ["club", "city", "loc
 export const TYPE_URL: Record<ProfileEntityType, string> = { club: "club", city: "city", locality: "locality", person: "person", competition: "competition" };
 export const TAB_URL: Record<string, string> = {
   summary: "summary", squad: "squad", staff: "staff", matches: "matches", story: "history", career: "career",
-  clubs: "clubs", mayor: "mayor", standings: "table", knowledge: "knowledge", statistics: "stats",
+  clubs: "clubs", mayor: "mayor", standings: "table", knowledge: "knowledge", statistics: "stats", contract: "contract",
 };
 export const urlTab = (v: string | null): string | undefined => Object.entries(TAB_URL).find(([, u]) => u === v)?.[0];
 
@@ -25,7 +25,7 @@ export function readProfile(params: { get(name: string): string | null }): { k: 
  */
 export const TABS: Record<ProfileEntityType, readonly string[]> = {
   club: ["summary", "squad", "staff", "matches", "story"],
-  person: ["summary", "career", "story"],
+  person: ["summary", "contract", "career", "story"],
   city: ["summary", "clubs", "story"],
   locality: ["summary", "clubs", "story"],
   competition: ["summary", "statistics", "clubs", "story"],

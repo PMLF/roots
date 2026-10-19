@@ -90,4 +90,20 @@ describe("propostas do gamer", { timeout: 180000 }, () => {
     expect(hist.length).toBe(1);
     void P;
   });
+
+  it("aceitar a contraproposta do clube fecha o valor, sem nova contraproposta", async () => {
+    const clubs = await handle({ id: 20, type: "clubs", input: null }, s);
+    const seller = clubs.find((c) => c.league.startsWith("Distrital") && repository.clubPlayers(c.id).length > 12 && c.id !== me)!;
+    const target = repository.clubPlayers(seller.id).filter((j) => j.positions[0]?.pos !== "GK")[2]!;
+    const opened = await handle({ id: 21, type: "bid", input: { person: target.person, action: "open" } }, s);
+    const low = opened.ok ? opened.bid.feeSuggestions[1]! : 0;
+    await handle({ id: 22, type: "bid", input: { person: target.person, action: "fee", fee: low } }, s);
+    let view = await settle(target.person);
+    if (view.stage === "club" && view.ask !== undefined) {
+      await handle({ id: 23, type: "bid", input: { person: target.person, action: "fee", fee: view.ask } }, s);
+      view = await settle(target.person);
+    }
+    expect(["agent", "closed"]).toContain(view.stage);
+    expect(view.lastReply?.status).not.toBe("counter");
+  });
 });

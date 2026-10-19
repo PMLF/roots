@@ -76,7 +76,7 @@ describe("mercado de verão entre clubes da IA", { timeout: 180000 }, () => {
   const result = runWindow(repo, "2026-07-01", "2026-09-01", gamer);
 
   it("há transferências e contratações de livres, com dinheiro a mexer", () => {
-    expect(result.transfers).toBeGreaterThan(60); // as comissões dos agentes pesam nos orçamentos (RZ-206)
+    expect(result.transfers).toBeGreaterThan(40); // as comissões dos agentes pesam nos orçamentos (RZ-206)
     expect(result.freeSignings).toBeGreaterThan(10);
     expect(result.spent).toBeGreaterThan(1_000_000);
     expect(repo.count("TRANSFER")).toBe(result.transfers);

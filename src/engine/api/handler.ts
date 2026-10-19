@@ -575,6 +575,7 @@ function bidViewOf(r: Repository, data: BaseData, params: Params, b: Bid): BidVi
     round: b.stage === "club" ? b.clubRound : neg.round,
     roundsLeft: Math.max(0, (b.stage === "club" ? params.market.bids.maxRounds - b.clubRound : params.squadCycle.contracts.negotiation.maxRounds - neg.round)),
     ...(closed ? { closed } : {}), ...(b.reopens ? { reopens: b.reopens } : {}), ...(b.moving ? { moving: b.moving } : {}),
+    ...(b.stage === "agent" && b.lastReply?.status === "counter" && b.lastReply.kind === "terms" && neg.counter && b.lastTerms ? { counter: { ...neg.counter, sent: b.lastTerms } } : {}),
     ...(b.pending ? { pending: { kind: b.pending.kind, due: b.pending.due } } : {}),
     ...(b.lastReply ? { lastReply: { status: b.lastReply.status, kind: b.lastReply.kind, date: b.lastReply.date, ...(b.lastReply.reason ? { reason: b.lastReply.reason } : {}) } } : {}),
     ...(b.stage === "agreed" && !b.moving && b.agreedOn ? { needsConfirm: { by: addDays(b.agreedOn, params.market.bids.confirmDays) } } : {}),
