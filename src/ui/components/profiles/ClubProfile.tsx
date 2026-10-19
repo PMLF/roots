@@ -222,7 +222,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
             ...(d.sponsors.length ? [{ label: t("club.sponsorships"), value: d.sponsors.map((x) => x.name).join(", ") }] : []),
           ]}
         />
-        {d.finances.budget && <ClubBudget budget={d.finances.budget} />}
+        {d.finances.budget && <ClubBudget budget={d.finances.budget} {...(d.finances.balance !== undefined ? { balance: d.finances.balance } : {})} />}
       </Card>
       {clubSeason}
       {clubTops}

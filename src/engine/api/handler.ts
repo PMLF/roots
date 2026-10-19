@@ -586,7 +586,9 @@ function bidViewOf(r: Repository, data: BaseData, params: Params, b: Bid): BidVi
     ...(b.stage === "agent" && b.lastReply?.status === "counter" && b.lastReply.kind === "terms" && neg.counter && b.lastTerms ? { counter: { ...neg.counter, sent: b.lastTerms } } : {}),
     ...(b.pending ? { pending: { kind: b.pending.kind, due: b.pending.due } } : {}),
     ...(b.lastReply ? { lastReply: { status: b.lastReply.status, kind: b.lastReply.kind, date: b.lastReply.date, ...(b.lastReply.reason ? { reason: b.lastReply.reason } : {}) } } : {}),
-    ...(b.stage === "agreed" && !b.moving && b.agreedOn ? { needsConfirm: { by: addDays(b.agreedOn, params.market.bids.confirmDays) } } : {}),
+    ...(b.stage === "agreed" && !b.moving && b.agreedOn && today >= (b.confirmFrom ?? today) ? { needsConfirm: { by: addDays(b.agreedOn, params.market.bids.confirmDays) } } : {}),
+    ...(b.stage === "agent" && b.agentFrom && today < b.agentFrom ? { waitUntil: { who: "agent" as const, date: b.agentFrom } } : {}),
+    ...(b.stage === "agreed" && !b.moving && b.confirmFrom && today < b.confirmFrom ? { waitUntil: { who: "confirm" as const, date: b.confirmFrom } } : {}),
     windowOpen: Boolean(windowAt(today, params)),
     cash: club ? clubBudget(r, club, params, Number(r.meta("season") ?? 1)).transfers : 0,
     wageRoom: club ? Math.max(0, Math.floor((clubBudget(r, club, params, Number(r.meta("season") ?? 1)).wageBillMax * (1 + params.market.wageSlack) - monthlyWageBill(r, club.id) * 12) / 12)) : 0,
@@ -618,7 +620,7 @@ function bidAction(r: Repository, data: BaseData, params: Params, a: BidAction):
     const rep = submitBid(r, data, params, club, today, season, bid, { kind: "fee", fee: a.fee });
     return view(rep === "pending" ? undefined : rep);
   }
-  if (a.action === "terms" && bid.stage === "agent") {
+  if (a.action === "terms" && bid.stage === "agent" && (!bid.agentFrom || today >= bid.agentFrom)) {
     const rep = submitBid(r, data, params, club, today, season, bid, { kind: "terms", terms: { wage: a.wage, years: a.years, release: a.release } });
     return view(rep === "pending" ? undefined : rep);
   }

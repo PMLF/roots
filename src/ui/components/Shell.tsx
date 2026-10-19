@@ -33,8 +33,8 @@ const MENU: ItemMenu[] = [
   { rowKey: "menu.lab", icon: "lab", href: "/lab/", whenActive: (c) => c.startsWith("/lab"), devOnly: true },
 ];
 
-/** As secções que ficam sempre à mão do polegar, em baixo, no telemóvel (as outras estão na gaveta). */
-const TABS: Key[] = ["menu.today", "menu.club", "menu.squad", "menu.tactic", "menu.matches"];
+/** As 4 secções que ficam sempre à mão do polegar, em baixo, no telemóvel; a 5.ª aba, «Mais», abre a gaveta com todas as outras. */
+const TABS: Key[] = ["menu.today", "menu.club", "menu.squad", "menu.tactic"];
 
 type Theme = "auto" | "light" | "dark";
 const isTheme = (v: unknown): v is Theme => v === "auto" || v === "light" || v === "dark";
@@ -90,6 +90,8 @@ export function Shell({ children }: { children: ReactNode }) {
 
   const matchInProgress = useOngoingMatch() && path.startsWith("/match");
   const items = MENU.filter((m) => (!m.devOnly || dev) && !m.hidden);
+  // «Mais» fica ativa quando a página atual só se chega pela gaveta
+  const onlyInMore = !MENU.filter((m) => TABS.includes(m.rowKey)).some((m) => m.whenActive(path));
   return (
     <div className="shell">
       <nav className={`menu${drawer ? " aberto" : ""}`} aria-label="Menu" id="menu-principal">
@@ -150,6 +152,12 @@ export function Shell({ children }: { children: ReactNode }) {
       <nav className="abas" aria-label={t("menu.tabs")}>
         <ul>
           {TABS.map((k) => MENU.filter((m) => m.rowKey === k).map((m) => <ItemDoMenu key={m.rowKey} m={m} path={path} tab />))}
+          <li className={onlyInMore ? "ativo" : undefined}>
+            <button type="button" aria-haspopup="dialog" aria-expanded={drawer} aria-controls="menu-principal" onClick={() => setDrawer(true)}>
+              <Icon name="menu" />
+              <span className="menu-texto">{t("menu.more")}</span>
+            </button>
+          </li>
         </ul>
       </nav>
     </div>

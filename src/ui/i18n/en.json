@@ -1058,7 +1058,7 @@
   "column.tier": "Tier",
   "career.noMatches": "No matches as a player.",
   "finances.wageBudget": "Wage budget (per year)",
-  "finances.wageLeft": "Wage room left",
+  "finances.wageLeft": "Wage margin (per year)",
   "finances.transferLeft": "Transfer budget left",
   "renewals.title": "Renew {name}'s contract",
   "renewals.currentContract": "Current contract: {wage}/month until {date}",
@@ -1219,7 +1219,7 @@
   "scouting.scouts": "Club scouts",
   "scouting.noScouts": "The club has no scouts.",
   "scouting.transferBudget": "Transfer budget",
-  "scouting.wageMargin": "Wage margin",
+  "scouting.wageMargin": "Wage margin (per year)",
   "scouting.onlyFree": "Free agents only",
   "scouting.requestTitle": "Ask the scouts",
   "scouting.ordersTitle": "Orders in progress and recent",
@@ -1299,5 +1299,11 @@
   "person.removeFromSale": "Remove from sale",
   "match.subs.injuryForced": "A player is injured: choose who comes on in his place. The team plays a man short until you make the change.",
   "attributes.best": "Best",
-  "attributes.worst": "Weakest"
+  "attributes.worst": "Weakest",
+  "bid.waitAgent": "{club} accepted the fee. The agent only talks from {date}: come back then to negotiate the contract.",
+  "bid.waitConfirm": "The agent agreed. The transfer can only be confirmed from {date}: you will get a message in your inbox.",
+  "finances.slider": "Split the budget between wages and transfers",
+  "finances.sliderWages": "More wages",
+  "finances.sliderTransfers": "More transfers",
+  "menu.more": "More"
 }

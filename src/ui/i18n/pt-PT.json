@@ -1058,7 +1058,7 @@
   "column.tier": "Escalão",
   "career.noMatches": "Sem jogos como jogador.",
   "finances.wageBudget": "Orçamento salarial (por ano)",
-  "finances.wageLeft": "Margem salarial",
+  "finances.wageLeft": "Margem salarial (por ano)",
   "finances.transferLeft": "Verba de transferências restante",
   "renewals.title": "Renovar contrato de {name}",
   "renewals.currentContract": "Contrato atual: {wage}/mês até {date}",
@@ -1219,7 +1219,7 @@
   "scouting.scouts": "Olheiros do clube",
   "scouting.noScouts": "O clube não tem olheiros.",
   "scouting.transferBudget": "Verba de transferências",
-  "scouting.wageMargin": "Margem salarial",
+  "scouting.wageMargin": "Margem salarial (por ano)",
   "scouting.onlyFree": "Só jogadores livres",
   "scouting.requestTitle": "Pedir aos olheiros",
   "scouting.ordersTitle": "Ordens em curso e recentes",
@@ -1299,5 +1299,11 @@
   "person.removeFromSale": "Retirar da venda",
   "match.subs.injuryForced": "Há um jogador lesionado: escolhe quem entra para o lugar dele. A equipa joga com menos um até fazeres a troca.",
   "attributes.best": "Melhores",
-  "attributes.worst": "Piores"
+  "attributes.worst": "Piores",
+  "bid.waitAgent": "{club} aceitou o valor. O agente só atende a partir de {date}: volta então para negociar o contrato.",
+  "bid.waitConfirm": "O agente aceitou. A transferência só se confirma a partir de {date}: receberás uma mensagem na caixa de entrada.",
+  "finances.slider": "Reparte a verba entre salários e transferências",
+  "finances.sliderWages": "Mais salários",
+  "finances.sliderTransfers": "Mais transferências",
+  "menu.more": "Mais"
 }

@@ -6,7 +6,7 @@
  */
 import { addDays } from "../calendar/dates";
 import { clubBalance, post } from "../club/finances";
-import { clubBudget } from "../club/budget";
+import { adjustTransfers, clubBudget } from "../club/budget";
 import type { Params, Tier } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
@@ -139,6 +139,7 @@ function settle(repo: Repository, data: BaseData, params: Params, gamer: BaseClu
   if (!renewalInterest(repo, data, params, buyer, o.person).interested || clubBalance(repo, buyer) < o.fee) { update(repo, { ...o, status: "refused" }); return { status: "refused" }; }
   post(repo, gamer, "transfers", o.fee);
   post(repo, buyer, "transfers", -o.fee);
+  adjustTransfers(repo, gamer, params, season, o.fee);
   repo.updatePlayer(o.person, { club: buyer.id, state: "active" });
   repo.saveContract({ person: o.person, club: buyer.id, monthlyWage: o.wage, ...contractDates(today, o.years), ...(o.release !== null ? { clauses: { release: o.release } } : {}) });
   const plan = readPlan(repo, gamer.id);

@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import type { LiveMatch } from "@/engine/season/liveMatch";
 import { EntityLink } from "@/ui/components/Link";
@@ -13,7 +13,6 @@ import { useEngine } from "@/ui/EngineProvider";
 function Content() {
   const { t } = useT();
   const engine = useEngine();
-  const router = useRouter();
   const [mine] = useOwnClub();
   const id = useSearchParams().get("id") ?? undefined;
   const [match, setMatch] = useState<LiveMatch | null | undefined>(undefined);
@@ -37,7 +36,6 @@ function Content() {
           <h1>{t(hasTable ? "results.titleRound" : "results.titleStage")}</h1>
           <p className="suave"><EntityLink k="competition" id={match.competition}>{match.competition}</EntityLink> · {stage} · {match.date}</p>
         </div>
-        <button type="button" className="primario" onClick={() => router.push("/")}>{t("results.continue")}</button>
       </header>
       <div className={`resultados-grelha${hasTable ? "" : " sem-tabela"}`}>
         <section className="painel" aria-labelledby="h-res">

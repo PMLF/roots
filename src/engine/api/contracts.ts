@@ -122,6 +122,8 @@ export type BidView = {
   cash: number;
   /** Ordenado mensal que ainda cabe na massa salarial do clube. */
   wageRoom: number;
+  /** Fase seguinte ainda fechada: o agente só atende / a transferência só se confirma a partir desta data. */
+  waitUntil?: { who: "agent" | "confirm"; date: string };
 };
 export type BidAction =
   | { person: string; action: "open" }

@@ -154,7 +154,7 @@ export default function Start() {
           <h2 id="i-decisao">{t("today.decisions")}{decisions > 0 && <span className="distintivo" aria-label={t("start.pending", { n: decisions })}>{decisions}</span>}</h2>
           {time.pause && (
             <div className="decisao">
-              <p><b>{t(time.pause.ongoing ? "today.matchInProgress" : "today.matchToday", { match: `${time.pause.atHome ? "" : "@ "}${time.pause.opponent}` })}</b></p>
+              <p><ClubSwatch id={pj?.opponentId} /><b>{t(time.pause.ongoing ? "today.matchInProgress" : "today.matchToday", { match: `${time.pause.atHome ? "" : "@ "}${time.pause.opponent}` })}</b></p>
               <p className="acoes">
                 <button id="confirmar-jogo" type="button" className="primario" disabled={time.advancing} onClick={() => router.push(time.pause?.ongoing ? "/match/" : "/prematch/")}>{t(time.pause.ongoing ? "today.continueMatch" : "today.confirmPlay")}</button>
                 <Link href="/tactics/">{t("today.seeTactic")}</Link>
@@ -163,20 +163,20 @@ export default function Start() {
           )}
           {pendingBids.map((b) => (
             <div className="decisao" key={b.person}>
-              <p><b><WithPlayer text={t("bid.today", { name: "\u0000", date: "" })} id={b.person} name={b.name} /></b></p>
+              <p><ClubSwatch id={b.sellerId} /><b><WithPlayer text={t("bid.today", { name: "\u0000", date: "" })} id={b.person} name={b.name} /></b></p>
               <p className="acoes"><button type="button" className="primario" onClick={() => setResuming(b)}>{t("bid.continue")}</button></p>
             </div>
           ))}
           {confirmBids.map((b) => (
             <div className="decisao decisao-ok" key={b.person}>
-              <p><b><WithPlayer text={t("bid.confirmItem", { name: "\u0000", date: b.needsConfirm?.by ?? "" })} id={b.person} name={b.name} /></b></p>
+              <p><ClubSwatch id={b.sellerId} /><b><WithPlayer text={t("bid.confirmItem", { name: "\u0000", date: b.needsConfirm?.by ?? "" })} id={b.person} name={b.name} /></b></p>
               <p className="acoes"><button type="button" className="primario" onClick={() => setResuming(b)}>{t("bid.confirm")}</button></p>
             </div>
           ))}
           {waitingBids.map((b) => <p className="suave" key={b.person}><WithPlayer text={t("bid.waitingItem", { name: "\u0000", date: b.pending?.due ?? "" })} id={b.person} name={b.name} /></p>)}
           {offersIn.map((o) => (
             <div className="decisao" key={o.id}>
-              <p><b><WithPlayer text={t("offer.decision", { name: "\u0000" })} id={o.person} name={o.name} /></b> <span className="suave">· {o.buyer.name}</span></p>
+              <p><ClubSwatch id={o.buyer.id} /><b><WithPlayer text={t("offer.decision", { name: "\u0000" })} id={o.person} name={o.name} /></b> <span className="suave">· {o.buyer.name}</span></p>
               <p className="acoes"><button type="button" className="primario" onClick={() => setAnswering(o)}>{t("offer.answer")}</button></p>
             </div>
           ))}

@@ -52,3 +52,9 @@ export function setBudget(repo: Repository, c: BaseClub, params: Params, season:
   repo.setMeta(`budget.${c.id}`, JSON.stringify(o));
   return o;
 }
+
+/** Vendas somam e compras gastam a verba de transferências do clube (nunca abaixo de zero). */
+export function adjustTransfers(repo: Repository, c: BaseClub, params: Params, season: number, delta: number): void {
+  const b = clubBudget(repo, c, params, season);
+  repo.setMeta(`budget.${c.id}`, JSON.stringify({ ...b, transfers: Math.max(0, Math.round(b.transfers + delta)) }));
+}

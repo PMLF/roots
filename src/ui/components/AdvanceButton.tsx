@@ -42,7 +42,7 @@ export function AdvanceButton() {
 
   // no pré-jogo o botão é o «começar o jogo»; num jogo já acabado só leva ao Início, sem passar tempo
   const inPrematch = path.startsWith("/prematch") && !!time.pause && !time.pause.ongoing;
-  const finishedMatch = path.startsWith("/match") && !time.pause?.ongoing;
+  const finishedMatch = (path.startsWith("/match") && !time.pause?.ongoing) || path.startsWith("/results");
   const simple = inPrematch || finishedMatch;
   const [starting, setStarting] = useState(false);
 
@@ -91,13 +91,14 @@ export function AdvanceButton() {
   }, [isOpen]);
 
   const modeLabel = (m: AdvanceMode) => t(`advance.mode.${m}` as Key);
-  const main = inPrematch ? t("prematch.go") : finishedMatch ? t("advance.start") : time.advancing ? t("advance.advancing") : time.pause ? t(time.pause.ongoing ? "advance.matchInProgress" : "advance.matchToday") : t("advance.label");
+  const main = inPrematch ? t("prematch.go") : finishedMatch ? t("results.continue") : time.advancing ? t("advance.advancing") : time.pause ? t(time.pause.ongoing ? "advance.matchInProgress" : "advance.matchToday") : t("advance.label");
 
   return (
     <div className="avancar" ref={root}>
       {time.error && <span className="erro avancar-erro" role="alert">{time.error}</span>}
       <div className="avancar-botao">
-        <button type="button" className={`primario avancar-principal${simple ? " avancar-sozinho" : ""}`} onClick={load} disabled={simple ? starting : time.pause ? false : disabled} title={t("advance.hint")} data-testid="advance">
+        <button type="button" className={`primario avancar-principal${simple ? " avancar-sozinho" : ""}`} onClick={load} disabled={simple ? starting : time.pause ? false : disabled} title={t("advance.hint")} data-testid="advance" aria-busy={time.advancing || undefined}>
+          {time.advancing && <span className="rodar" aria-hidden="true" />}
           <span>{main}</span>
           {!simple && !time.pause && !time.advancing && <span className="avancar-modo">{modeLabel(effective)}</span>}
         </button>
