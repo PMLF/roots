@@ -63,7 +63,17 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initi
     let last = start;
     const handle = e.currentTarget;
     handle.setPointerCapture(e.pointerId);
-    const move = (ev: globalThis.PointerEvent) => { last = { ...start, [columnId]: Math.max(40, Math.round(from + ev.clientX - x0)) }; setWidths(last); };
+    // a largura total da tabela não muda: o que uma coluna ganha, tira-o à vizinha (à anterior, se for a última)
+    const ids = visibleColumns.map((c) => c.id);
+    const i = ids.indexOf(columnId);
+    const neighbour = ids[i + 1] ?? ids[i - 1];
+    const move = (ev: globalThis.PointerEvent) => {
+      if (neighbour === undefined) return;
+      const other = start[neighbour] ?? 100;
+      const dx = Math.max(40 - from, Math.min(other - 40, Math.round(ev.clientX - x0)));
+      last = { ...start, [columnId]: from + dx, [neighbour]: other - dx };
+      setWidths(last);
+    };
     const end = () => { handle.removeEventListener("pointermove", move); handle.removeEventListener("pointerup", end); handle.removeEventListener("pointercancel", end); save(`raizes.widths.${id}`, last); };
     handle.addEventListener("pointermove", move);
     handle.addEventListener("pointerup", end);
@@ -139,7 +149,7 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initi
           )}
         </div>
       </div>}
-      <table ref={tableRef} className="tabela densa" style={visibleColumns.every((c) => widths[c.id] !== undefined) ? { tableLayout: "fixed", width: visibleColumns.reduce((n, c) => n + (widths[c.id] ?? 0), 0) } : undefined}>
+      <table ref={tableRef} className="tabela densa" style={visibleColumns.every((c) => widths[c.id] !== undefined) ? { tableLayout: "fixed", width: "100%" } : undefined}>
         <thead>
           <tr>
             {visibleColumns.map((c) => (

@@ -1286,5 +1286,16 @@
   "positionLevel.competent": "Competent",
   "positionLevel.fair": "Fair",
   "positionLevel.limited": "Limited",
-  "positionLevel.poor": "Unlikely"
+  "positionLevel.poor": "Unlikely",
+  "newsItem.youth_intake.1.title": "{n} new youth graduates",
+  "newsItem.youth_intake.1.body": "The academy produced {names}. See the new recruits in the squad.",
+  "youth.viewSquad": "See the squad",
+  "squad.sale": "Sale",
+  "squad.sale.on": "For sale",
+  "squad.sale.off": "Put up for sale",
+  "squad.endingSoon": "The contract ends in under a year",
+  "person.forSale": "For sale",
+  "person.putForSale": "Put up for sale",
+  "person.removeFromSale": "Remove from sale",
+  "match.subs.injuryForced": "A player is injured: choose who comes on in his place. The team plays a man short until you make the change."
 }

@@ -202,6 +202,30 @@ describe("jogo do gamer minuto a minuto (RZ-170)", () => {
 });
 
 describe("jogo a eliminar ao vivo (RZ-140)", () => {
+  it("lesão na equipa do gamer: o jogo pára, não há substituição automática e a troca forçada não gasta pausas", async () => {
+    let found = false;
+    for (const seed of ["lesao-1", "lesao-2", "lesao-3", "lesao-4", "lesao-5", "lesao-6"]) {
+      const a = await untilMatch(seed);
+      await handle({ id: 60, type: "startMatch", input: { match: a.pause.match } }, a.s);
+      let n = 100;
+      let j = await handle({ id: n++, type: "matchStep", input: { minutes: 1 } }, a.s);
+      while (j.ongoing && !j.pendingInjury && (j.minute ?? 0) < 120) j = await handle({ id: n++, type: "matchStep", input: { minutes: 1 } }, a.s);
+      if (!j.ongoing || !j.pendingInjury) continue;
+      found = true;
+      const side = j.gamerSide!;
+      const hurt = j.teams![side].find((x) => x.id === j.pendingInjury![0])!;
+      // sem suplente automático: nenhuma substituição por lesão no feed
+      expect(j.lines.some((l) => l.type === "substitution" && l.side === side)).toBe(false);
+      const sub = j.teams![side].find((x) => x.state === "bench" && x.position !== "GK") ?? j.teams![side].find((x) => x.state === "bench")!;
+      const r = await handle({ id: n++, type: "substitutionsInMatch", input: { substitutions: [{ playerOut: hurt.id, playerIn: sub.id }] } }, a.s);
+      expect(r.pendingInjury).toBeUndefined();
+      expect(r.subs!.usedPauses).toBe(0);
+      expect(r.lines.some((l) => l.type === "substitution" && l.side === side)).toBe(true);
+      break;
+    }
+    expect(found).toBe(true);
+  }, 240000);
+
   it("empatado aos 90' segue para o prolongamento e acaba com vencedor (golos ou penáltis)", async () => {
     let extra = 0;
     for (let i = 0; i < 25 && extra < 2; i++) {

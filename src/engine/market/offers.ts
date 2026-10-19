@@ -62,6 +62,15 @@ function windowEnd(params: Params, date: IsoDate): IsoDate {
   return d;
 }
 
+const SALE_KEY = "market.forSale";
+/** Jogadores que o gamer pôs à venda: mais propostas, por um valor um pouco mais baixo. */
+export const forSale = (repo: Repository): Set<string> => new Set(JSON.parse(repo.meta(SALE_KEY) ?? "[]") as string[]);
+export function setForSale(repo: Repository, person: string, on: boolean): void {
+  const set = forSale(repo);
+  if (on) set.add(person); else set.delete(person);
+  repo.setMeta(SALE_KEY, JSON.stringify([...set]));
+}
+
 /** Teto do comprador: o valor de mercado vezes `maxMult`, limitado pelo que pode gastar. */
 export function buyerCeiling(repo: Repository, data: BaseData, params: Params, today: IsoDate, season: number, o: Offer): number {
   const buyer = data.clubs.find((c) => c.id === o.buyer);
@@ -83,8 +92,10 @@ export function dailyOffers(repo: Repository, data: BaseData, params: Params, ga
   const rng = new Rng(repo.meta("seed") ?? "?", `offers/${today}`);
   const gamerIdx = TIER_ORDER.indexOf(gamer.tier);
   const buyers = data.clubs.filter((c) => c.id !== gamer.id && !isInSecondDistrict(c.league) && Math.abs(TIER_ORDER.indexOf(c.tier) - gamerIdx) <= 1);
+  const onSale = forSale(repo);
   for (const j of repo.clubPlayers(gamer.id)) {
-    if (j.state !== "active" || !rng.prob(cfg.dailyChance)) continue;
+    const sale = onSale.has(j.person);
+    if (j.state !== "active" || !rng.prob(cfg.dailyChance * (sale ? cfg.forSaleChance : 1))) continue;
     const p = repo.person(j.person);
     const pos = j.positions[0]?.pos as Position | undefined;
     if (!p || !pos) continue;
@@ -95,7 +106,7 @@ export function dailyOffers(repo: Repository, data: BaseData, params: Params, ga
     const quality = currentQuality(j.attributes as Attributes, pos);
     const value = valueOf(repo, params, j.person, today);
     if (value <= 0) continue;
-    const fee = round1000(value * (cfg.feeSpread[0] + rng.float() * (cfg.feeSpread[1] - cfg.feeSpread[0])));
+    const fee = round1000(value * (sale ? cfg.forSaleFee : 1) * (cfg.feeSpread[0] + rng.float() * (cfg.feeSpread[1] - cfg.feeSpread[0])));
     // um comprador que precisa dele (nível útil), pode pagar e a quem o jogador aceitaria juntar-se
     const buyer = rng.shuffle([...buyers]).find((c) => {
       const tq = params.world.targetQuality[c.tier];

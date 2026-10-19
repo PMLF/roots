@@ -46,6 +46,7 @@ function Content() {
   const [subsOpen, setIsOpenSubs] = useState(false);
   const [subsError, setSubsError] = useState<string | undefined>(undefined);
   const seenHalfTime = useRef<string | undefined>(undefined);
+  const seenInjury = useRef<string | undefined>(undefined);
   const ofHalfTimePause = useRef(false);
 
   useEffect(() => { setTab(read("raizes.matchTab", isTab) ?? "match"); }, []);
@@ -97,6 +98,17 @@ function Content() {
     setRunning(false);
     setHalfTime(true);
   }, [ongoing, halfTimeMinute, matchMinute, matchId]);
+
+  // lesão na equipa do gamer: o jogo pára e abre-se o popup das substituições para ele resolver (uma vez por lesão)
+  const pendingKey = match?.pendingInjury?.join(",");
+  useEffect(() => {
+    if (!ongoing || !pendingKey || seenInjury.current === `${matchId}/${matchMinute}/${pendingKey}`) return;
+    seenInjury.current = `${matchId}/${matchMinute}/${pendingKey}`;
+    beforeRan.current = true;
+    setRunning(false);
+    setSubsError(undefined);
+    setIsOpenSubs(true);
+  }, [ongoing, pendingKey, matchId, matchMinute]);
 
   // espaço: pausa e continua (a barra global não avança o tempo nesta página)
   useEffect(() => {

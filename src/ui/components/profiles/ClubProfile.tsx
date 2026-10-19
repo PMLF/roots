@@ -17,6 +17,7 @@ import { BidDialog } from "@/ui/components/BidDialog";
 import { ObservePlayer } from "@/ui/components/ScoutDialogs";
 import { RenewalDialog } from "@/ui/components/RenewalDialog";
 import type { Key } from "@/ui/i18n";
+import { useEngine } from "@/ui/EngineProvider";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { abbreviationPosition, rankPosition } from "@/ui/i18n/position";
 import type { Column } from "@/ui/table/logic";
@@ -91,13 +92,20 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
   const [agreed, setAgreed] = useState<Record<string, true>>({});
   const [observing, setObserving] = useState<ViewPerson | undefined>(undefined);
   const [bidding, setBidding] = useState<ViewPerson | undefined>(undefined);
+  const engine = useEngine();
+  const [sale, setSale] = useState<Record<string, boolean>>({});
+  const isForSale = (p: ViewPerson) => sale[p.id] ?? d.extraSquad[p.id]?.forSale ?? false;
+  const toggleSale = (p: ViewPerson) => { const on = !isForSale(p); setSale((x) => ({ ...x, [p.id]: on })); void engine?.call("setForSale", { person: p.id, forSale: on }); };
+  const saleCol: Column<ViewPerson> = { id: "sale", title: t("squad.sale"), value: (p) => (isForSale(p) ? 1 : 0) };
   const canRenew = d.squad.some((p) => d.extraSquad[p.id]?.renewable);
   const renewalCol: Column<ViewPerson> = { id: "renewal", title: t("renewals.action"), value: (p) => (d.extraSquad[p.id]?.renewable ? 1 : 0), numeric: false };
   const actionsCol: Column<ViewPerson> = { id: "actions", title: t("column.actions"), value: () => "" };
-  const viewColumns = view === "season" ? seasonCol : view === "discipline" ? disciplineCol : canRenew ? [...squad, renewalCol] : !ownSquad ? [...squad, actionsCol] : squad;
+  const viewColumns = view === "season" ? seasonCol : view === "discipline" ? disciplineCol : ownSquad ? [...squad, ...(canRenew ? [renewalCol] : []), saleCol] : canRenew ? [...squad, renewalCol] : [...squad, actionsCol];
   const seasonCell = {
     name: (p: ViewPerson) => <>{name(p)}{d.extraSquad[p.id]?.injured && <span className="lesao" role="img" aria-label={t("squad.injured")} title={t("squad.injured")}> ✚</span>}</>, country: (p: ViewPerson) => <Flag id={p.nationality} />, wage: (p: ViewPerson) => { const w = d.extraSquad[p.id]?.wage; return w !== undefined ? eur.format(w) : unknown; }, potential: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating?.potential; return r ? <Stars range={r} /> : unknown; }, stars: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating; return r ? <Stars value={r.stars} /> : unknown; },
     actions: (p: ViewPerson) => <span className="acoes-linha"><button type="button" className="secundario" disabled={!ownClub} onClick={() => setObserving(p)}>{t("squad.scout")}</button><button type="button" className="secundario" disabled={!ownClub} onClick={() => setBidding(p)}>{t("squad.offer")}</button></span>,
+    sale: (p: ViewPerson) => <button type="button" className={isForSale(p) ? "primario" : "secundario"} onClick={() => toggleSale(p)}>{t(isForSale(p) ? "squad.sale.on" : "squad.sale.off")}</button>,
+    contract: (p: ViewPerson) => { const e = d.extraSquad[p.id]; return e?.endingSoon ? <span className="erro" title={t("squad.endingSoon")}>{e.endContract}</span> : <>{e?.endContract ?? ""}</>; },
     renewal: (p: ViewPerson) => (d.extraSquad[p.id]?.renewable ? (agreed[p.id] ? <b>{t("renewals.done")}</b> : <button type="button" className="secundario" onClick={() => setRenewing(p)}>{t("renewals.renew")}</button>) : null),
     rating: (p: ViewPerson) => (ep(p)?.rating !== undefined ? dec(ep(p)?.rating ?? 0, 2) : "—"),
     g90: (p: ViewPerson) => (ep(p)?.minutes ? dec(g90(p), 2) : "—"),

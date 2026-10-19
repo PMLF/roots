@@ -120,6 +120,8 @@ export type BidView = {
   windowOpen: boolean;
   /** Verba de transferências do clube do gamer. */
   cash: number;
+  /** Ordenado mensal que ainda cabe na massa salarial do clube. */
+  wageRoom: number;
 };
 export type BidAction =
   | { person: string; action: "open" }
@@ -227,6 +229,10 @@ export type PersonProfileData = {
   career?: CareerLine[];
   /** O contrato acaba esta época e o jogador é do teu clube: pode abrir-se a renovação. */
   renewable?: boolean;
+  /** O contrato acaba daqui a menos de um ano. */
+  contractEndingSoon?: boolean;
+  /** Jogador do clube do gamer: se está à venda. */
+  forSale?: boolean;
   /** O gamer pode fazer uma proposta por este jogador (RZ-231). */
   biddable?: boolean;
   /** Negociação em curso (aberta) ou acordo à espera da janela: «vai mudar-se para X em Y». */
@@ -280,7 +286,7 @@ export type ClubProfileData = {
   /** Divisão em que o clube esteve, por época (a história de subidas e descidas). */
   divisionsHistory: { season: number; label: string; tier: Tier; league: string }[];
   /** Por jogador do plantel: fim de contrato e nível geral. */
-  extraSquad: Record<string, { endContract?: string; level?: EstimatedLevel; rating?: StarRating; injured?: boolean; renewable?: boolean; /** Só no clube do gamer (ou em modo developer). */ wage?: number }>;
+  extraSquad: Record<string, { endContract?: string; level?: EstimatedLevel; rating?: StarRating; injured?: boolean; renewable?: boolean; /** O contrato acaba daqui a menos de um ano. */ endingSoon?: boolean; /** Posto à venda pelo gamer. */ forSale?: boolean; /** Só no clube do gamer (ou em modo developer). */ wage?: number }>;
   /** Estatísticas da época atual (jogadores do plantel e tops do clube). */
   season?: ClubSeason;
   /** Por membro da equipa técnica: desde quando está no clube (contrato). */
@@ -423,6 +429,8 @@ export type EngineRequests = {
   /** Contratos a expirar no clube do gamer, com o pedido de cada jogador (RZ-165). Quem não tiver decisão renova pela fórmula do escalão. */
   renewals: { input: null; output: RenewalsData };
   bid: { input: BidAction; output: BidResult };
+  /** Põe um jogador do clube do gamer à venda (ou tira-o). */
+  setForSale: { input: { person: string; forSale: boolean }; output: null };
   bids: { input: null; output: BidView[] };
   transferOffers: { input: null; output: OfferView[] };
   offerReply: { input: OfferAction; output: OfferAnswer };

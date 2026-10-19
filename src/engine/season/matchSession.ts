@@ -54,7 +54,7 @@ const save = (repo: Repository, s: SavedSession) => repo.setMeta(SESSION_KEY, JS
 
 /** Refaz o simulador até ao minuto atual, aplicando as mudanças de tática no minuto em que foram feitas. */
 function replay(s: SavedSession, params: Params, until: number = s.minute): { sim: MatchSimulator; events: MatchEvent[] } {
-  const sim = new MatchSimulator(s.input, params);
+  const sim = new MatchSimulator(s.input, params, { manualSubs: s.side });
   const events: MatchEvent[] = [];
   const tactics = s.changes.filter((m) => m.minute <= until);
   const substitutions = (s.substitutions ?? []).filter((t) => t.minute <= until);
@@ -91,7 +91,7 @@ function view(repo: Repository, s: SavedSession, params: Params, names: Readonly
     away: { id: s.input.away.club, name: names.get(s.input.away.club) ?? s.input.away.club },
     duration: sim.duration, homeGoals: summary.home.goals, awayGoals: summary.away.goals, lines,
     table: s.table, winPoints: s.winPoints, drawPoints: s.drawPoints, others, colours: s.colours, ...(s.zones ? { zones: s.zones } : {}),
-    summary, teams, subs: { used: events.filter((e) => e.type === "substitution" && e.side === s.side).length, max: params.match.substitutions.max, usedPauses: new Set((s.substitutions ?? []).map((t) => t.pause).filter((p) => p > 0)).size, pausesMax: params.match.substitutions.pauses }, xg: xgCurve(events, s.minute), ...(s.meetings ? { meetings: s.meetings } : {}), ...(s.info ? { info: s.info } : {}), gamerSide: s.side, ongoing: true, minute: s.minute, ...(last ? { tactic: last } : {}),
+    summary, teams, subs: { used: events.filter((e) => e.type === "substitution" && e.side === s.side).length, max: params.match.substitutions.max, usedPauses: new Set((s.substitutions ?? []).map((t) => t.pause).filter((p) => p > 0)).size, pausesMax: params.match.substitutions.pauses }, xg: xgCurve(events, s.minute), ...(s.meetings ? { meetings: s.meetings } : {}), ...(s.info ? { info: s.info } : {}), gamerSide: s.side, ongoing: true, minute: s.minute, ...(sim.pendingInjuries(s.side).length > 0 ? { pendingInjury: sim.pendingInjuries(s.side) } : {}), ...(last ? { tactic: last } : {}),
   };
 }
 
@@ -146,8 +146,20 @@ export function sessionStep(repo: Repository, base: BaseData, params: Params, mi
   if (!s) throw new Error("Não há jogo a decorrer");
   const data = seasonData(repo, base);
   // o prolongamento só existe depois de simular os 90': a duração vê-se no minuto de destino, não no atual
-  const { sim } = replay(s, params, s.minute + Math.max(0, Math.floor(minutes)));
-  const fresh = { ...s, minute: Math.min(sim.duration, s.minute + Math.max(0, Math.floor(minutes))) };
+  const target = s.minute + Math.max(0, Math.floor(minutes));
+  const { sim, events } = replay(s, params, target);
+  let fresh = { ...s, minute: Math.min(sim.duration, target) };
+  // uma lesão na equipa do gamer pára o jogo, para ele decidir a substituição (se ainda puder fazê-la)
+  const injury = events.find((e) => e.type === "injury" && e.side === s.side && e.minute > s.minute);
+  if (injury && sim.pendingInjuries(s.side).length > 0 && (sim.team(s.side).bench ?? []).length > 0) {
+    const stop = replay(s, params, injury.minute);
+    const used = stop.events.filter((e) => e.type === "substitution" && e.side === s.side).length;
+    if (used < params.match.substitutions.max && !stop.sim.finished) {
+      fresh = { ...s, minute: injury.minute };
+      save(repo, fresh);
+      return view(repo, fresh, params, namesOf(data));
+    }
+  }
   if (sim.finished) return finish(repo, data, params, fresh);
   save(repo, fresh);
   return view(repo, fresh, params, namesOf(data));
@@ -179,14 +191,17 @@ export function substituteSession(repo: Repository, base: BaseData, params: Para
   const used = events.filter((e) => e.type === "substitution" && e.side === s.side).length;
   if (used >= cfg.max) throw new Error("Já não tens substituições");
   if (used + substitutions.length > cfg.max) throw new Error(`Só tens mais ${cfg.max - used} substituições`);
-  const halfTime = s.minute === halfTimeMinute(params);
+  // substituir só lesionados é uma paragem forçada: não gasta pausas
+  const pendingInjury = new Set(sim.pendingInjuries(s.side));
+  const forced = substitutions.every((t) => pendingInjury.has(t.playerOut));
+  const halfTime = s.minute === halfTimeMinute(params) || forced;
   const usedPauses = new Set((s.substitutions ?? []).map((t) => t.pause).filter((p) => p > 0)).size;
   if (!halfTime && usedPauses >= cfg.pauses) throw new Error("Já não tens pausas para substituições");
   const eq = sim.team(s.side);
   const playerOut = new Set<string>();
   const playerIn = new Set<string>();
   for (const t of substitutions) {
-    if (!eq.lineup.some((j) => j.id === t.playerOut)) throw new Error("O jogador que sai não está em campo");
+    if (!eq.lineup.some((j) => j.id === t.playerOut) && !pendingInjury.has(t.playerOut)) throw new Error("O jogador que sai não está em campo");
     if (!(eq.bench ?? []).some((j) => j.id === t.playerIn)) throw new Error("O jogador que entra não está no banco");
     if (playerOut.has(t.playerOut) || playerIn.has(t.playerIn)) throw new Error("Jogador repetido nas substituições");
     playerOut.add(t.playerOut);

@@ -243,6 +243,9 @@ legend { padding: 0 6px; color: var(--suave); }
 .cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; align-items: stretch; }
 .cartao { background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 14px 18px 16px; min-width: 0; }
 .cartao.larga { grid-column: 1 / -1; }
+/* Atributos + posições: as posições ocupam um terço da largura em desktop, os atributos o resto */
+.cartoes-atributos { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 33.333%); gap: 14px; align-items: stretch; }
+@media (max-width: 900px) { .cartoes-atributos { grid-template-columns: 1fr; } }
 .cartao h2 { font-size: 15px; margin: 0 0 8px; }
 .cartao .dados > div:first-child { padding-top: 0; }
 .cartao.dev { border-style: dashed; border-color: var(--aviso); background: var(--aviso-fundo); }
@@ -786,7 +789,7 @@ button.dev { border-style: dashed; }
 .mensagem-renovacao { margin: 4px 0 0; padding: 8px 10px; border-radius: var(--r-s, 6px); background: var(--painel-2); font-size: 14px; }
 .mensagem-renovacao.aviso { background: var(--atencao-fundo); color: var(--atencao); }
 .mensagem-renovacao.ok { background: var(--destaque-fundo); color: var(--destaque-texto); }
-.mensagem-renovacao.erro { color: var(--erro, inherit); }
+.mensagem-renovacao.erro { background: var(--aviso-fundo); color: var(--aviso); }
 .acoes-popup { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 6px; }
 
 .topo .data-topo { margin-left: auto; color: var(--suave); font-size: 14px; white-space: nowrap; font-variant-numeric: tabular-nums; }

@@ -55,6 +55,9 @@ export class MatchSimulator {
   private readonly sentOff: Record<Side, Set<string>> = { home: new Set(), away: new Set() };
   /** Lesionados sem suplente: jogam menos um (penalização igual à de um expulso). */
   private readonly withoutSubstitute: Record<Side, number> = { home: 0, away: 0 };
+  /** Lado com substituições manuais (o do gamer): quem se lesiona sai sem suplente automático e fica à espera de troca. */
+  private readonly manualSide: Side | undefined;
+  private readonly pending: Record<Side, Map<string, OnPitchPlayer>> = { home: new Map(), away: new Map() };
   private readonly turf: number;
   /** Quem se lesionou neste jogo não volta. */
   private readonly baseRisks: Record<Side, number[] | undefined> = { home: undefined, away: undefined };
@@ -62,7 +65,8 @@ export class MatchSimulator {
   private readonly yellows: Record<Side, Set<string>> = { home: new Set(), away: new Set() };
   private readonly stats: Record<Side, SideStat> = { home: newSide(), away: newSide() };
 
-  constructor(input: MatchInput, params: Params) {
+  constructor(input: MatchInput, params: Params, options?: { manualSubs?: Side }) {
+    this.manualSide = options?.manualSubs;
     this.p = params.match;
     this.params = params;
     this.turf = input.turf ?? 0.5;
@@ -122,19 +126,30 @@ export class MatchSimulator {
     const out: MatchEvent[] = [];
     let eq = this.teams[side];
     for (const t of substitutions) {
-      const playerOut = eq.lineup.find((j) => j.id === t.playerOut);
+      const injured = this.pending[side].get(t.playerOut);
+      const playerOut = injured ?? eq.lineup.find((j) => j.id === t.playerOut);
       const playerIn = (eq.bench ?? []).find((j) => j.id === t.playerIn);
       if (!playerOut) throw new Error(`substituir: ${t.playerOut} não está em campo`);
       if (!playerIn) throw new Error(`substituir: ${t.playerIn} não está no banco`);
       const fresh: OnPitchPlayer = { ...playerIn, position: playerOut.position, ...(playerIn.positions ? { aptitude: aptitudeIn(playerIn.positions, playerOut.position, this.params) } : {}) };
-      eq = { ...eq, lineup: eq.lineup.map((j) => (j.id === playerOut.id ? fresh : j)), bench: (eq.bench ?? []).filter((b) => b.id !== playerIn.id) };
-      out.push({ type: "substitution", minute: this.last, side, playerOut: playerOut.id, playerIn: playerIn.id, reason: "coach" });
+      // um lesionado já saiu do onze: o suplente entra como acrescento e a equipa deixa de jogar com menos um
+      eq = { ...eq, lineup: injured ? [...eq.lineup, fresh] : eq.lineup.map((j) => (j.id === playerOut.id ? fresh : j)), bench: (eq.bench ?? []).filter((b) => b.id !== playerIn.id) };
+      if (injured) {
+        this.pending[side].delete(t.playerOut);
+        this.withoutSubstitute[side] = Math.max(0, this.withoutSubstitute[side] - 1);
+      }
+      out.push({ type: "substitution", minute: this.last, side, playerOut: playerOut.id, playerIn: playerIn.id, reason: injured ? "injury" : "coach" });
     }
     this.teams[side] = eq;
     this.strengths[side] = this.computeStrength(eq);
     this.baseRisks[side] = undefined;
     this.updateEffective(this.last);
     return out;
+  }
+
+  /** Lesionados à espera de substituição (só no lado manual). */
+  pendingInjuries(side: Side): string[] {
+    return [...this.pending[side].keys()];
   }
 
   /** Muda só a tática de um lado (RZ-170): vale a partir do minuto seguinte. */
@@ -364,7 +379,12 @@ export class MatchSimulator {
       bench.find((b) => b.position === player.position) ??
       (player.position === "GK" ? undefined : bench.filter((b) => b.position !== "GK").reduce<OnPitchPlayer | undefined>((a, b) => (!a || b.attributes.finishing + b.attributes.tackling + b.attributes.pass > a.attributes.finishing + a.attributes.tackling + a.attributes.pass ? b : a), undefined));
     const lineup = eq.lineup.filter((j) => j.id !== player.id);
-    if (playerIn) {
+    if (side === this.manualSide) {
+      // equipa do gamer: nada de substituições automáticas, joga com menos um até ele decidir
+      this.pending[side].set(player.id, player);
+      this.teams[side] = { ...eq, lineup };
+      this.withoutSubstitute[side]++;
+    } else if (playerIn) {
       lineup.push({ ...playerIn, position: player.position, ...(playerIn.positions ? { aptitude: aptitudeIn(playerIn.positions, player.position, this.params) } : {}) });
       this.teams[side] = { ...eq, lineup, bench: bench.filter((b) => b.id !== playerIn.id) };
       out.push({ type: "substitution", minute: m, side, playerOut: player.id, playerIn: playerIn.id, reason: "injury" });

@@ -51,7 +51,9 @@ export function SubstitutionsInMatch({ match, busy, error, onConfirm, onClose }:
   const subs = match.subs;
   const side = match.gamerSide ?? "home";
   const all = match.teams?.[side] ?? [];
-  const pitch = all.filter((j) => j.state === "pitch");
+  const hurt = new Set(match.pendingInjury ?? []);
+  // os lesionados à espera de troca vêm primeiro
+  const pitch = all.filter((j) => j.state === "pitch").sort((a, b) => Number(hurt.has(b.id)) - Number(hurt.has(a.id)));
   const bench = all.filter((j) => j.state === "bench");
   const remaining = subs ? subs.max - subs.used - pairs.length : 0;
   const name = (id: string) => all.find((j) => j.id === id)?.name ?? id;
@@ -92,6 +94,7 @@ export function SubstitutionsInMatch({ match, busy, error, onConfirm, onClose }:
     <dialog ref={ref} className="popup subs-jogo" aria-labelledby="h-subs" onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
       <CloseButton onClose={() => ref.current?.close()} />
       <h2 id="h-subs">{t("match.subs.title")}</h2>
+      {hurt.size > 0 && <p className="mensagem-renovacao erro" role="alert">{t("match.subs.injuryForced")}</p>}
       {subs && <p className="subs-resumo"><SubsCounters subs={subs} /></p>}
       {pairs.length > 0 && (
         <ul className="subs-pares" aria-label={t("match.subs.chosen")}>
