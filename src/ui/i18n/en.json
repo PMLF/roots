@@ -1280,5 +1280,11 @@
   "results.titleStage": "This round's results",
   "results.cupRound": "Round {n}",
   "results.scores": "Results",
-  "results.continue": "Continue"
+  "results.continue": "Continue",
+  "inbox.unreadItem": "Unread",
+  "positionLevel.natural": "Natural",
+  "positionLevel.competent": "Competent",
+  "positionLevel.fair": "Fair",
+  "positionLevel.limited": "Limited",
+  "positionLevel.poor": "Unlikely"
 }

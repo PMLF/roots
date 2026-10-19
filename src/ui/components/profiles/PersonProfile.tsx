@@ -146,6 +146,16 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     </Card>
   );
 
+  /** Posições em que o jogador joga e com que qualidade: em palavras e cores (as bandas dos atributos), nunca os números. */
+  const positionBand = (a: number) => (a >= 17 ? 5 : a >= 14 ? 4 : a >= 10 ? 3 : a >= 6 ? 2 : 1);
+  const positionLevel = (a: number) => (a >= 17 ? "natural" : a >= 14 ? "competent" : a >= 10 ? "fair" : a >= 6 ? "limited" : "poor");
+  const knownPositions = inside?.positions;
+  const cardPositions = j && knownPositions && knownPositions.length > 0 ? (
+    <Card title={t("person.positions")}>
+      <Data lines={[...knownPositions].sort((a, b) => b.aptitude - a.aptitude).map((x) => ({ label: namePosition(t, x.pos), value: <b className="attr" data-banda={positionBand(x.aptitude)}>{t(`positionLevel.${positionLevel(x.aptitude)}` as Key)}</b> }))} />
+    </Card>
+  ) : undefined;
+
   const cardDev = truth && (
     <Card title={t("dev.card")} wide dev>
       <Data
@@ -165,6 +175,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
         {!attributes && !truth && <p className="suave">{t("person.unobservedShort")}</p>}
         <Attributes groups={groups} />
       </Card>
+      {cardPositions}
       {cardDev}
     </div>
   ) : (
