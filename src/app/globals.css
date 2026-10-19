@@ -520,11 +520,13 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .tabela-viva td.nome-clube { white-space: nowrap; max-width: 11rem; overflow: hidden; text-overflow: ellipsis; }
 .tabela-viva td.nome-clube .amostra-clube { vertical-align: middle; margin-right: 6px; }
 .outros-jogos { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; font-size: 13px; }
-.outros-jogos li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; column-gap: 8px; }
-.outros-jogos .nome-clube { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.outros-jogos .nome-fora { text-align: right; }
+.outros-jogos li { display: grid; grid-template-columns: minmax(0, 1fr) 3.6rem minmax(0, 1fr); align-items: center; column-gap: 8px; }
+.outros-jogos .nome-clube { display: flex; align-items: center; gap: 6px; min-width: 0; white-space: nowrap; }
+.outros-jogos .nome-casa { justify-content: flex-end; }
+.outros-jogos .nome-clube .ligacao { overflow: hidden; text-overflow: ellipsis; }
+
 .outros-jogos .amostra-clube { margin: 0; }
-.outros-jogos .marcador-pequeno { text-align: center; padding: 0 4px; }
+.outros-jogos .marcador-pequeno { text-align: center; white-space: nowrap; }
 .outros-jogos .fim-jogo { grid-column: 1 / -1; text-align: center; font-size: 11px; }
 .marcador-pequeno { text-align: right; }
 .outros-jogos .fim-jogo { grid-column: 1 / -1; font-size: 11px; }
@@ -859,3 +861,6 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .resultados-grelha { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
 .resultados-grelha.sem-tabela { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 800px) { .resultados-grelha { grid-template-columns: minmax(0, 1fr); } }
+.resultados-topo { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.resultados-topo button { flex: none; }
+.pagina-resultados .outros-jogos { font-size: 14px; }

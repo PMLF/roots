@@ -76,6 +76,7 @@ export function LiveTable({ match, mine }: { match: LiveMatch; mine?: string }) 
   const { t } = useT();
   const minute = match.minute ?? match.duration;
   const table = liveTable(match, minute);
+  if (table.length === 0) return null;
   const inMatch = new Set([match.home.id, match.away.id]);
   return (
     <section className="painel" aria-labelledby="h-tabela">
@@ -95,6 +96,19 @@ export function LiveTable({ match, mine }: { match: LiveMatch; mine?: string }) 
   );
 }
 
+/** Uma linha de resultado: casa, marcador e fora (as cores ficam dentro de cada nome, para o alinhamento não depender delas). */
+export function ResultLine({ match, home, away, score, mine, ended }: { match: LiveMatch; home: { id: string; name: string }; away: { id: string; name: string }; score: string; mine?: string; ended?: boolean }) {
+  const { t } = useT();
+  return (
+    <li className={home.id === mine || away.id === mine ? "meu-jogo" : undefined}>
+      <span className={`nome-clube nome-casa${home.id === mine ? " meu-clube" : ""}`}><EntityLink k="club" id={home.id} withoutSwatch>{home.name}</EntityLink><ClubSwatch colours={match.colours?.[home.id]} className="amostra-dir" /></span>
+      <b className="marcador-pequeno">{score}</b>
+      <span className={`nome-clube nome-fora${away.id === mine ? " meu-clube" : ""}`}><ClubSwatch colours={match.colours?.[away.id]} className="amostra-esq" /><EntityLink k="club" id={away.id} withoutSwatch>{away.name}</EntityLink></span>
+      {ended && <span className="suave fim-jogo">{t("match.matchEnd")}</span>}
+    </li>
+  );
+}
+
 /** Os outros jogos da mesma competição, no mesmo dia, com o marcador ao minuto. */
 export function OthersMatches({ match, mine }: { match: LiveMatch; mine?: string }) {
   const { t } = useT();
@@ -107,14 +121,7 @@ export function OthersMatches({ match, mine }: { match: LiveMatch; mine?: string
         {match.others.map((o) => {
           const [a, b] = scorerAt(o.goals, minute);
           return (
-            <li key={o.id} className={o.home.id === mine || o.away.id === mine ? "meu-jogo" : undefined}>
-              <ClubSwatch colours={match.colours?.[o.home.id]} className="amostra-esq" />
-              <span className={`nome-clube nome-casa${o.home.id === mine ? " meu-clube" : ""}`}><EntityLink k="club" id={o.home.id} withoutSwatch>{o.home.name}</EntityLink></span>
-              <b className="marcador-pequeno">{a}–{b}</b>
-              <span className={`nome-clube nome-fora${o.away.id === mine ? " meu-clube" : ""}`}><EntityLink k="club" id={o.away.id} withoutSwatch>{o.away.name}</EntityLink></span>
-              <ClubSwatch colours={match.colours?.[o.away.id]} className="amostra-dir" />
-              {minute >= o.duration && <span className="suave fim-jogo">{t("match.matchEnd")}</span>}
-            </li>
+            <ResultLine key={o.id} match={match} home={o.home} away={o.away} score={`${a}–${b}`} {...(mine !== undefined ? { mine } : {})} {...(minute >= o.duration ? { ended: true } : {})} />
           );
         })}
       </ul>
