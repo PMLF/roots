@@ -1280,6 +1280,5 @@
   "results.titleStage": "This round's results",
   "results.cupRound": "Round {n}",
   "results.scores": "Results",
-  "results.continue": "Continue",
-  "results.seeMatch": "See the match"
+  "results.continue": "Continue"
 }

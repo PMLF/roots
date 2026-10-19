@@ -1,11 +1,10 @@
 "use client";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import type { LiveMatch } from "@/engine/season/liveMatch";
-import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { EntityLink } from "@/ui/components/Link";
-import { LiveTable } from "@/ui/components/match/MatchPanel";
+import { LiveTable, ResultLine } from "@/ui/components/match/MatchPanel";
 import { scorerAt } from "@/ui/match/matchView";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { useOwnClub } from "@/ui/myClub";
@@ -14,6 +13,7 @@ import { useEngine } from "@/ui/EngineProvider";
 function Content() {
   const { t } = useT();
   const engine = useEngine();
+  const router = useRouter();
   const [mine] = useOwnClub();
   const id = useSearchParams().get("id") ?? undefined;
   const [match, setMatch] = useState<LiveMatch | null | undefined>(undefined);
@@ -32,31 +32,24 @@ function Content() {
   const stage = t(hasTable ? "match.round" : "results.cupRound", { n: match.round });
   return (
     <section className="pagina-resultados">
-      <header>
-        <h1>{t(hasTable ? "results.titleRound" : "results.titleStage")}</h1>
-        <p className="suave"><EntityLink k="competition" id={match.competition}>{match.competition}</EntityLink> · {stage} · {match.date}</p>
+      <header className="resultados-topo">
+        <div>
+          <h1>{t(hasTable ? "results.titleRound" : "results.titleStage")}</h1>
+          <p className="suave"><EntityLink k="competition" id={match.competition}>{match.competition}</EntityLink> · {stage} · {match.date}</p>
+        </div>
+        <button type="button" className="primario" onClick={() => router.push("/")}>{t("results.continue")}</button>
       </header>
       <div className={`resultados-grelha${hasTable ? "" : " sem-tabela"}`}>
         <section className="painel" aria-labelledby="h-res">
           <h2 id="h-res">{t("results.scores")}</h2>
           <ul className="outros-jogos">
             {rows.map((o) => (
-              <li key={o.id} className={o.home.id === mine || o.away.id === mine ? "meu-jogo" : undefined}>
-                <ClubSwatch colours={match.colours?.[o.home.id]} className="amostra-esq" />
-                <span className={`nome-clube nome-casa${o.home.id === mine ? " meu-clube" : ""}`}><EntityLink k="club" id={o.home.id} withoutSwatch>{o.home.name}</EntityLink></span>
-                <b className="marcador-pequeno">{o.a}–{o.b}</b>
-                <span className={`nome-clube nome-fora${o.away.id === mine ? " meu-clube" : ""}`}><EntityLink k="club" id={o.away.id} withoutSwatch>{o.away.name}</EntityLink></span>
-                <ClubSwatch colours={match.colours?.[o.away.id]} className="amostra-dir" />
-              </li>
+              <ResultLine key={o.id} match={match} home={o.home} away={o.away} score={`${o.a}–${o.b}`} {...(mine ? { mine } : {})} />
             ))}
           </ul>
         </section>
         {hasTable && <LiveTable match={match} mine={mine ?? undefined} />}
       </div>
-      <p className="acoes">
-        <Link href="/" className="primario">{t("results.continue")}</Link>
-        <Link href={`/match/?id=${encodeURIComponent(match.id)}`}>{t("results.seeMatch")}</Link>
-      </p>
     </section>
   );
 }
