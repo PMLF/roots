@@ -42,7 +42,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   // ---- atributos de 1 a 20
   const line = (id: string): AttributeLine => {
     const name = t(`attribute.${id}` as Key);
-    const exact = truth?.attributes?.[id];
+    const exact = truth?.attributes?.[id] ?? d.known?.attributes?.[id];
     if (exact !== undefined) return { id, name, text: String(exact), number: exact, state: "exact" };
     const est = attributes?.fields[id];
     if (!est) return { id, name, text: "?", state: "unknown", hint: t("person.unknown") };
@@ -121,7 +121,6 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
       />
     {joined && <p><b>{t("bid.doneNow", { name: p.sportingName })}</b></p>}
     {bid?.moving && <p><b>{t("bid.moving", { club: bid.moving.club, date: bid.moving.date })}</b></p>}
-    {d.biddable && !joined && !bid?.moving && bid?.stage !== "agreed" && <p><button type="button" onClick={() => setBidding(true)}>{t(bid ? "bid.continue" : "bid.make")}</button></p>}
     {d.renewable && (agreed ? <p><b>{t("renewals.done")}</b></p> : <p><button type="button" onClick={() => setRenewing(true)}>{t("renewals.renewContract")}</button></p>)}
       </Card>
   );
@@ -231,7 +230,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     <Profile
       type="person"
       title={p.sportingName}
-      top={<><Top title={p.sportingName} labels={labels} card={<Data lines={data} />} />{bidding && <BidDialog person={p.id} name={p.sportingName} onClose={() => setBidding(false)} onChanged={setBidView} />}{renewing && <RenewalDialog person={p.id} name={p.sportingName} onClose={() => setRenewing(false)} onAgreed={() => setAgreed(true)} />}</>}
+      top={<><Top title={p.sportingName} labels={labels} card={<Data lines={data} />} actions={d.biddable && !joined && !bid?.moving ? <button type="button" className="primario" onClick={() => setBidding(true)}>{t(bid?.stage === "agreed" ? "bid.confirm" : bid ? "bid.continue" : "bid.make")}</button> : undefined} />{bidding && <BidDialog person={p.id} name={p.sportingName} onClose={() => setBidding(false)} onChanged={setBidView} />}{renewing && <RenewalDialog person={p.id} name={p.sportingName} onClose={() => setRenewing(false)} onAgreed={() => setAgreed(true)} />}</>}
       omit={["career"]}
       tabs={{ summary, story }}
     />

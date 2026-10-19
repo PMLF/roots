@@ -83,3 +83,10 @@ Motor em `src/engine/market/bids.ts`; estado em meta `market.bids`. «Fazer prop
 - **Execução**: valor acordado ⇒ o jogador ainda aceita (ou recusa) o contrato do comprador; se aceita, muda-se logo (a janela está aberta), com dinheiro, contrato e evento `TRANSFER`; sai do onze guardado.
 - **Notícias**: `TRANSFER` é notícia para todos acima de `market.news.minFee` (campo `important` no evento) e sempre no clube do gamer; os livres só no clube do gamer; a proposta recebida (`TRANSFER_OFFER`) vai para a caixa de entrada. Os eventos de scouting e propostas passaram a `exposed` para a caixa de entrada os mostrar (antes os relatórios do olheiro não apareciam).
 - Fora desta fatia: a IA acionar a cláusula de rescisão por jogadores do gamer; propostas fora da janela.
+
+### Melhorias de UX do mercado (feedback 19-10)
+- **Página «Olheiros»**: lista de olheiros do clube, verba de transferências e margem salarial; o pedido de pesquisa abre num popup («Pedir aos olheiros»). A tabela já não tem coluna «Informação».
+- **Respostas com atraso**: depois de enviar valor ou contrato, o clube/agente responde em 1–2 dias (`replyDelay`, determinístico); no último dia da janela a resposta é imediata. Cada resposta gera o evento `BID_REPLY` (caixa de entrada: verde no acordo, vermelho na recusa).
+- **Confirmação**: o acordo com o agente deixa a proposta em `agreed` sem `moving`; o gamer confirma (`confirm`) em «Exige decisão» até `market.bids.confirmDays` (7) ou o acordo caduca. Só depois muda já (janela aberta) ou fica marcado. «Negociação por X» deixa de aparecer quando há acordo; propostas pendentes aparecem só como informação.
+- **Observação de um mês** dá a informação toda: atributos exatos, potencial, posições, contrato e personalidade na ficha.
+- Resultados dos olheiros na caixa de entrada ligam à página Olheiros.

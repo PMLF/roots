@@ -4,7 +4,8 @@ import { ageAt, createDate } from "../calendar/dates";
 import type { IsoDate } from "../persistence/types";
 import { pendingOffers, respondOffer, type Offer } from "../market/offers";
 import { valueOf } from "../market/bids";
-import { agentOffer, bids, cancelBid, clubOffer, feeSuggestions, finalizeBid, informationOf, openBid, termSuggestions, type Bid } from "../market/bids";
+import { addDays } from "../calendar/dates";
+import { bids, cancelBid, confirmBid, feeSuggestions, informationOf, openBid, submitBid, termSuggestions, type Bid } from "../market/bids";
 import { windowAt } from "../market/market";
 import { decisionOf, expiringPlayers, negotiateRenewal, negotiationOf, renewalAsk, renewalSuggestions, setDecision } from "../squad/renewals";
 import { DEFAULT_PARAMETERS, type Params, type Tier } from "../config/parameters";
@@ -135,23 +136,24 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         const open = bids(repository).find((b) => b.person === m.input.id && (b.stage === "club" || b.stage === "agent" || b.stage === "agreed"));
         if (open) output.bid = { stage: open.stage as "club" | "agent" | "agreed", ...(open.moving ? { moving: { club: gamerBase.name, date: open.moving.date } } : {}) };
       }
-      if (contract && (m.input.seeAll === true || (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club))) {
+      // um mês de observação dá a informação toda sobre o jogador (atributos exatos, contrato, personalidade)
+      const monthScouted = scoutedLevel(repository, m.input.id) === "month";
+      if (contract && (m.input.seeAll === true || monthScouted || (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club))) {
         output.clauses = contract.clauses?.release !== undefined ? { release: contract.clauses.release } : {};
       }
-      const level = playerLevel(repository, m.input.id, profile.exposed.player?.position, profile.attributes?.fields, m.input.seeAll === true);
+      const level = playerLevel(repository, m.input.id, profile.exposed.player?.position, profile.attributes?.fields, m.input.seeAll === true || monthScouted);
       if (level) output.level = level;
       const ratingClub = profile.exposed.club ? data.clubs.find((c) => c.id === profile.exposed.club) : undefined;
-      const rating = playerRating(repository, m.input.id, level, profile.potential?.fields.potential, ratingClub?.tier, params, m.input.seeAll === true);
+      const rating = playerRating(repository, m.input.id, level, profile.potential?.fields.potential, ratingClub?.tier, params, m.input.seeAll === true || monthScouted);
       if (rating) output.rating = rating;
       if (m.input.seeAll) output.truth = personTruth(repository, m.input.id);
       else if (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club) {
         const inside = personTruth(repository, m.input.id);
         if (inside) output.known = { personality: inside.personality, ...(inside.quality ? { quality: inside.quality } : {}) };
       }
-      else if (scoutedLevel(repository, m.input.id) === "month") {
-        // um mês de observação dá a informação toda sobre o jogador
+      else if (monthScouted) {
         const inside = personTruth(repository, m.input.id);
-        if (inside) output.known = { personality: inside.personality };
+        if (inside) output.known = { personality: inside.personality, ...(inside.quality ? { quality: inside.quality } : {}), ...(inside.attributes ? { attributes: inside.attributes } : {}), ...(inside.potential !== undefined ? { potential: inside.potential } : {}), ...(inside.positions ? { positions: inside.positions } : {}) };
       }
       const club = profile.exposed.club ? data.clubs.find((c) => c.id === profile.exposed.club) : undefined;
       if (club) output.club = { k: "club", id: club.id, name: club.name };
@@ -162,7 +164,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       // quem não tem movimentos (treinador, presidente…) fica com uma linha: a época atual e o clube
       if ((output.career ?? []).length === 0) output.career = [{ id: 0, date: repository.meta("date.today") ?? "", season: Number(repository.meta("season") ?? 1), kind: "current", ...(club ? { club: { k: "club" as const, id: club.id, name: club.name } } : {}) }];
       if (club && repository.meta("gamer.club") === club.id && contract && expiringPlayers(repository, club.id, createDate(params.calendar.initialYear + Number(repository.meta("season") ?? 1), params.calendar.seasonStartMonth, 1)).includes(m.input.id)) output.renewable = true;
-      if (contract && (m.input.seeAll === true || (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club))) output.wage = contract.monthlyWage;
+      if (contract && (m.input.seeAll === true || monthScouted || (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club))) output.wage = contract.monthlyWage;
       const city = profile.exposed.birthCity ? data.cities.find((c) => c.id === profile.exposed.birthCity) : undefined;
       if (city) output.birthCity = { k: "city", id: city.id, name: city.name };
       return output;
@@ -516,6 +518,12 @@ function scoutingData(r: Repository, data: BaseData, params: Params): ScoutingDa
     rows,
     orders: list.slice().reverse().slice(0, 20).map((o): ScoutOrderView => ({ id: o.id, kind: o.kind, ...(o.person ? { person: names(o.person) } : {}), ...(o.position ? { position: o.position } : {}), start: o.start, end: o.end, cost: o.cost, done: !!o.done, ...(o.results ? { results: o.results.length } : {}) })),
     scouts,
+    scoutList: club ? r.publicRoles({ club: club.id }).filter((p) => p.fn === "scout").map((p) => ({ id: p.id, name: r.person(p.id)?.sportingName ?? p.id })) : [],
+    budget: (() => {
+      if (!club) return { transfers: 0, wageMargin: 0 };
+      const b = clubBudget(r, club, params, season);
+      return { transfers: b.transfers, wageMargin: b.wageBillMax - monthlyWageBill(r, club.id) * 12 };
+    })(),
     cost: { ...params.scouting.cost },
     balance: club ? clubBalance(r, club) : 0,
     capacity: scouts.count * params.scouting.perScout,
@@ -557,7 +565,9 @@ function bidViewOf(r: Repository, data: BaseData, params: Params, b: Bid): BidVi
   const terms = club && b.stage === "agent" ? termSuggestions(r, data, params, club, b) : undefined;
   const closed = b.closed ?? neg.closed;
   return {
-    person: b.person, name: person?.sportingName ?? b.person, stage: b.stage, ...(sellerName ? { seller: sellerName } : {}), ...(release !== undefined ? { release } : {}),
+    person: b.person, name: person?.sportingName ?? b.person, stage: b.stage, ...(sellerName ? { seller: sellerName } : {}),
+    ...(b.seller && data.clubs.some((c) => c.id === b.seller) ? { sellerId: b.seller } : {}),
+    ...(player?.positions[0]?.pos ? { position: player.positions[0].pos } : {}), ...(person ? { age: ageAt(person.birth, today) } : {}), ...(release !== undefined ? { release } : {}),
     ...(b.fee !== undefined ? { fee: b.fee } : {}), ...(b.ask !== undefined && b.stage === "club" ? { ask: b.ask } : {}),
     feeSuggestions: b.stage === "club" && club ? feeSuggestions(r, data, params, b, today) : [],
     ...(terms ? { terms: { ask: terms.ask, wages: terms.wages, releases: terms.releases, ...(terms.minWage ? { minWage: terms.minWage } : {}) } } : {}),
@@ -565,8 +575,11 @@ function bidViewOf(r: Repository, data: BaseData, params: Params, b: Bid): BidVi
     round: b.stage === "club" ? b.clubRound : neg.round,
     roundsLeft: Math.max(0, (b.stage === "club" ? params.market.bids.maxRounds - b.clubRound : params.squadCycle.contracts.negotiation.maxRounds - neg.round)),
     ...(closed ? { closed } : {}), ...(b.reopens ? { reopens: b.reopens } : {}), ...(b.moving ? { moving: b.moving } : {}),
+    ...(b.pending ? { pending: { kind: b.pending.kind, due: b.pending.due } } : {}),
+    ...(b.lastReply ? { lastReply: { status: b.lastReply.status, kind: b.lastReply.kind, date: b.lastReply.date, ...(b.lastReply.reason ? { reason: b.lastReply.reason } : {}) } } : {}),
+    ...(b.stage === "agreed" && !b.moving && b.agreedOn ? { needsConfirm: { by: addDays(b.agreedOn, params.market.bids.confirmDays) } } : {}),
     windowOpen: Boolean(windowAt(today, params)),
-    cash: club ? clubBalance(r, club) : 0,
+    cash: club ? clubBudget(r, club, params, Number(r.meta("season") ?? 1)).transfers : 0,
   };
 }
 
@@ -577,25 +590,27 @@ function bidAction(r: Repository, data: BaseData, params: Params, a: BidAction):
   const season = Number(r.meta("season") ?? 1);
   const opened = openBid(r, data, params, club, today, a.person);
   if (!opened.ok) return opened;
-  let bid = opened.bid;
+  const bid = opened.bid;
   const view = (reply?: BidReply): BidResult => {
     const fresh = bids(r).find((x) => x.id === bid.id);
     return { ok: true, bid: bidViewOf(r, data, params, fresh ?? bid), ...(reply ? { reply } : {}) };
   };
   if (a.action === "open") return view();
   if (a.action === "cancel") { cancelBid(r, params, today, bid); return { ok: true, bid: { ...bidViewOf(r, data, params, bid), stage: "closed" } }; }
+  if (a.action === "confirm") {
+    const f = confirmBid(r, data, params, club, today, season, bid);
+    if (!f) return { ok: false, reason: "invalid" };
+    const res = view() as Extract<BidResult, { ok: true }>;
+    return { ...res, confirmed: f.moved ? { moved: true } : "date" in f ? { moved: false, date: f.date } : { moved: false, failed: f.failed } };
+  }
+  if (bid.pending) return view();
   if (a.action === "fee" && bid.stage === "club") {
-    const rep = clubOffer(r, data, params, club, today, bid, a.fee);
-    return view({ status: rep.status, ...(rep.status === "closed" ? { reason: rep.reason } : {}) });
+    const rep = submitBid(r, data, params, club, today, season, bid, { kind: "fee", fee: a.fee });
+    return view(rep === "pending" ? undefined : rep);
   }
   if (a.action === "terms" && bid.stage === "agent") {
-    const rep = agentOffer(r, data, params, club, today, season, bid, { wage: a.wage, years: a.years, release: a.release });
-    if (!rep) return { ok: false, reason: "invalid" };
-    if (rep.status === "accepted") {
-      bid = bids(r).find((x) => x.id === bid.id) ?? bid;
-      if (bid.stage === "agreed") finalizeBid(r, data, params, club, today, season, bid);
-    }
-    return view({ status: rep.status, ...(rep.status === "closed" || rep.status === "blocked" ? { reason: rep.reason } : {}), ...(rep.status === "counter" ? { terms: rep.terms } : {}) });
+    const rep = submitBid(r, data, params, club, today, season, bid, { kind: "terms", terms: { wage: a.wage, years: a.years, release: a.release } });
+    return view(rep === "pending" ? undefined : rep);
   }
   return view();
 }

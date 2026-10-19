@@ -64,7 +64,9 @@ export default function Start() {
   const [answering, setAnswering] = useState<OfferView | undefined>(undefined);
   const loadOffers = () => { engine?.call("transferOffers", null).then(setOffersIn).catch(() => undefined); };
   useEffect(loadOffers, [engine, world, time.state?.today]);
-  const pendingBids = openBids.filter((b) => b.stage === "club" || b.stage === "agent");
+  const pendingBids = openBids.filter((b) => (b.stage === "club" || b.stage === "agent") && !b.pending && (b.round > 0 || b.fee !== undefined || b.lastReply !== undefined));
+  const waitingBids = openBids.filter((b) => b.pending);
+  const confirmBids = openBids.filter((b) => b.stage === "agreed" && b.needsConfirm);
   const agreedBids = openBids.filter((b) => b.stage === "agreed" && b.moving);
 
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -97,7 +99,7 @@ export default function Start() {
   }
 
   const homeAway = next && club ? (next.home ? [club.profile.name, next.opponentName] : [next.opponentName, club.profile.name]) : [];
-  const decisions = (time.pause ? 1 : 0) + (world && !mine ? 1 : 0) + pendingBids.length + offersIn.length;
+  const decisions = (time.pause ? 1 : 0) + (world && !mine ? 1 : 0) + pendingBids.length + confirmBids.length + offersIn.length;
 
   return (
     <section className="inicio">
@@ -159,6 +161,13 @@ export default function Start() {
               <p className="acoes"><button type="button" className="primario" onClick={() => setResuming(b)}>{t("bid.continue")}</button></p>
             </div>
           ))}
+          {confirmBids.map((b) => (
+            <div className="decisao decisao-ok" key={b.person}>
+              <p><b>{t("bid.confirmItem", { name: b.name, date: b.needsConfirm?.by ?? "" })}</b></p>
+              <p className="acoes"><button type="button" className="primario" onClick={() => setResuming(b)}>{t("bid.confirm")}</button></p>
+            </div>
+          ))}
+          {waitingBids.map((b) => <p className="suave" key={b.person}>{t("bid.waitingItem", { name: b.name, date: b.pending?.due ?? "" })}</p>)}
           {offersIn.map((o) => (
             <div className="decisao" key={o.id}>
               <p><b>{t("offer.decision", { name: o.name })}</b> <span className="suave">· {o.buyer.name}</span></p>
@@ -169,7 +178,7 @@ export default function Start() {
           {agreedBids.map((b) => <p className="suave" key={b.person}>{t("bid.todayAgreed", { name: b.name, date: b.moving?.date ?? "" })}</p>)}
           {resuming && <BidDialog person={resuming.person} name={resuming.name} onClose={() => { setResuming(undefined); loadBids(); }} />}
           {world && !mine && <ChooseInitialClub />}
-          {decisions === 0 && agreedBids.length === 0 && <p className="vazio">{t("today.emptyDecision")}</p>}
+          {decisions === 0 && agreedBids.length === 0 && waitingBids.length === 0 && <p className="vazio">{t("today.emptyDecision")}</p>}
         </section>
 
         <section className="painel" aria-labelledby="i-caixa">

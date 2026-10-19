@@ -1,6 +1,8 @@
 "use client";
 import type { NewsItem } from "@/engine/news/news";
+import Link from "next/link";
 import { EntityLink } from "@/ui/components/Link";
+import { Icon } from "@/ui/components/Icon";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 
@@ -14,19 +16,22 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead }: { n: NewsIt
     values.to = t(`status.${values.to}` as Key).toLowerCase();
   }
   if (typeof values.fee === "number") values.fee = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(values.fee);
+  const tone = n.type === "bid_agreed" ? "ok" : n.type === "bid_rejected" ? "erro" : undefined;
+  const toScouting = n.type === "scout_search" || n.type === "scout_report";
   const base = `newsItem.${type}.${n.variant}`;
   if (compact) {
     return (
       <article className={`noticia noticia-compacta${unread ? " nao-lida" : ""}`}>
-        <h3>{onToggleIsRead ? <button type="button" className={`ponto-alternar${unread ? " por-ler" : ""}`} onClick={onToggleIsRead} title={t(unread ? "inbox.markRead" : "inbox.markUnread")} aria-label={t(unread ? "inbox.markRead" : "inbox.markUnread")} /> : unread && <span className="ponto" role="img" aria-label={t("inbox.unread")} />}{t(`${base}.title` as Key, values)}</h3>
+        <h3>{onToggleIsRead ? <button type="button" className={`ponto-alternar${unread ? " por-ler" : ""}`} onClick={onToggleIsRead} title={t(unread ? "inbox.markRead" : "inbox.markUnread")} aria-label={t(unread ? "inbox.markRead" : "inbox.markUnread")} /> : unread && <span className="ponto" role="img" aria-label={t("inbox.unread")} />}{toScouting ? <Link href="/scouting/">{t(`${base}.title` as Key, values)}</Link> : t(`${base}.title` as Key, values)}</h3>
         <p className="suave">{new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${n.date}T00:00:00Z`))}</p>
       </article>
     );
   }
   return (
-    <article className={`noticia${unread ? " nao-lida" : ""}${n.ofClubYour ? " do-teu-clube" : ""}`}>
-      <h3>{unread && <span className="ponto" role="img" aria-label={t("inbox.unread")} />}{t(`${base}.title` as Key, values)}</h3>
+    <article className={`noticia${unread ? " nao-lida" : ""}${n.ofClubYour ? " do-teu-clube" : ""}${tone ? ` noticia-${tone}` : ""}`}>
+      <h3>{unread && <span className="ponto" role="img" aria-label={t("inbox.unread")} />}{tone && <span className={`selo-resultado ${tone}`}><Icon name={tone === "ok" ? "check" : "close"} /></span>}{t(`${base}.title` as Key, values)}</h3>
       <p>{t(`${base}.body` as Key, values)}</p>
+      {toScouting && <p><Link href="/scouting/" className="ligacao-botao">{t("scouting.viewFound")}</Link></p>}
       <p className="suave noticia-rodape">
         {n.date} · {n.links.map((l, i) => <span key={`${l.k}-${l.id}`}>{i > 0 && " · "}<EntityLink k={l.k} id={l.id}>{l.name}</EntityLink></span>)}
         {onToggleIsRead && <button type="button" className="ligacao-botao" onClick={onToggleIsRead}>{t(unread ? "inbox.markRead" : "inbox.markUnread")}</button>}
