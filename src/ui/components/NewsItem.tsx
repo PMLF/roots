@@ -22,14 +22,14 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead }: { n: NewsIt
   if (compact) {
     return (
       <article className={`noticia noticia-compacta${unread ? " nao-lida" : ""}`}>
-        <h3>{onToggleIsRead ? <button type="button" className={`ponto-alternar${unread ? " por-ler" : ""}`} onClick={onToggleIsRead} title={t(unread ? "inbox.markRead" : "inbox.markUnread")} aria-label={t(unread ? "inbox.markRead" : "inbox.markUnread")} /> : unread && <span className="ponto" role="img" aria-label={t("inbox.unread")} />}{toScouting ? <Link href="/scouting/">{t(`${base}.title` as Key, values)}</Link> : t(`${base}.title` as Key, values)}</h3>
+        <h3>{onToggleIsRead ? <button type="button" className={`ponto-alternar${unread ? " por-ler" : ""}`} onClick={onToggleIsRead} title={t(unread ? "inbox.markRead" : "inbox.markUnread")} aria-label={t(unread ? "inbox.markRead" : "inbox.markUnread")} /> : unread && <span className="ponto" role="img" aria-label={t("inbox.unreadItem")} />}{toScouting ? <Link href="/scouting/">{t(`${base}.title` as Key, values)}</Link> : t(`${base}.title` as Key, values)}</h3>
         <p className="suave">{new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${n.date}T00:00:00Z`))}{n.links.filter((l) => l.k === "person").map((l) => <span key={l.id}> · <EntityLink k="person" id={l.id}>{l.name}</EntityLink></span>)}</p>
       </article>
     );
   }
   return (
     <article className={`noticia${unread ? " nao-lida" : ""}${n.ofClubYour ? " do-teu-clube" : ""}${tone ? ` noticia-${tone}` : ""}`}>
-      <h3>{unread && <span className="ponto" role="img" aria-label={t("inbox.unread")} />}{tone && <span className={`selo-resultado ${tone}`}><Icon name={tone === "ok" ? "check" : "close"} /></span>}{t(`${base}.title` as Key, values)}</h3>
+      <h3>{unread && <span className="ponto" role="img" aria-label={t("inbox.unreadItem")} />}{tone && <span className={`selo-resultado ${tone}`}><Icon name={tone === "ok" ? "check" : "close"} /></span>}{t(`${base}.title` as Key, values)}</h3>
       <p>{t(`${base}.body` as Key, values)}</p>
       {toScouting && <p><Link href="/scouting/" className="ligacao-botao">{t("scouting.viewFound")}</Link></p>}
       <p className="suave noticia-rodape">

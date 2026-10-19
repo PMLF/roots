@@ -149,7 +149,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (m.input.seeAll) output.truth = personTruth(repository, m.input.id);
       else if (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club) {
         const inside = personTruth(repository, m.input.id);
-        if (inside) output.known = { personality: inside.personality, ...(inside.quality ? { quality: inside.quality } : {}) };
+        if (inside) output.known = { personality: inside.personality, ...(inside.quality ? { quality: inside.quality } : {}), ...(inside.positions ? { positions: inside.positions } : {}) };
       }
       else if (monthScouted) {
         const inside = personTruth(repository, m.input.id);
