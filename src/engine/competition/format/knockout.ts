@@ -65,7 +65,8 @@ function drawRound(def: KnockoutStage, state: KnockoutState, ctx: RunContext): F
     } else {
       const id2 = `${ctx.idPrefix}-r${r + 1}-t${k + 1}-2`;
       tie.fixtures.push(id2);
-      fixtures.push({ id: id1, ...base, round: slot0 + 1, date: state.dates[slot0] as IsoDate, home: p.other.club, away: p.advantage.club });
+      // 1.ª mão: pode acabar empatada (sem prolongamento nem penáltis); só a 2.ª mão decide
+      fixtures.push({ id: id1, stage: state.stage, knockout: false, round: slot0 + 1, date: state.dates[slot0] as IsoDate, home: p.other.club, away: p.advantage.club });
       fixtures.push({ id: id2, ...base, round: slot0 + 2, date: state.dates[slot0 + 1] as IsoDate, home: p.advantage.club, away: p.other.club, firstLeg: id1 });
     }
     ties.push(tie);

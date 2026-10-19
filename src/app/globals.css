@@ -913,3 +913,18 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .historico-lista li > :first-child { flex: 1; min-width: 0; }
 .tabela-historico { width: 100%; border-collapse: collapse; }
 .tabela-historico th, .tabela-historico td { text-align: left; padding: 4px 8px 4px 0; }
+
+/* Página inicial: posição na liga e últimos jogos (RZ-245) */
+.inicio-mini { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+@media (max-width: 720px) { .inicio-mini { grid-template-columns: 1fr; } }
+.mini-tabela { width: 100%; border-collapse: collapse; }
+.mini-tabela th, .mini-tabela td { text-align: left; padding: 4px 6px; }
+.mini-tabela th:nth-child(n+3), .mini-tabela td:nth-child(n+3) { text-align: right; width: 2.4rem; }
+.mini-tabela tr.meu-clube { font-weight: 800; outline: 2px solid var(--cor-destaque, var(--destaque)); outline-offset: -2px; }
+.ultimos-jogos { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ultimos-jogos li { display: grid; grid-template-columns: 12px minmax(0, 1fr) 1.2rem auto 2.6rem; align-items: center; column-gap: 8px; }
+.ultimos-jogos li .escalao-etiqueta { text-align: right; }
+.resultado-ponto { width: 10px; height: 10px; border-radius: 999px; background: var(--suave); }
+.resultado-ponto.win { background: var(--destaque); }
+.resultado-ponto.draw { background: var(--atencao); }
+.resultado-ponto.loss { background: var(--aviso); }

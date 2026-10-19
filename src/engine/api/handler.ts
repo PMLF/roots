@@ -37,6 +37,7 @@ import { INJURY_EVENT } from "../injuries/state";
 import { cityProfile } from "../city/profile";
 import { competitionPage } from "../competition/profile";
 import { cupView, nationalCups, clubCompetitions } from "../competition/cup";
+import { recentMatches } from "../competition/recent";
 import { competitionHistory } from "../competition/history";
 import { reputationLevel } from "../club/reputation";
 import { generalLevel } from "../world/level";
@@ -288,6 +289,10 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     case "competitionHistory": {
       const { repository, data, params } = await context(servicos);
       return competitionHistory(repository, data, params, m.input.competition);
+    }
+    case "recentMatches": {
+      const { repository, data } = await context(servicos);
+      return recentMatches(repository, data, m.input.club, m.input.limit, m.input.season);
     }
     case "clubCompetitions": {
       const { repository, data, params } = await context(servicos);

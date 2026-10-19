@@ -1355,5 +1355,22 @@
   "history.rec.biggestWin": "Maior goleada",
   "history.rec.mostGoals": "Jogo com mais golos",
   "cup.prev": "Ronda anterior",
-  "cup.next": "Ronda seguinte"
+  "cup.next": "Ronda seguinte",
+  "dev.simulate.label": "Simular época",
+  "dev.simulate.running": "A simular…",
+  "dev.simulate.hint": "Só developer: joga todos os jogos até ao fim da época (os do teu clube com o onze e a tática atuais)",
+  "comp.short.cup": "TP",
+  "comp.short.districtCup": "TD",
+  "comp.short.supercup": "ST",
+  "comp.short.districtSupercup": "SD",
+  "comp.short.promotion": "FP",
+  "home.lastMatches": "Últimos jogos",
+  "home.noMatches": "Ainda sem jogos disputados.",
+  "home.outcome.win": "Vitória",
+  "home.outcome.draw": "Empate",
+  "home.outcome.loss": "Derrota",
+  "home.atHome": "Em casa",
+  "home.away": "Fora",
+  "home.homeShort": "C",
+  "home.awayShort": "F"
 }

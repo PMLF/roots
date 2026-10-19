@@ -7,6 +7,7 @@ import type { NewsItem } from "@/engine/news/news";
 import { BidDialog } from "@/ui/components/BidDialog";
 import { OfferDialog } from "@/ui/components/OfferDialog";
 import { ResignButton, ChooseInitialClub } from "@/ui/components/WithClub";
+import { LastMatches, MiniTable } from "@/ui/components/HomeCards";
 import { ResultsFita } from "@/ui/components/ResultsStrip";
 import { NewsItemView } from "@/ui/components/NewsItem";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
@@ -147,6 +148,13 @@ export default function Start() {
           {mine && summary.movements.filter((m) => m.club === mine).map((m) => <p key={m.club}>{t(m.reason === "relegation" ? "today.youRelegated" : "today.youPromoted")}</p>)}
           <p className="suave">{t("today.movements", { n: summary.movements.length })}</p>
         </section>
+      )}
+
+      {club && (
+        <div className="inicio-mini">
+          <MiniTable league={club.league} club={club.profile.id} />
+          <LastMatches club={club.profile.id} {...(today ? { today } : {})} />
+        </div>
       )}
 
       <div className="inicio-colunas">

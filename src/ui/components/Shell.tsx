@@ -5,6 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { LOCALES, type Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { save, read } from "@/ui/storage";
+import { DevSimulate } from "@/ui/components/DevSimulate";
 import { useDevMode, useSeeAll } from "@/ui/dev";
 import { useInboxUnread } from "@/ui/useCash";
 import { AdvanceButton } from "@/ui/components/AdvanceButton";
@@ -126,6 +127,7 @@ export function Shell({ children }: { children: ReactNode }) {
                   <ClubSelector clubs={clubs} isOpen0={false} {...(ownClub ? { current: ownClub } : {})} onChoose={(id) => void chooseClub(id, true)} />
                 </li>
               )}
+              <DevSimulate />
               <li className="menu-interruptor">
                 <button type="button" onClick={() => setSeeAll(!seeAll)} role="switch" aria-checked={seeAll} title={t("dev.seeAll.hint")} data-testid="ver-tudo">
                   <Icon name="eye" />

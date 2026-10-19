@@ -1355,5 +1355,22 @@
   "history.rec.biggestWin": "Biggest win",
   "history.rec.mostGoals": "Most goals in a match",
   "cup.prev": "Previous round",
-  "cup.next": "Next round"
+  "cup.next": "Next round",
+  "dev.simulate.label": "Simulate season",
+  "dev.simulate.running": "Simulating…",
+  "dev.simulate.hint": "Dev only: plays every match to the end of the season (your club's with the current XI and tactic)",
+  "comp.short.cup": "PC",
+  "comp.short.districtCup": "DC",
+  "comp.short.supercup": "SC",
+  "comp.short.districtSupercup": "DS",
+  "comp.short.promotion": "PP",
+  "home.lastMatches": "Last matches",
+  "home.noMatches": "No matches played yet.",
+  "home.outcome.win": "Win",
+  "home.outcome.draw": "Draw",
+  "home.outcome.loss": "Defeat",
+  "home.atHome": "Home",
+  "home.away": "Away",
+  "home.homeShort": "H",
+  "home.awayShort": "A"
 }
