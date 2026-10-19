@@ -43,6 +43,11 @@ describe("Taça e histórico das competições (RZ-244)", () => {
       }
     }
     for (const m of games.filter((g) => !semis.some((r) => r.matches.some((x) => x.id === g.id)))) expect(matchWinner(m)).toBeDefined();
+    // 1.ª mão: sem prolongamento nem penáltis; ligas: há empates e nunca prolongamento
+    for (const m of semis[0]!.matches) { expect(m.extraTime).toBeUndefined(); expect(m.shootout).toBeUndefined(); }
+    const league = repo.competitionMatches("Primeira Liga", 1);
+    expect(league.some((m) => m.homeGoals === m.awayGoals)).toBe(true);
+    expect(league.every((m) => !m.extraTime && m.homePenalties === undefined)).toBe(true);
     expect(cup.done).toBe(true);
     expect(cup.winner).toBeDefined();
     expect((await handle({ id: 4, type: "nationalCups", input: null }, s)).some((c) => c.competition === CUP)).toBe(true);
@@ -50,6 +55,10 @@ describe("Taça e histórico das competições (RZ-244)", () => {
     const mine = await handle({ id: 5, type: "clubCompetitions", input: { club: cup.winner!.club, season: 1 } }, s);
     expect(mine.find((c) => c.competition === CUP)?.status).toBe("champion");
     expect(mine.find((c) => c.kind === "league")?.position).toBeGreaterThan(0);
+    const recent = await handle({ id: 10, type: "recentMatches", input: { club: cup.winner!.club, limit: 3, season: 1 } }, s);
+    expect(recent).toHaveLength(3);
+    expect(recent[0]!.date >= recent[2]!.date).toBe(true);
+    expect(recent[0]!.short).toBe("cup"); // a final foi o último jogo da época
     // histórico da liga: um pódio e os melhores marcadores; da taça: o vencedor
     const champion = summary!.champions.find((x) => x.league === "Primeira Liga")!.club;
     const history = await handle({ id: 6, type: "competitionHistory", input: { competition: "Primeira Liga" } }, s);

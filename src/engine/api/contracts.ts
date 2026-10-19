@@ -3,6 +3,7 @@ import type { SearchResult } from "../search/search";
 import type { CompetitionPage } from "../competition/profile";
 import type { CupView, ClubCompetition } from "../competition/cup";
 import type { CompetitionHistory } from "../competition/history";
+import type { RecentMatch } from "../competition/recent";
 import type { SummaryCompetition, LabMatch, LabLeague } from "../lab/lab";
 import type { ClubSeason } from "../competition/clubSeason";
 import type { FormationId, Tactic } from "../match/types";
@@ -349,7 +350,7 @@ export type CityProfileData = {
   incidents: { date: string; season: number; label: string; type: string; regional: boolean; hub?: string }[];
 };
 
-export type { SearchResult, SummaryCompetition, LabMatch, LabLeague, CompetitionPage, CupView, ClubCompetition, CompetitionHistory };
+export type { SearchResult, SummaryCompetition, LabMatch, LabLeague, CompetitionPage, CupView, ClubCompetition, CompetitionHistory, RecentMatch };
 
 /** O plano de jogo do clube do gamer, pronto para a página Tática. */
 export type ViewPlan = {
@@ -404,6 +405,8 @@ export type EngineRequests = {
   nationalCups: { input: null; output: CupView[] };
   /** Histórico de uma liga ou taça. */
   competitionHistory: { input: { competition: string }; output: CompetitionHistory };
+  /** Últimos jogos do clube em todas as competições (página inicial). */
+  recentMatches: { input: { club: string; limit?: number; season?: number }; output: RecentMatch[] };
   /** Onde o clube compete e em que fase/posição. */
   clubCompetitions: { input: { club: string; season?: number }; output: ClubCompetition[] };
   /** Laboratório: simula um jogo entre dois clubes sem gravar nada no save. */
