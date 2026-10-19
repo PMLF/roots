@@ -77,7 +77,8 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
   const finished = bid?.stage === "done" || bid?.stage === "closed" || Boolean(bid?.moving);
   const waiting = bid?.pending;
   const toConfirm = bid?.stage === "agreed" && !bid.moving && bid.needsConfirm;
-  const turn = Boolean(bid) && !finished && !waiting && !toConfirm && (bid?.stage === "club" || bid?.stage === "agent");
+  const waitUntil = bid?.waitUntil;
+  const turn = Boolean(bid) && !finished && !waiting && !toConfirm && !waitUntil && (bid?.stage === "club" || bid?.stage === "agent");
   const started = Boolean(bid) && ((bid?.round ?? 0) > 0 || bid?.fee !== undefined);
 
   /** Cartão de resultado, verde ou vermelho, com ícone: o acordo e a recusa têm de saltar à vista. */
@@ -95,6 +96,7 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
   const message = (() => {
     if (!bid || banner) return undefined;
     if (blocked) return { tone: "erro", text: t(overWage ? "bid.blocked.wageBudget" : "bid.blocked.cash") };
+    if (waitUntil) return { tone: "ok", text: t(waitUntil.who === "agent" ? "bid.waitAgent" : "bid.waitConfirm", { club: bid.seller ?? "", date: waitUntil.date }) };
     if (waiting) return { tone: "ok", text: t("bid.waiting", { who: t(waiting.kind === "fee" ? "bid.waiting.club" : "bid.waiting.agent"), date: waiting.due }) };
     if (bid.lastReply?.status === "blocked" || reply?.status === "blocked") return { tone: "erro", text: t(`bid.blocked.${(reply?.reason ?? bid.lastReply?.reason) === "wageBudget" ? "wageBudget" : "cash"}` as Key) };
     if (bid.stage === "club" && bid.lastReply?.status === "counter") return { tone: "aviso", text: t("bid.clubCounter", { club: bid.seller ?? "", fee: eur.format(bid.ask ?? 0) }) };
@@ -160,9 +162,9 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
           )}
           {message && <p className={`mensagem-renovacao ${message.tone}`} role="status">{message.text}</p>}
           {error && <p className="erro" role="alert">{error}</p>}
-          {(turn || toConfirm || waiting) && (
+          {(turn || toConfirm || waiting || waitUntil) && (
             <div className="acoes-popup">
-              {(started || toConfirm) && !waiting && <button type="button" className="perigo" disabled={busy} onClick={() => void send({ action: "cancel" })}>{t("bid.withdraw")}</button>}
+              {(started || toConfirm || waitUntil) && !waiting && <button type="button" className="perigo" disabled={busy} onClick={() => void send({ action: "cancel" })}>{t("bid.withdraw")}</button>}
               {turn && <button type="submit" className="primario" disabled={busy || blocked}>{t(accepting ? "bid.accept" : "renewals.propose")}</button>}
               {toConfirm && <button type="button" className="primario" disabled={busy} onClick={() => void send({ action: "confirm" })}>{t("bid.confirm")}</button>}
             </div>

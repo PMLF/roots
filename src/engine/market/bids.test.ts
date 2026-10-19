@@ -21,11 +21,11 @@ describe("propostas do gamer", { timeout: 180000 }, () => {
     }
   };
   let me = "";
-  /** A resposta só chega daqui a um ou dois dias: avança até deixar de haver proposta pendente. */
+  /** As rondas respondem logo; a espera é só entre fases (clube → agente → confirmação): avança até a fase seguinte abrir. */
   const settle = async (person: string) => {
     for (let i = 0; i < 4; i++) {
       const v = await handle({ id: 700 + i, type: "bid", input: { person, action: "open" } }, s);
-      if (v.ok && !v.bid.pending) return v.bid;
+      if (v.ok && !v.bid.pending && !v.bid.waitUntil) return v.bid;
       const r = await handle({ id: 800 + i, type: "advance", input: { mode: "day" } }, s);
       if (r.pause) await handle({ id: 900 + i, type: "confirmMatch", input: { match: r.pause.match } }, s);
     }
@@ -45,7 +45,12 @@ describe("propostas do gamer", { timeout: 180000 }, () => {
     expect(opened.ok && opened.bid.terms?.wages.length).toBeGreaterThan(2);
     const ask = opened.ok ? opened.bid.terms!.ask : undefined;
     const r = await handle({ id: 4, type: "bid", input: { person: free.person, action: "terms", wage: Math.round(ask!.wage * 3), years: 2, release: null } }, s);
-    expect(r.ok && r.bid.pending?.kind).toBe("terms");
+    // a ronda responde no mesmo dia; a confirmação só abre no dia seguinte
+    expect(r.ok && r.bid.stage).toBe("agreed");
+    expect(r.ok && r.bid.waitUntil?.who).toBe("confirm");
+    expect(r.ok && r.bid.needsConfirm).toBeUndefined();
+    const early = await handle({ id: 40, type: "bid", input: { person: free.person, action: "confirm" } }, s);
+    expect(early.ok).toBe(false);
     const agreed = await settle(free.person);
     expect(agreed.stage).toBe("agreed");
     expect(agreed.needsConfirm).toBeTruthy();
@@ -73,7 +78,9 @@ describe("propostas do gamer", { timeout: 180000 }, () => {
     expect(low.reopens).toBeTruthy();
     const other = repository.clubPlayers(seller.id).filter((j) => j.positions[0]?.pos !== "GK")[1]!;
     const balance = Number(repository.meta("balance." + me));
-    await handle({ id: 12, type: "bid", input: { person: other.person, action: "fee", fee: 3000000 } }, s);
+    const budgetBefore = (JSON.parse(repository.meta("budget." + me) ?? "{}") as { transfers?: number }).transfers;
+    const accepted = await handle({ id: 12, type: "bid", input: { person: other.person, action: "fee", fee: 3000000 } }, s);
+    expect(accepted.ok && accepted.bid.waitUntil?.who).toBe("agent");
     const fee = await settle(other.person);
     expect(fee.stage).toBe("agent");
     const ask = fee.terms!.ask;
@@ -86,6 +93,10 @@ describe("propostas do gamer", { timeout: 180000 }, () => {
     expect(repository.player(other.person)!.club).toBe(me);
     expect(repository.contract(other.person)!.clauses?.release).toBe(ask.release);
     expect(Number(repository.meta("balance." + me))).toBeLessThan(balance);
+    // a compra gasta a verba de transferências
+    const budgetAfter = (JSON.parse(repository.meta("budget." + me) ?? "{}") as { transfers?: number }).transfers;
+    expect(budgetAfter).toBeDefined();
+    if (budgetBefore !== undefined) expect(budgetAfter!).toBeLessThan(budgetBefore);
     const hist = repository.eventsOf({ k: "person", id: other.person }).filter((e) => e.type === "TRANSFER");
     expect(hist.length).toBe(1);
     void P;

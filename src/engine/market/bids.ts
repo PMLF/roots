@@ -7,7 +7,7 @@
  */
 import { addDays } from "../calendar/dates";
 import { clubBalance, monthlyWageBill, post } from "../club/finances";
-import { clubBudget } from "../club/budget";
+import { adjustTransfers, clubBudget } from "../club/budget";
 import type { Params, Tier } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
@@ -50,6 +50,12 @@ export type Bid = {
   lastTerms?: RenewalTerms;
   /** Dia em que o agente aceitou: o gamer tem `bids.confirmDays` para confirmar a transferência. */
   agreedOn?: IsoDate;
+  /** Acordo com o clube: o agente só atende a partir desta data (no dia seguinte; no último dia da janela é logo). */
+  agentFrom?: IsoDate;
+  /** Acordo com o agente: a transferência só se confirma a partir desta data (no dia seguinte; no último dia da janela é logo). */
+  confirmFrom?: IsoDate;
+  /** A mensagem do acordo com o agente já foi para a caixa de entrada. */
+  notified?: boolean;
   /** O clube/agente só volta a falar depois desta data. */
   reopens?: IsoDate;
   /** Acordo fechado fora da janela: o jogador muda-se nesta data. */
@@ -172,7 +178,7 @@ export function clubOffer(repo: Repository, data: BaseData, params: Params, club
   };
   if (release !== undefined && fee >= release) {
     if (!paid(release)) return close("cash");
-    update(repo, { ...bid, stage: "agent", fee: release, ask: release });
+    update(repo, { ...bid, stage: "agent", fee: release, ask: release, agentFrom: nextPhaseDay(params, today) });
     return { status: "accepted", fee: release };
   }
   const seller = data.clubs.find((c) => c.id === bid.seller);
@@ -184,7 +190,7 @@ export function clubOffer(repo: Repository, data: BaseData, params: Params, club
   // quem aceita o que o clube acabou de pedir não leva nova contraproposta
   if (fee >= ask || (bid.clubRound > 0 && bid.ask !== undefined && fee >= bid.ask)) {
     if (!paid(fee)) return close("cash");
-    update(repo, { ...bid, stage: "agent", fee, ask: fee });
+    update(repo, { ...bid, stage: "agent", fee, ask: fee, agentFrom: nextPhaseDay(params, today) });
     return { status: "accepted", fee };
   }
   const round = bid.clubRound + 1;
@@ -224,7 +230,7 @@ export function agentOffer(repo: Repository, data: BaseData, params: Params, clu
     const payroll = monthlyWageBill(repo, club.id) * 12 + reply.terms.wage * 12;
     if (clubBalance(repo, club) < (bid.fee ?? 0) + commission) return { status: "blocked", reason: "cash" };
     if (payroll > budget.wageBillMax * (1 + params.market.wageSlack)) return { status: "blocked", reason: "wageBudget" };
-    update(repo, { ...bid, stage: "agreed", terms: reply.terms, commission });
+    update(repo, { ...bid, stage: "agreed", terms: reply.terms, commission, confirmFrom: nextPhaseDay(params, today) });
   }
   return reply;
 }
@@ -291,6 +297,7 @@ export function executeBid(repo: Repository, data: BaseData, params: Params, clu
   }
   const seller = bid.seller ? data.clubs.find((c) => c.id === bid.seller) : undefined;
   post(repo, club, "transfers", -fee);
+  adjustTransfers(repo, club, params, season, -(fee + commission + compensation));
   if (seller) post(repo, seller, "transfers", fee);
   if (commission > 0) post(repo, club, "transfers", -commission);
   if (trainer && compensation > 0) { post(repo, club, "transfers", -compensation); post(repo, trainer, "transfers", compensation); }
@@ -319,9 +326,11 @@ export function executeBid(repo: Repository, data: BaseData, params: Params, clu
 export type SubmitInput = { kind: "fee"; fee: number } | { kind: "terms"; terms: RenewalTerms };
 export type Resolved = { status: "accepted" | "counter" | "closed" | "blocked"; reason?: string; terms?: RenewalTerms };
 
-/** Dias até à resposta: 1 ou 2 (determinístico por proposta); 0 no último dia da janela. */
-export const replyDelay = (repo: Repository, params: Params, today: IsoDate, bid: Bid): number =>
-  windowAt(today, params)?.last ? 0 : 1 + Math.floor(new Rng(repo.meta("seed") ?? "?", `bidreply/${bid.id}/${today}`).float() * 2);
+/** As rondas da negociação respondem no mesmo dia: a espera é só entre fases (clube → agente → confirmação). */
+export const replyDelay = (_repo: Repository, _params: Params, _today: IsoDate, _bid: Bid): number => 0;
+
+/** Primeiro dia em que a fase seguinte avança: amanhã, ou hoje no último dia da janela (deadline day). */
+export const nextPhaseDay = (params: Params, today: IsoDate): IsoDate => (windowAt(today, params)?.last ? today : addDays(today, 1));
 
 /** Envia uma proposta: responde logo no último dia da janela, senão fica pendente. Devolve a resposta se já chegou. */
 export function submitBid(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid, input: SubmitInput): Resolved | "pending" {
@@ -352,7 +361,9 @@ export function resolvePending(repo: Repository, data: BaseData, params: Params,
   }
   const fresh = bids(repo).find((x) => x.id === bid.id) ?? cleared;
   const agreed = pend.kind === "terms" && reply.status === "accepted";
-  update(repo, { ...fresh, lastReply: { ...reply, kind: pend.kind, date: today }, ...(agreed ? { agreedOn: today } : {}) });
+  const later = agreed && (fresh.confirmFrom ?? today) > today;
+  update(repo, { ...fresh, lastReply: { ...reply, kind: pend.kind, date: today }, ...(agreed ? { agreedOn: today, notified: !later } : {}) });
+  if (later) return reply; // a mensagem do acordo chega no dia seguinte (dailyBids)
   const seller = bid.seller ? (data.clubs.find((c) => c.id === bid.seller)?.name ?? foreignClubList(repo).find((c) => c.id === bid.seller)?.name ?? "") : "";
   repo.appendEvent({
     type: "BID_REPLY", date: today, season, visibility: "exposed", origin: "generated",
@@ -364,7 +375,7 @@ export function resolvePending(repo: Repository, data: BaseData, params: Params,
 
 /** O gamer confirma a transferência acordada: muda já (janela aberta) ou fica marcada. */
 export function confirmBid(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid): Finalized | undefined {
-  if (bid.stage !== "agreed" || bid.moving) return undefined;
+  if (bid.stage !== "agreed" || bid.moving || (bid.confirmFrom && today < bid.confirmFrom)) return undefined;
   return finalizeBid(repo, data, params, club, today, season, bid);
 }
 
@@ -373,6 +384,16 @@ export function dailyBids(repo: Repository, data: BaseData, params: Params, club
   const done: Bid[] = [];
   // respostas que chegam hoje
   for (const b of bids(repo)) if (b.pending && b.pending.due <= today) resolvePending(repo, data, params, club, today, season, b);
+  // acordos com o agente: a mensagem para confirmar chega no dia seguinte
+  for (const b of bids(repo)) {
+    if (b.stage !== "agreed" || b.notified || (b.confirmFrom ?? today) > today) continue;
+    update(repo, { ...b, notified: true });
+    repo.appendEvent({
+      type: "BID_REPLY", date: today, season, visibility: "exposed", origin: "generated",
+      entities: [{ k: "club", id: club.id }, { k: "person", id: b.person, roleKind: "target" }],
+      data: { status: "accepted", kind: "terms", seller: b.seller ? (data.clubs.find((c) => c.id === b.seller)?.name ?? foreignClubList(repo).find((c) => c.id === b.seller)?.name ?? "") : "" },
+    });
+  }
   // acordos por confirmar que o gamer deixou passar
   for (const b of bids(repo)) {
     if (b.stage === "agreed" && !b.moving && b.agreedOn && addDays(b.agreedOn, params.market.bids.confirmDays) < today) update(repo, { ...b, stage: "closed", closed: "gone" });
