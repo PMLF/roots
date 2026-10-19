@@ -549,7 +549,7 @@ function offerViewOf(r: Repository, data: BaseData, params: Params, o: Offer): O
     id: o.id, person: o.person, name: person.sportingName, position: player.positions[0]?.pos ?? "", age: ageAt(person.birth, today),
     buyer: { id: buyer.id, name: buyer.name }, fee: o.fee, wage: o.wage, years: o.years, release: o.release, currentWage: ct.monthlyWage, value,
     expires: o.expires, round: o.round, roundsLeft: Math.max(0, params.market.offers.maxRounds - o.round),
-    suggestions: [...new Set([1.1, 1.25, 1.4, 1.6, 2].map((m) => nice(Math.max(o.fee, value) * m)))].filter((v) => v > o.fee).sort((a, b) => a - b),
+    suggestions: (o.grid ?? [...new Set([1.1, 1.25, 1.4, 1.6, 2].map((m) => nice(Math.max(o.fee, value) * m)))]).filter((v) => v > o.fee).sort((a, b) => a - b),
   };
 }
 

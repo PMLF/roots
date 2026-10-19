@@ -28,6 +28,8 @@ export type Offer = {
   person: string;
   buyer: string;
   fee: number;
+  /** Valores que o gamer pode pedir (dropdown): fixos durante toda a negociação; a IA só contrapropõe com eles. */
+  grid?: number[];
   wage: number;
   years: number;
   release: number | null;
@@ -105,7 +107,8 @@ export function dailyOffers(repo: Repository, data: BaseData, params: Params, ga
     const ask = renewalAsk(repo, data, params, buyer, j.person);
     if (!ask) continue;
     const list = offers(repo);
-    const offer: Offer = { id: Math.max(0, ...list.map((x) => x.id)) + 1, person: j.person, buyer: buyer.id, fee, wage: ask.wage, years: ask.years, release: ask.release, created: today, expires: [addDays(today, cfg.validDays), windowEnd(params, today)].sort()[0] as IsoDate, round: 0, status: "pending" };
+    const grid = [...new Set([1.1, 1.25, 1.4, 1.6, 2].map((m) => Math.round((Math.max(fee, value) * m) / 1000) * 1000))].sort((a, b) => a - b);
+    const offer: Offer = { id: Math.max(0, ...list.map((x) => x.id)) + 1, person: j.person, buyer: buyer.id, fee, grid, wage: ask.wage, years: ask.years, release: ask.release, created: today, expires: [addDays(today, cfg.validDays), windowEnd(params, today)].sort()[0] as IsoDate, round: 0, status: "pending" };
     save(repo, [...list, offer]);
     repo.appendEvent({ type: "TRANSFER_OFFER", date: today, season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: j.person, roleKind: "player" }, { k: "club", id: buyer.id, roleKind: "buyer" }, { k: "club", id: gamer.id }], data: { fee } });
     created.push(offer);
@@ -153,7 +156,10 @@ export function respondOffer(repo: Repository, data: BaseData, params: Params, g
   if (action.fee <= ceiling) return settle(repo, data, params, gamer, today, season, { ...o, fee: action.fee });
   const round = o.round + 1;
   if (round > cfg.maxRounds || action.fee > ceiling * 1.5 || ceiling <= o.fee) { update(repo, { ...o, status: "withdrawn" }); return { status: "withdrawn" }; }
-  const fee = round1000(o.fee + (ceiling - o.fee) * (1 - cfg.concession ** round));
+  const target = round1000(o.fee + (ceiling - o.fee) * (1 - cfg.concession ** round));
+  // a IA só contrapropõe com valores do dropdown
+  const fee = (o.grid ?? []).filter((v) => v > o.fee && v <= target).pop();
+  if (fee === undefined) { update(repo, { ...o, status: "withdrawn" }); return { status: "withdrawn" }; }
   update(repo, { ...o, round, fee });
   return { status: "counter", fee, roundsLeft: cfg.maxRounds - round };
 }

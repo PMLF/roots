@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { OfferAnswer, OfferView } from "@/engine/api/contracts";
 import { CloseButton } from "@/ui/components/CloseButton";
-import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { Data } from "@/ui/components/Card";
 import { Icon } from "@/ui/components/Icon";
 import { EntityLink } from "@/ui/components/Link";
@@ -45,12 +44,12 @@ export function OfferDialog({ offer, onClose, onAnswered }: { offer: OfferView; 
   const banner = result === undefined || result === "counter" ? undefined
     : { tone: result === "done" ? "ok" : "erro", text: t(`offer.result.${result}` as Key, { name: current.name, club: current.buyer.name }) };
   const message = result === "counter" ? t("offer.counter", { club: current.buyer.name, fee: eur.format(current.fee) }) : undefined;
-  const values = [...new Set([...current.suggestions, Number(counter)].filter((v) => v > current.fee))].sort((a, b) => a - b);
+  const values = current.suggestions;
   const info = [
     { label: t("offer.info.player"), value: <EntityLink k="person" id={current.person}>{current.name}</EntityLink> },
     { label: t("bid.info.position"), value: namePosition(t, current.position) },
     { label: t("bid.info.age"), value: current.age },
-    { label: t("offer.info.buyer"), value: <span className="clube-linha"><ClubSwatch id={current.buyer.id} /> <EntityLink k="club" id={current.buyer.id}>{current.buyer.name}</EntityLink></span> },
+    { label: t("offer.info.buyer"), value: <span className="clube-linha"><EntityLink k="club" id={current.buyer.id}>{current.buyer.name}</EntityLink></span> },
     { label: t("offer.info.fee"), value: <b>{eur.format(current.fee)}</b> },
     { label: t("offer.info.value"), value: eur.format(current.value) },
     { label: t("offer.info.wageNow"), value: eur.format(current.currentWage) },

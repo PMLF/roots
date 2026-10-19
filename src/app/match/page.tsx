@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { LiveMatch } from "@/engine/season/liveMatch";
 import type { Tactic } from "@/engine/match/types";
@@ -29,6 +29,7 @@ function Content() {
   const engine = useEngine();
   const dev = useDevMode();
   const [mine] = useOwnClub();
+  const router = useRouter();
   const params = useSearchParams();
   const id = params.get("id") ?? undefined;
   const launch = params.get("launch") === "1";
@@ -65,12 +66,12 @@ function Content() {
     try {
       const j = await engine.call("matchStep", { minutes });
       setMatch(j);
-      if (!j.ongoing) { setRunning(false); ended(); }
+      if (!j.ongoing) { setRunning(false); ended(); router.push(`/results/?id=${encodeURIComponent(j.id)}`); }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setRunning(false);
     }
-  }, [engine, ended]);
+  }, [engine, ended, router]);
 
   // o relógio: cada tique pede ao motor mais um minuto, com a tática em vigor nesse momento
   const ongoing = !!match?.ongoing;
