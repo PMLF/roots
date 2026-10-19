@@ -71,11 +71,12 @@ export function Shell({ children }: { children: ReactNode }) {
     setTheme(read("raizes.theme", isTheme) ?? "auto");
   }, []);
   useEffect(() => {
-    document.documentElement.dataset.density = density;
+    document.documentElement.dataset.densidade = density === "compact" ? "compacta" : "normal";
   }, [density]);
   useEffect(() => {
-    if (theme === "auto") delete document.documentElement.dataset.theme;
-    else document.documentElement.dataset.theme = theme;
+    // o CSS usa data-tema="claro|escuro" (sem atributo = automático)
+    if (theme === "auto") delete document.documentElement.dataset.tema;
+    else document.documentElement.dataset.tema = theme === "light" ? "claro" : "escuro";
   }, [theme]);
   const toggleTheme = () => {
     const fresh = NEXT_THEME[theme];
@@ -88,6 +89,15 @@ export function Shell({ children }: { children: ReactNode }) {
     save("raizes.density", fresh);
   };
 
+  // o tempo a passar: o ecrã escurece e volta, de forma suave (visível mesmo que o avanço seja instantâneo)
+  const [passing, setPassing] = useState(false);
+  const passStart = useRef(0);
+  useEffect(() => {
+    if (time.advancing) { passStart.current = Date.now(); setPassing(true); return; }
+    if (!passStart.current) return;
+    const timer = window.setTimeout(() => setPassing(false), Math.max(0, 450 - (Date.now() - passStart.current)));
+    return () => window.clearTimeout(timer);
+  }, [time.advancing]);
   const matchInProgress = useOngoingMatch() && path.startsWith("/match");
   const items = MENU.filter((m) => (!m.devOnly || dev) && !m.hidden);
   // «Mais» fica ativa quando a página atual só se chega pela gaveta
@@ -128,6 +138,7 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
         <Settings theme={theme} onTheme={toggleTheme} density={density} onDensity={toggleDensity} locale={locale} aoLocale={setLocale} />
       </nav>
+      <div className={`tempo-passa${passing ? " ativo" : ""}`} aria-hidden="true" />
       {drawer && <div className="menu-fundo" onClick={() => setDrawer(false)} aria-hidden="true" />}
       {!matchInProgress && (
         <header className="topo">

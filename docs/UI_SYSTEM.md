@@ -67,6 +67,8 @@ O que se guarda está em **inglês** (posições GK, RB, CB, LB, DM, CM, AM, RW,
 
 - **Estatísticas (RZ-153):** o cartão de destaques não tem título; carregar nele ou em «Ver mais» abre o separador `tab=stats` (top 10, equipas, jogadores). O conteúdo ocupa a largura toda de `<main>`; cartões lado a lado esticam à mesma altura. Segunda Liga com 20 clubes.
 
+- **Taças e história (RZ-244):** a Taça de Portugal aparece em `/competitions/` (cartão com navegação por ronda) e tem ficha própria (`type=competition&id=Taça de Portugal`: rondas e História). Cada linha de resultado mostra a cor do clube e, nas pontas, o escalão (1L, 2L, 3L, CP, Dist.); prolongamento e penáltis aparecem sob o marcador. O separador História (ligas e taças) tem cartões: pódios por época, mais títulos, mais pódios, mais pontos de sempre, melhores marcadores/assistentes, mais jogos, cartões e recordes (goleada, jogo com mais golos, melhor ataque/defesa, mais golos numa época). O clube tem um cartão «Competições» (liga: posição; taças: fase ou estado).
+
 ## 4. Fica para depois
 
 Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já existem e abrem uma ficha «em breve»; separadores *Jogos*, *Carreira*, *História* (precisam de jogos e eventos); conjuntos de colunas com nome; atalhos por secção; «Caixa»/jornal e barra inferior com dados (RZ-120).

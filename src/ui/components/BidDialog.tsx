@@ -79,7 +79,6 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
   const toConfirm = bid?.stage === "agreed" && !bid.moving && bid.needsConfirm;
   const waitUntil = bid?.waitUntil;
   const turn = Boolean(bid) && !finished && !waiting && !toConfirm && !waitUntil && (bid?.stage === "club" || bid?.stage === "agent");
-  const started = Boolean(bid) && ((bid?.round ?? 0) > 0 || bid?.fee !== undefined);
 
   /** Cartão de resultado, verde ou vermelho, com ícone: o acordo e a recusa têm de saltar à vista. */
   const banner = (() => {
@@ -164,7 +163,7 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
           {error && <p className="erro" role="alert">{error}</p>}
           {(turn || toConfirm || waiting || waitUntil) && (
             <div className="acoes-popup">
-              {(started || toConfirm || waitUntil) && !waiting && <button type="button" className="perigo" disabled={busy} onClick={() => void send({ action: "cancel" })}>{t("bid.withdraw")}</button>}
+              {!waiting && <button type="button" className="perigo" disabled={busy} onClick={() => void send({ action: "cancel" })}>{t("bid.withdraw")}</button>}
               {turn && <button type="submit" className="primario" disabled={busy || blocked}>{t(accepting ? "bid.accept" : "renewals.propose")}</button>}
               {toConfirm && <button type="button" className="primario" disabled={busy} onClick={() => void send({ action: "confirm" })}>{t("bid.confirm")}</button>}
             </div>

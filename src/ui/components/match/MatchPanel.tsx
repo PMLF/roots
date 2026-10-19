@@ -96,14 +96,23 @@ export function LiveTable({ match, mine }: { match: LiveMatch; mine?: string }) 
   );
 }
 
-/** Uma linha de resultado: casa, marcador e fora (as cores ficam dentro de cada nome, para o alinhamento não depender delas). */
-export function ResultLine({ match, home, away, score, mine, ended }: { match: LiveMatch; home: { id: string; name: string }; away: { id: string; name: string }; score: string; mine?: string; ended?: boolean }) {
+const TIER_SHORT: Record<string, Key> = { firstLeague: "tier.short.firstLeague", secondLeague: "tier.short.secondLeague", thirdLeague: "tier.short.thirdLeague", cp: "tier.short.cp", district: "tier.short.district" };
+
+/**
+ * Uma linha de resultado: [escalão] casa, marcador e fora [escalão] (as cores ficam dentro de cada nome, para o alinhamento não
+ * depender delas). Nos jogos a eliminar mostra «a.p.» (prolongamento) e o resultado dos penáltis por baixo do marcador.
+ */
+export function ResultLine({ match, home, away, score, mine, ended, extraTime, shootout }: { match: LiveMatch; home: { id: string; name: string }; away: { id: string; name: string }; score: string; mine?: string; ended?: boolean; extraTime?: boolean; shootout?: { home: number; away: number } }) {
   const { t } = useT();
+  const tag = (id: string) => { const k = match.tiers?.[id] ? TIER_SHORT[match.tiers[id] as string] : undefined; return k ? <small className="escalao-etiqueta" title={t(`tier.${match.tiers?.[id]}` as Key)}>{t(k)}</small> : <span />; };
+  const tiered = Boolean(match.tiers);
   return (
-    <li className={home.id === mine || away.id === mine ? "meu-jogo" : undefined}>
+    <li className={`${home.id === mine || away.id === mine ? "meu-jogo" : ""}${tiered ? " com-escalao" : ""}`.trim() || undefined}>
+      {tiered && tag(home.id)}
       <span className={`nome-clube nome-casa${home.id === mine ? " meu-clube" : ""}`}><EntityLink k="club" id={home.id} withoutSwatch>{home.name}</EntityLink><ClubSwatch colours={match.colours?.[home.id]} className="amostra-dir" /></span>
-      <b className="marcador-pequeno">{score}</b>
+      <b className="marcador-pequeno">{score}{(shootout || extraTime) && <small className="marcador-nota">{shootout ? t("results.pens", { a: shootout.home, b: shootout.away }) : t("results.afterExtra")}</small>}</b>
       <span className={`nome-clube nome-fora${away.id === mine ? " meu-clube" : ""}`}><ClubSwatch colours={match.colours?.[away.id]} className="amostra-esq" /><EntityLink k="club" id={away.id} withoutSwatch>{away.name}</EntityLink></span>
+      {tiered && tag(away.id)}
       {ended && <span className="suave fim-jogo">{t("match.matchEnd")}</span>}
     </li>
   );
@@ -121,7 +130,7 @@ export function OthersMatches({ match, mine }: { match: LiveMatch; mine?: string
         {match.others.map((o) => {
           const [a, b] = scorerAt(o.goals, minute);
           return (
-            <ResultLine key={o.id} match={match} home={o.home} away={o.away} score={`${a}–${b}`} {...(mine !== undefined ? { mine } : {})} {...(minute >= o.duration ? { ended: true } : {})} />
+            <ResultLine key={o.id} match={match} home={o.home} away={o.away} score={`${a}–${b}`} {...(mine !== undefined ? { mine } : {})} {...(minute >= o.duration ? { ended: true, ...(o.extraTime ? { extraTime: true } : {}), ...(o.shootout ? { shootout: o.shootout } : {}) } : {})} />
           );
         })}
       </ul>

@@ -24,7 +24,7 @@ export type KnockoutState = {
   runnerUp?: ClubId;
 };
 
-const legsOf = (def: KnockoutStage, r: number, rounds: number): 1 | 2 => (r === rounds - 1 ? def.finalLegs ?? def.legs : def.legs);
+const legsOf = (def: KnockoutStage, r: number, rounds: number): 1 | 2 => (r === rounds - 1 ? def.finalLegs ?? def.legs : r === rounds - 2 && rounds >= 3 ? def.semiLegs ?? def.legs : def.legs);
 
 export function startKnockout(def: KnockoutStage, stage: number, entrants: readonly Entrant[], ctx: RunContext, lateWaves: readonly (readonly Entrant[])[] = def.lateWaves ?? []): { state: KnockoutState; fixtures: Fixture[]; events: StageEvent[] } {
   const waves = [[...entrants], ...lateWaves.map((w) => [...w])];

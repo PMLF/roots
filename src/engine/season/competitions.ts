@@ -51,7 +51,8 @@ const DRAW: DrawRules = { pairing: "random", advantage: "lowerTier" };
 
 /** A definição de cada tipo de taça: uma só fase a eliminar, a jogo único, com final em campo neutro. */
 export function cupDef(competition: string, lateWaves?: Entrant[][]): CompetitionDef {
-  return { id: competition, stages: [{ kind: "knockout", name: competition, legs: 1, rules: DRAW, finalNeutral: true, ...(lateWaves ? { lateWaves } : {}) }] };
+  // Taça de Portugal: meias-finais a duas mãos (com prolongamento e penáltis se o agregado ficar empatado); o resto a uma mão
+  return { id: competition, stages: [{ kind: "knockout", name: competition, legs: 1, rules: DRAW, finalNeutral: true, ...(competition === CUP ? { semiLegs: 2 as const } : {}), ...(lateWaves ? { lateWaves } : {}) }] };
 }
 
 const slug = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -213,8 +214,10 @@ export function planCups(repo: Repository, data: BaseData, params: Params, seaso
 
   const natRounds = planKnockout(nationalEntrants(repo, data, params, season).map((w) => w.length)).length;
   const natPool = between(calendarDate(season, cfg.cup.firstRound, c), calendarDate(season, cfg.cup.lastRound, c));
-  if (natPool.length < natRounds - 1) throw new Error(`Cup: only ${natPool.length} free weekends for ${natRounds - 1} rounds`);
-  const natSaturdays = spaced(natPool.length, natRounds - 1).map((i) => natPool[i] as IsoDate);
+  // uma data a mais para a segunda mão das meias-finais (há meias-finais se houver pelo menos 3 rondas)
+  const natSlots = natRounds - 1 + (natRounds >= 3 ? 1 : 0);
+  if (natPool.length < natSlots) throw new Error(`Cup: only ${natPool.length} free weekends for ${natSlots} rounds`);
+  const natSaturdays = spaced(natPool.length, natSlots).map((i) => natPool[i] as IsoDate);
   const natSundays = natSaturdays.map(sundayOf);
   const districtsEnd = calendarDate(season, c.lastRoundPerTier.district ?? c.lastRoundUntil, c);
   let districtFinal = nextWeekday(addDays(districtsEnd, cfg.districtCup.finalDaysAfterDistrictsEnd), 0);

@@ -887,3 +887,29 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .rodar { display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: rodar 0.7s linear infinite; }
 @keyframes rodar { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .rodar { animation-duration: 2s; } }
+
+/* Tempo a passar: véu suave sobre o ecrã todo enquanto o avanço decorre */
+.tempo-passa { position: fixed; inset: 0; z-index: 90; pointer-events: none; background: color-mix(in srgb, var(--fundo) 55%, #000); opacity: 0; transition: opacity .35s ease; }
+.tempo-passa.ativo { opacity: .55; transition-duration: .15s; }
+@media (prefers-reduced-motion: reduce) { .tempo-passa, .tempo-passa.ativo { transition: none; } .tempo-passa.ativo { opacity: .25; } }
+
+/* Resultados de taça: escalão colado a cada lado do cartão e nota do prolongamento/penáltis */
+.outros-jogos li.com-escalao { grid-template-columns: 2.6rem minmax(0, 1fr) 4.6rem minmax(0, 1fr) 2.6rem; }
+.outros-jogos .escalao-etiqueta { color: var(--suave); font-size: 11px; font-weight: 600; white-space: nowrap; }
+.outros-jogos li.com-escalao > .escalao-etiqueta:first-child { text-align: left; }
+.outros-jogos li.com-escalao > .escalao-etiqueta:last-of-type { text-align: right; }
+.outros-jogos .marcador-nota { display: block; color: var(--suave); font-size: 11px; font-weight: 400; }
+
+/* Taças e histórico das competições (RZ-244) */
+.taca-rondas { display: grid; gap: 10px; }
+.taca-ronda { font-size: .95rem; margin: 6px 0 4px; }
+.taca-nav { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.taca-nav button { min-width: 2rem; }
+.historico-grelha { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr)); align-items: start; }
+.historico-grelha > :first-child { grid-column: 1 / -1; }
+.historico-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; counter-reset: pos; }
+.historico-lista li { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; counter-increment: pos; }
+.historico-lista li::before { content: counter(pos) "."; width: 1.6rem; color: var(--suave, inherit); opacity: .7; flex: none; }
+.historico-lista li > :first-child { flex: 1; min-width: 0; }
+.tabela-historico { width: 100%; border-collapse: collapse; }
+.tabela-historico th, .tabela-historico td { text-align: left; padding: 4px 8px 4px 0; }

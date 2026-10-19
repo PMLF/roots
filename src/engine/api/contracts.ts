@@ -1,6 +1,8 @@
 import type { Params } from "../config/parameters";
 import type { SearchResult } from "../search/search";
 import type { CompetitionPage } from "../competition/profile";
+import type { CupView, ClubCompetition } from "../competition/cup";
+import type { CompetitionHistory } from "../competition/history";
 import type { SummaryCompetition, LabMatch, LabLeague } from "../lab/lab";
 import type { ClubSeason } from "../competition/clubSeason";
 import type { FormationId, Tactic } from "../match/types";
@@ -347,7 +349,7 @@ export type CityProfileData = {
   incidents: { date: string; season: number; label: string; type: string; regional: boolean; hub?: string }[];
 };
 
-export type { SearchResult, SummaryCompetition, LabMatch, LabLeague, CompetitionPage };
+export type { SearchResult, SummaryCompetition, LabMatch, LabLeague, CompetitionPage, CupView, ClubCompetition, CompetitionHistory };
 
 /** O plano de jogo do clube do gamer, pronto para a página Tática. */
 export type ViewPlan = {
@@ -396,6 +398,14 @@ export type EngineRequests = {
   competitions: { input: null; output: SummaryCompetition[] };
   /** Página de uma liga ou série (RZ-145): classificação com zonas, jornadas, destaques e clubes (prévia do calendário se a época ainda não começou). */
   competitionPage: { input: { league: string; season?: number }; output: CompetitionPage | null };
+  /** Taça: rondas com resultados (RZ-244). */
+  cupView: { input: { competition: string; season?: number }; output: CupView | null };
+  /** Taças nacionais da época atual. */
+  nationalCups: { input: null; output: CupView[] };
+  /** Histórico de uma liga ou taça. */
+  competitionHistory: { input: { competition: string }; output: CompetitionHistory };
+  /** Onde o clube compete e em que fase/posição. */
+  clubCompetitions: { input: { club: string; season?: number }; output: ClubCompetition[] };
   /** Laboratório: simula um jogo entre dois clubes sem gravar nada no save. */
   matchLab: { input: { home: string; away: string; seed: string; homeTactic?: Partial<Tactic>; awayTactic?: Partial<Tactic> }; output: LabMatch };
   /** Laboratório: simula uma liga inteira (uma época) sem gravar nada no save. */

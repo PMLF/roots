@@ -13,7 +13,7 @@ import type { MatchInput, MatchEvent, Side, Tactic } from "../match/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { matchReferee } from "../match/matchContext";
-import { matchTicket, postTicketing, matchContext, coloursOf, teamForMatch, beforeTable, zonesOf, flagsOf, inputFlags } from "./advance";
+import { matchTicket, postTicketing, matchContext, coloursOf, teamForMatch, beforeTable, zonesOf, flagsOf, inputFlags, carryFor } from "./advance";
 import { SESSION_KEY, xgCurve, matchTeams, type LiveMeeting, type MatchInfo, saveLiveMatch, matchLines, type LiveMatch, type LiveTableLine, type OtherLiveMatch } from "./liveMatch";
 import { seasonData } from "./seasonPyramid";
 import { rivalEvent, rivalReason } from "./rivals";
@@ -39,6 +39,7 @@ export type SavedSession = {
   winPoints: number;
   drawPoints: number;
   colours: Record<string, string>;
+  tiers?: Record<string, string>;
   zones?: { promoted: number; relegated: number };
   meetings?: LiveMeeting[];
   info?: MatchInfo;
@@ -90,10 +91,17 @@ function view(repo: Repository, s: SavedSession, params: Params, names: Readonly
     home: { id: s.input.home.club, name: names.get(s.input.home.club) ?? s.input.home.club },
     away: { id: s.input.away.club, name: names.get(s.input.away.club) ?? s.input.away.club },
     duration: sim.duration, homeGoals: summary.home.goals, awayGoals: summary.away.goals, lines,
-    table: s.table, winPoints: s.winPoints, drawPoints: s.drawPoints, others, colours: s.colours, ...(s.zones ? { zones: s.zones } : {}),
+    table: s.table, winPoints: s.winPoints, drawPoints: s.drawPoints, others, colours: s.colours, ...(s.tiers ? { tiers: s.tiers } : {}), ...(s.zones ? { zones: s.zones } : {}),
     summary, teams, subs: { used: events.filter((e) => e.type === "substitution" && e.side === s.side).length, max: params.match.substitutions.max, usedPauses: new Set((s.substitutions ?? []).map((t) => t.pause).filter((p) => p > 0)).size, pausesMax: params.match.substitutions.pauses }, xg: xgCurve(events, s.minute), ...(s.meetings ? { meetings: s.meetings } : {}), ...(s.info ? { info: s.info } : {}), gamerSide: s.side, ongoing: true, minute: s.minute, ...(sim.pendingInjuries(s.side).length > 0 ? { pendingInjury: sim.pendingInjuries(s.side) } : {}), ...(last ? { tactic: last } : {}),
   };
 }
+
+const tiersOf = (data: BaseData, ids: Iterable<string>): Record<string, string> => {
+  const by = new Map(data.clubs.map((c) => [c.id, c.tier as string] as const));
+  const out: Record<string, string> = {};
+  for (const id of ids) { const t = by.get(id); if (t) out[id] = t; }
+  return out;
+};
 
 const namesOf = (data: BaseData) => new Map(data.clubs.map((c) => [c.id, c.name] as const));
 
@@ -120,14 +128,15 @@ export function startSession(repo: Repository, base: BaseData, params: Params, g
     if (o.id === g.id || o.competition !== g.competition || repo.match(o.id)) continue;
     const ec = teamForMatch(repo, o.home, o.competition, season, o.round, today, seed, params);
     const ef = teamForMatch(repo, o.away, o.competition, season, o.round, today, seed, params);
-    const r = playMatch({ seed, id: o.id, home: ec, away: ef, ...inputFlags(o) }, 1, { id: o.id, competition: o.competition, season, round: o.round, date: today }, params);
-    others.push({ id: o.id, home: { id: o.home, name: names.get(o.home) ?? o.home }, away: { id: o.away, name: names.get(o.away) ?? o.away }, duration: r.report.duration, goals: r.report.goals.map((x) => ({ minute: x.minute, side: x.side })), homeGoals: r.report.homeGoals, awayGoals: r.report.awayGoals });
+    const r = playMatch({ seed, id: o.id, home: ec, away: ef, ...inputFlags(o), ...carryFor(repo, o) }, 1, { id: o.id, competition: o.competition, season, round: o.round, date: today }, params);
+    others.push({ id: o.id, home: { id: o.home, name: names.get(o.home) ?? o.home }, away: { id: o.away, name: names.get(o.away) ?? o.away }, duration: r.report.duration, goals: r.report.goals.map((x) => ({ minute: x.minute, side: x.side })), homeGoals: r.report.homeGoals, awayGoals: r.report.awayGoals, ...(r.report.extraTime ? { extraTime: true } : {}), ...(r.report.shootout ? { shootout: { home: r.report.shootout.home, away: r.report.shootout.away } } : {}) });
   }
   const table = g.knockout ? [] : beforeTable(repo, g.competition, season, names);
+  const shown = [g.home, g.away, ...table.map((l) => l.club), ...others.flatMap((o) => [o.home.id, o.away.id])];
   const flags = flagsOf(g);
   const s: SavedSession = {
-    match: g.id, competition: g.competition, round: g.round, season, date: today, side, input: { seed, id: g.id, home, away, ...inputFlags(g) }, changes: [], minute: 0, ...(Object.keys(flags).length > 0 ? { flags } : {}),
-    table, others, winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, colours: coloursOf(data, [g.home, g.away, ...table.map((l) => l.club)]), zones: zonesOf(data, params, gamerClub),
+    match: g.id, competition: g.competition, round: g.round, season, date: today, side, input: { seed, id: g.id, home, away, ...inputFlags(g), ...carryFor(repo, g) }, changes: [], minute: 0, ...(Object.keys(flags).length > 0 ? { flags } : {}),
+    table, others, winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, colours: coloursOf(data, shown), tiers: tiersOf(data, shown), zones: zonesOf(data, params, gamerClub),
     ...matchContext(repo, data, params, g.home, g.away, g.competition, g.id, flags),
   };
   save(repo, s);
@@ -236,7 +245,7 @@ function finish(repo: Repository, data: BaseData, params: Params, s: SavedSessio
       away: { id: s.input.away.club, name: names.get(s.input.away.club) ?? s.input.away.club },
       duration: r.report.duration, homeGoals: r.report.homeGoals, awayGoals: r.report.awayGoals,
       lines: matchLines(r.events, r.report.duration, personName), table: s.table, winPoints: s.winPoints, drawPoints: s.drawPoints, others: s.others,
-      colours: s.colours, ...(s.zones ? { zones: s.zones } : {}), summary, teams: matchTeams(s.input, r.events, r.report, personName), xg: xgCurve(r.events, r.report.duration), ...(s.meetings ? { meetings: s.meetings } : {}), ...(s.info ? { info: s.info } : {}), gamerSide: s.side,
+      colours: s.colours, ...(s.tiers ? { tiers: s.tiers } : {}), ...(s.zones ? { zones: s.zones } : {}), summary, teams: matchTeams(s.input, r.events, r.report, personName), xg: xgCurve(r.events, r.report.duration), ...(s.meetings ? { meetings: s.meetings } : {}), ...(s.info ? { info: s.info } : {}), gamerSide: s.side,
     };
     saveLiveMatch(repo, match);
     repo.setMeta(SESSION_KEY, "");

@@ -53,6 +53,8 @@ export type KnockoutStage = {
   legs: 1 | 2;
   /** Por omissão, igual a `legs`. As finais costumam ser a uma mão. */
   finalLegs?: 1 | 2;
+  /** Por omissão, igual a `legs`. Na Taça de Portugal só as meias-finais são a duas mãos. */
+  semiLegs?: 1 | 2;
   /** A final joga-se em campo neutro. */
   finalNeutral?: boolean;
   rules: DrawRules;
