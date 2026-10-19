@@ -26,6 +26,12 @@ const betweenDays = (from: string, until: string) => Math.round((Date.parse(`${u
  * Página inicial (TOM_E_UX §3.8, RZ-166), por hierarquia: o que vem a seguir em cima, num cartão baixo; por baixo, lado a lado,
  * o que exige decisão, a caixa de entrada e as notícias; no rodapé, a fita com os resultados e os marcadores.
  */
+/** Frase com o nome do jogador como ligação para a ficha. */
+function WithPlayer({ text, id, name }: { text: string; id: string; name: string }) {
+  const [a = "", b = ""] = text.split("\u0000");
+  return <>{a}<EntityLink k="person" id={id}>{name}</EntityLink>{b}</>;
+}
+
 export default function Start() {
   const { t, locale } = useT();
   const engine = useEngine();
@@ -157,20 +163,20 @@ export default function Start() {
           )}
           {pendingBids.map((b) => (
             <div className="decisao" key={b.person}>
-              <p><b>{t("bid.today", { name: b.name })}</b></p>
+              <p><b><WithPlayer text={t("bid.today", { name: "\u0000", date: "" })} id={b.person} name={b.name} /></b></p>
               <p className="acoes"><button type="button" className="primario" onClick={() => setResuming(b)}>{t("bid.continue")}</button></p>
             </div>
           ))}
           {confirmBids.map((b) => (
             <div className="decisao decisao-ok" key={b.person}>
-              <p><b>{t("bid.confirmItem", { name: b.name, date: b.needsConfirm?.by ?? "" })}</b></p>
+              <p><b><WithPlayer text={t("bid.confirmItem", { name: "\u0000", date: b.needsConfirm?.by ?? "" })} id={b.person} name={b.name} /></b></p>
               <p className="acoes"><button type="button" className="primario" onClick={() => setResuming(b)}>{t("bid.confirm")}</button></p>
             </div>
           ))}
-          {waitingBids.map((b) => <p className="suave" key={b.person}>{t("bid.waitingItem", { name: b.name, date: b.pending?.due ?? "" })}</p>)}
+          {waitingBids.map((b) => <p className="suave" key={b.person}><WithPlayer text={t("bid.waitingItem", { name: "\u0000", date: b.pending?.due ?? "" })} id={b.person} name={b.name} /></p>)}
           {offersIn.map((o) => (
             <div className="decisao" key={o.id}>
-              <p><b>{t("offer.decision", { name: o.name })}</b> <span className="suave">· {o.buyer.name}</span></p>
+              <p><b><WithPlayer text={t("offer.decision", { name: "\u0000" })} id={o.person} name={o.name} /></b> <span className="suave">· {o.buyer.name}</span></p>
               <p className="acoes"><button type="button" className="primario" onClick={() => setAnswering(o)}>{t("offer.answer")}</button></p>
             </div>
           ))}

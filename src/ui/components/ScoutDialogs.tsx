@@ -109,8 +109,10 @@ export function RequestDialog({ data, onClose, onDone }: { data: ScoutingData; o
               {POSITIONS.map((p) => <option key={p} value={p}>{namePosition(t, p)}</option>)}
             </select>
           </label>
-          <label>{t("scouting.minAge")}<input type="number" min={15} max={45} value={search.minAge} onChange={(e) => setSearch({ ...search, minAge: e.target.value })} /></label>
-          <label>{t("scouting.maxAge")}<input type="number" min={15} max={45} value={search.maxAge} onChange={(e) => setSearch({ ...search, maxAge: e.target.value })} /></label>
+          <div className="campos-lado">
+            <label>{t("scouting.minAge")}<input type="number" min={15} max={45} value={search.minAge} onChange={(e) => setSearch({ ...search, minAge: e.target.value })} /></label>
+            <label>{t("scouting.maxAge")}<input type="number" min={15} max={45} value={search.maxAge} onChange={(e) => setSearch({ ...search, maxAge: e.target.value })} /></label>
+          </div>
           <label className="opcao-linha"><input type="checkbox" checked={search.freeOnly} onChange={(e) => setSearch({ ...search, freeOnly: e.target.checked })} /> <span>{t("scouting.freeOnly")}</span></label>
           {error && <p className="erro" role="alert">{error}</p>}
           <div className="acoes-popup">

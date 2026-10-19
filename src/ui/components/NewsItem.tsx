@@ -23,7 +23,7 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead }: { n: NewsIt
     return (
       <article className={`noticia noticia-compacta${unread ? " nao-lida" : ""}`}>
         <h3>{onToggleIsRead ? <button type="button" className={`ponto-alternar${unread ? " por-ler" : ""}`} onClick={onToggleIsRead} title={t(unread ? "inbox.markRead" : "inbox.markUnread")} aria-label={t(unread ? "inbox.markRead" : "inbox.markUnread")} /> : unread && <span className="ponto" role="img" aria-label={t("inbox.unread")} />}{toScouting ? <Link href="/scouting/">{t(`${base}.title` as Key, values)}</Link> : t(`${base}.title` as Key, values)}</h3>
-        <p className="suave">{new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${n.date}T00:00:00Z`))}</p>
+        <p className="suave">{new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${n.date}T00:00:00Z`))}{n.links.filter((l) => l.k === "person").map((l) => <span key={l.id}> · <EntityLink k="person" id={l.id}>{l.name}</EntityLink></span>)}</p>
       </article>
     );
   }

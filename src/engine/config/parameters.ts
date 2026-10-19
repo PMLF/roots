@@ -646,6 +646,9 @@ export type Params = {
       suggestionNoise: number;
       /** Descer de escalão: o jogador pede `stepBackWage` × o ordenado atual, a não ser no fim da carreira (idade ≥ `endOfCareerAge`) ou se for da terra do clube. */
       stepBackWage: number; endOfCareerAge: number; /** Dias que o gamer tem para confirmar um acordo. */ confirmDays: number;
+      /** Jogador importante para o vendedor fica mais caro: [posição no plantel (0 = melhor), multiplicador]; o primeiro escalão que servir. */ importance: [number, number][];
+      /** Mais 15 % por desvio de qualidade acima da média do escalão do vendedor. */ qualityPremium: number;
+      /** Com uma oferta a partir desta fração do pedido o clube dá mais uma ronda. */ closeBonus: number;
     };
   };
   /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
@@ -935,7 +938,7 @@ export const DEFAULT_PARAMETERS: Params = {
     foreignLeagues: { countries: 8, clubsPerCountry: 6, squad: 18 },
     scouts: { firstLeague: { min: 3, max: 6, chance: 1 }, secondLeague: { min: 2, max: 4, chance: 1 }, thirdLeague: { min: 1, max: 2, chance: 1 }, cp: { min: 1, max: 1, chance: 0.8 }, district: { min: 1, max: 1, chance: 0.4 } },
     others: { businesspeople: 500, fansOfficials: 400, agents: 150, referees: 250, journalists: 200, freeStaff: 500 },
-    wage: { average: { firstLeague: 9000, secondLeague: 3500, thirdLeague: 1400, cp: 700, district: 250 }, elasticity: 0.22, yearsContractMin: 1, yearsContractMax: 4 },
+    wage: { average: { firstLeague: 11000, secondLeague: 4200, thirdLeague: 1600, cp: 800, district: 280 }, elasticity: 0.22, yearsContractMin: 1, yearsContractMax: 4 },
     age: { min: 16, max: 38, mean: 26, deviation: 4.5, trainedAtStartMax: 22 },
     peakAge: 27,
     secondaryAptitude: 0.6,
@@ -1008,7 +1011,7 @@ export const DEFAULT_PARAMETERS: Params = {
     actProbabilityLastDay: 0.7,
     maxSigningsPerWindow: 4,
     squadSlack: 2,
-    ageFactor: [[18, 3.4], [22, 3.2], [25, 2.8], [28, 2.2], [31, 1.2], [34, 0.4], [38, 0.1]],
+    ageFactor: [[18, 11.9], [22, 11.2], [25, 9.8], [28, 7.7], [31, 4.2], [34, 1.4], [38, 0.35]],
     potentialPremium: 0.22,
     potentialPremiumAgeMax: 24,
     contractFullMonths: 24,
@@ -1029,8 +1032,8 @@ export const DEFAULT_PARAMETERS: Params = {
     clauses: { releaseProbability: 0.2, releaseByAgentGreed: 0.02, releaseFactor: [1.2, 2.2] },
     training: { ageMax: 23, byTier: { firstLeague: 1.2, secondLeague: 0.8, thirdLeague: 0.4, cp: 0.08, district: 0 } },
     offers: { dailyChance: 0.012, validDays: 10, feeSpread: [0.85, 1.15], maxMult: 1.3, maxRounds: 3, concession: 0.5, minAge: 16, sameWindowDays: 45 },
-    news: { minFee: 400000 },
-    bids: { walkAway: 0.6, concession: 0.55, maxRounds: 4, waitDays: 30, suggestionNoise: 0.3, stepBackWage: 1.4, endOfCareerAge: 33, confirmDays: 7 },
+    news: { minFee: 1500000 },
+    bids: { walkAway: 0.6, concession: 0.55, maxRounds: 4, waitDays: 30, suggestionNoise: 0.3, stepBackWage: 1.4, endOfCareerAge: 33, confirmDays: 7, importance: [[0, 1.6], [2, 1.4], [5, 1.2]], qualityPremium: 0.15, closeBonus: 0.85 },
   },
   scouting: {
     reach: { base: 0.03, perScout: 0.06, max: 0.6, foreignFactor: 0.15 },
