@@ -5,6 +5,7 @@ import type { IsoDate } from "../persistence/types";
 import { pendingOffers, respondOffer, type Offer } from "../market/offers";
 import { valueOf } from "../market/bids";
 import { addDays } from "../calendar/dates";
+import { forSale, setForSale } from "../market/offers";
 import { bids, cancelBid, confirmBid, feeSuggestions, informationOf, openBid, submitBid, termSuggestions, type Bid } from "../market/bids";
 import { windowAt } from "../market/market";
 import { decisionOf, expiringPlayers, negotiateRenewal, negotiationOf, renewalAsk, renewalSuggestions, setDecision } from "../squad/renewals";
@@ -124,6 +125,8 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (history.length > 0) output.history = history;
       const contract = repository.contract(m.input.id);
       if (contract) output.contract = { start: contract.start, end: contract.end };
+      if (contract && repository.meta("date.today") && contract.end < addDays(repository.meta("date.today") as IsoDate, 365)) output.contractEndingSoon = true;
+      if (repository.meta("gamer.club") && repository.player(m.input.id)?.club === repository.meta("gamer.club")) output.forSale = forSale(repository).has(m.input.id);
       const career = personCareer(repository, data, m.input.id);
       if (career.length > 0) output.career = career;
       const agentId = repository.player(m.input.id)?.agent;
@@ -214,7 +217,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         const fields = known?.attributes?.fields;
         const level = playerLevel(repository, j.id, j.player?.position, fields, seeAll);
         const rating = playerRating(repository, j.id, level, known?.potential?.fields.potential, c.tier, params, seeAll);
-        output.extraSquad[j.id] = { ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}), ...(rating ? { rating } : {}), ...(injured.has(j.id) ? { injured: true } : {}), ...(expiring.has(j.id) ? { renewable: true } : {}), ...(ownClub && ct ? { wage: ct.monthlyWage } : {}) };
+        output.extraSquad[j.id] = { ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}), ...(rating ? { rating } : {}), ...(injured.has(j.id) ? { injured: true } : {}), ...(expiring.has(j.id) ? { renewable: true } : {}), ...(ct && today && ct.end < addDays(today as IsoDate, 365) ? { endingSoon: true } : {}), ...(repository.meta("gamer.club") === c.id && forSale(repository).has(j.id) ? { forSale: true } : {}), ...(ownClub && ct ? { wage: ct.monthlyWage } : {}) };
       }
       if (seeAll) {
         const levels = output.squad.map((j) => output.extraSquad[j.id]?.level?.value).filter((v): v is number => v !== undefined);
@@ -347,6 +350,11 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const again = r.status === "counter" ? pendingOffers(repository).find((o) => o.id === m.input.id) : undefined;
       const view = again ? offerViewOf(repository, data, params, again) : undefined;
       return { ok: true, status: r.status, ...(view ? { offer: view } : {}) };
+    }
+    case "setForSale": {
+      const { repository } = await context(servicos);
+      setForSale(repository, m.input.person, m.input.forSale);
+      return null;
     }
     case "bid": {
       const { repository, data, params } = await context(servicos);
@@ -581,6 +589,7 @@ function bidViewOf(r: Repository, data: BaseData, params: Params, b: Bid): BidVi
     ...(b.stage === "agreed" && !b.moving && b.agreedOn ? { needsConfirm: { by: addDays(b.agreedOn, params.market.bids.confirmDays) } } : {}),
     windowOpen: Boolean(windowAt(today, params)),
     cash: club ? clubBudget(r, club, params, Number(r.meta("season") ?? 1)).transfers : 0,
+    wageRoom: club ? Math.max(0, Math.floor((clubBudget(r, club, params, Number(r.meta("season") ?? 1)).wageBillMax * (1 + params.market.wageSlack) - monthlyWageBill(r, club.id) * 12) / 12)) : 0,
   };
 }
 

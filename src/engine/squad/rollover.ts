@@ -148,6 +148,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
   const event = (type: string, j: string, club: ClubId, extra: Record<string, unknown>) =>
     repo.appendEvent({ type, date, season: o.season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: j, roleKind: "player" }, { k: "club", id: club }], data: extra });
 
+  const newYouth: string[] = [];
   for (const club of order) {
     const tier = o.tiers.get(club.id) ?? club.tier;
     const stats = tierStats.get(tier) as { repMin: number; repMax: number; medianFinances: number };
@@ -211,6 +212,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
         params,
       );
       batch.people.push(kit.person);
+      if (!emergency && o.gamerClub === club.id) newYouth.push(kit.person.id);
       batch.players.push(kit.player);
       batch.contracts.push(kit.contract);
       counts.set(position, (counts.get(position) ?? 0) + 1);
@@ -256,6 +258,10 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
   }
   rolloverForeign(repo, params, { season: o.season, seasonStart: o.seasonStart }, batch, newId);
   if (batch.people.length > 0) repo.addPeople(batch);
+  // a caixa de entrada do gamer avisa dos recrutas da formação (os de urgência não contam: são tapa-buracos)
+  if (o.gamerClub && newYouth.length > 0) {
+    repo.appendEvent({ type: "YOUTH_INTAKE", date, season: o.season, visibility: "exposed", origin: "generated", entities: [{ k: "club", id: o.gamerClub }, ...newYouth.map((id) => ({ k: "person" as const, id, roleKind: "youth" }))], data: { n: newYouth.length } });
+  }
   repo.setMeta(`rollover.${o.season}`, JSON.stringify(summary));
   return summary;
 }

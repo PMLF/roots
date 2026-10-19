@@ -1286,5 +1286,16 @@
   "positionLevel.competent": "Competente",
   "positionLevel.fair": "Razoável",
   "positionLevel.limited": "Limitado",
-  "positionLevel.poor": "Improvável"
+  "positionLevel.poor": "Improvável",
+  "newsItem.youth_intake.1.title": "{n} novos jovens da formação",
+  "newsItem.youth_intake.1.body": "A academia lançou {names}. Vê os novos recrutas no plantel.",
+  "youth.viewSquad": "Ver o plantel",
+  "squad.sale": "Venda",
+  "squad.sale.on": "À venda",
+  "squad.sale.off": "Pôr à venda",
+  "squad.endingSoon": "O contrato acaba daqui a menos de um ano",
+  "person.forSale": "À venda",
+  "person.putForSale": "Pôr à venda",
+  "person.removeFromSale": "Retirar da venda",
+  "match.subs.injuryForced": "Há um jogador lesionado: escolhe quem entra para o lugar dele. A equipa joga com menos um até fazeres a troca."
 }

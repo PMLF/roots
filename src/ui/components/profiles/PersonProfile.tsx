@@ -11,6 +11,7 @@ import { EntityLink } from "@/ui/components/Link";
 import { seasonName } from "@/engine/calendar/seasonName";
 import { Stars } from "@/ui/components/Stars";
 import { Flag } from "@/ui/components/Flag";
+import { useEngine } from "@/ui/EngineProvider";
 import { ObservePlayer } from "@/ui/components/ScoutDialogs";
 import { BidDialog } from "@/ui/components/BidDialog";
 import { RenewalDialog } from "@/ui/components/RenewalDialog";
@@ -35,6 +36,10 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   const [agreed, setAgreed] = useState(false);
   const [bidding, setBidding] = useState(false);
   const [observing, setObserving] = useState(false);
+  const engine = useEngine();
+  const [saleOverride, setSaleOverride] = useState<boolean | undefined>(undefined);
+  const forSale = saleOverride ?? d.forSale;
+  const toggleSale = () => { const on = !forSale; setSaleOverride(on); void engine?.call("setForSale", { person: d.profile.exposed.id, forSale: on }); };
   // estado da negociação; o popup atualiza-o à medida que a conversa avança
   const [bidView, setBidView] = useState<BidView | undefined>(undefined);
   const bid = bidView ? (bidView.stage === "closed" ? undefined : { stage: bidView.stage, ...(bidView.moving ? { moving: { club: bidView.moving.club, date: bidView.moving.date } } : {}) }) : d.bid;
@@ -68,7 +73,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     ] : []),
     ...(d.club ? [{ label: t("entity.club"), value: <EntityLink k="club" id={d.club.id}>{d.club.name}</EntityLink> }] : []),
     ...(d.foreignClub ? [{ label: t("entity.club"), value: d.foreignClub.name }] : []),
-    ...(d.contract ? [{ label: t("person.contractUntil"), value: d.contract.end }] : []),
+    ...(d.contract ? [{ label: t("person.contractUntil"), value: d.contractEndingSoon ? <span className="erro" title={t("squad.endingSoon")}>{d.contract.end}</span> : d.contract.end }] : []),
     ...(j ? [{ label: t("person.state"), value: t(`state.${j.state}` as Key) }] : []),
     ...(j ? [
       { label: t("person.stars"), value: d.rating ? <Stars value={d.rating.stars} /> : unknown },
@@ -78,6 +83,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   const labels = (
     <>
       {j && <Chip tone="destaque">{namePosition(t, j.position)}</Chip>}
+      {forSale && <Chip tone="aviso">{t("person.forSale")}</Chip>}
       {!j && p.fn && <Chip tone="destaque">{t(`fn.${p.fn}` as Key)}</Chip>}
       {d.club && <Chip><EntityLink k="club" id={d.club.id}>{d.club.name}</EntityLink></Chip>}
       {d.foreignClub && <Chip>{d.foreignClub.name}</Chip>}
@@ -118,7 +124,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     <Card title={t("card.contract")}>
       <Data
         lines={[
-          { label: t("person.contractUntil"), value: d.contract?.end ?? unknown },
+          { label: t("person.contractUntil"), value: d.contract ? (d.contractEndingSoon ? <span className="erro" title={t("squad.endingSoon")}>{d.contract.end}</span> : d.contract.end) : unknown },
           { label: t("person.atClubSince"), value: d.contract?.start ?? unknown },
           { label: t("person.wage"), value: (d.wage ?? truth?.monthlyWage) !== undefined ? `${eur(locale, (d.wage ?? truth?.monthlyWage) as number)}/${t("person.month")}` : unknown },
           ...(d.agent ? [{ label: t("person.agent"), value: <EntityLink k="person" id={d.agent.id}>{d.agent.name}</EntityLink> }] : []),
@@ -171,11 +177,13 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
 
   const summary = j ? (
     <div className="cartoes">
-      <Card title={t("card.attributes")} wide>
-        {!attributes && !truth && <p className="suave">{t("person.unobservedShort")}</p>}
-        <Attributes groups={groups} />
-      </Card>
-      {cardPositions}
+      <div className="cartoes-atributos">
+        <Card title={t("card.attributes")}>
+          {!attributes && !truth && <p className="suave">{t("person.unobservedShort")}</p>}
+          <Attributes groups={groups} />
+        </Card>
+        {cardPositions}
+      </div>
       {cardDev}
     </div>
   ) : (
@@ -243,7 +251,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     <Profile
       type="person"
       title={p.sportingName}
-      top={<><Top title={p.sportingName} labels={labels} card={<Data lines={data} />} actions={d.biddable && !joined && !bid?.moving ? <span className="acoes-linha"><button type="button" className="secundario" onClick={() => setObserving(true)}>{t("scouting.observe")}</button><button type="button" className="primario" onClick={() => setBidding(true)}>{t(bid?.stage === "agreed" ? "bid.confirm" : bid ? "bid.continue" : "bid.make")}</button></span> : undefined} />{observing && <ObservePlayer person={p.id} name={p.sportingName} onClose={() => setObserving(false)} />}{bidding && <BidDialog person={p.id} name={p.sportingName} onClose={() => setBidding(false)} onChanged={setBidView} />}{renewing && <RenewalDialog person={p.id} name={p.sportingName} onClose={() => setRenewing(false)} onAgreed={() => setAgreed(true)} />}</>}
+      top={<><Top title={p.sportingName} labels={labels} card={<Data lines={data} />} actions={d.forSale !== undefined ? <button type="button" className={forSale ? "primario" : "secundario"} onClick={toggleSale}>{t(forSale ? "person.removeFromSale" : "person.putForSale")}</button> : d.biddable && !joined && !bid?.moving ? <span className="acoes-linha"><button type="button" className="secundario" onClick={() => setObserving(true)}>{t("scouting.observe")}</button><button type="button" className="primario" onClick={() => setBidding(true)}>{t(bid?.stage === "agreed" ? "bid.confirm" : bid ? "bid.continue" : "bid.make")}</button></span> : undefined} />{observing && <ObservePlayer person={p.id} name={p.sportingName} onClose={() => setObserving(false)} />}{bidding && <BidDialog person={p.id} name={p.sportingName} onClose={() => setBidding(false)} onChanged={setBidView} />}{renewing && <RenewalDialog person={p.id} name={p.sportingName} onClose={() => setRenewing(false)} onAgreed={() => setAgreed(true)} />}</>}
       omit={j ? ["career"] : ["career", "contract"]}
       tabs={{ summary, contract: contractTab, story }}
     />

@@ -89,8 +89,12 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
     if (bid.stage === "closed") return { tone: "erro", title: t("bid.banner.rejected"), body: `${t(`bid.closed.${bid.closed ?? "refused"}` as Key, { name, club: bid.seller ?? "" })}${bid.reopens ? ` ${t("renewals.reopens", { date: bid.reopens })}` : ""}` };
     return undefined;
   })();
+  const overFee = Boolean(bid) && bid?.stage === "club" && Number(fee) > (bid?.cash ?? 0);
+  const overWage = Boolean(bid) && bid?.stage === "agent" && terms !== undefined && Number(terms.wage) > (bid?.wageRoom ?? 0);
+  const blocked = turn && (overFee || overWage);
   const message = (() => {
     if (!bid || banner) return undefined;
+    if (blocked) return { tone: "erro", text: t(overWage ? "bid.blocked.wageBudget" : "bid.blocked.cash") };
     if (waiting) return { tone: "ok", text: t("bid.waiting", { who: t(waiting.kind === "fee" ? "bid.waiting.club" : "bid.waiting.agent"), date: waiting.due }) };
     if (bid.lastReply?.status === "blocked" || reply?.status === "blocked") return { tone: "erro", text: t(`bid.blocked.${(reply?.reason ?? bid.lastReply?.reason) === "wageBudget" ? "wageBudget" : "cash"}` as Key) };
     if (bid.stage === "club" && bid.lastReply?.status === "counter") return { tone: "aviso", text: t("bid.clubCounter", { club: bid.seller ?? "", fee: eur.format(bid.ask ?? 0) }) };
@@ -159,7 +163,7 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
           {(turn || toConfirm || waiting) && (
             <div className="acoes-popup">
               {(started || toConfirm) && !waiting && <button type="button" className="perigo" disabled={busy} onClick={() => void send({ action: "cancel" })}>{t("bid.withdraw")}</button>}
-              {turn && <button type="submit" className="primario" disabled={busy}>{t(accepting ? "bid.accept" : "renewals.propose")}</button>}
+              {turn && <button type="submit" className="primario" disabled={busy || blocked}>{t(accepting ? "bid.accept" : "renewals.propose")}</button>}
               {toConfirm && <button type="button" className="primario" disabled={busy} onClick={() => void send({ action: "confirm" })}>{t("bid.confirm")}</button>}
             </div>
           )}

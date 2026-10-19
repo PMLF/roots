@@ -183,6 +183,8 @@ export type LiveMatch = {
   /** Só ao vivo (RZ-170): o jogo está a decorrer, no minuto indicado, com esta tática do lado do gamer. */
   ongoing?: boolean;
   minute?: number;
+  /** Lesionados da equipa do gamer à espera de substituição (o jogo pára até ele decidir). */
+  pendingInjury?: string[];
   tactic?: Tactic;
 };
 

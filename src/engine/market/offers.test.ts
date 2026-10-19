@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_PARAMETERS as BASE } from "../config/parameters";
 import { inbox, news } from "../news/news";
 import { data, fresh } from "../squad/testWorld.testlib";
-import { dailyOffers, offers, pendingOffers, respondOffer } from "./offers";
+import { dailyOffers, forSale, offers, pendingOffers, respondOffer, setForSale } from "./offers";
 
 // chance máxima para forçar propostas
 const P = { ...BASE, market: { ...BASE.market, offers: { ...BASE.market.offers, dailyChance: 1 } } };
@@ -57,5 +57,29 @@ describe("propostas da IA ao gamer", { timeout: 60000 }, () => {
     expect(respondOffer(repo, data, P, club, "2027-01-06", 1, a.id, { kind: "reject" })).toBeUndefined();
     expect(respondOffer(repo, data, P, club, "2027-01-06", 1, b.id, { kind: "counter", fee: b.fee * 10 })).toEqual({ status: "withdrawn" });
     expect(offers(repo).find((x) => x.id === b.id)!.status).toBe("withdrawn");
+  });
+});
+
+describe("jogadores à venda", { timeout: 60000 }, () => {
+  it("meter à venda e tirar da venda persiste; à venda há mais propostas (em média)", () => {
+    const repo = setup("offers-sale");
+    const someone = repo.clubPlayers(club.id)[0]!.person;
+    expect(forSale(repo).has(someone)).toBe(false);
+    setForSale(repo, someone, true);
+    expect(forSale(repo).has(someone)).toBe(true);
+    setForSale(repo, someone, false);
+    expect(forSale(repo).has(someone)).toBe(false);
+    // com a chance base baixa, pôr o plantel todo à venda faz aparecer mais propostas
+    const low = { ...BASE, market: { ...BASE.market, offers: { ...BASE.market.offers, dailyChance: 0.02 } } };
+    const count = (sale: boolean) => {
+      let n = 0;
+      for (let i = 0; i < 4; i++) {
+        const r = setup("offers-sale-" + i);
+        if (sale) for (const x of r.clubPlayers(club.id)) setForSale(r, x.person, true);
+        n += dailyOffers(r, data, low, club, "2027-01-05", 1).length;
+      }
+      return n;
+    };
+    expect(count(true)).toBeGreaterThanOrEqual(count(false));
   });
 });
