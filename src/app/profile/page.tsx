@@ -1,9 +1,10 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import type { ClubProfileData, CompetitionPage, CityProfileData, LocalityProfileData, PersonProfileData } from "@/engine/api/contracts";
+import type { ClubProfileData, CompetitionPage, CupView, CityProfileData, LocalityProfileData, PersonProfileData } from "@/engine/api/contracts";
 import { CityProfile } from "@/ui/components/profiles/CityProfile";
 import { ClubProfile } from "@/ui/components/profiles/ClubProfile";
+import { CupProfile } from "@/ui/components/profiles/CupProfile";
 import { CompetitionProfile } from "@/ui/components/profiles/CompetitionProfile";
 import { LocalityProfile } from "@/ui/components/profiles/LocalityProfile";
 import { PersonProfile } from "@/ui/components/profiles/PersonProfile";
@@ -20,7 +21,8 @@ type State =
   | { phase: "person"; d: PersonProfileData }
   | { phase: "locality"; d: LocalityProfileData }
   | { phase: "city"; d: CityProfileData }
-  | { phase: "competition"; d: CompetitionPage };
+  | { phase: "competition"; d: CompetitionPage }
+  | { phase: "cup"; d: CupView };
 
 function Content() {
   const { t } = useT();
@@ -51,7 +53,11 @@ function Content() {
           if (live) setState(d ? { phase: "city", d } : { phase: "not-found" });
         } else if (k === "competition") {
           const d = await engine.call("competitionPage", { league: id });
-          if (live) setState(d ? { phase: "competition", d } : { phase: "not-found" });
+          if (d) { if (live) setState({ phase: "competition", d }); }
+          else {
+            const cup = await engine.call("cupView", { competition: id });
+            if (live) setState(cup ? { phase: "cup", d: cup } : { phase: "not-found" });
+          }
         }
       } catch (e) {
         if (live) setState({ phase: "error", error: e instanceof Error ? e.message : String(e) });
@@ -70,6 +76,7 @@ function Content() {
     case "locality": return <LocalityProfile d={state.d} />;
     case "city": return <CityProfile d={state.d} />;
     case "competition": return <CompetitionProfile d={state.d} />;
+    case "cup": return <CupProfile d={state.d} />;
   }
 }
 

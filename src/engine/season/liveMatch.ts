@@ -114,6 +114,9 @@ export type OtherLiveMatch = {
   goals: { minute: number; side: Side }[];
   homeGoals: number;
   awayGoals: number;
+  /** Jogo a eliminar: houve prolongamento e/ou penáltis (RZ-244). */
+  extraTime?: boolean;
+  shootout?: { home: number; away: number };
 };
 
 /** Um jogo anterior entre as duas equipas (do ponto de vista de quem joga em casa agora não importa: guarda quem jogou onde). */
@@ -164,6 +167,8 @@ export type LiveMatch = {
   others: OtherLiveMatch[];
   /** Cores de cada clube que aparece no jogo (casa, fora e tabela). */
   colours?: Record<string, string>;
+  /** Escalão de cada clube que aparece (para as etiquetas 1L, 2L… nos resultados). */
+  tiers?: Record<string, string>;
   /** As duas equipas: onze, banco, notas e o que cada jogador fez (ao minuto, ou as finais num jogo guardado). */
   teams?: LiveTeams;
   /** Estatísticas do jogo (as finais num jogo guardado; as do minuto atual ao vivo). */

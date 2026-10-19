@@ -21,7 +21,7 @@ import { matchAttendance } from "../club/attendance";
 import { ensureBudgets } from "../club/budget";
 import { closeUntilMonths, post } from "../club/finances";
 import { postBroadcast } from "../broadcast/featured";
-import { isMarketDay, marketRound } from "../market/market";
+import { isMarketDay, marketRound, windowAt } from "../market/market";
 import { dailyBids, lockedPlayers } from "../market/bids";
 import { dailyOffers } from "../market/offers";
 import { isInSecondDistrict } from "./districts";
@@ -117,8 +117,14 @@ export function coloursOf(data: { clubs: readonly { id: string; colours: string 
 }
 
 /** Marcas de um jogo marcado que mudam como se joga e como se cobra: a eliminar (prolongamento e penáltis) e em campo neutro. */
-export type MatchFlags = { knockout?: boolean; neutral?: boolean; venue?: string };
+export type MatchFlags = { knockout?: boolean; neutral?: boolean; venue?: string; firstLeg?: string };
 export const flagsOf = (g: MatchFlags): MatchFlags => ({ ...(g.knockout ? { knockout: true } : {}), ...(g.neutral ? { neutral: true } : {}), ...(g.venue ? { venue: g.venue } : {}) });
+/** Segunda mão: os golos da primeira (do ponto de vista desta casa/fora), para o prolongamento decidir-se pelo agregado. */
+export function carryFor(repo: Repository, g: MatchFlags & { home: string }): { carry?: { home: number; away: number } } {
+  const first = g.firstLeg ? repo.match(g.firstLeg) : undefined;
+  if (!first) return {};
+  return first.home === g.home ? { carry: { home: first.homeGoals, away: first.awayGoals } } : { carry: { home: first.awayGoals, away: first.homeGoals } };
+}
 /** O que entra na simulação do jogo (`MatchInput`) a partir das marcas. */
 export const inputFlags = (g: MatchFlags): { knockout?: true; neutral?: true } => ({ ...(g.knockout ? { knockout: true as const } : {}), ...(g.neutral ? { neutral: true as const } : {}) });
 
@@ -179,7 +185,7 @@ export function advanceDay(repo: Repository, base: BaseData, params: Params, gam
       const level = matchLevel(g.home, g.away, gamerClub);
       const home = teamForMatch(repo, g.home, g.competition, season, g.round, today, seed, params, g.home === gamerClub ? readPlan(repo, g.home) : undefined);
       const away = teamForMatch(repo, g.away, g.competition, season, g.round, today, seed, params, g.away === gamerClub ? readPlan(repo, g.away) : undefined);
-      const r = playMatch({ seed, id: g.id, home, away, ...inputFlags(g) }, level, { id: g.id, competition: g.competition, season, round: g.round, date: today }, params);
+      const r = playMatch({ seed, id: g.id, home, away, ...inputFlags(g), ...carryFor(repo, g) }, level, { id: g.id, competition: g.competition, season, round: g.round, date: today }, params);
       const rival = gamerClub && level === 0 ? rivalReason(repo, data, params, g.competition, season, gamerClub, g.home === gamerClub ? g.away : g.home) : undefined;
       const ticket = matchTicket(data, params, g.home, g.away, g.competition, g);
       const { event } = repo.recordMatch({ ...r.record.match, referee: matchReferee(seed, g.id), ...(ticket ? { attendance: ticket.attendance, revenue: ticket.revenue } : {}) }, r.record.facts, r.record.appearances);
@@ -207,7 +213,7 @@ export function advanceDay(repo: Repository, base: BaseData, params: Params, gam
         id: j.id, home: { id: j.home, name: j.homeName }, away: { id: j.away, name: j.awayName }, duration: durations.get(j.id) ?? 90,
         goals: j.goals.map((x) => ({ minute: x.minute, side: (x.club === j.home ? "home" : "away") as "home" | "away" })), homeGoals: j.homeGoals, awayGoals: j.awayGoals,
       }));
-      saveLiveMatch(repo, { ...v, ...matchContext(repo, data, params, v.home, v.away, v.competition, v.id, flagsOf(repo.dayMatches(today).find((x) => x.id === v.id) ?? {})), date: today, home: { id: v.home, name: clubName.get(v.home) ?? v.home }, away: { id: v.away, name: clubName.get(v.away) ?? v.away }, table: tables.get(v.competition) ?? [], winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, others, colours: coloursOf(data, [v.home, v.away, ...(tables.get(v.competition) ?? []).map((l) => l.club)]), gamerSide: v.home === gamerClub ? "home" : "away", zones: zonesOf(data, params, v.home) });
+      saveLiveMatch(repo, { ...v, ...matchContext(repo, data, params, v.home, v.away, v.competition, v.id, flagsOf(repo.dayMatches(today).find((x) => x.id === v.id) ?? {})), date: today, home: { id: v.home, name: clubName.get(v.home) ?? v.home }, away: { id: v.away, name: clubName.get(v.away) ?? v.away }, table: tables.get(v.competition) ?? [], winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, others, colours: coloursOf(data, [v.home, v.away, ...(tables.get(v.competition) ?? []).map((l) => l.club), ...others.flatMap((o) => [o.home.id, o.away.id])]), tiers: Object.fromEntries([v.home, v.away, ...others.flatMap((o) => [o.home.id, o.away.id])].flatMap((id) => { const c = data.clubs.find((x) => x.id === id); return c ? [[id, c.tier as string]] : []; })), gamerSide: v.home === gamerClub ? "home" : "away", zones: zonesOf(data, params, v.home) });
     }
     const tomorrow = addDays(today, 1);
     repo.setMeta("date.today", tomorrow);
@@ -217,6 +223,13 @@ export function advanceDay(repo: Repository, base: BaseData, params: Params, gam
     if (isMarketDay(tomorrow, params)) marketRound(repo, data, params, tomorrow, season, { ...(gamerClub ? { gamerClub } : {}), locked: lockedPlayers(repo) });
     // acordos do gamer que esperavam pela janela (RZ-231)
     const gamerBase = gamerClub ? data.clubs.find((c) => c.id === gamerClub) : undefined;
+    // aviso ao gamer: a janela de transferências abriu ou fechou
+    if (gamerBase) {
+      const was = windowAt(today, params), will = windowAt(tomorrow, params);
+      if (!was !== !will) {
+        repo.appendEvent({ type: "MARKET_WINDOW", date: tomorrow, season, visibility: "exposed", origin: "generated", entities: [{ k: "club", id: gamerBase.id }], data: { state: will ? "open" : "close", name: (will ?? was)!.index === 0 ? "summer" : "winter" } });
+      }
+    }
     if (gamerBase) { dailyBids(repo, data, params, gamerBase, tomorrow, season); dailyOffers(repo, data, params, gamerBase, tomorrow, season); }
     // olheiros do gamer: fecham as observações e pesquisas que chegaram ao fim (RZ-230)
     if (gamerClub) {

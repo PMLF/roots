@@ -1,9 +1,10 @@
 "use client";
 import type { CompetitionPage } from "@/engine/api/contracts";
-import { Card, Data, Top } from "@/ui/components/Card";
+import { Card, Top } from "@/ui/components/Card";
 import { Chip } from "@/ui/components/Attributes";
 import { HighlightsPanel } from "@/ui/components/competition/Highlights";
 import { Statistics } from "@/ui/components/competition/Statistics";
+import { History } from "@/ui/components/competition/History";
 import { Rounds } from "@/ui/components/competition/Rounds";
 import { LeagueTable } from "@/ui/components/competition/LeagueTable";
 import { Profile } from "@/ui/components/Profile";
@@ -59,12 +60,7 @@ export function CompetitionProfile({ d }: { d: CompetitionPage }) {
         clubs: (
           <Table id="competicao-clubes" columns={clubsColumns} lines={d.clubs} rowKey={(c) => c.id} cell={{ club: (c) => <EntityLink k="club" id={c.id}>{c.name}</EntityLink>, reputation: (c) => t(`reputation.level.${c.reputationLevel}` as Key), stadium: (c) => n.format(c.capacity) }} initialOrder={{ column: "reputation", direction: "desc" }} />
         ),
-        story: (
-          <Card title={t("tab.story")}>
-            <Data lines={[]} />
-            <p className="vazio">{t("competition.noStory")}</p>
-          </Card>
-        ),
+        story: <History competition={d.league} />,
       }}
     />
   );

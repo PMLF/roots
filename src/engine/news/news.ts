@@ -12,7 +12,7 @@ import type { IsoDate } from "../persistence/types";
 export type NewsItemType =
   | "hattrick" | "red" | "two_yellows" | "rout" | "comeback_goal" | "stoppage_goal" | "serious_injury"
   | "champion" | "cup_upset" | "state_prize" | "promotion" | "relegation" | "second_district" | "district_return" | "locality" | "city_event"
-  | "outcome" | "injury" | "resignation" | "sacked" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer" | "bid_agreed" | "bid_rejected" | "bid_progress" | "youth_intake";
+  | "outcome" | "injury" | "resignation" | "sacked" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer" | "bid_agreed" | "bid_rejected" | "bid_progress" | "youth_intake" | "market_open" | "market_close";
 
 export type NewsItemLink = { k: "club" | "person" | "locality" | "competition" | "city"; id: string; name: string };
 
@@ -35,13 +35,13 @@ export type Message = NewsItem & { isRead: boolean };
 /** Quantas variantes de texto existem por tipo (a interface tem as frases `noticia.<tipo>.<n>.titulo|corpo`). */
 export const VARIANTS: Record<NewsItemType, number> = {
   hattrick: 2, red: 2, two_yellows: 2, rout: 2, comeback_goal: 2, stoppage_goal: 2, serious_injury: 2,
-  champion: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1, bid_agreed: 1, bid_rejected: 1, bid_progress: 1, youth_intake: 1,
+  champion: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1, bid_agreed: 1, bid_rejected: 1, bid_progress: 1, youth_intake: 1, market_open: 1, market_close: 1,
 };
 
 /** Tipos de evento que dão notícia para toda a gente. */
 const NEWS_ITEM_EVENTS = ["HATTRICK", "RED_CARD", "ROUT", "NOTABLE_GOAL", "INJURY", "CHAMPION", "CUP_UPSET", "STATE_PRIZE", "SECOND_DISTRICT_RELEGATION", "DISTRICT_RETURN", "PROMOTION", "RELEGATION", "LOCALITY_STATUS", "CITY_EVENT", "TRANSFER", "PLAYER_SIGNED"] as const;
 /** A caixa de entrada junta o que é pessoal: o resultado do teu jogo, qualquer lesão do teu plantel, a tua carreira. */
-const INBOX_EVENTS = [...NEWS_ITEM_EVENTS, "MATCH_PLAYED", "GAMER_RESIGNATION", "GAMER_HIRED", "SCOUT_REPORT", "SCOUT_SEARCH", "TRANSFER_OFFER", "BID_REPLY", "YOUTH_INTAKE"] as const;
+const INBOX_EVENTS = [...NEWS_ITEM_EVENTS, "MATCH_PLAYED", "GAMER_RESIGNATION", "GAMER_HIRED", "SCOUT_REPORT", "SCOUT_SEARCH", "TRANSFER_OFFER", "BID_REPLY", "YOUTH_INTAKE", "MARKET_WINDOW"] as const;
 /** Lesões a partir desta gravidade são notícia no mundo; no teu plantel, todas. */
 const NEWS_ITEM_SEVERITY = 4;
 
@@ -184,6 +184,8 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
       const type: NewsItemType = kind === "terms" && status === "accepted" ? "bid_agreed" : status === "closed" ? "bid_rejected" : "bid_progress";
       return base(type, values, [lp(person.id)]);
     }
+    case "MARKET_WINDOW":
+      return inboxOnly && our ? base(d.state === "open" ? "market_open" : "market_close", { window: String(d.name ?? "") }, []) : undefined;
     case "YOUTH_INTAKE": {
       const kids = e.entities.filter((x) => x.k === "person");
       if (!inboxOnly || !our || kids.length === 0) return undefined;

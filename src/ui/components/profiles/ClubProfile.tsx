@@ -9,6 +9,7 @@ import { Profile } from "@/ui/components/Profile";
 import { ClubMatches } from "@/ui/components/ClubMatches";
 import { DivisionsChart } from "@/ui/components/DivisionsChart";
 import { EntityLink } from "@/ui/components/Link";
+import { ClubCompetitions } from "@/ui/components/profiles/ClubCompetitions";
 import { ClubBudget } from "@/ui/components/profiles/ClubBudget";
 import { Table } from "@/ui/components/Table";
 import { Stars } from "@/ui/components/Stars";
@@ -225,6 +226,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
         {d.finances.budget && <ClubBudget budget={d.finances.budget} {...(d.finances.balance !== undefined ? { balance: d.finances.balance } : {})} />}
       </Card>
       {clubSeason}
+      <ClubCompetitions club={d.id} />
       {clubTops}
       <Card title={t("card.squadNumbers")}>
         <Data

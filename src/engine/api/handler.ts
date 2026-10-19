@@ -36,6 +36,8 @@ import { confirmMatch, savePlan } from "../season/gamePlan";
 import { INJURY_EVENT } from "../injuries/state";
 import { cityProfile } from "../city/profile";
 import { competitionPage } from "../competition/profile";
+import { cupView, nationalCups, clubCompetitions } from "../competition/cup";
+import { competitionHistory } from "../competition/history";
 import { reputationLevel } from "../club/reputation";
 import { generalLevel } from "../world/level";
 import { KEY } from "../world/player";
@@ -274,6 +276,22 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const season = m.input.season ?? current;
       if (season < 1 || season > current) return null;
       return competitionPage(repository, season === current ? data : pyramidData(repository, base, season), params, m.input.league, season) ?? null;
+    }
+    case "cupView": {
+      const { repository, data, params } = await context(servicos);
+      return cupView(repository, data, params, m.input.competition, m.input.season) ?? null;
+    }
+    case "nationalCups": {
+      const { repository, data, params } = await context(servicos);
+      return nationalCups(repository).flatMap((c) => cupView(repository, data, params, c) ?? []);
+    }
+    case "competitionHistory": {
+      const { repository, data, params } = await context(servicos);
+      return competitionHistory(repository, data, params, m.input.competition);
+    }
+    case "clubCompetitions": {
+      const { repository, data, params } = await context(servicos);
+      return clubCompetitions(repository, data, params, m.input.club, m.input.season);
     }
     case "matchLab": {
       const { repository, data, params } = await context(servicos);
