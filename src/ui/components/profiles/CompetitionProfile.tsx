@@ -31,7 +31,7 @@ export function CompetitionProfile({ d }: { d: CompetitionPage }) {
   const top = (
     <Top
       title={d.league}
-      labels={<><Chip tone="destaque">{tier}</Chip>{d.district && <Chip tone="suave">{d.district}</Chip>}<Chip tone="suave">{t("competitions.clubs", { n: d.clubs.length })}</Chip><Chip tone="suave">{t("competition.matches")}: {d.gamesPlayed}/{d.gamesTotal}</Chip></>}
+      labels={<><Chip tone="destaque">{tier}</Chip>{d.district && <Chip tone="suave">{d.district}</Chip>}<Chip tone="suave">{t("competitions.clubs", { n: d.clubs.length })}</Chip><Chip tone="suave">{t("competition.round", { n: Math.max(1, d.currentRound) })}</Chip></>}
     />
   );
 
@@ -57,7 +57,7 @@ export function CompetitionProfile({ d }: { d: CompetitionPage }) {
         summary,
         statistics: <Statistics page={d} />,
         clubs: (
-          <Table id="competicao-clubes" columns={clubsColumns} lines={d.clubs} rowKey={(c) => c.id} cell={{ club: (c) => <EntityLink k="club" id={c.id}>{c.name}</EntityLink>, stadium: (c) => n.format(c.capacity) }} initialOrder={{ column: "reputation", direction: "desc" }} />
+          <Table id="competicao-clubes" columns={clubsColumns} lines={d.clubs} rowKey={(c) => c.id} cell={{ club: (c) => <EntityLink k="club" id={c.id}>{c.name}</EntityLink>, reputation: (c) => t(`reputation.level.${c.reputationLevel}` as Key), stadium: (c) => n.format(c.capacity) }} initialOrder={{ column: "reputation", direction: "desc" }} />
         ),
         story: (
           <Card title={t("tab.story")}>

@@ -1,9 +1,10 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import type { ScoutOrderInput, ScoutRow, ScoutingData } from "@/engine/api/contracts";
+import type { ScoutRow, ScoutingData } from "@/engine/api/contracts";
 import { POSITIONS } from "@/engine/world/types";
-import { Card } from "@/ui/components/Card";
-import { BusyDialog, ObserveDialog } from "@/ui/components/ScoutDialogs";
+import { Card, Data } from "@/ui/components/Card";
+import { Icon } from "@/ui/components/Icon";
+import { BusyDialog, ObserveDialog, RequestDialog } from "@/ui/components/ScoutDialogs";
 import { BidDialog } from "@/ui/components/BidDialog";
 import { Flag } from "@/ui/components/Flag";
 import { EntityLink } from "@/ui/components/Link";
@@ -20,7 +21,7 @@ type Origin = "all" | "domestic" | "foreign" | "free";
 export function Scouting() {
   const { t, locale } = useT();
   const engine = useEngine();
-  const eur = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  const money = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", notation: "compact", maximumFractionDigits: 1 });
   const [d, setD] = useState<ScoutingData | undefined>(undefined);
   const [pos, setPos] = useState("");
   const [origin, setOrigin] = useState<Origin>("all");
@@ -28,8 +29,7 @@ export function Scouting() {
   const [target, setTarget] = useState<ScoutRow | undefined>(undefined);
   const [showBusy, setShowBusy] = useState(false);
   const [bidTarget, setBidTarget] = useState<ScoutRow | undefined>(undefined);
-  const [search, setSearch] = useState<{ position: string; minAge: string; maxAge: string; freeOnly: boolean }>({ position: "ST", minAge: "", maxAge: "", freeOnly: false });
-  const [message, setMessage] = useState<string | undefined>(undefined);
+  const [showRequest, setShowRequest] = useState(false);
   const load = useCallback(() => { engine?.call("scouting", null).then(setD); }, [engine]);
   useEffect(load, [load]);
   if (!d) return <p>{t("profile.loading")}</p>;
@@ -39,14 +39,6 @@ export function Scouting() {
     (origin === "all" || (origin === "free" ? !r.club : origin === "foreign" ? r.club?.foreign === true : r.club !== undefined && !r.club.foreign)) &&
     (!onlyKnown || r.knowledge !== "none"));
   const free = d.orders.filter((o) => !o.done).length < d.capacity;
-  const submitSearch = async () => {
-    if (!engine) return;
-    if (!free) { setShowBusy(true); return; }
-    const input: ScoutOrderInput = { kind: "search", position: search.position, ...(search.minAge ? { minAge: Number(search.minAge) } : {}), ...(search.maxAge ? { maxAge: Number(search.maxAge) } : {}), ...(search.freeOnly ? { freeOnly: true } : {}) };
-    const r = await engine.call("scoutOrder", input);
-    setMessage(r.ok ? t("scouting.searchOrdered") : t(`scouting.error.${r.reason}` as Key));
-    load();
-  };
 
   const columns: Column<ScoutRow>[] = [
     { id: "name", title: t("column.name"), value: (r) => r.name },
@@ -57,7 +49,6 @@ export function Scouting() {
     { id: "stars", title: t("column.level"), value: (r) => r.rating?.stars ?? 0, numeric: true },
     { id: "potential", title: t("column.potential"), value: (r) => r.rating?.potential?.high ?? 0, numeric: true },
     { id: "contract", title: t("person.contractUntil"), value: (r) => r.contractEnd ?? "" },
-    { id: "knowledge", title: t("scouting.knowledge"), value: (r) => ["none", "week", "month"].indexOf(r.knowledge), numeric: true },
     { id: "action", title: "", value: () => "" },
   ];
   const toolbar = (
@@ -79,29 +70,31 @@ export function Scouting() {
 
   return (
     <div className="cartoes">
-      <Card title={t("scouting.title")} wide>
-        <p className="suave">{t("scouting.summary", { scouts: d.scouts.count, balance: eur.format(d.balance) })}</p>
-        <form className="formulario linha-filtros" onSubmit={(e) => { e.preventDefault(); void submitSearch(); }}>
-          <label>{t("column.position")}
-            <select value={search.position} onChange={(e) => setSearch({ ...search, position: e.target.value })}>
-              {POSITIONS.map((p) => <option key={p} value={p}>{namePosition(t, p)}</option>)}
-            </select>
-          </label>
-          <label>{t("scouting.minAge")}<input type="number" min={15} max={45} value={search.minAge} onChange={(e) => setSearch({ ...search, minAge: e.target.value })} /></label>
-          <label>{t("scouting.maxAge")}<input type="number" min={15} max={45} value={search.maxAge} onChange={(e) => setSearch({ ...search, maxAge: e.target.value })} /></label>
-          <label className="caixa"><input type="checkbox" checked={search.freeOnly} onChange={(e) => setSearch({ ...search, freeOnly: e.target.checked })} /> {t("scouting.freeOnly")}</label>
-          <button type="submit">{t("scouting.searchButton", { cost: eur.format(d.cost.search) })}</button>
-        </form>
-        {message && <p role="status">{message}</p>}
+      <Card title={t("scouting.scouts")} wide>
+        <div className="cartao-cabecalho">
+          {d.scoutList.length === 0 ? <p className="suave">{t("scouting.noScouts")}</p> : (
+            <ul className="lista-olheiros">
+              {d.scoutList.map((sc) => <li key={sc.id}><Icon name="person" /> <EntityLink k="person" id={sc.id}>{sc.name}</EntityLink></li>)}
+            </ul>
+          )}
+          <button type="button" className="primario" onClick={() => (free ? setShowRequest(true) : setShowBusy(true))}>{t("scouting.request")}</button>
+        </div>
+        <Data lines={[
+          { label: t("scouting.transferBudget"), value: money.format(d.budget.transfers) },
+          { label: t("scouting.wageMargin"), value: money.format(d.budget.wageMargin) },
+        ]} />
         {d.orders.length > 0 && (
-          <ul className="lista-simples">
-            {d.orders.map((o) => (
-              <li key={o.id}>
-                <b>{t(`scouting.kind.${o.kind}` as Key)}</b>
-                <span className="suave"> · {o.person ? <EntityLink k="person" id={o.person.id}>{o.person.name}</EntityLink> : namePosition(t, o.position ?? "")} · {o.done ? (o.results !== undefined ? t("scouting.found", { n: o.results }) : t("scouting.done")) : t("scouting.until", { date: o.end })}</span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <h3>{t("scouting.ordersTitle")}</h3>
+            <ul className="lista-simples">
+              {d.orders.map((o) => (
+                <li key={o.id}>
+                  <b>{t(`scouting.kind.${o.kind}` as Key)}</b>
+                  <span className="suave"> · {o.person ? <EntityLink k="person" id={o.person.id}>{o.person.name}</EntityLink> : namePosition(t, o.position ?? "")} · {o.done ? (o.results !== undefined ? t("scouting.found", { n: o.results }) : t("scouting.done")) : t("scouting.until", { date: o.end })}</span>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
       </Card>
       <Card title={t("scouting.players", { n: rows.length })} wide>
@@ -115,7 +108,6 @@ export function Scouting() {
             stars: (r) => (r.rating ? <Stars value={r.rating.stars} /> : <span className="suave">?</span>),
             potential: (r) => (r.rating?.potential ? <Stars range={r.rating.potential} /> : <span className="suave">?</span>),
             contract: (r) => r.contractEnd ?? "—",
-            knowledge: (r) => t(`scouting.knowledge.${r.knowledge}` as Key),
             action: (r) => (
               <span className="acoes-linha">
                 {r.busy ? <span className="suave">{t("scouting.observing")}</span> : <button type="button" className="secundario" disabled={r.knowledge === "month"} onClick={() => (free ? setTarget(r) : setShowBusy(true))}>{t("scouting.observe")}</button>}
@@ -125,6 +117,7 @@ export function Scouting() {
           }}
         />
       </Card>
+      {showRequest && <RequestDialog data={d} onClose={() => setShowRequest(false)} onDone={load} />}
       {showBusy && <BusyDialog capacity={d.capacity} running={d.orders.filter((o) => !o.done).length} onClose={() => setShowBusy(false)} />}
       {bidTarget && <BidDialog person={bidTarget.id} name={bidTarget.name} onClose={() => { setBidTarget(undefined); load(); }} />}
       {target && <ObserveDialog row={target} data={d} onClose={() => setTarget(undefined)} onDone={load} />}

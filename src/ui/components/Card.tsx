@@ -25,12 +25,13 @@ export function Data({ lines }: { lines: { label: string; value: ReactNode }[] }
 }
 
 /** Ficha curta: nome ao lado de um cartão com os dados de identidade. */
-export function Top({ title, labels, card, crest }: { title: string; labels?: ReactNode; card?: ReactNode; crest?: ReactNode }) {
+export function Top({ title, labels, card, crest, actions }: { title: string; labels?: ReactNode; card?: ReactNode; crest?: ReactNode; /** Botões no canto superior direito da ficha. */ actions?: ReactNode }) {
   return (
     <header className="ficha-topo">
       <div className="ficha-topo-nome">
         <h1>{crest}{title}</h1>
         {labels && <p className="etiquetas">{labels}</p>}
+        {actions && <div className="ficha-topo-acoes">{actions}</div>}
       </div>
       {card && <div className="ficha-topo-cartao">{card}</div>}
     </header>

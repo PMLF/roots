@@ -2,6 +2,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BidReply, BidView } from "@/engine/api/contracts";
 import { CloseButton } from "@/ui/components/CloseButton";
+import { ClubSwatch } from "@/ui/components/ClubSwatch";
+import { Data } from "@/ui/components/Card";
+import { Icon } from "@/ui/components/Icon";
+import { namePosition } from "@/ui/i18n/position";
 import { useEngine } from "@/ui/EngineProvider";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import type { Key } from "@/ui/i18n";
@@ -14,7 +18,7 @@ const withValue = (values: number[], current: string): number[] => {
 };
 
 type Reply = BidReply;
-type Input = { action: "fee"; fee: number } | { action: "terms"; wage: number; years: number; release: number | null } | { action: "cancel" };
+type Input = { action: "fee"; fee: number } | { action: "terms"; wage: number; years: number; release: number | null } | { action: "cancel" } | { action: "confirm" };
 
 /**
  * Popup de proposta por um jogador de outro clube: primeiro o valor com o clube vendedor (livres saltam este passo) e depois o
@@ -69,45 +73,58 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
     if (!(wage > 0) || !(years >= 1) || (release !== null && !(release > 0))) { setError(t("renewals.invalid")); return; }
     void send({ action: "terms", wage, years, release });
   };
-  // o popup avança por si quando o clube aceita: a fase muda para o contrato
-  const finished = bid?.stage === "agreed" || bid?.stage === "done" || bid?.stage === "closed";
-  const locked = !finished && Boolean(bid) && ((bid?.round ?? 0) > 0 || (bid?.stage === "agent" && bid.fee !== undefined && bid.seller !== undefined));
+  const finished = bid?.stage === "done" || bid?.stage === "closed" || Boolean(bid?.moving);
+  const waiting = bid?.pending;
+  const toConfirm = bid?.stage === "agreed" && !bid.moving && bid.needsConfirm;
+  const turn = Boolean(bid) && !finished && !waiting && !toConfirm && (bid?.stage === "club" || bid?.stage === "agent");
+  const started = Boolean(bid) && ((bid?.round ?? 0) > 0 || bid?.fee !== undefined);
 
-  const message = (() => {
+  /** Cartão de resultado, verde ou vermelho, com ícone: o acordo e a recusa têm de saltar à vista. */
+  const banner = (() => {
     if (!bid) return undefined;
-    if (bid.stage === "done") return { tone: "ok", text: t("bid.doneNow", { name }) };
-    if (bid.stage === "agreed") return { tone: "ok", text: bid.moving ? t("bid.agreedLater", { name, date: bid.moving.date }) : t("bid.doneNow", { name }) };
-    if (bid.stage === "closed") return { tone: "erro", text: `${t(`bid.closed.${bid.closed ?? "refused"}` as Key, { name, club: bid.seller ?? "" })}${bid.reopens ? ` ${t("renewals.reopens", { date: bid.reopens })}` : ""}` };
-    if (reply?.status === "blocked") return { tone: "erro", text: t(`bid.blocked.${reply.reason === "wageBudget" ? "wageBudget" : "cash"}` as Key) };
-    if (bid.stage === "club" && reply?.status === "counter") return { tone: "aviso", text: t("bid.clubCounter", { club: bid.seller ?? "", fee: eur.format(bid.ask ?? 0), left: bid.roundsLeft }) };
-    if (bid.stage === "agent" && bid.fee !== undefined && !reply) return { tone: "ok", text: t("bid.clubAgreed", { club: bid.seller ?? "", fee: eur.format(bid.fee) }) };
-    if (bid.stage === "agent" && reply?.status === "counter") return { tone: "aviso", text: t("renewals.counter", { left: bid.roundsLeft }) };
+    if (bid.stage === "done") return { tone: "ok", title: t("bid.banner.done", { name }), body: t("bid.doneNow", { name }) };
+    if (bid.moving) return { tone: "ok", title: t("bid.banner.moving"), body: t("bid.banner.moving.body", { name, date: bid.moving.date }) };
+    if (toConfirm) return { tone: "ok", title: t("bid.banner.agreed"), body: `${t("bid.banner.agreed.body", { name })} ${t("bid.confirmBy", { date: toConfirm.by })}` };
+    if (bid.stage === "closed") return { tone: "erro", title: t("bid.banner.rejected"), body: `${t(`bid.closed.${bid.closed ?? "refused"}` as Key, { name, club: bid.seller ?? "" })}${bid.reopens ? ` ${t("renewals.reopens", { date: bid.reopens })}` : ""}` };
     return undefined;
   })();
+  const message = (() => {
+    if (!bid || banner) return undefined;
+    if (waiting) return { tone: "aviso", text: t("bid.waiting", { who: t(waiting.kind === "fee" ? "bid.waiting.club" : "bid.waiting.agent"), date: waiting.due }) };
+    if (bid.lastReply?.status === "blocked" || reply?.status === "blocked") return { tone: "erro", text: t(`bid.blocked.${(reply?.reason ?? bid.lastReply?.reason) === "wageBudget" ? "wageBudget" : "cash"}` as Key) };
+    if (bid.stage === "club" && bid.lastReply?.status === "counter") return { tone: "aviso", text: t("bid.clubCounter", { club: bid.seller ?? "", fee: eur.format(bid.ask ?? 0), left: bid.roundsLeft }) };
+    if (bid.stage === "agent" && bid.fee !== undefined && bid.lastReply?.kind === "fee") return { tone: "ok", text: t("bid.clubAgreed", { club: bid.seller ?? "", fee: eur.format(bid.fee) }) };
+    if (bid.stage === "agent" && bid.lastReply?.status === "counter") return { tone: "aviso", text: t("renewals.counter", { left: bid.roundsLeft }) };
+    return undefined;
+  })();
+  const info = bid ? [
+    ...(bid.position ? [{ label: t("bid.info.position"), value: namePosition(t, bid.position) }] : []),
+    ...(bid.age !== undefined ? [{ label: t("bid.info.age"), value: bid.age }] : []),
+    { label: t("bid.info.club"), value: bid.seller ? <span className="clube-linha">{bid.sellerId && <ClubSwatch id={bid.sellerId} />} {bid.seller}</span> : t("bid.freePlayer") },
+    ...(bid.agent ? [{ label: t("bid.info.agent"), value: bid.agent }] : []),
+    ...(bid.release !== undefined ? [{ label: t("bid.releaseLabel"), value: eur.format(bid.release) }] : []),
+    { label: t("bid.info.budget"), value: eur.format(bid.cash) },
+  ] : [];
 
   return (
-    <dialog ref={ref} className="popup popup-renovacao" aria-labelledby="h-bid" onClose={onClose} onCancel={(e) => { if (locked) e.preventDefault(); }} onClick={(e) => { if (e.target === ref.current && !locked) ref.current?.close(); }}>
-      {!locked && <CloseButton onClose={() => ref.current?.close()} />}
+    <dialog ref={ref} className="popup popup-renovacao" aria-labelledby="h-bid" onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
+      <CloseButton onClose={() => ref.current?.close()} />
       <h2 id="h-bid">{t("bid.title", { name })}</h2>
       {!bid ? (
         <p>{error ?? t("profile.loading")}</p>
       ) : (
         <form className="formulario renovacao-form" onSubmit={(e) => { e.preventDefault(); if (bid.stage === "club") proposeFee(); else if (bid.stage === "agent") proposeTerms(); }}>
-          <p className="suave">
-            {bid.seller ? t("bid.seller", { club: bid.seller }) : t("bid.freePlayer")}
-            {bid.release !== undefined ? ` · ${t("bid.release", { value: eur.format(bid.release) })}` : ""}
-            {bid.agent ? ` · ${t("renewals.agent", { name: bid.agent })}` : ""}
-            {` · ${t("bid.cash", { value: eur.format(bid.cash) })}`}
-          </p>
-          {bid.stage === "club" && (
-            <label className={reply?.status === "counter" ? "alterado" : undefined}>
+          <Data lines={info} />
+          {banner && <div className={`resultado-negocio ${banner.tone}`} role="status"><Icon name={banner.tone === "ok" ? "check" : "close"} /><div><b>{banner.title}</b><span>{banner.body}</span></div></div>}
+          {turn && bid.stage === "club" && (
+            <label className={bid.lastReply?.status === "counter" ? "alterado" : undefined}>
               <span>{t("bid.feeField")}</span>
               <select disabled={busy} value={fee} onChange={(e) => setFee(e.target.value)}>
                 {withValue(bid.feeSuggestions, fee).map((v) => <option key={v} value={v}>{eur.format(v)}</option>)}
               </select>
             </label>
           )}
-          {bid.stage === "agent" && bid.terms && terms && (
+          {turn && bid.stage === "agent" && bid.terms && terms && (
             <>
               <label>
                 <span>{t("renewals.wageField")}</span>
@@ -131,14 +148,15 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
               {bid.terms.minWage !== undefined && <p className="suave"><small>{t("bid.stepBack")}</small></p>}
             </>
           )}
-          {locked && <p className="suave"><small>{t("bid.locked")}</small></p>}
           {message && <p className={`mensagem-renovacao ${message.tone}`} role="status">{message.text}</p>}
           {error && <p className="erro" role="alert">{error}</p>}
-          <div className="acoes-popup">
-            {!finished && <button type="submit" disabled={busy}>{t("renewals.propose")}</button>}
-            {!finished && locked && <button type="button" className="secundario" disabled={busy} onClick={() => void send({ action: "cancel" })}>{t("bid.withdraw")}</button>}
-            {!locked && <button type="button" className="secundario" onClick={() => ref.current?.close()}>{t("renewals.close")}</button>}
-          </div>
+          {(turn || toConfirm || waiting) && (
+            <div className="acoes-popup">
+              {(started || toConfirm) && !waiting && <button type="button" className="perigo" disabled={busy} onClick={() => void send({ action: "cancel" })}>{t("bid.withdraw")}</button>}
+              {turn && <button type="submit" className="primario" disabled={busy}>{t("renewals.propose")}</button>}
+              {toConfirm && <button type="button" className="primario" disabled={busy} onClick={() => void send({ action: "confirm" })}>{t("bid.confirm")}</button>}
+            </div>
+          )}
         </form>
       )}
     </dialog>

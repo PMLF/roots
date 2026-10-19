@@ -21,6 +21,16 @@ describe("propostas do gamer", { timeout: 180000 }, () => {
     }
   };
   let me = "";
+  /** A resposta só chega daqui a um ou dois dias: avança até deixar de haver proposta pendente. */
+  const settle = async (person: string) => {
+    for (let i = 0; i < 4; i++) {
+      const v = await handle({ id: 700 + i, type: "bid", input: { person, action: "open" } }, s);
+      if (v.ok && !v.bid.pending) return v.bid;
+      const r = await handle({ id: 800 + i, type: "advance", input: { mode: "day" } }, s);
+      if (r.pause) await handle({ id: 900 + i, type: "confirmMatch", input: { match: r.pause.match } }, s);
+    }
+    throw new Error("a resposta não chegou");
+  };
 
   it("um livre fecha contrato fora da janela e muda-se quando ela abre", async () => {
     await handle({ id: 1, type: "createWorld", input: { seed: "bids" } }, s);
@@ -35,8 +45,14 @@ describe("propostas do gamer", { timeout: 180000 }, () => {
     expect(opened.ok && opened.bid.terms?.wages.length).toBeGreaterThan(2);
     const ask = opened.ok ? opened.bid.terms!.ask : undefined;
     const r = await handle({ id: 4, type: "bid", input: { person: free.person, action: "terms", wage: Math.round(ask!.wage * 3), years: 2, release: null } }, s);
-    expect(r.ok && r.bid.stage).toBe("agreed");
-    expect(r.ok && r.bid.moving?.date).toBe("2027-01-01");
+    expect(r.ok && r.bid.pending?.kind).toBe("terms");
+    const agreed = await settle(free.person);
+    expect(agreed.stage).toBe("agreed");
+    expect(agreed.needsConfirm).toBeTruthy();
+    const inbox = repository.eventsOf({ k: "person", id: free.person }).filter((e) => e.type === "BID_REPLY");
+    expect(inbox.length).toBeGreaterThan(0);
+    const c = await handle({ id: 41, type: "bid", input: { person: free.person, action: "confirm" } }, s);
+    expect(c.ok && c.bid.moving?.date).toBe("2027-01-01");
     expect(repository.player(free.person)!.club).toBeUndefined();
     expect(lockedPlayers(repository).has(free.person)).toBe(true);
     await until("2027-01-02");
@@ -51,19 +67,24 @@ describe("propostas do gamer", { timeout: 180000 }, () => {
     const clubs = await handle({ id: 10, type: "clubs", input: null }, s);
     const seller = clubs.find((c) => c.league.startsWith("Distrital") && repository.clubPlayers(c.id).length > 12)!;
     const target = repository.clubPlayers(seller.id).find((j) => j.positions[0]?.pos !== "GK")!;
-    const low = await handle({ id: 11, type: "bid", input: { person: target.person, action: "fee", fee: 1000 } }, s);
-    expect(low.ok && low.bid.stage).toBe("closed");
-    expect(low.ok && low.bid.reopens).toBeTruthy();
+    await handle({ id: 11, type: "bid", input: { person: target.person, action: "fee", fee: 1000 } }, s);
+    const low = await settle(target.person);
+    expect(low.stage).toBe("closed");
+    expect(low.reopens).toBeTruthy();
     const other = repository.clubPlayers(seller.id).filter((j) => j.positions[0]?.pos !== "GK")[1]!;
     const balance = Number(repository.meta("balance." + me));
-    const fee = await handle({ id: 12, type: "bid", input: { person: other.person, action: "fee", fee: 3000000 } }, s);
-    expect(fee.ok && fee.bid.stage).toBe("agent");
-    const ask = fee.ok ? fee.bid.terms!.ask : undefined;
-    expect(ask!.release).toBeGreaterThan(0);
-    const done = await handle({ id: 13, type: "bid", input: { person: other.person, action: "terms", wage: ask!.wage, years: 3, release: ask!.release } }, s);
+    await handle({ id: 12, type: "bid", input: { person: other.person, action: "fee", fee: 3000000 } }, s);
+    const fee = await settle(other.person);
+    expect(fee.stage).toBe("agent");
+    const ask = fee.terms!.ask;
+    expect(ask.release).toBeGreaterThan(0);
+    await handle({ id: 13, type: "bid", input: { person: other.person, action: "terms", wage: ask.wage, years: 3, release: ask.release } }, s);
+    const agreed = await settle(other.person);
+    expect(agreed.stage).toBe("agreed");
+    const done = await handle({ id: 14, type: "bid", input: { person: other.person, action: "confirm" } }, s);
     expect(done.ok && done.bid.stage).toBe("done");
     expect(repository.player(other.person)!.club).toBe(me);
-    expect(repository.contract(other.person)!.clauses?.release).toBe(ask!.release);
+    expect(repository.contract(other.person)!.clauses?.release).toBe(ask.release);
     expect(Number(repository.meta("balance." + me))).toBeLessThan(balance);
     const hist = repository.eventsOf({ k: "person", id: other.person }).filter((e) => e.type === "TRANSFER");
     expect(hist.length).toBe(1);

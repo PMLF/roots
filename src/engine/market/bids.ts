@@ -42,6 +42,12 @@ export type Bid = {
   terms?: RenewalTerms;
   commission?: number;
   closed?: BidClosed;
+  /** Proposta enviada à espera de resposta: chega na data `due` (um a dois dias; no último dia da janela é logo). */
+  pending?: { kind: "fee"; fee: number; due: IsoDate } | { kind: "terms"; terms: RenewalTerms; due: IsoDate };
+  /** Última resposta recebida (para o popup e a caixa de entrada). */
+  lastReply?: { status: "accepted" | "counter" | "closed" | "blocked"; kind: "fee" | "terms"; date: IsoDate; reason?: string; terms?: RenewalTerms };
+  /** Dia em que o agente aceitou: o gamer tem `bids.confirmDays` para confirmar a transferência. */
+  agreedOn?: IsoDate;
   /** O clube/agente só volta a falar depois desta data. */
   reopens?: IsoDate;
   /** Acordo fechado fora da janela: o jogador muda-se nesta data. */
@@ -113,7 +119,8 @@ export function openBid(repo: Repository, data: BaseData, params: Params, club: 
 
 /** Desistir: sem rondas feitas apaga a proposta; com rondas, a porta fecha um mês. */
 export function cancelBid(repo: Repository, params: Params, today: IsoDate, bid: Bid): void {
-  if (bid.stage === "agreed" || bid.stage === "done") return;
+  if (bid.stage === "done" || (bid.stage === "agreed" && bid.moving)) return;
+  if (bid.stage === "agreed") { update(repo, { ...bid, stage: "closed", closed: "refused", reopens: addDays(today, params.market.bids.waitDays) }); return; }
   const started = bid.clubRound > 0 || negotiationOf(repo, bidKey(bid), bid.person).round > 0;
   if (!started) save(repo, bids(repo).filter((x) => x.id !== bid.id));
   else update(repo, { ...bid, stage: "closed", closed: "refused", reopens: addDays(today, params.market.bids.waitDays) });
@@ -298,9 +305,67 @@ export function executeBid(repo: Repository, data: BaseData, params: Params, clu
   return true;
 }
 
+export type SubmitInput = { kind: "fee"; fee: number } | { kind: "terms"; terms: RenewalTerms };
+export type Resolved = { status: "accepted" | "counter" | "closed" | "blocked"; reason?: string; terms?: RenewalTerms };
+
+/** Dias até à resposta: 1 ou 2 (determinístico por proposta); 0 no último dia da janela. */
+export const replyDelay = (repo: Repository, params: Params, today: IsoDate, bid: Bid): number =>
+  windowAt(today, params)?.last ? 0 : 1 + Math.floor(new Rng(repo.meta("seed") ?? "?", `bidreply/${bid.id}/${today}`).float() * 2);
+
+/** Envia uma proposta: responde logo no último dia da janela, senão fica pendente. Devolve a resposta se já chegou. */
+export function submitBid(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid, input: SubmitInput): Resolved | "pending" {
+  const delay = replyDelay(repo, params, today, bid);
+  const due = addDays(today, delay);
+  const pending = input.kind === "fee" ? { kind: "fee" as const, fee: input.fee, due } : { kind: "terms" as const, terms: input.terms, due };
+  const next: Bid = { ...bid, pending };
+  update(repo, next);
+  if (delay > 0) return "pending";
+  return resolvePending(repo, data, params, club, today, season, next) ?? "pending";
+}
+
+/** Dá a resposta de uma proposta pendente: guarda-a, assinala-a na caixa de entrada e segue a negociação. */
+export function resolvePending(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid): Resolved | undefined {
+  const pend = bid.pending;
+  if (!pend) return undefined;
+  const cleared: Bid = { ...bid };
+  delete cleared.pending;
+  update(repo, cleared);
+  let reply: Resolved | undefined;
+  if (pend.kind === "fee") {
+    const r = clubOffer(repo, data, params, club, today, cleared, pend.fee);
+    reply = { status: r.status, ...(r.status === "closed" ? { reason: r.reason } : {}) };
+  } else {
+    const r = agentOffer(repo, data, params, club, today, season, cleared, pend.terms);
+    if (!r) return undefined;
+    reply = { status: r.status, ...(r.status === "closed" || r.status === "blocked" ? { reason: r.reason } : {}), ...(r.status === "counter" ? { terms: r.terms } : {}) };
+  }
+  const fresh = bids(repo).find((x) => x.id === bid.id) ?? cleared;
+  const agreed = pend.kind === "terms" && reply.status === "accepted";
+  update(repo, { ...fresh, lastReply: { ...reply, kind: pend.kind, date: today }, ...(agreed ? { agreedOn: today } : {}) });
+  const seller = bid.seller ? (data.clubs.find((c) => c.id === bid.seller)?.name ?? foreignClubList(repo).find((c) => c.id === bid.seller)?.name ?? "") : "";
+  repo.appendEvent({
+    type: "BID_REPLY", date: today, season, visibility: "exposed", origin: "generated",
+    entities: [{ k: "club", id: club.id }, { k: "person", id: bid.person, roleKind: "target" }],
+    data: { status: reply.status, kind: pend.kind, seller, ...(pend.kind === "fee" ? { fee: reply.status === "counter" ? (bids(repo).find((x) => x.id === bid.id)?.ask ?? pend.fee) : pend.fee } : {}), ...(reply.reason ? { reason: reply.reason } : {}) },
+  });
+  return reply;
+}
+
+/** O gamer confirma a transferência acordada: muda já (janela aberta) ou fica marcada. */
+export function confirmBid(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid): Finalized | undefined {
+  if (bid.stage !== "agreed" || bid.moving) return undefined;
+  return finalizeBid(repo, data, params, club, today, season, bid);
+}
+
 /** Todos os dias: executa os acordos que estavam à espera da janela. Devolve os que se concretizaram. */
 export function dailyBids(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number): Bid[] {
   const done: Bid[] = [];
+  // respostas que chegam hoje
+  for (const b of bids(repo)) if (b.pending && b.pending.due <= today) resolvePending(repo, data, params, club, today, season, b);
+  // acordos por confirmar que o gamer deixou passar
+  for (const b of bids(repo)) {
+    if (b.stage === "agreed" && !b.moving && b.agreedOn && addDays(b.agreedOn, params.market.bids.confirmDays) < today) update(repo, { ...b, stage: "closed", closed: "gone" });
+  }
   if (!windowAt(today, params)) return done;
   for (const b of bids(repo)) {
     if (b.stage !== "agreed" || !b.moving || b.moving.date > today) continue;

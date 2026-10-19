@@ -815,3 +815,31 @@ select:disabled { cursor: default; }
 .opcao-linha { display: flex !important; gap: 10px; align-items: flex-start; padding: 8px 0; }
 .opcao-linha input { width: auto; margin-top: 4px; }
 .formulario .acoes-popup { justify-content: flex-end; } .formulario .acoes-popup button { width: auto; }
+
+/* Botões de decisão e avisos de resultado (negociações) */
+button.perigo, .perigo { background: var(--aviso); border-color: var(--aviso); color: #fff; font-weight: 600; }
+button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
+.popup .acoes-popup, .popup .renovacao-form .acoes-popup { justify-content: flex-end; margin-top: 10px; }
+.popup .dados { margin: 0 0 6px; }
+.resultado-negocio { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: var(--r-m); border: 1px solid; margin: 4px 0; }
+.resultado-negocio .icone { flex: none; width: 34px; height: 34px; padding: 6px; border-radius: 999px; stroke-width: 2.4; }
+.resultado-negocio b { display: block; font-size: 15px; }
+.resultado-negocio span { font-size: 13px; opacity: .9; }
+.resultado-negocio.ok { background: var(--destaque-fundo); border-color: var(--destaque); color: var(--destaque-texto); }
+.resultado-negocio.ok .icone { background: var(--destaque); color: #fff; stroke: #fff; }
+.resultado-negocio.erro { background: var(--aviso-fundo); border-color: var(--aviso); color: var(--aviso); }
+.resultado-negocio.erro .icone { background: var(--aviso); stroke: #fff; }
+.lista-olheiros { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 4px; }
+.lista-olheiros li { display: flex; align-items: center; gap: 8px; }
+.lista-olheiros .icone { width: 18px; height: 18px; flex: none; color: var(--suave); }
+.cartao-cabecalho { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+.cartao-cabecalho h2 { margin: 0; }
+.ficha-topo-acoes { margin-left: auto; align-self: flex-start; }
+.noticia-ok { border-left: 4px solid var(--destaque); background: var(--destaque-fundo); }
+.noticia-erro { border-left: 4px solid var(--aviso); background: var(--aviso-fundo); }
+.selo-resultado { display: inline-flex; width: 22px; height: 22px; padding: 4px; margin-right: 8px; border-radius: 999px; vertical-align: -4px; stroke: #fff; }
+.selo-resultado.ok { background: var(--destaque); }
+.selo-resultado.erro { background: var(--aviso); }
+.selo-resultado svg { width: 100%; height: 100%; }
+.decisao-ok { border-left: 4px solid var(--destaque); padding-left: 10px; }
+.clube-linha { display: inline-flex; align-items: center; gap: 6px; }

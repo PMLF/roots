@@ -91,6 +91,10 @@ export type BidView = {
   name: string;
   stage: "club" | "agent" | "agreed" | "closed" | "done";
   seller?: string;
+  /** Id do clube vendedor, para ligação e cores (só clubes nacionais). */
+  sellerId?: string;
+  position?: string;
+  age?: number;
   /** Cláusula de rescisão, só se o gamer a conhece (observação de um mês). */
   release?: number;
   fee?: number;
@@ -104,18 +108,25 @@ export type BidView = {
   closed?: "refused" | "squad" | "level" | "distance" | "cash" | "gone";
   reopens?: string;
   moving?: { club: string; date: string };
+  /** Proposta enviada à espera de resposta (chega em `due`). */
+  pending?: { kind: "fee" | "terms"; due: string };
+  /** Última resposta recebida. */
+  lastReply?: { status: "accepted" | "counter" | "closed" | "blocked"; kind: "fee" | "terms"; date: string; reason?: string };
+  /** Acordo fechado à espera de o gamer confirmar a transferência (até `confirmBy`). */
+  needsConfirm?: { by: string };
   /** Mercado aberto hoje. */
   windowOpen: boolean;
-  /** Dinheiro disponível para transferências. */
+  /** Verba de transferências do clube do gamer. */
   cash: number;
 };
 export type BidAction =
   | { person: string; action: "open" }
   | { person: string; action: "fee"; fee: number }
   | { person: string; action: "terms"; wage: number; years: number; release: number | null }
+  | { person: string; action: "confirm" }
   | { person: string; action: "cancel" };
 export type BidReply = { status: "accepted" | "counter" | "closed" | "blocked"; reason?: string; /** Contraproposta do agente. */ terms?: RenewalTermsView };
-export type BidResult = { ok: true; bid: BidView; reply?: BidReply } | { ok: false; reason: "own" | "invalid" | "retired" | "noClub" };
+export type BidResult = { ok: true; bid: BidView; reply?: BidReply; /** Resultado da confirmação. */ confirmed?: { moved: boolean; date?: string; failed?: string } } | { ok: false; reason: "own" | "invalid" | "retired" | "noClub" };
 /** Proposta da IA por um jogador do gamer (RZ-232). */
 export type OfferView = {
   id: number;
@@ -184,9 +195,13 @@ export type ScoutingData = {
   rows: ScoutRow[];
   orders: ScoutOrderView[];
   scouts: { count: number; quality: number };
+  /** Os olheiros do clube, por nome. */
+  scoutList: { id: string; name: string }[];
+  /** Verba de transferências e margem salarial anual ainda disponíveis. */
+  budget: { transfers: number; wageMargin: number };
   cost: { week: number; month: number; search: number; foreignMultiplier: number };
   balance: number;
-  /** Quantas ordens ao mesmo tempo (uma por olheiro). */
+  /** Quantas ordens ao mesmo tempo (`perScout` por olheiro). */
   capacity: number;
 };
 export type ScoutOrderInput = { kind: "week" | "month" | "search"; person?: string; position?: string; minAge?: number; maxAge?: number; freeOnly?: boolean };
@@ -215,7 +230,7 @@ export type PersonProfileData = {
   /** Negociação em curso (aberta) ou acordo à espera da janela: «vai mudar-se para X em Y». */
   bid?: { stage: "club" | "agent" | "agreed"; moving?: { club: string; date: string } };
   /** Quem é do teu clube conhece-se por dentro: personalidade e qualidades (só os campos ocultos do jogo ficam de fora). */
-  known?: { personality: PersonTruth["personality"]; quality?: PersonTruth["quality"] };
+  known?: { personality: PersonTruth["personality"]; quality?: PersonTruth["quality"]; /** Observação de um mês: valores exatos. */ attributes?: PersonTruth["attributes"]; potential?: PersonTruth["potential"]; positions?: PersonTruth["positions"] };
   /** Ordenado mensal: só no teu clube (ou em modo developer). */
   wage?: number;
   /** Agente do jogador (público). */
