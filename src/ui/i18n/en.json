@@ -1275,5 +1275,11 @@
   "offer.info.expires": "Valid until",
   "offer.banner.done": "Sale completed",
   "offer.banner.closed": "Offer closed",
-  "tab.contract": "Contract and personality"
+  "tab.contract": "Contract and personality",
+  "results.titleRound": "This matchday's results",
+  "results.titleStage": "This round's results",
+  "results.cupRound": "Round {n}",
+  "results.scores": "Results",
+  "results.continue": "Continue",
+  "results.seeMatch": "See the match"
 }

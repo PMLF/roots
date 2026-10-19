@@ -96,3 +96,4 @@ Motor em `src/engine/market/bids.ts`; estado em meta `market.bids`. «Fazer prop
 - Preço do vendedor sobe com a importância do jogador no plantel (`bids.importance`) e com a qualidade acima do escalão (`bids.qualityPremium`).
 - Valores mais realistas: `market.ageFactor` ×3,5 (valores e cláusulas), ordenados médios 11 000/4 200/1 600/800/280 €/mês, `news.minFee` 1,5 M€.
 - UI: campos alterados pelo agente a amarelo, botão «Aceitar» quando se repete a contraproposta, popup de proposta recebida redesenhado, Observar/Fazer proposta na ficha, separador «Contrato e personalidade», nível e potencial no cartão do topo.
+- Propostas da IA: o dropdown de contrapropostas (`Offer.grid`) é fixo durante a negociação e a IA só contrapropõe com valores dele (sem valor possível, desiste).
