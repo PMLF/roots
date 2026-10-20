@@ -1,3 +1,4 @@
+import { europeZone, type EuropeSlots } from "@/engine/europe/zones";
 import type { LiveMatch } from "@/engine/season/liveMatch";
 import type { SideStat, Side } from "@/engine/match/types";
 
@@ -61,9 +62,10 @@ export function matchStatistics(summary: { home: SideStat; away: SideStat; homeP
 }
 
 /** Zona da tabela numa posição: campeão, subida ou descida (as mesmas regras das outras tabelas). */
-export function positionZone(pos: number, total: number, zones?: { promoted: number; relegated: number }): "champion" | "promotion" | "relegation" | undefined {
+export function positionZone(pos: number, total: number, zones?: { promoted: number; relegated: number; europe?: EuropeSlots }): "champion" | "promotion" | "relegation" | "cl" | "clq" | "el" | "ecl" | undefined {
   if (!zones) return pos === 1 ? "champion" : undefined;
   if (pos === 1) return "champion";
+  if (zones.europe) { const z = europeZone(pos, zones.europe); if (z) return z; }
   if (pos <= zones.promoted) return "promotion";
   if (zones.relegated > 0 && pos > total - zones.relegated) return "relegation";
   return undefined;

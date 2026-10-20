@@ -29,6 +29,7 @@ import { districtFactors, finalistValue, prizeValue, roundPrize } from "./compet
 import { finalPhaseDates } from "./cpFinalPhase";
 import { isInSecondDistrict } from "./districts";
 import { districtVenue, NATIONAL_STADIUM } from "./venues";
+import { computeSlots, europeSlots, saveSlots } from "../europe/access";
 import { announceEurope } from "../europe/announce";
 import { europeDates, europeDef, europeEntrants, europeKind, isEuropean, EUROPE_NAME, EUROPEAN, type EuropeKind } from "../europe/europe";
 
@@ -330,7 +331,11 @@ export function ensureCompetitions(repo: Repository, data: BaseData, params: Par
     begin(repo, data, params, season, CUP, first, late, plan.national);
     // competições europeias: só com clubes estrangeiros suficientes (saves antigos não têm)
     const previous = previousPremierTable(repo, data, season);
-    const europe = europeEntrants(repo, data, params, season, season > 1 ? cupResult(repo, season - 1, CUP).winner : undefined, previous);
+    // vagas da liga da época anterior (as do ranking de então) e quem ganhou a Taça e as provas europeias
+    const slots = season > 1 ? europeSlots(repo, data, params, season - 1) : computeSlots(repo, data, params, season);
+    const winnerOf = (competition: string) => (season > 1 ? cupResult(repo, season - 1, competition).winner : undefined);
+    const europe = europeEntrants(repo, data, params, season, { cup: winnerOf(CUP), champions: winnerOf(EUROPE_NAME.championsLeague), europa: winnerOf(EUROPE_NAME.europaLeague), conference: winnerOf(EUROPE_NAME.conferenceLeague) }, previous, slots);
+    saveSlots(repo, data, params, season);
     if (europe) for (const kind of EUROPEAN) begin(repo, data, params, season, EUROPE_NAME[kind], europe[kind], [], []);
     for (const [district, members] of districtMembers(data)) {
       const dates = plan.district[district];

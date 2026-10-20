@@ -27,7 +27,7 @@ export function MiniTable({ league, club }: { league: CompetitionPage; club: str
         <thead><tr><th>#</th><th>{t("lab.col.club")}</th><th title={t("season.matches")}>J</th><th title={t("season.points")}>P</th></tr></thead>
         <tbody>
           {shown.map((r) => (
-            <tr key={r.club} className={r.club === club ? "meu-clube" : undefined}>
+            <tr key={r.club} className={[r.zone ? `zona zona-${r.zone}` : "", r.club === club ? "meu-clube" : ""].filter(Boolean).join(" ") || undefined}>
               <td>{r.position}</td>
               <td className="nome-clube"><ClubSwatch id={r.club} /><EntityLink k="club" id={r.club} withoutSwatch>{r.name}</EntityLink></td>
               <td>{r.played}</td>

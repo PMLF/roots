@@ -42,7 +42,7 @@ export function LeagueTable({ page, compact = false }: { page: CompetitionPage; 
       />
       {zones.size > 0 && (
         <ul className="legenda-zonas">
-          {(["champion", "promotion", "relegation"] as const).filter((z) => zones.has(z)).map((z) => (
+          {(["champion", "cl", "clq", "el", "ecl", "promotion", "relegation"] as const).filter((z) => zones.has(z)).map((z) => (
             <li key={z}><span className={`zona-amostra zona-${z}`} aria-hidden="true" /> {t(`zone.${z}` as Key)}</li>
           ))}
         </ul>

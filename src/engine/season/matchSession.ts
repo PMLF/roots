@@ -13,6 +13,7 @@ import type { MatchInput, MatchEvent, Side, Tactic } from "../match/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { matchReferee } from "../match/matchContext";
+import { europeSlots, type EuropeSlots } from "../europe/access";
 import { matchTicket, postTicketing, matchContext, coloursOf, teamForMatch, beforeTable, zonesOf, flagsOf, inputFlags, carryFor } from "./advance";
 import { SESSION_KEY, xgCurve, matchTeams, type LiveMeeting, type MatchInfo, saveLiveMatch, matchLines, type LiveMatch, type LiveTableLine, type OtherLiveMatch } from "./liveMatch";
 import { seasonData } from "./seasonPyramid";
@@ -40,7 +41,7 @@ export type SavedSession = {
   drawPoints: number;
   colours: Record<string, string>;
   tiers?: Record<string, string>;
-  zones?: { promoted: number; relegated: number };
+  zones?: { promoted: number; relegated: number; europe?: EuropeSlots };
   meetings?: LiveMeeting[];
   info?: MatchInfo;
   /** Jogo a eliminar / em campo neutro (e o clube cujo estádio recebe). */
@@ -136,7 +137,7 @@ export function startSession(repo: Repository, base: BaseData, params: Params, g
   const flags = flagsOf(g);
   const s: SavedSession = {
     match: g.id, competition: g.competition, round: g.round, season, date: today, side, input: { seed, id: g.id, home, away, ...inputFlags(g), ...carryFor(repo, g) }, changes: [], minute: 0, ...(Object.keys(flags).length > 0 ? { flags } : {}),
-    table, others, winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, colours: coloursOf(data, shown), tiers: tiersOf(data, shown), zones: zonesOf(data, params, gamerClub),
+    table, others, winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, colours: coloursOf(data, shown), tiers: tiersOf(data, shown), zones: zonesOf(data, params, gamerClub, europeSlots(repo, data, params, season)),
     ...matchContext(repo, data, params, g.home, g.away, g.competition, g.id, flags),
   };
   save(repo, s);

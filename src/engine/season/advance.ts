@@ -6,6 +6,7 @@
  */
 import { completeOrders } from "../scouting/scouting";
 import { zoneSizes } from "../competition/profile";
+import type { EuropeSlots } from "../europe/access";
 import { weekDay, addDays } from "../calendar/dates";
 import type { Params } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
@@ -109,11 +110,11 @@ export function beforeTable(repo: Repository, competition: string, season: numbe
 }
 
 /** Quantos sobem e descem na competição de um clube (as zonas da tabela). */
-export function zonesOf(data: BaseData, params: Params, club: string): { promoted: number; relegated: number } | undefined {
+export function zonesOf(data: BaseData, params: Params, club: string, europe?: EuropeSlots): { promoted: number; relegated: number; europe?: EuropeSlots } | undefined {
   const tier = data.clubs.find((c) => c.id === club)?.tier;
   if (!tier) return undefined;
   const z = zoneSizes(tier, params);
-  return { promoted: z.promoted, relegated: z.relegated };
+  return { promoted: z.promoted, relegated: z.relegated, ...(tier === "firstLeague" && europe ? { europe } : {}) };
 }
 
 /** Cores (texto dos dados) dos clubes pedidos. */

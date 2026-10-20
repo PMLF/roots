@@ -5,11 +5,11 @@ import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import type { LiveMatch } from "@/engine/season/liveMatch";
 import type { Tactic } from "@/engine/match/types";
 import { Icon } from "@/ui/components/Icon";
-import { EventIcon } from "@/ui/components/EventIcon";
 import { EntityLink } from "@/ui/components/Link";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { TeamCard, Meetings, Statistics, HistoryEvents, XgChart, HeaderInfo, HalfTime, OthersMatches, LiveTable, TacticInMatch } from "@/ui/components/match/MatchPanel";
-import { SubstitutionsInMatch, SubsCounters, withoutSubstitutions } from "@/ui/components/match/Substitutions";
+import { liveTable } from "@/ui/match/matchView";
+import { SubsCounters } from "@/ui/components/match/Substitutions";
 import { save, read } from "@/ui/storage";
 import { useDevMode } from "@/ui/dev";
 import type { Key } from "@/ui/i18n";
@@ -43,7 +43,6 @@ function Content() {
   const [error, setError] = useState<string | undefined>(undefined);
   const beforeRan = useRef(false);
   const [halfTime, setHalfTime] = useState(false);
-  const [subsOpen, setIsOpenSubs] = useState(false);
   const [subsError, setSubsError] = useState<string | undefined>(undefined);
   const seenHalfTime = useRef<string | undefined>(undefined);
   const seenInjury = useRef<string | undefined>(undefined);
@@ -99,7 +98,7 @@ function Content() {
     setHalfTime(true);
   }, [ongoing, halfTimeMinute, matchMinute, matchId]);
 
-  // lesão na equipa do gamer: o jogo pára e abre-se o popup das substituições para ele resolver (uma vez por lesão)
+  // lesão na equipa do gamer: o jogo pára e abre-se a janela «Tática e substituições» para ele resolver (uma vez por lesão)
   const pendingKey = match?.pendingInjury?.join(",");
   useEffect(() => {
     if (!ongoing || !pendingKey || seenInjury.current === `${matchId}/${matchMinute}/${pendingKey}`) return;
@@ -107,7 +106,7 @@ function Content() {
     beforeRan.current = true;
     setRunning(false);
     setSubsError(undefined);
-    setIsOpenSubs(true);
+    setIsOpenTactic(true);
   }, [ongoing, pendingKey, matchId, matchMinute]);
 
   // espaço: pausa e continua (a barra global não avança o tempo nesta página)
@@ -126,28 +125,19 @@ function Content() {
   const openTactic = () => {
     beforeRan.current = running;
     setRunning(false);
+    setSubsError(undefined);
     setIsOpenTactic(true);
   };
   const closeTactic = useCallback(() => {
     setIsOpenTactic((isOpen) => { if (isOpen) setRunning(beforeRan.current); return false; });
     if (ofHalfTimePause.current) { ofHalfTimePause.current = false; setHalfTime(true); }
   }, []);
-  const openSubs = () => {
-    beforeRan.current = running;
-    setRunning(false);
-    setSubsError(undefined);
-    setIsOpenSubs(true);
-  };
-  const closeSubs = useCallback(() => {
-    setIsOpenSubs((isOpen) => { if (isOpen) setRunning(beforeRan.current); return false; });
-    if (ofHalfTimePause.current) { ofHalfTimePause.current = false; setHalfTime(true); }
-  }, []);
-  const confirmSubs = async (substitutions: { playerOut: string; playerIn: string }[]) => {
-    if (!engine) return;
+  const confirmSubs = async (substitutions: { playerOut: string; playerIn: string }[]): Promise<boolean> => {
+    if (!engine) return false;
     setChanging(true);
-    try { setMatch(await engine.call("substitutionsInMatch", { substitutions })); closeSubs(); } catch (e) { setSubsError(e instanceof Error ? e.message : String(e)); } finally { setChanging(false); }
+    setSubsError(undefined);
+    try { setMatch(await engine.call("substitutionsInMatch", { substitutions })); return true; } catch (e) { setSubsError(e instanceof Error ? e.message : String(e)); return false; } finally { setChanging(false); }
   };
-  const halfTimeSubs = () => { ofHalfTimePause.current = true; setHalfTime(false); openSubs(); };
   const halfTimeTactic = () => { ofHalfTimePause.current = true; setHalfTime(false); openTactic(); };
   const secondHalf = () => { setHalfTime(false); setRunning(true); };
   const changeTactic = async (tactic: Tactic) => {
@@ -160,6 +150,7 @@ function Content() {
   if (match === null) return <p className="vazio">{t("match.noMatch")} <Link href="/">{t("match.back")}</Link></p>;
   const minute = match.minute ?? match.duration;
   const last = match.lines.filter((l) => l.minute <= minute).at(-1);
+  const hasTable = liveTable(match, minute).length > 0;
   const gc = last?.homeGoals ?? 0;
   const gf = last?.awayGoals ?? 0;
   return (
@@ -171,12 +162,20 @@ function Content() {
         <b className="placar-golos">{gc}–{gf}</b>
         <span className="placar-equipa placar-fora"><EntityLink k="club" id={match.away.id} withoutSwatch>{match.away.name}</EntityLink><ClubSwatch colours={match.colours?.[match.away.id]} /></span>
       </div>
-      <p className="relogio">{ongoing ? `${Math.floor(minute)}'` : t("match.finished")}</p>
-      {ongoing && match.subs && <p className="subs-resumo"><SubsCounters subs={match.subs} /></p>}
+      <div className="jogo-estado">
+        <p className="relogio">{ongoing ? `${Math.floor(minute)}'` : t("match.finished")}</p>
+        {ongoing && match.subs && <SubsCounters subs={match.subs} />}
+        {ongoing && (
+          <span className="controlos-jogo">
+            <button type="button" onClick={openTactic}><Icon name="tactic" />{t("match.tacticButton")}</button>
+            <label><input type="checkbox" checked={importantOnly} onChange={(e) => setImportantOnly(e.target.checked)} /> {t("match.importantOnly")}</label>
+          </span>
+        )}
+      </div>
       {ongoing ? (
         <>
           <div className="controlos-fixos" role="group" aria-label={t("match.controls")}>
-            <button type="button" className="primario controlo-principal" onClick={() => setRunning((v) => !v)} disabled={tacticOpen || subsOpen} aria-label={running ? t("match.pause") : minute === 0 ? t("match.start") : t("match.continue")}>
+            <button type="button" className="primario controlo-principal" onClick={() => setRunning((v) => !v)} disabled={tacticOpen} aria-label={running ? t("match.pause") : minute === 0 ? t("match.start") : t("match.continue")}>
               <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d={running ? "M7 5h3.500v14H7zM13.500 5H17v14h-3.500z" : "M8 5v14l11-7z"} fill="currentColor" /></svg>
               <span>{running ? t("match.pause") : minute === 0 ? t("match.start") : t("match.continue")}</span>
             </button>
@@ -191,17 +190,11 @@ function Content() {
               </button>
             )}
           </div>
-          <div className="acoes controlos-jogo">
-            <button type="button" onClick={openTactic}><Icon name="tactic" />{t("match.tacticButton")}</button>
-            <button type="button" onClick={openSubs} disabled={minute < 1 || withoutSubstitutions(match.subs, minute === halfTimeMinute)} title={withoutSubstitutions(match.subs, minute === halfTimeMinute) ? t("match.subs.noMore") : undefined}><EventIcon rowKey="substitution" />{t("match.subs.button")}</button>
-            <label><input type="checkbox" checked={importantOnly} onChange={(e) => setImportantOnly(e.target.checked)} /> {t("match.importantOnly")}</label>
-          </div>
         </>
       ) : null}
       {error && <p className="erro" role="alert">{error}</p>}
-      {halfTime && ongoing && <HalfTime match={match} onTactic={halfTimeTactic} aoSubs={halfTimeSubs} onContinue={secondHalf} />}
-      {subsOpen && ongoing && <SubstitutionsInMatch match={match} busy={changing} {...(subsError ? { error: subsError } : {})} onConfirm={(x) => void confirmSubs(x)} onClose={closeSubs} />}
-      {tacticOpen && ongoing && match.tactic && <TacticInMatch match={match} tactic={match.tactic} onChange={(x) => void changeTactic(x)} onClose={closeTactic} busy={changing} />}
+      {halfTime && ongoing && <HalfTime match={match} onTactic={halfTimeTactic} onContinue={secondHalf} />}
+      {tacticOpen && ongoing && match.tactic && <TacticInMatch match={match} tactic={match.tactic} onChange={(x) => void changeTactic(x)} onClose={closeTactic} busy={changing} {...(subsError ? { subsError } : {})} onConfirmSubs={confirmSubs} />}
       <div className="separadores" role="tablist" aria-label={t("match.tabs")}>
         {TABS.map((x) => (
           <button key={x} type="button" role="tab" id={`sep-${x}`} aria-selected={tab === x} aria-controls={`pn-${x}`} onClick={() => { setTab(x); save("raizes.matchTab", x); }}>{t(`match.tab.${x}` as Key)}</button>
@@ -214,10 +207,11 @@ function Content() {
               <h2>{t("match.events")}</h2>
               <HistoryEvents match={match} importantOnly={importantOnly} />
             </section>
-            <div className="jogo-grelha">
+            <div className={`jogo-grelha${hasTable ? " jogo-grelha-4" : ""}`}>
               <div className="jogo-coluna"><TeamCard match={match} side="home" /></div>
               <div className="jogo-coluna"><TeamCard match={match} side="away" /></div>
-              <div className="jogo-coluna"><OthersMatches match={match} mine={mine ?? undefined} /><LiveTable match={match} mine={mine ?? undefined} /></div>
+              <div className="jogo-coluna"><OthersMatches match={match} mine={mine ?? undefined} /></div>
+              {hasTable && <div className="jogo-coluna"><LiveTable match={match} mine={mine ?? undefined} /></div>}
             </div>
           </>
         )}

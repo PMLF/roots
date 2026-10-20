@@ -166,8 +166,19 @@ export type Params = {
   europe: {
     /** Clubes por competição. */
     size: number;
-    /** Lugares de Portugal: 1.º… da Primeira Liga na Liga dos Campeões; os seguintes (e o vencedor da Taça) na Liga Europa, depois na Conferência. */
-    portugal: { championsLeague: number; europaLeague: number; conferenceLeague: number };
+    /**
+     * Acesso de Portugal (RZ-252): as vagas da Primeira Liga dependem do lugar de Portugal no ranking de associações (pontos por clube
+     * nas últimas `seasonsCounted` épocas; antes de haver história, um valor de partida pela qualidade média dos clubes do país).
+     * `bands`: a primeira faixa com `maxRank` ≥ lugar de Portugal. Além destas, o vencedor da Taça entra na Liga Europa.
+     */
+    access: {
+      seasonsCounted: number;
+      /** Qualidade média (escala dos clubes estrangeiros) com que Portugal começa; `pointsPerQuality` converte-a em pontos por época. */
+      portugalQuality: number; pointsPerQuality: number;
+      bands: { maxRank: number; championsLeague: number; championsQualifying: number; europaLeague: number; conferenceLeague: number }[];
+      /** Pré-eliminatória da Liga dos Campeões: probabilidade do mais forte = 1/(1+exp(−sensibilidade × diferença de força do plantel)). */
+      qualifierSensitivity: number;
+    };
     /** Datas: a 1.ª jornada é o primeiro dia da semana de cada competição a partir de `anchor`; as seguintes, em semanas desde essa. */
     calendar: { anchor: { month: number; day: number }; leaguePhaseWeeks: number[]; knockoutWeeks: number[] };
     competitions: Record<"championsLeague" | "europaLeague" | "conferenceLeague", {
@@ -783,7 +794,15 @@ export const DEFAULT_PARAMETERS: Params = {
   },
   europe: {
     size: 36,
-    portugal: { championsLeague: 2, europaLeague: 2, conferenceLeague: 1 },
+    access: {
+      seasonsCounted: 5, portugalQuality: 13.8, pointsPerQuality: 0.6, qualifierSensitivity: 0.5,
+      bands: [
+        { maxRank: 4, championsLeague: 4, championsQualifying: 0, europaLeague: 1, conferenceLeague: 1 },
+        { maxRank: 7, championsLeague: 2, championsQualifying: 1, europaLeague: 1, conferenceLeague: 1 },
+        { maxRank: 12, championsLeague: 1, championsQualifying: 1, europaLeague: 1, conferenceLeague: 1 },
+        { maxRank: 99, championsLeague: 1, championsQualifying: 0, europaLeague: 1, conferenceLeague: 1 },
+      ],
+    },
     calendar: { anchor: { month: 9, day: 15 }, leaguePhaseWeeks: [0, 2, 5, 7, 10, 12, 18, 19, 20, 21], knockoutWeeks: [22, 23, 25, 26, 29, 30, 32, 33] },
     competitions: {
       championsLeague: { pots: 4, perPot: 2, weekday: 3, finalWeek: 37, finalWeekday: 6, prizes: { participation: 4_000_000, win: 500_000, draw: 170_000, topEight: 1_500_000, rounds: [800_000, 1_200_000, 1_800_000, 2_600_000], finalist: 3_500_000, winner: 5_500_000 } },
@@ -1173,7 +1192,7 @@ export function validateParameters(p: Params): string[] {
   if (!(cup.finalDaysAfterLeagues >= 1) || !(cup.qualifiersPerDistrictWithoutHistory >= 1)) errors.push("cups.cup: finalDaysAfterLeagues ≥ 1 e qualifiersPerDistrictWithoutHistory ≥ 1");
   const eu = p.europe;
   if (!(eu.size % eu.competitions.conferenceLeague.pots === 0 && eu.size % eu.competitions.championsLeague.pots === 0)) errors.push("europe.size tem de dividir pelos potes");
-  if (eu.portugal.championsLeague + eu.portugal.europaLeague + eu.portugal.conferenceLeague > 8) errors.push("europe.portugal: lugares a mais");
+  if (!(eu.access.seasonsCounted >= 1 && eu.access.bands.length > 0 && eu.access.bands.every((b, i, a) => b.maxRank >= 1 && (i === 0 || b.maxRank > (a[i - 1] as { maxRank: number }).maxRank) && b.championsLeague + b.championsQualifying + b.europaLeague + b.conferenceLeague <= 10))) errors.push("europe.access inválido (faixas por ranking crescente, no máximo 10 vagas)");
   if (eu.calendar.knockoutWeeks.length !== 8 || eu.calendar.leaguePhaseWeeks.length < 9) errors.push("europe.calendar: 8 semanas de eliminatórias (play-off, oitavos, quartos e meias a duas mãos) e pelo menos 9 de fase de liga");
   if (!(eu.calendar.knockoutWeeks.every((w, i, a) => i === 0 || w > (a[i - 1] as number)) && eu.calendar.leaguePhaseWeeks.every((w, i, a) => i === 0 || w > (a[i - 1] as number)) && (eu.calendar.leaguePhaseWeeks.at(-1) as number) < (eu.calendar.knockoutWeeks[0] as number))) errors.push("europe.calendar: semanas crescentes e a fase de liga antes das eliminatórias");
   if (!(p.cups.supercupDaysBeforeFirstRound >= 1) || !(p.cups.districtCup.finalDaysAfterDistrictsEnd >= 1) || !(p.cups.minRestDays >= 1)) errors.push("cups: intervalos ≥ 1 dia");
