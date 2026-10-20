@@ -26,7 +26,7 @@ function Content() {
   if (match === undefined) return <p>{t("profile.loading")}</p>;
   if (match === null) return <p className="vazio">{t("match.noMatch")} <Link href="/">{t("match.back")}</Link></p>;
   const hasTable = match.table.length > 0;
-  const own = { id: match.id, home: match.home, away: match.away, a: match.homeGoals, b: match.awayGoals, ...(match.summary?.shootout ? { shootout: { home: match.summary.shootout.home, away: match.summary.shootout.away } } : {}), ...(match.duration > 95 ? { extraTime: true } : {}) };
+  const own = { id: match.id, home: match.home, away: match.away, a: match.homeGoals, b: match.awayGoals, ...(match.summary?.shootout ? { shootout: { home: match.summary.shootout.home, away: match.summary.shootout.away } } : {}), ...(match.summary?.extraTime ? { extraTime: true } : {}) };
   const rows = [own, ...match.others.map((o) => { const [a, b] = scorerAt(o.goals, o.duration); return { id: o.id, home: o.home, away: o.away, a, b, ...(o.extraTime ? { extraTime: true } : {}), ...(o.shootout ? { shootout: o.shootout } : {}) }; })];
   const stage = t(hasTable ? "match.round" : "results.cupRound", { n: match.round });
   return (

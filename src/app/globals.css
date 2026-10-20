@@ -474,7 +474,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .inicio-factos { display: flex; gap: 28px; margin: 0; flex-wrap: wrap; }
 .inicio-factos dt { color: var(--suave); font-size: 12px; }
 .inicio-factos dd { margin: 0; font-weight: 600; }
-.inicio-colunas { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+.inicio-colunas { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px; align-items: stretch; }
 .inicio-colunas .painel { display: flex; flex-direction: column; min-width: 0; }
 .painel-rodape { margin: auto 0 0; padding-top: 10px; font-size: 13px; }
 .lista-compacta { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
@@ -1074,17 +1074,18 @@ button { transition: background-color .12s, border-color .12s, transform .12s cu
 .banco-cartao.esmaecido { opacity: .4; }
 @media (prefers-reduced-motion: reduce) { .lugar.dica-verde .lugar-cartao, .lugar.dica-amarelo .lugar-cartao, .lugar-vazio.dica-verde, .lugar-vazio.dica-amarelo { animation: none; } }
 
-/* Fundo com textura: grelha de pontos discreta e dois focos de cor, à maneira de uma relva vista de cima */
+/* Fundo com textura: grelha de pontos, riscas de relva na diagonal e dois focos de verde (relva vista de cima) */
 body {
   background-color: var(--fundo);
   background-image:
-    radial-gradient(900px 500px at 8% -10%, rgb(20 128 79 / .10), transparent 70%),
-    radial-gradient(800px 480px at 100% 110%, rgb(20 128 79 / .07), transparent 70%),
-    radial-gradient(rgb(16 26 21 / .055) 1px, transparent 1.2px);
-  background-size: auto, auto, 18px 18px;
+    radial-gradient(1100px 620px at 4% -12%, rgb(20 128 79 / .26), transparent 70%),
+    radial-gradient(900px 560px at 104% 108%, rgb(20 128 79 / .22), transparent 70%),
+    repeating-linear-gradient(115deg, rgb(20 128 79 / .045) 0 46px, transparent 46px 92px),
+    radial-gradient(rgb(16 26 21 / .16) 1px, transparent 1.4px);
+  background-size: auto, auto, auto, 16px 16px;
   background-attachment: fixed;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-tema="claro"]) body { background-image: radial-gradient(900px 500px at 8% -10%, rgb(63 192 136 / .10), transparent 70%), radial-gradient(800px 480px at 100% 110%, rgb(63 192 136 / .06), transparent 70%), radial-gradient(rgb(232 238 234 / .045) 1px, transparent 1.2px); }
+  :root:not([data-tema="claro"]) body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .045) 0 46px, transparent 46px 92px), radial-gradient(rgb(232 238 234 / .13) 1px, transparent 1.4px); }
 }
-:root[data-tema="escuro"] body { background-image: radial-gradient(900px 500px at 8% -10%, rgb(63 192 136 / .10), transparent 70%), radial-gradient(800px 480px at 100% 110%, rgb(63 192 136 / .06), transparent 70%), radial-gradient(rgb(232 238 234 / .045) 1px, transparent 1.2px); }
+:root[data-tema="escuro"] body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .045) 0 46px, transparent 46px 92px), radial-gradient(rgb(232 238 234 / .13) 1px, transparent 1.4px); }
