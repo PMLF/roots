@@ -9,6 +9,7 @@ import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { TallCard } from "@/ui/components/TallCard";
 import { useOwnClub } from "@/ui/myClub";
 import { useT } from "@/ui/i18n/LocaleProvider";
+import { profileHref, TAB_URL } from "@/ui/links";
 
 /** Uma notícia ou mensagem: título, frase de apoio e ligações para as fichas. O texto vem das chaves `newsItem.<type>.<n>.*`. */
 export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n: NewsItem; /** Botão para responder (proposta em aberto). */ action?: ReactNode; unread?: boolean; compact?: boolean; /** Na caixa de entrada: marcar como lida ou por ler. */ onToggleIsRead?: () => void }) {
@@ -29,7 +30,7 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n
   const base = `newsItem.${type}.${n.variant}`;
   // acontecimentos importantes do teu clube: cartão alto com as cores do clube (RZ-247)
   const europe = n.type === "europe_qualified" || n.type === "europe_draw" || n.type === "europe_phase" || n.type === "europe_qualifier";
-  if (n.type === "youth_intake" || n.type === "transfer_offer" || (europe && n.ofClubYour)) {
+  if (n.type === "youth_intake" || n.type === "local_talent" || n.type === "transfer_offer" || (europe && n.ofClubYour)) {
     const clubId = n.type === "transfer_offer" || europe ? n.links.find((l) => l.k === "club")?.id : mine;
     return (
       <TallCard clubId={clubId} unread={unread} title={t(`${base}.title` as Key, values)}
@@ -37,6 +38,7 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n
         actions={<>
           {action}
           {toSquad && <Link href="/squad/" className="ligacao-botao">{t("youth.viewSquad")}</Link>}
+          {n.type === "local_talent" && n.links[0] && <Link href={`${profileHref("city", n.links[0].id)}&tab=${TAB_URL.talent}`} className="ligacao-botao">{t("youth.viewTalent")}</Link>}
           {onToggleIsRead && <button type="button" className="ligacao-botao" onClick={onToggleIsRead}>{t(unread ? "inbox.markRead" : "inbox.markUnread")}</button>}
         </>}>
         <p>{t(`${base}.body` as Key, values)}</p>

@@ -1482,5 +1482,17 @@
   "menu.matchLive": "Jogo a decorrer",
   "tactic.zone.left": "Ala esquerda",
   "tactic.zone.centre": "Meio",
-  "tactic.zone.right": "Ala direita"
+  "tactic.zone.right": "Ala direita",
+  "bid.local.prospect": "Os jovens da terra só podem assinar por clubes da sua cidade.",
+  "bid.local.locked": "Assinou há pouco por um clube da sua terra: só clubes dessa cidade o podem contratar até passar meia época.",
+  "newsItem.local_talent.1.title": "{n} jovens livres em {city}",
+  "newsItem.local_talent.1.body": "Surgiu uma nova geração de jovens da terra sem clube. Os outros {clubs} clubes da cidade também estão de olho: vê quem te interessa antes que assinem.",
+  "youth.viewTalent": "Ver talento local",
+  "interest.card": "Interesse de outros clubes",
+  "interest.none": "Nenhum clube parece interessado neste momento.",
+  "interest.offer": "Proposta de {fee}",
+  "interest.high": "Muito interessado",
+  "interest.medium": "Interessado",
+  "interest.low": "A acompanhar",
+  "interest.local": "clube da terra"
 }

@@ -21,6 +21,7 @@ import { currentQuality } from "../world/player";
 import { isForeignClub } from "../world/foreign";
 import type { Attributes, Position } from "../world/types";
 import { foreignClubList } from "../squad/foreign";
+import { localBlock, lockLocalSigning } from "../squad/localPriority";
 import { marketValue } from "./value";
 import { windowAt } from "./market";
 import { isImportantFee } from "./newsworthy";
@@ -118,13 +119,16 @@ export function sellerAsk(repo: Repository, data: BaseData, params: Params, bid:
   return Math.round((value * (mk.askBase + mk.askByGreed * (greed - 10)) * mult) / 1000) * 1000;
 }
 
-export type OpenError = "own" | "invalid" | "retired";
+export type OpenError = "own" | "invalid" | "retired" | "prospect" | "locked";
 
 export function openBid(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, person: string): { ok: true; bid: Bid } | { ok: false; reason: OpenError } {
   const j = repo.player(person);
   if (!j || !repo.person(person)) return { ok: false, reason: "invalid" };
   if (j.state === "retired") return { ok: false, reason: "retired" };
   if (j.club === club.id) return { ok: false, reason: "own" };
+  // a terra tem a primeira escolha dos seus jovens (RZ-256)
+  const blocked = localBlock(repo, person, club, today);
+  if (blocked) return { ok: false, reason: blocked };
   const open = bidFor(repo, person);
   // negociação em curso, ou porta fechada há menos de um mês: mostra-se o estado atual
   if (open && (open.stage !== "closed" || (open.reopens && today < open.reopens))) return { ok: true, bid: open };
@@ -303,7 +307,9 @@ export function executeBid(repo: Repository, data: BaseData, params: Params, clu
   if (trainer && compensation > 0) { post(repo, club, "transfers", -compensation); post(repo, trainer, "transfers", compensation); }
   const newRelease = terms.release ?? undefined;
   const clauses: ContractClauses = newRelease !== undefined ? { release: newRelease } : {};
-  repo.updatePlayer(bid.person, { club: club.id, state: "active" });
+  const wasProspect = j.state === "prospect";
+  repo.updatePlayer(bid.person, { club: club.id, state: "active", ...(wasProspect ? { trainedAt: club.id } : {}) });
+  if (wasProspect) lockLocalSigning(repo, params, bid.person, today);
   repo.saveContract({ person: bid.person, club: club.id, monthlyWage: terms.wage, ...contractDates(today, terms.years), ...(Object.keys(clauses).length > 0 ? { clauses } : {}) });
   const agent = j.agent ? [{ k: "person" as const, id: j.agent, roleKind: "agent" }] : [];
   if (bid.seller) {
@@ -316,7 +322,7 @@ export function executeBid(repo: Repository, data: BaseData, params: Params, clu
     repo.appendEvent({
       type: "PLAYER_SIGNED", date: today, season, visibility: "exposed", origin: "generated",
       entities: [{ k: "person", id: bid.person, roleKind: "player" }, { k: "club", id: club.id }, ...(trainer && compensation > 0 ? [{ k: "club" as const, id: trainer.id, roleKind: "trainer" }] : []), ...agent],
-      data: { from: "free", wage: terms.wage, years: terms.years, window: windowAt(today, params)?.id ?? "", ...(commission > 0 ? { commission } : {}), ...(compensation > 0 ? { compensation } : {}) },
+      data: { from: wasProspect ? "local" : "free", wage: terms.wage, years: terms.years, window: windowAt(today, params)?.id ?? "", ...(commission > 0 ? { commission } : {}), ...(compensation > 0 ? { compensation } : {}) },
     });
   }
   update(repo, { ...bid, stage: "done" });

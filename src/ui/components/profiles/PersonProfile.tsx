@@ -8,6 +8,7 @@ import { Table } from "@/ui/components/Table";
 import { PersonHistoryTable } from "@/ui/components/profiles/PersonHistoryTable";
 import { Profile } from "@/ui/components/Profile";
 import { EntityLink } from "@/ui/components/Link";
+import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { seasonName } from "@/engine/calendar/seasonName";
 import { Stars } from "@/ui/components/Stars";
 import { Flag } from "@/ui/components/Flag";
@@ -218,10 +219,22 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     { id: "club", title: t("entity.club"), value: (c) => c.club?.name ?? "" },
     { id: "fee", title: t("career.fee"), value: (c) => c.fee ?? 0, numeric: true },
   ];
+  const interest = j && d.interest ? (
+    <Card title={t("interest.card")}>
+      {d.interest.offers.length === 0 && d.interest.clubs.length === 0 && <p className="vazio">{t("interest.none")}</p>}
+      {d.interest.offers.length > 0 && (
+        <Data lines={d.interest.offers.map((o) => ({ label: t("interest.offer", { fee: eur(locale, o.fee) }), value: <span className="clube-linha"><ClubSwatch id={o.buyer.id} /> <EntityLink k="club" id={o.buyer.id}>{o.buyer.name}</EntityLink></span> }))} />
+      )}
+      {d.interest.clubs.length > 0 && (
+        <Data lines={d.interest.clubs.map((c) => ({ label: t(`interest.${c.level}` as Key) + (c.local ? ` · ${t("interest.local")}` : ""), value: <span className="clube-linha"><ClubSwatch id={c.club.id} /> <EntityLink k="club" id={c.club.id}>{c.club.name}</EntityLink></span> }))} />
+      )}
+    </Card>
+  ) : null;
   const contractTab = (
     <div className="cartoes-par">
       {contract}
       {cardPersonality}
+      {interest}
     </div>
   );
   const story = (
