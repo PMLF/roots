@@ -30,3 +30,4 @@ Jogo de browser de gestão de futebol português com **clubes ligados a cidades*
 - Pega no primeiro item P1 por fazer da fase atual; atualiza o estado no backlog no fim.
 - Não implementes nada fora do backlog; ideias novas vão para o Parking lot.
 - Clubes e pessoas são fictícios; não usar nomes de clubes reais.
+- **Skills de design** (`.claude/skills/`): `emil-design-eng` e as de animação/mobile do Emil Kowalski (`animate`, `review-animations`, `find-animation-opportunities`, `animation-performance`, `animation-vocabulary`, `break-ui`, `mobile-native`, `prototype`, `pick-ui-library`), `design-taste-frontend` (Taste) e `impeccable`. Usam-se ao desenhar ou rever UI, mas **os padrões já estabelecidos no produto mandam** (alinhamento, espaçamento, cores; `docs/UI_SYSTEM.md`): as skills refinam, não redesenham. `impeccable` pede `/impeccable init` uma vez para criar `PRODUCT.md`/`DESIGN.md`; o motor dele descarrega-se de impeccable.style na primeira execução.
