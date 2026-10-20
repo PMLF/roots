@@ -746,6 +746,12 @@ export class SqliteRepository implements Repository {
       .map((r): ClubSeasonRecord => ({ season: within(r.season), wins: within(r.w), draws: within(r.d), losses: within(r.l) }));
   }
 
+  playerRecentRatings(player: string, limit: number): number[] {
+    return this.d
+      .all("SELECT a.rating AS rating FROM appearance a JOIN match j ON j.id = a.match WHERE a.player = ? AND a.rating IS NOT NULL ORDER BY j.date DESC, j.id DESC LIMIT ?", [player, limit])
+      .map((r) => within(r.rating));
+  }
+
   playerSeasonExtras(player: string): PlayerSeasonExtra[] {
     return this.d
       .all(

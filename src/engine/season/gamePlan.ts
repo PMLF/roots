@@ -7,13 +7,15 @@ import type { Params } from "../config/parameters";
 import { clubSuspended } from "../discipline/suspensions";
 import { aptitudeIn, automaticLineup, type LineupCandidate } from "../match/team";
 import { FORMATIONS, DEFAULT_TACTIC, STYLES } from "../match/formations";
+import { BENCH_SIZE, missingPositions } from "../match/lineup";
 import type { OnPitchPlayer, Tactic } from "../match/types";
 import { INJURY_EVENT } from "../injuries/state";
 import type { Attributes, Position } from "../world/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 
-export type Plan = { tactic: Tactic; /** Sem onze, usa-se o automático. */ lineup?: { player: string; position: Position }[] };
+/** `lineup` pode estar incompleto (o gamer ainda está a montá-lo); `bench`, os suplentes convocados. Sem onze escolhido, só as simulações sem interface usam o automático. */
+export type Plan = { tactic: Tactic; lineup?: { player: string; position: Position }[]; bench?: string[] };
 
 const rowKey = (club: string) => `plan.${club}`;
 const confirmationKey = (match: string) => `confirmed.${match}`;
@@ -23,7 +25,7 @@ export function readPlan(repo: Repository, club: string): Plan {
   if (!raw) return { tactic: { ...DEFAULT_TACTIC } };
   try {
     const p = JSON.parse(raw) as Plan;
-    return { tactic: { ...DEFAULT_TACTIC, ...p.tactic }, ...(p.lineup ? { lineup: p.lineup } : {}) };
+    return { tactic: { ...DEFAULT_TACTIC, ...p.tactic }, ...(p.lineup ? { lineup: p.lineup } : {}), ...(p.bench ? { bench: p.bench } : {}) };
   } catch {
     return { tactic: { ...DEFAULT_TACTIC } };
   }
@@ -42,13 +44,18 @@ export function validateTactic(t: Tactic): void {
 export function savePlan(repo: Repository, club: string, plan: Plan): void {
   const t = plan.tactic;
   validateTactic(t);
+  const squad = new Set(repo.clubPlayers(club).filter((j) => j.state === "active").map((j) => j.person));
   if (plan.lineup) {
-    const squad = new Set(repo.clubPlayers(club).filter((j) => j.state === "active").map((j) => j.person));
-    if (plan.lineup.length !== 11) throw new Error("O onze tem de ter 11 jogadores");
-    if (new Set(plan.lineup.map((o) => o.player)).size !== 11) throw new Error("Jogador repetido no onze");
+    if (plan.lineup.length > 11) throw new Error("O onze tem no máximo 11 jogadores");
+    if (new Set(plan.lineup.map((o) => o.player)).size !== plan.lineup.length) throw new Error("Jogador repetido no onze");
     if (plan.lineup.some((o) => !squad.has(o.player))) throw new Error("Há jogadores que não são do plantel");
-    const expected = [...FORMATIONS[t.formation]].sort().join(",");
-    if (plan.lineup.map((o) => o.position).sort().join(",") !== expected) throw new Error("As posições do onze não correspondem à formação");
+    if (missingPositions(t.formation, plan.lineup.map((o) => o.position)).length !== 11 - plan.lineup.length) throw new Error("As posições do onze não correspondem à formação");
+  }
+  if (plan.bench) {
+    if (plan.bench.length > BENCH_SIZE) throw new Error(`O banco tem no máximo ${BENCH_SIZE} suplentes`);
+    if (new Set(plan.bench).size !== plan.bench.length) throw new Error("Jogador repetido no banco");
+    if (plan.bench.some((id) => !squad.has(id))) throw new Error("Há jogadores que não são do plantel");
+    if (plan.bench.some((id) => plan.lineup?.some((o) => o.player === id))) throw new Error("Um jogador não pode estar no onze e no banco");
   }
   repo.setMeta(rowKey(club), JSON.stringify(plan));
 }
@@ -79,7 +86,7 @@ export function planLineup(plan: Plan, candidates: readonly LineupCandidate[], a
   const porId = new Map(candidates.map((c) => [c.person, c] as const));
   const lineup: OnPitchPlayer[] = [];
   const busy = new Set<string>();
-  const vacancies: Position[] = [];
+  const vacancies: Position[] = missingPositions(plan.tactic.formation, plan.lineup.map((o) => o.position));
   for (const o of plan.lineup) {
     const c = porId.get(o.player);
     if (c && (!away.has(o.player) || use === candidates)) {

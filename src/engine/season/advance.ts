@@ -11,7 +11,9 @@ import type { Params } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
 import { matchReferee, matchChannels } from "../match/matchContext";
 import { playMatch, matchLevel } from "../match/detail";
-import { automaticLineup, type LineupCandidate } from "../match/team";
+import { aptitudeIn, automaticLineup, type LineupCandidate } from "../match/team";
+import { BENCH_SIZE } from "../match/lineup";
+import type { Attributes, Position } from "../world/types";
 import { DEFAULT_TACTIC } from "../match/formations";
 import { unavailable, confirmedMatch, readPlan, planLineup, type Plan } from "./gamePlan";
 import type { MatchTeam, MatchSummary } from "../match/types";
@@ -89,7 +91,12 @@ export function teamForMatch(repo: Repository, club: string, competition: string
   const lineup = planLineup(plan ?? { tactic }, all, new Set(away.keys()), params);
   const onPitch = new Set(lineup.map((j) => j.id));
   const available = all.filter((c) => !onPitch.has(c.person) && !away.has(c.person));
-  const bench = automaticLineup(available.length >= 7 ? available : all.filter((c) => !onPitch.has(c.person)), undefined, params).slice(0, 7);
+  // o banco escolhido pelo gamer (os indisponíveis saem); o que falta completa-se com o melhor disponível
+  const chosen = (plan?.bench ?? []).filter((id) => !onPitch.has(id) && !away.has(id) && all.some((c) => c.person === id));
+  const rest = available.filter((c) => !chosen.includes(c.person));
+  const extra = automaticLineup(rest.length >= BENCH_SIZE ? rest : all.filter((c) => !onPitch.has(c.person) && !chosen.includes(c.person)), undefined, params).slice(0, Math.max(0, BENCH_SIZE - chosen.length));
+  const picked = chosen.map((id) => { const c = all.find((x) => x.person === id) as LineupCandidate; return { id: c.person, position: (c.positions[0]?.pos ?? "CM") as Position, attributes: c.attributes as Attributes, heightCm: c.heightCm, form: c.form ?? 1, aptitude: aptitudeIn(c.positions, (c.positions[0]?.pos ?? "CM") as Position, params), positions: c.positions }; });
+  const bench = [...picked, ...extra];
   return { club, lineup, tactic, bench };
 }
 

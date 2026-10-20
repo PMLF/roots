@@ -939,3 +939,35 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .cartao-alto p { margin: 0 0 6px; }
 .cartao-alto-dados { font-size: 13px; color: var(--suave); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 .cartao-alto .acoes { margin: 8px 0 0; }
+
+/* Ecrã de táticas (RZ-248): campo em vetor com os cartões dos jogadores */
+.tatica-grelha { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 14px; align-items: start; grid-column: 1 / -1; }
+@media (max-width: 960px) { .tatica-grelha { grid-template-columns: 1fr; } }
+.campo { position: relative; width: 100%; aspect-ratio: 2 / 3; border-radius: var(--r-m); overflow: hidden; container-type: inline-size; }
+.campo-desenho { position: absolute; inset: 0; width: 100%; height: 100%; }
+.campo .relva-a { fill: #2f7d3a; }
+.campo .relva-b { fill: #2a7235; }
+.campo .linhas { fill: none; stroke: rgb(255 255 255 / 0.7); stroke-width: 0.5; vector-effect: non-scaling-stroke; }
+.lugar { position: absolute; transform: translate(-50%, -50%); width: 17cqw; min-width: 54px; max-width: 84px; padding: 0; border: 0; background: none; }
+.lugar-cartao { position: relative; display: block; width: 100%; padding: 0; border: 1px solid rgb(0 0 0 / 0.35); border-radius: 6px; overflow: hidden; background: #fff; color: #111; cursor: grab; font: inherit; z-index: 1; }
+.lugar::before { content: ""; position: absolute; inset: -6px; border-radius: 12px; background: var(--halo, transparent); filter: blur(7px); opacity: 0.95; z-index: 0; }
+.lugar-verde { --halo: #34d058; }
+.lugar-amarelo { --halo: #ffd33d; }
+.lugar-vermelho { --halo: #ff4d4f; }
+.lugar-cores { display: flex; align-items: center; justify-content: space-between; gap: 2px; padding: 3px 4px; min-height: 22px; color: #fff; text-shadow: 0 0 3px rgb(0 0 0 / 0.9), 0 0 1px #000; font-size: 11px; }
+.lugar-cores .estrelas { font-size: 8px; letter-spacing: -1px; }
+.lugar-nome { display: block; padding: 2px 3px 3px; font-size: 11px; line-height: 1.15; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: #fff; }
+.lugar.escolhido .lugar-cartao { outline: 2px solid #fff; outline-offset: 1px; }
+.lugar.indisponivel .lugar-cartao { filter: grayscale(0.8); opacity: 0.8; }
+.lugar-vazio { display: grid; place-items: center; height: 44px; border: 2px dashed rgb(255 255 255 / 0.75); border-radius: 8px; color: #fff; font-weight: 700; font-size: 12px; background: rgb(0 0 0 / 0.12); cursor: pointer; }
+.lugar-tirar { position: absolute; top: -7px; right: -7px; z-index: 2; width: 18px; height: 18px; padding: 0; line-height: 16px; border-radius: 50%; border: 1px solid rgb(0 0 0 / 0.4); background: #fff; color: #111; font-size: 12px; cursor: pointer; }
+.tabela-rolar { overflow-x: auto; }
+.tabela-onze tr.tabela-secao th { text-align: left; padding-top: 12px; font-size: 13px; }
+.tabela-onze tbody tr[draggable] { cursor: grab; }
+.tabela-onze td:first-child { white-space: nowrap; }
+.tabela-onze tr.escolhido td { background: color-mix(in srgb, var(--cor-destaque, #1a7f37) 16%, transparent); }
+.tabela-onze tr.indisponivel td:first-child { text-decoration: line-through; }
+.halo-amostra { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; }
+.halo-amostra.verde { background: #34d058; }
+.halo-amostra.amarelo { background: #ffd33d; }
+.halo-amostra.vermelho { background: #ff4d4f; }

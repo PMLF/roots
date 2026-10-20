@@ -51,10 +51,10 @@ export function AdvanceButton() {
       if (!engine || !time.pause || starting) return;
       const match = time.pause.match;
       setStarting(true);
-      void engine.call("startMatch", { match }).then(() => {
+      void engine.call("startMatch", { match, strict: true }).then(() => {
         window.dispatchEvent(new Event("raizes:tempo"));
         router.push(`/match/?id=${encodeURIComponent(match)}&arrancar=1`);
-      }).catch(() => undefined).finally(() => setStarting(false));
+      }).catch((e: unknown) => { window.dispatchEvent(new CustomEvent("raizes:onze-invalido", { detail: e instanceof Error ? e.message : String(e) })); }).finally(() => setStarting(false));
       return;
     }
     if (finishedMatch) { router.push("/"); return; }

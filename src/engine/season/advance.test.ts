@@ -137,19 +137,34 @@ describe("plano de jogo", () => {
     expect(await handle({ id: 3, type: "plan", input: null }, s)).toBeNull();
     await handle({ id: 4, type: "chooseClub", input: { id: club.id } }, s);
     const p = (await handle({ id: 5, type: "plan", input: null }, s))!;
-    expect(p.automatic).toBe(true);
+    // sem onze automático: o campo começa vazio e só o gamer escolhe quem joga
     expect(p.lineup).toHaveLength(11);
+    expect(p.lineup.every((o) => o.player === undefined)).toBe(true);
+    expect(p.ready).toMatchObject({ ok: false, reason: "incomplete" });
     expect(p.squad.length).toBeGreaterThan(18);
+    expect(p.squad[0]).toMatchObject({ matches: 0, goals: 0 });
     expect(p.nextMatch?.confirmed).toBe(false);
+    await expect(handle({ id: 60, type: "confirmMatch", input: { match: p.nextMatch!.id, strict: true } }, s)).rejects.toThrow(/onze/);
 
-    // formação 4-4-2 com o onze proposto reorganizado: rejeita posições que não batem
-    await expect(handle({ id: 6, type: "savePlan", input: { tactic: { ...p.tactic, formation: "4-4-2" }, lineup: p.lineup.map((o) => ({ player: o.player, position: o.position })) } }, s)).rejects.toThrow();
-    await expect(handle({ id: 7, type: "savePlan", input: { tactic: { ...p.tactic, intensity: 9 as never }, lineup: null } }, s)).rejects.toThrow();
-    const fresh = await handle({ id: 8, type: "savePlan", input: { tactic: { ...p.tactic, style: "direct", tempo: 5 }, lineup: p.lineup.map((o) => ({ player: o.player, position: o.position })) } }, s);
-    expect(fresh.automatic).toBe(false);
+    // o gamer escolhe o melhor para cada posição (aqui, o 1.º do plantel que tenha a posição) e banco
+    const used = new Set<string>();
+    const pick = p.lineup.map((slot) => {
+      const who = p.squad.find((q) => !used.has(q.player) && !q.unavailable && q.positions.some((x) => x.pos === slot.position)) ?? p.squad.find((q) => !used.has(q.player) && !q.unavailable)!;
+      used.add(who.player);
+      return { player: who.player, position: slot.position };
+    });
+    const bench = p.squad.filter((q) => !used.has(q.player)).slice(0, 7).map((q) => q.player);
+    // formação 4-4-2 com as posições do 4-3-3: rejeita
+    await expect(handle({ id: 6, type: "savePlan", input: { tactic: { ...p.tactic, formation: "4-4-2" }, lineup: pick } }, s)).rejects.toThrow();
+    await expect(handle({ id: 7, type: "savePlan", input: { tactic: { ...p.tactic, intensity: 9 as never } } }, s)).rejects.toThrow();
+    await expect(handle({ id: 61, type: "savePlan", input: { tactic: p.tactic, lineup: pick, bench: [pick[0]!.player] } }, s)).rejects.toThrow(/onze e no banco/);
+    const fresh = await handle({ id: 8, type: "savePlan", input: { tactic: { ...p.tactic, style: "direct", tempo: 5 }, lineup: pick, bench } }, s);
     expect(fresh.tactic).toMatchObject({ style: "direct", tempo: 5 });
-    expect((await handle({ id: 9, type: "plan", input: null }, s))!.lineup.map((o) => o.player)).toEqual(p.lineup.map((o) => o.player));
-    const leg = await handle({ id: 10, type: "savePlan", input: { tactic: fresh.tactic, lineup: null } }, s);
-    expect(leg.automatic).toBe(true);
+    expect(fresh.bench).toEqual(bench);
+    expect(fresh.lineup.map((o) => o.player)).toEqual(pick.map((o) => o.player));
+    // um onze incompleto guarda-se (a montar) mas não se confirma
+    const partial = await handle({ id: 62, type: "savePlan", input: { tactic: p.tactic, lineup: pick.slice(0, 5) } }, s);
+    expect(partial.lineup.filter((o) => o.player).length).toBe(5);
+    expect(partial.ready.reason).toBe("incomplete");
   }, 60000);
 });

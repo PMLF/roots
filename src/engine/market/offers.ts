@@ -143,7 +143,7 @@ function settle(repo: Repository, data: BaseData, params: Params, gamer: BaseClu
   repo.updatePlayer(o.person, { club: buyer.id, state: "active" });
   repo.saveContract({ person: o.person, club: buyer.id, monthlyWage: o.wage, ...contractDates(today, o.years), ...(o.release !== null ? { clauses: { release: o.release } } : {}) });
   const plan = readPlan(repo, gamer.id);
-  if (plan.lineup?.some((x) => x.player === o.person)) savePlan(repo, gamer.id, { tactic: plan.tactic });
+  if (plan.lineup?.some((x) => x.player === o.person) || plan.bench?.includes(o.person)) savePlan(repo, gamer.id, { tactic: plan.tactic, ...(plan.lineup ? { lineup: plan.lineup.filter((x) => x.player !== o.person) } : {}), ...(plan.bench ? { bench: plan.bench.filter((id) => id !== o.person) } : {}) });
   const agent = repo.player(o.person)?.agent;
   repo.appendEvent({
     type: "TRANSFER", date: today, season, visibility: "exposed", origin: "generated",
