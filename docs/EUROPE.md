@@ -16,3 +16,6 @@ Quartas-feiras (Champions) e quintas (Europa/Conferência) a partir de 15 de set
 
 ## Vistas
 `europeView` (tabela com zonas oitavos/play-off/eliminado + rondas), `europeCups`, `clubCompetitions` (posição na fase de liga e ronda) e `recentMatches` (códigos LC/LE/LCf).
+
+## Notícias e mensagens (RZ-250)
+Eventos `EUROPE_QUALIFIED` e `EUROPE_DRAW` (ao criar a competição, um por clube português: apuramento e os 8 adversários da fase de liga) e `EUROPE_LEAGUE_PHASE` (fim da fase de liga: posição e zona direct/playoff/out). Viram notícias `europe_qualified|europe_draw|europe_phase`; para o clube do gamer aparecem na Inbox como cartão alto (`TallCard`).

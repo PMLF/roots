@@ -60,6 +60,13 @@ describe("competições europeias (RZ-902)", () => {
       const pt = first.find((c) => !c.startsWith("x-"))!;
       const mine = (await handle({ id: 4, type: "clubCompetitions", input: { club: pt, season: 1 } }, s)) as ClubCompetition[];
       expect(mine.find((c) => c.competition === name)).toBeDefined();
+      // notícias (RZ-250): qualificação e sorteio no início, resultado da fase de liga no fim
+      const events = repo.eventsOf({ k: "club", id: pt }, {}).filter((e) => (e.entities.some((x) => x.k === "competition" && x.id === name)));
+      expect(events.filter((e) => e.type === "EUROPE_QUALIFIED")).toHaveLength(1);
+      const draw = events.find((e) => e.type === "EUROPE_DRAW")!;
+      expect((draw.data as { opponents: string[] }).opponents).toHaveLength(perClub);
+      const phase = events.find((e) => e.type === "EUROPE_LEAGUE_PHASE")!;
+      expect(["direct", "playoff", "out"]).toContain((phase.data as { zone: string }).zone);
     }
   }, 480000);
 });

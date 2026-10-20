@@ -22,12 +22,14 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n
   }
   if (typeof values.fee === "number") values.fee = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(values.fee);
   const tone = n.type === "bid_agreed" ? "ok" : n.type === "bid_rejected" ? "erro" : undefined;
+  if (n.type === "europe_phase") values.zoneText = t(`newsItem.europe_phase.zone.${values.zone}` as Key);
   const toSquad = n.type === "youth_intake";
   const toScouting = n.type === "scout_search" || n.type === "scout_report";
   const base = `newsItem.${type}.${n.variant}`;
   // acontecimentos importantes do teu clube: cartão alto com as cores do clube (RZ-247)
-  if (n.type === "youth_intake" || n.type === "transfer_offer") {
-    const clubId = n.type === "transfer_offer" ? n.links.find((l) => l.k === "club")?.id : mine;
+  const europe = n.type === "europe_qualified" || n.type === "europe_draw" || n.type === "europe_phase";
+  if (n.type === "youth_intake" || n.type === "transfer_offer" || (europe && n.ofClubYour)) {
+    const clubId = n.type === "transfer_offer" || europe ? n.links.find((l) => l.k === "club")?.id : mine;
     return (
       <TallCard clubId={clubId} unread={unread} title={t(`${base}.title` as Key, values)}
         details={<>{n.date}{n.links.filter((l) => l.k === "person").slice(0, 3).map((l) => <span key={l.id}> · <EntityLink k="person" id={l.id}>{l.name}</EntityLink></span>)}</>}

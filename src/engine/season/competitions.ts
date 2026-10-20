@@ -30,7 +30,7 @@ import { finalPhaseDates } from "./cpFinalPhase";
 import { isInSecondDistrict } from "./districts";
 import { districtVenue, NATIONAL_STADIUM } from "./venues";
 import { announceEurope } from "../europe/announce";
-import { europeDates, europeDef, europeEntrants, europeKind, EUROPE_NAME, EUROPEAN, type EuropeKind } from "../europe/europe";
+import { europeDates, europeDef, europeEntrants, europeKind, isEuropean, EUROPE_NAME, EUROPEAN, type EuropeKind } from "../europe/europe";
 
 export const CUP = "Taça de Portugal";
 export const SUPERCUP = "Supertaça";
@@ -295,7 +295,23 @@ function begin(repo: Repository, data: BaseData, params: Params, season: number,
   saveRun(repo, step.state);
   if (step.fixtures.length > 0) repo.saveCalendar(step.fixtures.map((f) => toScheduled(competition, season, f)), []);
   announce(repo, data, params, season, cupKind(competition) as CupKind, competition, step.state, step.events);
+  if (isEuropean(competition)) announceEuropeDraw(repo, data, season, competition, entrants, step.fixtures);
   repo.setMeta(listKey(season), JSON.stringify([...activeCompetitions(repo, season), competition]));
+}
+
+/** Qualificação e sorteio da fase de liga: uma notícia por clube português (RZ-250). */
+function announceEuropeDraw(repo: Repository, data: BaseData, season: number, competition: string, entrants: readonly Entrant[], fixtures: readonly Fixture[]): void {
+  const today = (repo.meta("date.today") as IsoDate | undefined) ?? fixtures[0]?.date;
+  if (!today) return;
+  const mine = new Map(data.clubs.map((c) => [c.id, c] as const));
+  for (const { club } of entrants) {
+    const cb = mine.get(club);
+    if (!cb) continue;
+    const entities = [{ k: "club" as const, id: club, roleKind: "qualified" }, { k: "competition" as const, id: competition }];
+    repo.appendEvent({ type: "EUROPE_QUALIFIED", date: today, season, visibility: "exposed", origin: "match", entities, data: { competition } });
+    const opponents = fixtures.filter((f) => f.home === club || f.away === club).sort((a, b) => a.round - b.round).map((f) => (f.home === club ? f.away : f.home));
+    if (opponents.length > 0) repo.appendEvent({ type: "EUROPE_DRAW", date: today, season, visibility: "exposed", origin: "match", entities, data: { competition, opponents } });
+  }
 }
 
 /** Cria as taças da época, uma só vez: depende dos calendários das ligas, por isso corre depois deles. Idempotente. */
