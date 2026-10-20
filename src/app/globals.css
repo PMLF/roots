@@ -161,6 +161,10 @@ legend { padding: 0 6px; color: var(--suave); }
 .separadores button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 8px 14px; color: var(--suave); margin-bottom: -1px; }
 .separadores button:hover:not(:disabled) { background: none; color: var(--texto); }
 .separadores button[aria-selected="true"] { color: var(--texto); border-bottom-color: var(--destaque); font-weight: 600; }
+.separadores a { border-bottom: 2px solid transparent; padding: 8px 14px; color: var(--suave); margin-bottom: -1px; text-decoration: none; white-space: nowrap; }
+.separadores a:hover { color: var(--texto); }
+.separadores a[aria-current="page"] { color: var(--texto); border-bottom-color: var(--destaque); font-weight: 600; }
+.separadores { overflow-x: auto; }
 
 /* ---- Pesquisa global ---- */
 .pesquisa-fundo { position: fixed; inset: 0; background: rgba(8, 14, 11, .45); backdrop-filter: blur(2px); display: flex; justify-content: center; align-items: flex-start; padding-top: 12vh; z-index: 10; }

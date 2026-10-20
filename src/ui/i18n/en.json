@@ -1460,5 +1460,13 @@
   "tactic.reserves": "Not in the squad",
   "tactic.empty.starting": "Nobody picked.",
   "tactic.empty.bench": "Drag players here to put them on the bench.",
-  "tactic.empty.reserves": "The whole squad is in the matchday group."
+  "tactic.empty.reserves": "The whole squad is in the matchday group.",
+  "city.sections": "City sections",
+  "city.section.overview": "Overview",
+  "city.section.services": "Services",
+  "city.section.youth": "Youth pool",
+  "city.section.companies": "Companies",
+  "city.section.council": "Council",
+  "city.section.stadium": "Stadium",
+  "city.soon": "“{section}” doesn’t exist yet. This page stays blank until it is built."
 }
