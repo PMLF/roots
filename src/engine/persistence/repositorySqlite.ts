@@ -292,6 +292,9 @@ export class SqliteRepository implements Repository {
   playersByState(state: PlayerState): PlayerRecord[] {
     return this.d.all("SELECT * FROM player WHERE state = ? ORDER BY person", [state]).map((r) => this.playerOf(r));
   }
+  playersBornIn(city: string): string[] {
+    return this.d.all("SELECT p.id AS id FROM person p JOIN player j ON j.person = p.id WHERE p.native_of = ? ORDER BY p.id", [city]).map((r) => txt(r.id));
+  }
   peopleTotal(): number {
     return within(this.d.all("SELECT COUNT(*) AS n FROM person")[0]?.n);
   }

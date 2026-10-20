@@ -202,6 +202,8 @@ export type ScoutRow = {
   /** Vai mudar-se para outro clube (acordo fechado fora da janela). */
   moving?: { club: string; date: string };
 };
+/** Talento local de um concelho (RZ-234): jovens sem clube e jovens da terra noutros clubes. */
+export type LocalTalentData = { city: string; mine?: string; unsigned: ScoutRow[]; atClubs: ScoutRow[] };
 export type ScoutOrderView = { id: number; kind: "week" | "month" | "search"; person?: EntityRef; position?: string; start: string; end: string; cost: number; done: boolean; results?: number };
 export type ScoutingData = {
   rows: ScoutRow[];
@@ -390,6 +392,7 @@ export type EngineRequests = {
   clubs: { input: null; output: SummaryClub[] };
   /** Pesquisa de jogadores com o alcance dos olheiros (RZ-230). */
   scouting: { input: null; output: ScoutingData };
+  localTalent: { input: { city: string }; output: LocalTalentData | null };
   /** Pede ao olheiro uma observação (semana/mês) ou uma pesquisa por posição. */
   scoutOrder: { input: ScoutOrderInput; output: ScoutOrderOutput };
   countries: { input: null; output: { id: string; name: string }[] };

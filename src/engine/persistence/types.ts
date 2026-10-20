@@ -193,7 +193,8 @@ export type PlayerRecord = {
   /** Clube onde se formou (formação própria ou até aos 22 anos no arranque), para a compensação de formação (RZ-207). */
   trainedAt?: string;
 };
-export type PlayerState = "active" | "free" | "retired";
+/** `prospect`: jovem da terra que ainda não assinou por nenhum clube (RZ-234). */
+export type PlayerState = "active" | "free" | "retired" | "prospect";
 /** Alterações permitidas a um jogador depois de criado (`club: null` = fica sem clube). */
 export type PlayerPatch = {
   attributes?: Record<string, number>;

@@ -7,6 +7,7 @@ export const TYPE_URL: Record<ProfileEntityType, string> = { club: "club", city:
 export const TAB_URL: Record<string, string> = {
   summary: "summary", squad: "squad", staff: "staff", matches: "matches", story: "history", career: "career",
   clubs: "clubs", mayor: "mayor", standings: "table", knowledge: "knowledge", statistics: "stats", contract: "contract",
+  services: "services", talent: "talent", companies: "companies", council: "council", stadium: "stadium",
 };
 export const urlTab = (v: string | null): string | undefined => Object.entries(TAB_URL).find(([, u]) => u === v)?.[0];
 

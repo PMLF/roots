@@ -151,6 +151,8 @@ export interface Repository {
   saveContract(c: ContractRecord): void;
   /** Todos os jogadores num dado estado, por id. */
   playersByState(state: PlayerState): PlayerRecord[];
+  /** Jogadores (ids, por ordem) nascidos num concelho (RZ-234). */
+  playersBornIn(city: string): string[];
   peopleTotal(): number;
   /** Todas as pessoas com os factos públicos mínimos para pesquisar (nome, clube, posição, função). */
   peopleIndex(): PersonIndex[];

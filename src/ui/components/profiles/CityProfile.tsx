@@ -5,6 +5,7 @@ import { Card, Data, Top } from "@/ui/components/Card";
 import { Table } from "@/ui/components/Table";
 import type { Column } from "@/ui/table/logic";
 import { Profile } from "@/ui/components/Profile";
+import { LocalTalent } from "@/ui/components/profiles/LocalTalent";
 import { EntityLink } from "@/ui/components/Link";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -197,5 +198,5 @@ export function CityProfile({ d }: { d: CityProfileData }) {
     </div>
   );
 
-  return <Profile type="city" title={d.name} top={<Top title={d.name} labels={labels} card={identity} />} tabs={{ summary, clubs, story }} />;
+  return <Profile type="city" title={d.name} top={<Top title={d.name} labels={labels} card={identity} />} tabs={{ summary, clubs, talent: <LocalTalent city={d.id} />, story }} />;
 }
