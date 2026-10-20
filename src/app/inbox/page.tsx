@@ -2,6 +2,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import type { Message } from "@/engine/news/news";
+import type { OfferView } from "@/engine/api/contracts";
+import { OfferDialog } from "@/ui/components/OfferDialog";
 import { NewsItemView } from "@/ui/components/NewsItem";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { useEngine } from "@/ui/EngineProvider";
@@ -16,6 +18,10 @@ export default function InboxPage() {
   const [unread, setReadItemsNot] = useState(0);
   const [end, setEnd] = useState(false);
   const [unemployed, setUnemployed] = useState(false);
+  const [offers, setOffers] = useState<OfferView[]>([]);
+  const [answering, setAnswering] = useState<OfferView | undefined>(undefined);
+  const loadOffers = useCallback(() => { engine?.call("transferOffers", null).then(setOffers).catch(() => undefined); }, [engine]);
+  useEffect(loadOffers, [loadOffers]);
 
   const load = useCallback(async (beforeOf?: number) => {
     if (!engine) return;
@@ -53,7 +59,11 @@ export default function InboxPage() {
       </div>
       {messages === undefined ? <p>{t("profile.loading")}</p> : messages.length === 0 ? <p className="vazio">{t("inbox.empty")}</p> : (
         <div className="noticias">
-          {messages.map((m) => <NewsItemView key={m.id} n={m} unread={!m.isRead} onToggleIsRead={() => void toggle(m)} />)}
+          {messages.map((m) => {
+            const open = m.type === "transfer_offer" ? offers.find((o) => m.links.some((l) => l.k === "person" && l.id === o.person)) : undefined;
+            return <NewsItemView key={m.id} n={m} unread={!m.isRead} onToggleIsRead={() => void toggle(m)} {...(open ? { action: <button type="button" className="primario" onClick={() => setAnswering(open)}>{t("offer.answer")}</button> } : {})} />;
+          })}
+          {answering && <OfferDialog offer={answering} onClose={() => { setAnswering(undefined); loadOffers(); }} onAnswered={loadOffers} />}
           {!end && <button type="button" onClick={() => void load(messages.at(-1)!.id)}>{t("inbox.oldest")}</button>}
         </div>
       )}

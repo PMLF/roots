@@ -1385,5 +1385,6 @@
   "comp.short.europaLeague": "LE",
   "comp.short.conferenceLeague": "LCf",
   "clubCompetitions.outLeaguePhase": "Eliminado na fase de liga · {n}.º",
-  "clubCompetitions.leaguePhase": "Fase de liga · {n}.º de {of}"
+  "clubCompetitions.leaguePhase": "Fase de liga · {n}.º de {of}",
+  "offer.age": "{n} anos"
 }
