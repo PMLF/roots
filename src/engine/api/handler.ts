@@ -52,7 +52,7 @@ import { Rng } from "../random/rng";
 import { startCompanies } from "../company/cycle";
 import { assignAgents } from "../agent/assign";
 import { potentialRange, referenceTier, starsOf } from "../world/stars";
-import type { OfferView, BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
+import type { ViewPlan, OfferView, BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SCHEMA_VERSION = DB_SCHEMA;
@@ -436,17 +436,19 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     case "plan": {
       const { repository, data, params } = await context(servicos);
       const club = repository.meta("gamer.club");
-      return club ? planView(repository, data, params, club) : null;
+      return club ? planWithStars(repository, data, params, planView(repository, data, params, club)) : null;
     }
     case "savePlan": {
       const { repository, data, params } = await context(servicos);
       const club = repository.meta("gamer.club");
       if (!club) throw new Error("Ainda não escolheste o clube");
-      savePlan(repository, club, { tactic: m.input.tactic, ...(m.input.lineup ? { lineup: m.input.lineup } : {}) });
-      return planView(repository, data, params, club) as NonNullable<ReturnType<typeof planView>>;
+      savePlan(repository, club, { tactic: m.input.tactic, ...(m.input.lineup ? { lineup: m.input.lineup } : {}), ...(m.input.bench ? { bench: m.input.bench } : {}) });
+      return planWithStars(repository, data, params, planView(repository, data, params, club));
     }
     case "confirmMatch": {
-      const { repository } = await servicos.openRepository();
+      const { repository, data, params } = await context(servicos);
+      const gamer = repository.meta("gamer.club");
+      if (m.input.strict && gamer) requireReadyLineup(repository, data, params, gamer);
       confirmMatch(repository, m.input.match);
       return { match: m.input.match };
     }
@@ -454,6 +456,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const { repository, data, params } = await context(servicos);
       const club = repository.meta("gamer.club");
       if (!club) throw new Error("Escolhe um clube primeiro");
+      if (m.input.strict) requireReadyLineup(repository, data, params, club);
       return startSession(repository, data, params, club, m.input.match);
     }
     case "matchStep": {
@@ -506,6 +509,28 @@ function playerLevel(r: Repository, id: string, position: string | undefined, fi
   if (v === undefined) return undefined;
   const margins = KEY[pos].map((a) => fields[a]?.margin ?? 0);
   return { value: v, margin: Math.round((margins.reduce((s, x) => s + x, 0) / margins.length) * 10) / 10, exact: false };
+}
+
+/** O motor não escolhe o onze por ti: sem 11 completos e disponíveis, o jogo não começa. */
+function requireReadyLineup(r: Repository, data: BaseData, params: Params, club: string): void {
+  const ready = planView(r, data, params, club).ready;
+  if (ready.reason === "incomplete") throw new Error("O onze não está completo: escolhe os 11 jogadores");
+  if (ready.reason === "unavailable") throw new Error(`Há jogadores escolhidos indisponíveis: ${(ready.names ?? []).join(", ")}`);
+}
+
+/** Junta ao plano as estrelas de cada jogador do plantel (o gamer conhece o seu plantel, como no jogo ao vivo). */
+function planWithStars(r: Repository, data: BaseData, params: Params, plan: ViewPlan): ViewPlan {
+  const tier = gamerClubOf(r, data)?.tier;
+  if (!tier) return plan;
+  return {
+    ...plan,
+    squad: plan.squad.map((p) => {
+      const pos = p.positions[0]?.pos;
+      const at = r.player(p.player)?.attributes;
+      const level = at && pos ? generalLevel((a) => at[a], pos) : undefined;
+      return level === undefined ? p : { ...p, stars: starsOf(level, tier, params) };
+    }),
+  };
 }
 
 /** Estrelas do jogador (RZ-916): qualidade relativa ao escalão; potencial como intervalo (estimado com margem, ou exato com «ver tudo»). */

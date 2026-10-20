@@ -358,17 +358,20 @@ export type { SearchResult, SummaryCompetition, LabMatch, LabLeague, Competition
 
 /** O plano de jogo do clube do gamer, pronto para a página Tática. */
 export type ViewPlan = {
-  /** Nome do clube do gamer. */
+  /** Nome e cores do clube do gamer. */
   clubName: string;
+  clubColours: string;
   tactic: Tactic;
-  /** `true` enquanto o gamer não escolheu o onze: o que se mostra é a proposta automática. */
-  automatic: boolean;
   formations: FormationId[];
   formationPositions: Record<FormationId, Position[]>;
-  /** `rendimento` (0-1): quanto rende o jogador na posição em que está (1 = posição natural); `foraDePosicao` avisa na interface (RZ-177). */
-  lineup: { player: string; name: string; position: Position; aptitude: number; performance: number; outOfPosition: boolean }[];
-  /** `forma` (0,85-1): cansaço por jogos recentes; 1 = descansado ou carga normal. */
-  squad: { player: string; name: string; form: number; positions: { pos: Position; aptitude: number }[]; unavailable?: "injury" | "suspended"; matchesPerMeet?: number }[];
+  /** Os 11 lugares da formação, pela ordem dela; `jogador` falta enquanto o gamer não o escolhe (nunca se preenche sozinho). `performance` (0-1): quanto rende na posição (1 = natural). */
+  lineup: { position: Position; player?: string; name?: string; aptitude?: number; performance?: number; outOfPosition: boolean }[];
+  /** Os suplentes convocados (ids), por ordem. */
+  bench: string[];
+  /** Pode confirmar-se o jogo? Falta onze, ou há escolhidos indisponíveis. */
+  ready: { ok: boolean; reason?: "incomplete" | "unavailable"; names?: string[] };
+  /** `forma` (0,85-1): energia; `avgLast5`: nota média dos últimos jogos com nota; `stars`: nível que o gamer conhece. */
+  squad: { player: string; name: string; age: number; form: number; positions: { pos: Position; aptitude: number }[]; stars?: number; matches: number; goals: number; avgLast5?: number; unavailable?: "injury" | "suspended"; matchesPerMeet?: number }[];
   nextMatch?: { id: string; date: string; competition: string; opponent: string; atHome: boolean; confirmed: boolean; /** O jogo já começou e está a decorrer. */ ongoing: boolean; opponentId: string; opponentColours: string };
 };
 
@@ -437,7 +440,7 @@ export type EngineRequests = {
   inbox: { input: { limit?: number; beforeOf?: number }; output: { messages: InboxMessage[]; unread: number } };
   markInboxRead: { input: null; output: null };
   /** Começa o jogo do gamer (RZ-170): nada fica no histórico até ao apito final. */
-  startMatch: { input: { match: string }; output: LiveMatch };
+  startMatch: { input: { match: string; /** A interface exige onze completo e disponível. */ strict?: boolean }; output: LiveMatch };
   /** Avança `minutos` minutos do jogo a decorrer; no fim regista-o. */
   matchStep: { input: { minutes: number }; output: LiveMatch };
   /** Muda a tática do gamer durante o jogo, a partir do minuto seguinte. */
@@ -466,10 +469,10 @@ export type EngineRequests = {
   chooseClub: { input: { id: string; force?: boolean }; output: { id: string } };
   /** O plano de jogo (tática e onze) do clube do gamer. */
   plan: { input: null; output: ViewPlan | null };
-  /** Guarda tática e onze (`onze: null` volta ao onze automático). Pode fazer-se a qualquer momento. */
-  savePlan: { input: { tactic: Tactic; lineup: Plan["lineup"] | null }; output: ViewPlan };
+  /** Guarda tática, onze (pode estar incompleto) e banco. Pode fazer-se a qualquer momento. */
+  savePlan: { input: { tactic: Tactic; lineup?: Plan["lineup"]; bench?: string[] }; output: ViewPlan };
   /** Confirma onze e tática para o próximo jogo do clube: o avanço deixa de parar antes dele. */
-  confirmMatch: { input: { match: string }; output: { match: string } };
+  confirmMatch: { input: { match: string; /** A interface exige onze completo e disponível. */ strict?: boolean }; output: { match: string } };
   /** A data do save, a época e quantos jogos faltam (prepara o calendário da época na primeira vez). */
   timeState: { input: null; output: TimeState };
   /** Avança no tempo e joga os jogos desses dias (RZ-119). Com `clube`, o jogo desse clube guarda todo o detalhe e pára o avanço (`proximoJogo`). */

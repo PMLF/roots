@@ -119,6 +119,8 @@ export interface Repository {
   clubSeasonRecords(club: string): ClubSeasonRecord[];
   /** Nota média das participações com nota e jogos sem sofrer (com minutos em campo), por época e clube. */
   playerSeasonExtras(player: string): PlayerSeasonExtra[];
+  /** As últimas notas do jogador (das mais recentes para as mais antigas), de todos os clubes e competições. */
+  playerRecentRatings(player: string, limit: number): number[];
   /** Estatísticas de todos os jogadores numa competição e época (golos, assistências, cartões, nota média). Só quem já jogou ou foi convocado. */
   playerStatsForCompetition(competition: string, season: number): PlayerCompetitionStats[];
   /** Acrescenta uma sanção retroativa: não reescreve nenhum jogo nem evento. */

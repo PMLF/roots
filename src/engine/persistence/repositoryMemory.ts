@@ -708,6 +708,15 @@ export class MemoryRepository implements Repository {
       .sort((a, b) => a.season - b.season || cmp(a.competition, b.competition) || cmp(a.club, b.club));
   }
 
+  playerRecentRatings(player: string, limit: number): number[] {
+    const rated: { date: string; id: string; rating: number }[] = [];
+    for (const r of this.matches.values()) {
+      const p = r.part.find((x) => x.player === player);
+      if (p && p.rating !== undefined) rated.push({ date: r.match.date, id: r.match.id, rating: p.rating });
+    }
+    return rated.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : a.id < b.id ? 1 : -1)).slice(0, limit).map((x) => x.rating);
+  }
+
   playerSeasonExtras(player: string): PlayerSeasonExtra[] {
     const acc = new Map<string, PlayerSeasonExtra & { sum: number }>();
     for (const r of this.matches.values()) {

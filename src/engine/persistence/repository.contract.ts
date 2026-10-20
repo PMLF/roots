@@ -270,6 +270,10 @@ export function repositoryContract(name: string, create: () => Repository): void
       const all = r.playerStatsForCompetition("PL", 1);
       const a9 = all.find((x) => x.player === "A-9")!;
       expect(a9).toMatchObject({ matches: 2, ratedGames: 2, avgRating: 7 });
+      // as notas mais recentes primeiro (j2 é posterior a j1), no máximo `limit`
+      expect(r.playerRecentRatings("A-9", 5).length).toBe(2);
+      expect(r.playerRecentRatings("A-9", 1)).toHaveLength(1);
+      expect(r.playerRecentRatings("nobody", 5)).toEqual([]);
       expect(a9.goals).toBeGreaterThanOrEqual(1);
       expect(all.find((x) => x.player === "B-5")).toMatchObject({ reds: 1 });
       expect(all.find((x) => x.player === "A-4")?.avgRating).toBeUndefined();
