@@ -23,7 +23,7 @@ const byPosition = (a: Squad, b: Squad) => ORDER.indexOf(a.positions[0]?.pos ?? 
 const energy = (form: number) => Math.max(0, Math.min(100, Math.round(((form - 0.85) / 0.15) * 100)));
 
 /** Editor da tática e do onze do clube do gamer (RZ-158, RZ-248): campo em vetor, arrastar e largar, banco e reservas. Usado na página «Tática» e no ecrã pré-jogo (RZ-169). */
-export function TacticEditor({ withoutNextMatch = false }: { withoutNextMatch?: boolean }) {
+export function TacticEditor({ withoutNextMatch = false, heading }: { withoutNextMatch?: boolean; heading?: string }) {
   const { t } = useT();
   const engine = useEngine();
   const [plan, setPlan] = useState<ViewPlan | null | undefined>(undefined);
@@ -126,17 +126,21 @@ export function TacticEditor({ withoutNextMatch = false }: { withoutNextMatch?: 
 
   return (
     <div className="cartoes tatica-pagina">
-      {!withoutNextMatch && plan.nextMatch && (
-        <p className="tatica-proximo">
-          <span className="suave">{t("tactic.nextMatch")}:</span> <b>{plan.nextMatch.atHome ? "" : "@ "}{plan.nextMatch.opponent}</b> <span className="suave">· {plan.nextMatch.date} · {plan.nextMatch.competition}{plan.nextMatch.confirmed && ` · ${t("tactic.confirmed")}`}</span>
-        </p>
+      {(heading || (!withoutNextMatch && plan.nextMatch)) && (
+        <header className="tatica-cabecalho">
+          {heading && <h1>{heading}</h1>}
+          {!withoutNextMatch && plan.nextMatch && (
+            <p className="tatica-proximo">
+              <span className="suave">{t("tactic.nextMatch")}:</span> <b>{plan.nextMatch.atHome ? "" : "@ "}{plan.nextMatch.opponent}</b> <span className="suave">· {plan.nextMatch.date} · {plan.nextMatch.competition}{plan.nextMatch.confirmed && ` · ${t("tactic.confirmed")}`}</span>
+            </p>
+          )}
+        </header>
       )}
-      <Card title={t("tactic.card")} wide>
-        <TacticControls tactic={plan.tactic} onChange={(next) => commit(board, next)} formations={plan.formations} onFormation={changeFormation} />
-        <p className="suave tatica-aviso">{t("tactic.formationWarning")}</p>
+      <Card wide>
+        <TacticControls tactic={plan.tactic} onChange={(next) => commit(board, next)} formations={plan.formations} onFormation={changeFormation} formationHint={t("tactic.formationWarning")} />
       </Card>
       <div className="tatica-grelha">
-        <Card title={t("tactic.pitch")}>
+        <Card>
           <PitchBoard formation={plan.tactic.formation} plan={plan} selected={selected} onSelect={(id) => setSelected(selected === id ? undefined : id)} onPlace={place} onRemove={(id) => toZone(id, "reserves")} />
           <ul className="legenda-zonas">
             <li><span className="halo-amostra verde" aria-hidden="true" /> {t("tactic.halo.verde")}</li>
@@ -144,8 +148,8 @@ export function TacticEditor({ withoutNextMatch = false }: { withoutNextMatch?: 
             <li><span className="halo-amostra vermelho" aria-hidden="true" /> {t("tactic.halo.vermelho")}</li>
           </ul>
         </Card>
-        <Card title={t("tactic.lineup")} className="tatica-plantel">
-          <p className="suave">{t("tactic.dragHint")}</p>
+        <Card className="tatica-plantel">
+          {missing > 0 && <p className="suave">{t("tactic.dragHint")}</p>}
           {missing > 0 && <p className="erro" role="status">{t("tactic.missing", { n: missing })}</p>}
           {plan.ready.reason === "unavailable" && <p className="erro" role="status">{t("tactic.unavailableWarning", { names: (plan.ready.names ?? []).join(", ") })}</p>}
           {outOfPosition.length > 0 && <p className="erro" role="status">{t("tactic.outOfPositionWarning", { names: outOfPosition.map((o) => `${o.name} (${abbreviationPosition(t, o.position)}, ${Math.round((o.performance ?? 1) * 100)}%)`).join(", ") })}</p>}

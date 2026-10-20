@@ -21,7 +21,7 @@ export const FORMATIONS: Record<FormationId, readonly Position[]> = {
 };
 export const FORMATION_IDS = Object.keys(FORMATIONS) as FormationId[];
 
-export const DEFAULT_TACTIC: Tactic = { formation: "4-3-3", intensity: 3, mentality: 3, fairPlay: 3, urgency: 3, directness: 3, shooting: 3, line: 3, area: "any" };
+export const DEFAULT_TACTIC: Tactic = { formation: "4-3-3", intensity: 3, mentality: 3, fairPlay: 3, timeWasting: 3, directness: 3, shooting: 3, line: 3, area: "any" };
 
 const lvl = (x: unknown, fallback: Level): Level => (typeof x === "number" && Number.isFinite(x) ? (Math.min(5, Math.max(1, Math.round(x))) as Level) : fallback);
 
@@ -40,7 +40,8 @@ export function normalizeTactic(raw: unknown): Tactic {
     intensity: lvl(r.intensity, d.intensity),
     mentality: lvl(r.mentality ?? (style === "counterAttack" ? 2 : undefined), d.mentality),
     fairPlay: legacy ? lvl(6 - lvl(r.fairPlay, 3), 3) : lvl(r.fairPlay, d.fairPlay),
-    urgency: lvl(r.urgency, d.urgency),
+    // `urgency` (RZ-249, 1 = queimar tempo) era o inverso
+    timeWasting: r.timeWasting !== undefined ? lvl(r.timeWasting, d.timeWasting) : lvl(6 - lvl(r.urgency, 3), d.timeWasting),
     directness: lvl(r.directness ?? (style === "beautiful" ? 1 : style === "direct" ? 5 : style === "counterAttack" ? 4 : undefined), d.directness),
     shooting: lvl(r.shooting, d.shooting),
     line: lvl(r.line, d.line),

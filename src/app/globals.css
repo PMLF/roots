@@ -551,7 +551,13 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .estat-nome { text-align: center; color: var(--suave, inherit); }
 .estat-barra { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: color-mix(in srgb, currentColor 14%, transparent); overflow: hidden; }
 .estat-barra i { display: block; height: 100%; background: color-mix(in srgb, currentColor 55%, transparent); }
-.popup.tatica-jogo { width: min(94vw, 640px); }
+.popup.tatica-jogo { width: min(96vw, 1080px); max-height: 96vh; overflow: auto; padding: 16px 20px; }
+.popup.tatica-jogo h2 { margin-bottom: 8px; }
+.popup.tatica-jogo .opcoes-tatica { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px 16px; }
+.tatica-jogo-corpo { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 14px; align-items: stretch; margin-top: 12px; }
+.tatica-jogo-corpo .campo { width: auto; height: clamp(300px, calc(100vh - 360px), 480px); }
+.tatica-jogo-corpo .tatica-tabela { min-height: 240px; margin: 0; }
+@media (max-width: 760px) { .tatica-jogo-corpo { grid-template-columns: minmax(0, 1fr); } .tatica-jogo-corpo .campo { width: 100%; height: auto; } .tatica-jogo-corpo .tatica-tabela { min-height: 320px; } }
 .tatica-jogo .formulario { display: grid; gap: 8px; }
 button.dev { border-style: dashed; }
 .prematch-cabecalho { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; justify-content: space-between; }
@@ -944,8 +950,10 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 /* Ecrã de táticas (RZ-248): campo em vetor com os cartões dos jogadores */
 /* Tática (RZ-249): opções em cima, em horizontal; campo e plantel lado a lado com a mesma altura, a tabela a rolar por dentro */
 .tatica-pagina { align-content: start; gap: 12px; }
-.tatica-proximo { grid-column: 1 / -1; margin: 0; font-size: 14px; }
-.tatica-pagina .cartao { padding-block: 12px 14px; }
+.tatica-cabecalho { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; }
+.tatica-cabecalho h1 { margin: 0; font-size: 20px; }
+.tatica-proximo { margin: 0; font-size: 13px; }
+.tatica-pagina .cartao { padding: 10px 14px 12px; }
 .tatica-aviso { margin: 8px 0 0; font-size: 12px; }
 .opcoes-tatica { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 20px; }
 .opcao-tatica { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; font-size: 13px; align-content: start; }

@@ -103,7 +103,7 @@ describe("efeitos da tática no jogo", () => {
 
   it("nenhuma tática é uma bala de prata entre equipas iguais", { timeout: 60000 }, () => {
     const base = equal({}, "n0");
-    const variants: Partial<Tactic>[] = [{ directness: 1 }, { directness: 5 }, { mentality: 1, directness: 5 }, { intensity: 5 }, { intensity: 1 }, { line: 5 }, { line: 1 }, { mentality: 5 }, { mentality: 1 }, { shooting: 5 }, { shooting: 1 }, { urgency: 1 }, { urgency: 5 }, { area: "wings" }, { area: "centre" }, { fairPlay: 5 }, { fairPlay: 1 }, { formation: "4-4-2" }, { formation: "5-3-2" }, { formation: "3-4-3" }];
+    const variants: Partial<Tactic>[] = [{ directness: 1 }, { directness: 5 }, { mentality: 1, directness: 5 }, { intensity: 5 }, { intensity: 1 }, { line: 5 }, { line: 1 }, { mentality: 5 }, { mentality: 1 }, { shooting: 5 }, { shooting: 1 }, { timeWasting: 1 }, { timeWasting: 5 }, { area: "wings" }, { area: "centre" }, { fairPlay: 5 }, { fairPlay: 1 }, { formation: "4-4-2" }, { formation: "5-3-2" }, { formation: "3-4-3" }];
     for (const v of variants) {
       const m = equal(v, `n${JSON.stringify(v)}`);
       expect(Math.abs(m.points - base.points), JSON.stringify(v)).toBeLessThan(0.3);
@@ -159,7 +159,7 @@ describe("coach", () => {
     expect(a.formations).toHaveLength(P.tactic.coach.favourite);
     expect(new Set(a.formations).size).toBe(a.formations.length);
     expect(coachProfile("s", "t2", personality(), 12, P)).not.toEqual(a);
-    for (const k of ["intensity", "mentality", "line", "urgency", "directness", "shooting", "fairPlay"] as const) {
+    for (const k of ["intensity", "mentality", "line", "timeWasting", "directness", "shooting", "fairPlay"] as const) {
       expect(a[k]).toBeGreaterThanOrEqual(1);
       expect(a[k]).toBeLessThanOrEqual(5);
     }
@@ -206,7 +206,7 @@ describe("coach", () => {
       expect(e.lineup.map((j) => j.position)).toEqual([...FORMATIONS[e.tactic!.formation]].sort((a, b) => (a === "GK" ? -1 : b === "GK" ? 1 : 0)));
     }
     // o resto da tática vem do perfil
-    expect(stubborn.tactic).toMatchObject({ intensity: base.intensity, mentality: base.mentality, line: base.line, urgency: base.urgency, directness: base.directness, shooting: base.shooting, area: base.area, fairPlay: base.fairPlay });
+    expect(stubborn.tactic).toMatchObject({ intensity: base.intensity, mentality: base.mentality, line: base.line, timeWasting: base.timeWasting, directness: base.directness, shooting: base.shooting, area: base.area, fairPlay: base.fairPlay });
   });
 
   it("com um plantel equilibrado, o teimoso fica na favorita e escolhe-se de forma determinística", () => {
@@ -264,7 +264,7 @@ describe("opções táticas de cinco níveis (RZ-249)", () => {
 
   it("queimar tempo: quem ganha corta as oportunidades do jogo e leva mais cartões; aproveitar cada segundo, o contrário", () => {
     const strong = (t: Partial<Tactic>, prefix: string) => stats(team("A", 12, t), team("B", 8), prefix);
-    const [burn, mid, hurry] = [strong({ urgency: 1 }, "u1"), strong({}, "u3"), strong({ urgency: 5 }, "u5")];
+    const [burn, mid, hurry] = [strong({ timeWasting: 5 }, "u1"), strong({}, "u3"), strong({ timeWasting: 1 }, "u5")];
     expect(burn.chancesAgainst).toBeLessThan(mid.chancesAgainst);
     expect(burn.yellows).toBeGreaterThan(mid.yellows * 1.03);
     expect(hurry.chances).toBeGreaterThan(burn.chances);

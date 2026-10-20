@@ -17,7 +17,7 @@ export type TacticalProfile = {
   intensity: Level;
   mentality: Level;
   fairPlay: Level;
-  urgency: Level;
+  timeWasting: Level;
   directness: Level;
   shooting: Level;
   line: Level;
@@ -66,7 +66,7 @@ export function coachProfile(seed: string, personId: string, personality: Person
     mentality: level(3 + (personality.ambition - 10) / 6 + (personality.vanity - 10) / 12 + rng.gauss(0, 0.6)),
     // 5 = super corretos: o pavio curto e o pouco íntegro jogam duro
     fairPlay: level(3 - (personality.temperament - 10) / 5 + (personality.integrity - 10) / 10 + rng.gauss(0, 0.5)),
-    urgency: level(3 + (personality.patience - 10) / 8 + rng.gauss(0, 0.6)),
+    timeWasting: level(3 - (personality.patience - 10) / 8 + rng.gauss(0, 0.6)),
     // paciente e vaidoso: toques curtos; impaciente: bola na frente
     directness: level(3 + (10 - personality.patience) / 5 - (personality.vanity - 10) / 12 + rng.gauss(0, 0.6)),
     shooting: level(3 + (personality.ambition - 10) / 8 + (10 - personality.patience) / 12 + rng.gauss(0, 0.6)),
@@ -92,5 +92,5 @@ export function chooseTeam(club: string, candidates: readonly LineupCandidate[],
     if (!best || u > best.u) best = { f, lineup, u };
   }
   const m = best as NonNullable<typeof best>;
-  return { club, lineup: m.lineup, tactic: { formation: m.f, intensity: profile.intensity, mentality: profile.mentality, fairPlay: profile.fairPlay, urgency: profile.urgency, directness: profile.directness, shooting: profile.shooting, line: profile.line, area: profile.area } };
+  return { club, lineup: m.lineup, tactic: { formation: m.f, intensity: profile.intensity, mentality: profile.mentality, fairPlay: profile.fairPlay, timeWasting: profile.timeWasting, directness: profile.directness, shooting: profile.shooting, line: profile.line, area: profile.area } };
 }

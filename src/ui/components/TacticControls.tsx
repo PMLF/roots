@@ -4,9 +4,9 @@ import { AREAS, type Area, type FormationId, type Level, type Tactic } from "@/e
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 
-type Scale = "intensity" | "mentality" | "fairPlay" | "urgency" | "directness" | "shooting" | "line";
+type Scale = "intensity" | "mentality" | "fairPlay" | "timeWasting" | "directness" | "shooting" | "line";
 /** Pela ordem em que aparecem: o primeiro nível é o extremo da esquerda, o quinto o da direita. */
-export const SCALES: readonly Scale[] = ["mentality", "intensity", "directness", "line", "shooting", "urgency", "fairPlay"];
+export const SCALES: readonly Scale[] = ["mentality", "intensity", "directness", "line", "shooting", "timeWasting", "fairPlay"];
 const LEVELS: readonly Level[] = [1, 2, 3, 4, 5];
 
 type Props = {
@@ -16,6 +16,8 @@ type Props = {
   /** Mostra a escolha da formação (por omissão só as opções). */
   formations?: readonly FormationId[];
   onFormation?: (f: FormationId) => void;
+  /** Explicação curta que aparece ao passar no seletor da formação. */
+  formationHint?: string;
 };
 
 /** Uma opção de cinco níveis: título, nível escolhido, cinco passos e os dois extremos. */
@@ -53,13 +55,13 @@ function ScaleControl({ name, value, onPick, disabled }: { name: Scale; value: L
 }
 
 /** As opções da tática (RZ-249): formação, sete escalas de cinco níveis e a área a explorar. Usado na página, no jogo e no laboratório. */
-export function TacticControls({ tactic, onChange, disabled = false, formations, onFormation }: Props) {
+export function TacticControls({ tactic, onChange, disabled = false, formations, onFormation, formationHint }: Props) {
   const { t } = useT();
   const areaId = useId();
   return (
     <div className="opcoes-tatica">
       {formations && onFormation && (
-        <label className="opcao-tatica opcao-formacao">
+        <label className="opcao-tatica opcao-formacao" title={formationHint}>
           <span className="opcao-tatica-nome">{t("lab.formation")}</span>
           <select value={tactic.formation} disabled={disabled} onChange={(e) => onFormation(e.target.value as FormationId)}>
             {formations.map((f) => <option key={f} value={f}>{f}</option>)}
