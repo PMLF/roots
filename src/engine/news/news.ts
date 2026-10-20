@@ -5,6 +5,7 @@
  * imprensa desportiva. A variante escolhe-se pelo id do evento (estável: a mesma notícia lê-se sempre igual).
  */
 import type { BaseData } from "../data/types";
+import { foreignClubList } from "../squad/foreign";
 import type { Repository } from "../persistence/repository";
 import type { HistoryEvent } from "../persistence/types";
 import type { IsoDate } from "../persistence/types";
@@ -12,7 +13,8 @@ import type { IsoDate } from "../persistence/types";
 export type NewsItemType =
   | "hattrick" | "red" | "two_yellows" | "rout" | "comeback_goal" | "stoppage_goal" | "serious_injury"
   | "champion" | "cup_upset" | "state_prize" | "promotion" | "relegation" | "second_district" | "district_return" | "locality" | "city_event"
-  | "outcome" | "injury" | "resignation" | "sacked" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer" | "bid_agreed" | "bid_rejected" | "bid_progress" | "youth_intake" | "market_open" | "market_close";
+  | "outcome" | "injury" | "resignation" | "sacked" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer" | "bid_agreed" | "bid_rejected" | "bid_progress" | "youth_intake" | "market_open" | "market_close"
+  | "europe_qualified" | "europe_draw" | "europe_phase";
 
 export type NewsItemLink = { k: "club" | "person" | "locality" | "competition" | "city"; id: string; name: string };
 
@@ -35,11 +37,11 @@ export type Message = NewsItem & { isRead: boolean };
 /** Quantas variantes de texto existem por tipo (a interface tem as frases `noticia.<tipo>.<n>.titulo|corpo`). */
 export const VARIANTS: Record<NewsItemType, number> = {
   hattrick: 2, red: 2, two_yellows: 2, rout: 2, comeback_goal: 2, stoppage_goal: 2, serious_injury: 2,
-  champion: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1, bid_agreed: 1, bid_rejected: 1, bid_progress: 1, youth_intake: 1, market_open: 1, market_close: 1,
+  champion: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1, bid_agreed: 1, bid_rejected: 1, bid_progress: 1, youth_intake: 1, market_open: 1, market_close: 1, europe_qualified: 1, europe_draw: 1, europe_phase: 1,
 };
 
 /** Tipos de evento que dão notícia para toda a gente. */
-const NEWS_ITEM_EVENTS = ["HATTRICK", "RED_CARD", "ROUT", "NOTABLE_GOAL", "INJURY", "CHAMPION", "CUP_UPSET", "STATE_PRIZE", "SECOND_DISTRICT_RELEGATION", "DISTRICT_RETURN", "PROMOTION", "RELEGATION", "LOCALITY_STATUS", "CITY_EVENT", "TRANSFER", "PLAYER_SIGNED"] as const;
+const NEWS_ITEM_EVENTS = ["HATTRICK", "RED_CARD", "ROUT", "NOTABLE_GOAL", "INJURY", "CHAMPION", "CUP_UPSET", "STATE_PRIZE", "SECOND_DISTRICT_RELEGATION", "DISTRICT_RETURN", "PROMOTION", "RELEGATION", "LOCALITY_STATUS", "CITY_EVENT", "TRANSFER", "PLAYER_SIGNED", "EUROPE_QUALIFIED", "EUROPE_DRAW", "EUROPE_LEAGUE_PHASE"] as const;
 /** A caixa de entrada junta o que é pessoal: o resultado do teu jogo, qualquer lesão do teu plantel, a tua carreira. */
 const INBOX_EVENTS = [...NEWS_ITEM_EVENTS, "MATCH_PLAYED", "GAMER_RESIGNATION", "GAMER_HIRED", "SCOUT_REPORT", "SCOUT_SEARCH", "TRANSFER_OFFER", "BID_REPLY", "YOUTH_INTAKE", "MARKET_WINDOW"] as const;
 /** Lesões a partir desta gravidade são notícia no mundo; no teu plantel, todas. */
@@ -127,6 +129,14 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
     }
     case "SECOND_DISTRICT_RELEGATION": case "DISTRICT_RETURN":
       return club ? base(e.type === "DISTRICT_RETURN" ? "district_return" : "second_district", { club: c.clubName(club.id), district: String(d.district ?? "") }, [lc(club.id)]) : undefined;
+    case "EUROPE_QUALIFIED": case "EUROPE_DRAW": case "EUROPE_LEAGUE_PHASE": {
+      if (!club) return undefined;
+      const competition = String(d.competition ?? "");
+      const name = (id: string) => c.data.clubs.find((x) => x.id === id)?.name ?? foreignClubList(c.repo).find((x) => x.id === id)?.name ?? id;
+      const opponents = Array.isArray(d.opponents) ? (d.opponents as string[]).map(name).join(", ") : "";
+      const type = e.type === "EUROPE_QUALIFIED" ? "europe_qualified" : e.type === "EUROPE_DRAW" ? "europe_draw" : "europe_phase";
+      return base(type, { club: c.clubName(club.id), competition, opponents, position: within(d.position), zone: String(d.zone ?? "") }, [lc(club.id)]);
+    }
     case "PROMOTION": case "RELEGATION":
       return club ? base(e.type === "PROMOTION" ? "promotion" : "relegation", { club: c.clubName(club.id), league: localName(String(d.to ?? ""), c.data) }, [lc(club.id)]) : undefined;
     case "CITY_EVENT": {

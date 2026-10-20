@@ -10,7 +10,7 @@ const MOTOR = ["react", "react-dom", "react/*", "next", "next/*", "**/ui/**"];
 const SQLITE = ["better-sqlite3", "@sqlite.org/*"];
 
 export default tseslint.config(
-  { ignores: [".next/**", "out/**", "public/sqlite/**", "public/data/**", "node_modules/**", "next-env.d.ts", "data/**", "tools/**"] },
+  { ignores: [".next/**", "out/**", "public/sqlite/**", "public/data/**", "node_modules/**", "next-env.d.ts", "data/**", "tools/**", ".claude/**", ".agents/**"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

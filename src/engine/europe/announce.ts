@@ -31,6 +31,8 @@ export function announceEurope(repo: Repository, data: BaseData, params: Params,
         if (!mine.has(club)) return;
         const value = p.participation + (wins.get(club) ?? 0) * p.win + (draws.get(club) ?? 0) * p.draw + (i < 8 ? p.topEight : 0);
         prize(club, `${kind}LeaguePhase`, value, { position: i + 1, wins: wins.get(club) ?? 0, draws: draws.get(club) ?? 0 });
+        const cb = byId.get(club)!;
+        repo.appendEvent({ type: "EUROPE_LEAGUE_PHASE", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "qualified" }, { k: "competition", id: competition }, ...(cb.city ? [{ k: "city" as const, id: cb.city, roleKind: "host" }] : [])], data: { competition, position: i + 1, zone: i < 8 ? "direct" : i < 24 ? "playoff" : "out" } });
       });
     }
     if (e.type !== "roundPlayed") continue;
