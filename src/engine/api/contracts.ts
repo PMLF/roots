@@ -152,6 +152,8 @@ export type OfferView = {
   years: number;
   release: number | null;
   currentWage: number;
+  /** Estrelas do jogador, se o gamer o conhece. */
+  stars?: number;
   /** Valor de mercado (o gamer conhece o seu plantel). */
   value: number;
   expires: string;

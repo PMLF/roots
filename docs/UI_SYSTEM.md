@@ -16,7 +16,7 @@ Calmo, claro e informativo; sem cores berrantes nem sombras (só nos pop-ups). T
 
 | Rota | O que é |
 |---|---|
-| `/` | **Início** (RZ-166): **A seguir** num cartão horizontal baixo no topo; por baixo, lado a lado, **Exige decisão** · **Caixa de entrada** · **Notícias**; no rodapé da página, a **fita de resultados** (resultados e marcadores do último avanço, a correr sem parar; só aparece se houver resultados) |
+| `/` | **Início** (RZ-166): **A seguir** num cartão horizontal baixo no topo; por baixo, lado a lado, **Caixa de entrada** · **Notícias** (não há «Exige decisão»: o que pede resposta — jogo de hoje, propostas, negociações — está no topo da Caixa, e uma proposta em aberto é **um só** cartão alto com o botão «Responder», sem aviso duplicado; propostas e camadas jovens são cartões altos `TallCard`: faixa e fundo com a cor do clube, título maior, posição e estrelas quando se sabem); no rodapé da página, a **fita de resultados** (resultados e marcadores do último avanço, a correr sem parar; só aparece se houver resultados) |
 | `/ficha/?k=<tipo>&id=<id>` | Ficha de qualquer entidade (`clube`, `pessoa`, `localidade`, `cidade`, `competicao`). Os dados vivem no motor, por isso a ficha é uma rota única com *query string* (uma rota por id não é possível numa exportação estática) |
 | `/mundo/` | Criar o mundo do save, **reiniciá-lo** (apaga o save e gera outro com seed nova, com confirmação) e diagnóstico técnico |
 
@@ -80,7 +80,7 @@ Fichas de **cidade** (RZ-133) e **competição** (RZ-110) — as ligações já 
 - **Fita de resultados**: só golos (sem cartões nem lesões); pára com o rato ou com o foco; com «reduzir movimento» fica estática e rola-se à mão.
 
 ## 3f. Jogo, pré-jogo, caixa e cores dos clubes (RZ-167 a RZ-171, 16-10-2026)
-- **Ir a jogo**: com jogo do teu clube por jogar, «Avançar» (e o botão do cartão «Exige decisão») passam a «Ir a jogo» e levam ao ecrã **pré-jogo** (`/prematch/`): confronto, botão «Confirmar e começar o jogo» e o mesmo editor de tática e onze da página «Tática» (`EditorTatica`). Já em jogo, o botão diz «Continuar jogo».
+- **Ir a jogo**: com jogo do teu clube por jogar, «Avançar» (e o botão da decisão no topo da Caixa de entrada) passam a «Ir a jogo» e levam ao ecrã **pré-jogo** (`/prematch/`): confronto, botão «Confirmar e começar o jogo» e o mesmo editor de tática e onze da página «Tática» (`EditorTatica`). Já em jogo, o botão diz «Continuar jogo».
 - **Ecrã do jogo** (`/match/`): placar grande com cores dos clubes, relógio e controlos (começar/pausa, velocidade num seletor, «Alterar tática», «só os lances importantes»; «Ir para o fim» só no modo developer; espaço pausa/continua). Três colunas, para que **tabela** e **outros jogos** apareçam logo ao arrancar: eventos | tabela | outros jogos + estatísticas (14). Os outros jogos têm cartão próprio e nunca entram no feed. «Alterar tática» pausa o jogo ao abrir e devolve-o ao estado anterior ao fechar; a mudança conta a partir do minuto seguinte.
 - **Depois do jogo** a mesma página abre em modo consulta: resultado final, eventos, tabela, outros resultados e estatísticas; sem controlos de reprodução.
 - **Caixa de entrada**: cada mensagem tem o seu botão (lida/por ler) e há «Marcar todas como lidas» no topo; no cartão do Início, o ponto da mensagem faz de botão. Nada se marca sozinho.

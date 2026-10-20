@@ -931,3 +931,11 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .zona-direct { --zona-cor: var(--zona-subida); }
 .zona-playoff { --zona-cor: var(--zona-campeao); }
 .zona-out { --zona-cor: var(--zona-descida); }
+
+/* Cartão alto da caixa de entrada (RZ-247): faixa e fundo com a cor do clube */
+.cartao-alto { --cor-clube: var(--linha); margin: 0 0 10px; padding: 12px 14px; border: 1px solid var(--linha); border-left: 6px solid var(--cor-clube); border-radius: var(--r-m); background: color-mix(in srgb, var(--cor-clube) 12%, var(--painel)); }
+.cartao-alto h3 { margin: 0 0 4px; font-size: 17px; line-height: 1.25; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.cartao-alto.nao-lida h3 { font-weight: 800; }
+.cartao-alto p { margin: 0 0 6px; }
+.cartao-alto-dados { font-size: 13px; color: var(--suave); display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.cartao-alto .acoes { margin: 8px 0 0; }

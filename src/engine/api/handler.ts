@@ -590,7 +590,12 @@ function offerViewOf(r: Repository, data: BaseData, params: Params, o: Offer): O
   if (!person || !player || !ct || !buyer) return undefined;
   const value = valueOf(r, params, o.person, today);
   const nice = (v: number) => Math.round(v / 1000) * 1000;
+  const mine = gamerClubOf(r, data);
+  const pos = player.positions[0]?.pos ?? "";
+  const lvl = playerLevel(r, o.person, pos, gamerView(r).profile(o.person)?.attributes?.fields, false);
+  const stars = lvl ? playerRating(r, o.person, lvl, undefined, mine?.tier, params, false)?.stars : undefined;
   return {
+    ...(stars !== undefined ? { stars } : {}),
     id: o.id, person: o.person, name: person.sportingName, position: player.positions[0]?.pos ?? "", age: ageAt(person.birth, today),
     buyer: { id: buyer.id, name: buyer.name }, fee: o.fee, wage: o.wage, years: o.years, release: o.release, currentWage: ct.monthlyWage, value,
     expires: o.expires, round: o.round, roundsLeft: Math.max(0, params.market.offers.maxRounds - o.round),

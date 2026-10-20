@@ -10,6 +10,9 @@ import { ResignButton, ChooseInitialClub } from "@/ui/components/WithClub";
 import { LastMatches, MiniTable } from "@/ui/components/HomeCards";
 import { ResultsFita } from "@/ui/components/ResultsStrip";
 import { NewsItemView } from "@/ui/components/NewsItem";
+import { Stars } from "@/ui/components/Stars";
+import { TallCard } from "@/ui/components/TallCard";
+import { namePosition } from "@/ui/i18n/position";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { EntityLink } from "@/ui/components/Link";
 import { useRecentInbox } from "@/ui/useCash";
@@ -25,7 +28,7 @@ const betweenDays = (from: string, until: string) => Math.round((Date.parse(`${u
 
 /**
  * Página inicial (TOM_E_UX §3.8, RZ-166), por hierarquia: o que vem a seguir em cima, num cartão baixo; por baixo, lado a lado,
- * o que exige decisão, a caixa de entrada e as notícias; no rodapé, a fita com os resultados e os marcadores.
+ * a caixa de entrada (decisões pendentes no topo, depois as mensagens) e as notícias; no rodapé, a fita com os resultados e os marcadores.
  */
 /** Frase com o nome do jogador como ligação para a ficha. */
 function WithPlayer({ text, id, name }: { text: string; id: string; name: string }) {
@@ -106,6 +109,9 @@ export default function Start() {
   }
 
   const homeAway = next && club ? (next.home ? [club.profile.name, next.opponentName] : [next.opponentName, club.profile.name]) : [];
+  // uma só mensagem por proposta/negociação: o cartão de ação substitui o aviso «houve uma proposta»
+  const openPeople = new Set([...offersIn.map((o) => o.person), ...pendingBids.map((b) => b.person), ...confirmBids.map((b) => b.person)]);
+  const shownMessages = inbox.messages.filter((m) => !(["transfer_offer", "bid_progress", "bid_agreed"].includes(m.type) && m.links.some((l) => l.k === "person" && openPeople.has(l.id))));
   const decisions = (time.pause ? 1 : 0) + (world && !mine ? 1 : 0) + pendingBids.length + confirmBids.length + offersIn.length;
 
   return (
@@ -158,8 +164,8 @@ export default function Start() {
       )}
 
       <div className="inicio-colunas">
-        <section className="painel" aria-labelledby="i-decisao">
-          <h2 id="i-decisao">{t("today.decisions")}{decisions > 0 && <span className="distintivo" aria-label={t("start.pending", { n: decisions })}>{decisions}</span>}</h2>
+        <section className="painel" aria-labelledby="i-caixa">
+          <h2 id="i-caixa">{t("menu.inbox")}{inbox.unread + decisions > 0 && <span className="distintivo" aria-label={t("inbox.unread", { n: inbox.unread + decisions })}>{inbox.unread + decisions > 99 ? "99+" : inbox.unread + decisions}</span>}</h2>
           {time.pause && (
             <div className="decisao">
               <p><ClubSwatch id={pj?.opponentId} /><b>{t(time.pause.ongoing ? "today.matchInProgress" : "today.matchToday", { match: `${time.pause.atHome ? "" : "@ "}${time.pause.opponent}` })}</b></p>
@@ -183,23 +189,18 @@ export default function Start() {
           ))}
           {waitingBids.map((b) => <p className="suave" key={b.person}><WithPlayer text={t("bid.waitingItem", { name: "\u0000", date: b.pending?.due ?? "" })} id={b.person} name={b.name} /></p>)}
           {offersIn.map((o) => (
-            <div className="decisao" key={o.id}>
-              <p><ClubSwatch id={o.buyer.id} /><b><WithPlayer text={t("offer.decision", { name: "\u0000" })} id={o.person} name={o.name} /></b> <span className="suave">· {o.buyer.name}</span></p>
-              <p className="acoes"><button type="button" className="primario" onClick={() => setAnswering(o)}>{t("offer.answer")}</button></p>
-            </div>
+            <TallCard key={o.id} clubId={o.buyer.id} unread
+              title={<WithPlayer text={t("offer.decision", { name: "\u0000" })} id={o.person} name={o.name} />}
+              details={<>{o.buyer.name} · {namePosition(t, o.position)} · {t("offer.age", { n: o.age })}{o.stars !== undefined && <> · <Stars value={o.stars} /></>}</>}
+              actions={<button type="button" className="primario" onClick={() => setAnswering(o)}>{t("offer.answer")}</button>} />
           ))}
           {answering && <OfferDialog offer={answering} onClose={() => { setAnswering(undefined); loadOffers(); }} onAnswered={loadOffers} />}
           {agreedBids.map((b) => <p className="suave" key={b.person}>{t("bid.todayAgreed", { name: b.name, date: b.moving?.date ?? "" })}</p>)}
           {resuming && <BidDialog person={resuming.person} name={resuming.name} onClose={() => { setResuming(undefined); loadBids(); }} />}
           {world && !mine && <ChooseInitialClub />}
-          {decisions === 0 && agreedBids.length === 0 && waitingBids.length === 0 && <p className="vazio">{t("today.emptyDecision")}</p>}
-        </section>
-
-        <section className="painel" aria-labelledby="i-caixa">
-          <h2 id="i-caixa">{t("menu.inbox")}{inbox.unread > 0 && <span className="distintivo" aria-label={t("inbox.unread", { n: inbox.unread })}>{inbox.unread > 99 ? "99+" : inbox.unread}</span>}</h2>
-          {inbox.messages.length === 0 ? <p className="vazio">{t("inbox.empty")}</p> : (
+          {shownMessages.length === 0 && decisions === 0 && agreedBids.length === 0 && waitingBids.length === 0 ? <p className="vazio">{t("inbox.empty")}</p> : (
             <ul className="lista-compacta">
-              {inbox.messages.map((m) => <li key={m.id}><NewsItemView n={m} unread={!m.isRead} compact onToggleIsRead={() => { void engine?.call("markMessage", { id: m.id, isRead: !m.isRead }).then(() => window.dispatchEvent(new Event("raizes:caixa"))); }} /></li>)}
+              {shownMessages.map((m) => <li key={m.id}><NewsItemView n={m} unread={!m.isRead} compact onToggleIsRead={() => { void engine?.call("markMessage", { id: m.id, isRead: !m.isRead }).then(() => window.dispatchEvent(new Event("raizes:caixa"))); }} /></li>)}
             </ul>
           )}
           <p className="painel-rodape"><Link href="/inbox/">{t("start.seeInbox")}</Link>{inbox.unread > 0 && <button type="button" className="ligacao-botao" onClick={() => { void engine?.call("markInboxRead", null).then(() => window.dispatchEvent(new Event("raizes:caixa"))); }}>{t("inbox.markAllRead")}</button>}</p>

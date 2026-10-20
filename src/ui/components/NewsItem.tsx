@@ -1,15 +1,19 @@
 "use client";
 import type { NewsItem } from "@/engine/news/news";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { EntityLink } from "@/ui/components/Link";
 import { Icon } from "@/ui/components/Icon";
 import type { Key } from "@/ui/i18n";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
+import { TallCard } from "@/ui/components/TallCard";
+import { useOwnClub } from "@/ui/myClub";
 import { useT } from "@/ui/i18n/LocaleProvider";
 
 /** Uma notícia ou mensagem: título, frase de apoio e ligações para as fichas. O texto vem das chaves `newsItem.<type>.<n>.*`. */
-export function NewsItemView({ n, unread, compact, onToggleIsRead }: { n: NewsItem; unread?: boolean; compact?: boolean; /** Na caixa de entrada: marcar como lida ou por ler. */ onToggleIsRead?: () => void }) {
+export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n: NewsItem; /** Botão para responder (proposta em aberto). */ action?: ReactNode; unread?: boolean; compact?: boolean; /** Na caixa de entrada: marcar como lida ou por ler. */ onToggleIsRead?: () => void }) {
   const { t, locale } = useT();
+  const [mine] = useOwnClub();
   const type = n.type === "outcome" ? `outcome.${n.values.outcome}` : n.type === "city_event" ? `city.${n.values.event}` : n.type;
   const values = { ...n.values } as Record<string, string | number>;
   if (n.type === "locality") {
@@ -21,6 +25,21 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead }: { n: NewsIt
   const toSquad = n.type === "youth_intake";
   const toScouting = n.type === "scout_search" || n.type === "scout_report";
   const base = `newsItem.${type}.${n.variant}`;
+  // acontecimentos importantes do teu clube: cartão alto com as cores do clube (RZ-247)
+  if (n.type === "youth_intake" || n.type === "transfer_offer") {
+    const clubId = n.type === "transfer_offer" ? n.links.find((l) => l.k === "club")?.id : mine;
+    return (
+      <TallCard clubId={clubId} unread={unread} title={t(`${base}.title` as Key, values)}
+        details={<>{n.date}{n.links.filter((l) => l.k === "person").slice(0, 3).map((l) => <span key={l.id}> · <EntityLink k="person" id={l.id}>{l.name}</EntityLink></span>)}</>}
+        actions={<>
+          {action}
+          {toSquad && <Link href="/squad/" className="ligacao-botao">{t("youth.viewSquad")}</Link>}
+          {onToggleIsRead && <button type="button" className="ligacao-botao" onClick={onToggleIsRead}>{t(unread ? "inbox.markRead" : "inbox.markUnread")}</button>}
+        </>}>
+        <p>{t(`${base}.body` as Key, values)}</p>
+      </TallCard>
+    );
+  }
   // cores dos clubes a que a notícia se refere (no máximo dois), para identificar de relance
   const swatches = [...new Set(n.links.filter((l) => l.k === "club").map((l) => l.id))].slice(0, 2).map((id) => <ClubSwatch key={id} id={id} />);
   if (compact) {

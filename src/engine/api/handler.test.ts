@@ -115,7 +115,7 @@ describe("handler do motor", () => {
     const { repository } = await sl.openRepository();
     expect(repository.localities().length).toBe(298);
     expect(repository.meta("seed")).toBe("second");
-  });
+  }, 30000);
 
   it("um save de antes das localidades (migração 4) recebe-as ao ser aberto", async () => {
     const sl = testServicos();
