@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import type { SummaryClub, SummaryCompetition, LabMatch, LabLeague } from "@/engine/api/contracts";
-import { FORMATION_IDS, STYLES } from "@/engine/match/formations";
-import type { Style, FormationId, Side } from "@/engine/match/types";
+import { DEFAULT_TACTIC, FORMATION_IDS } from "@/engine/match/formations";
+import type { FormationId, Side, Tactic } from "@/engine/match/types";
+import { TacticControls } from "@/ui/components/TacticControls";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { abbreviationPosition } from "@/ui/i18n/position";
@@ -67,13 +68,13 @@ function CompetitionSelector({ competitions, value, onChange }: { competitions: 
   );
 }
 
-type CfgSide = { league: string; club: string; formation: FormationId; style: Style };
+type CfgSide = { league: string; club: string; tactic: Tactic };
 
 function MatchUm({ engine, competitions, clubs }: { engine: ClientEngine; competitions: SummaryCompetition[]; clubs: SummaryClub[] }) {
   const { t, locale } = useT();
   const initial = (i: number): CfgSide => {
     const league = competitions[0]?.league ?? "";
-    return { league, club: clubs.filter((c) => c.league === league)[i]?.id ?? "", formation: "4-3-3", style: "balanced" };
+    return { league, club: clubs.filter((c) => c.league === league)[i]?.id ?? "", tactic: { ...DEFAULT_TACTIC } };
   };
   const [home, setHome] = useState<CfgSide>(() => initial(0));
   const [away, setAway] = useState<CfgSide>(() => initial(1));
@@ -87,7 +88,7 @@ function MatchUm({ engine, competitions, clubs }: { engine: ClientEngine; compet
     try {
       setR(await engine.call("matchLab", {
         home: home.club, away: away.club, seed: seedValue,
-        homeTactic: { formation: home.formation, style: home.style }, awayTactic: { formation: away.formation, style: away.style },
+        homeTactic: home.tactic, awayTactic: away.tactic,
       }));
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); } finally { setRunning(false); }
   };
@@ -104,14 +105,7 @@ function MatchUm({ engine, competitions, clubs }: { engine: ClientEngine; compet
                 {clubs.filter((c) => c.league === cfg.league).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </p>
-            <p>
-              <label>{t("lab.formation")}{" "}
-                <select value={cfg.formation} onChange={(e) => set({ ...cfg, formation: e.target.value as FormationId })}>{FORMATION_IDS.map((f) => <option key={f}>{f}</option>)}</select>
-              </label>{" "}
-              <label>{t("lab.style")}{" "}
-                <select value={cfg.style} onChange={(e) => set({ ...cfg, style: e.target.value as Style })}>{STYLES.map((s) => <option key={s} value={s}>{t(`lab.style.${s}` as Key)}</option>)}</select>
-              </label>
-            </p>
+            <TacticControls tactic={cfg.tactic} onChange={(tactic) => set({ ...cfg, tactic })} formations={FORMATION_IDS} onFormation={(formation) => set({ ...cfg, tactic: { ...cfg.tactic, formation } })} />
           </fieldset>
         ))}
       </div>

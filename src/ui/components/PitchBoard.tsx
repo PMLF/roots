@@ -1,8 +1,9 @@
 "use client";
-import type { CSSProperties } from "react";
+import { useState, type CSSProperties, type KeyboardEvent } from "react";
 import type { ViewPlan } from "@/engine/api/contracts";
 import type { FormationId } from "@/engine/match/types";
 import { backgroundColours, readColours } from "@/ui/colours";
+import { startPlayerDrag } from "@/ui/components/dragCard";
 import { PITCH_LAYOUT } from "@/ui/components/pitchLayout";
 import { Stars } from "@/ui/components/Stars";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -26,6 +27,8 @@ export function PitchBoard({ formation, plan, selected, onSelect, onPlace, onRem
   const layout = PITCH_LAYOUT[formation];
   const background = backgroundColours(readColours(plan.clubColours));
   const byId = new Map(plan.squad.map((p) => [p.player, p] as const));
+  const [over, setOver] = useState<number | undefined>(undefined);
+  const activate = (e: KeyboardEvent, action: () => void) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); action(); } };
   return (
     <div className="campo" role="group" aria-label={t("tactic.pitch")}>
       <svg className="campo-desenho" viewBox="0 0 100 150" preserveAspectRatio="none" aria-hidden="true">
@@ -45,30 +48,35 @@ export function PitchBoard({ formation, plan, selected, onSelect, onPlace, onRem
       {plan.lineup.map((slot, i) => {
         const [x, y] = layout[i] ?? [50, 50];
         const info = slot.player ? byId.get(slot.player) : undefined;
-        const place = (e: React.DragEvent) => { e.preventDefault(); const id = e.dataTransfer.getData("text/plain"); if (id) onPlace(id, i); };
+        const place = (e: React.DragEvent) => { e.preventDefault(); setOver(undefined); const id = e.dataTransfer.getData("text/plain"); if (id) onPlace(id, i); };
+        const target = { onDragOver: (e: React.DragEvent) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; if (over !== i) setOver(i); }, onDragLeave: () => setOver((o) => (o === i ? undefined : o)), onDrop: place };
         const style = { left: `${x}%`, top: `${y}%` } as CSSProperties;
         if (!slot.player || !info) {
           return (
-            <button key={i} type="button" className="lugar lugar-vazio" style={style} onClick={() => selected && onPlace(selected, i)} onDragOver={(e) => e.preventDefault()} onDrop={place} aria-label={t("tactic.emptySlot", { position: t(`position.name.${slot.position}` as never) })}>
+            <button key={i} type="button" className={`lugar lugar-vazio${over === i ? " alvo" : ""}`} style={style} onClick={() => selected && onPlace(selected, i)} {...target} aria-label={t("tactic.emptySlot", { position: t(`position.name.${slot.position}` as never) })}>
               <span>{abbreviationPosition(t, slot.position)}</span>
             </button>
           );
         }
         const state = halo(slot.performance);
         return (
-          <div key={i} className={`lugar lugar-${state}${selected === slot.player ? " escolhido" : ""}${info.unavailable ? " indisponivel" : ""}`} style={style} onDragOver={(e) => e.preventDefault()} onDrop={place}>
-            <button
-              type="button"
+          <div key={i} className={`lugar lugar-${state}${selected === slot.player ? " escolhido" : ""}${info.unavailable ? " indisponivel" : ""}${over === i ? " alvo" : ""}`} style={style} {...target}>
+            {/* div e não botão: o Firefox não deixa arrastar botões */}
+            <div
+              role="button"
+              tabIndex={0}
               className="lugar-cartao"
               draggable
-              onDragStart={(e) => { e.dataTransfer.setData("text/plain", slot.player as string); e.dataTransfer.effectAllowed = "move"; }}
+              onDragStart={(e) => startPlayerDrag(e, slot.player as string, { name: info.name, position: abbreviationPosition(t, slot.position), background })}
+              onDragEnd={() => setOver(undefined)}
               onClick={() => (selected && selected !== slot.player ? onPlace(selected, i) : onSelect(slot.player as string))}
+              onKeyDown={(e) => activate(e, () => (selected && selected !== slot.player ? onPlace(selected, i) : onSelect(slot.player as string)))}
               aria-pressed={selected === slot.player}
               title={`${info.name} · ${abbreviationPosition(t, slot.position)} · ${Math.round((slot.performance ?? 1) * 100)}%`}
             >
               <span className="lugar-cores" style={{ background }}><b>{abbreviationPosition(t, slot.position)}</b>{info.stars !== undefined && <Stars value={info.stars} />}</span>
               <span className="lugar-nome">{info.name}</span>
-            </button>
+            </div>
             <button type="button" className="lugar-tirar" onClick={() => onRemove(slot.player as string)} aria-label={t("tactic.remove", { name: info.name })}>×</button>
           </div>
         );

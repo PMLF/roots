@@ -89,6 +89,26 @@ Código: `formacoes.ts` (formações e efeitos, sem dependências), `tatica.ts` 
 
 **Treinador.** `perfilTreinador(seed, id, personalidade, qualidadeTática)` deriva as preferências, de forma estável: 3 **formações favoritas** (ambicioso e vaidoso → ofensivas), estilo (vaidoso → bonito; impaciente → direto; modesto → contra-ataque), intensidade (ambição), linha (ambição + vaidade), ritmo (impaciência), fair play (temperamento alto e integridade baixa → duro) e **flexibilidade** (qualidade tática alta e vaidade baixa). `escolherEquipa` escolhe a formação que maximiza o valor médio do onze mais um bónus pela preferência (1.º favorito 100 %, 2.º 66 %, 3.º 33 %) multiplicado por `1 − flexibilidade`: o teimoso insiste nas favoritas mesmo com o plantel errado, o flexível escolhe o melhor onze. As preferências ainda não são guardadas na base de dados (derivam da seed, do id e da personalidade); evoluem e ficam guardadas com RZ-208/209.
 
+### Opções de cinco níveis (RZ-249)
+
+Cada opção passou a ter **5 níveis** (do extremo da esquerda ao da direita; 3 = neutro, e tudo a 3 não muda nada). O estilo e o ritmo deixaram de existir como campos: ficam `directness` (forma de jogo) e `intensity` (que também é o ritmo). Tática guardada no formato antigo converte-se (`normalizeTactic`: estilo bonito → forma de jogo 1, direto → 5, contra-ataque → mentalidade 2 e forma 4; fair play invertido).
+
+| Campo | 1 | 5 | Efeito |
+|---|---|---|---|
+| `intensity` | muito lenta | muito intensa | controlo, defesa, faltas, lesões, oportunidades dos dois lados e **cansaço** |
+| `mentality` | muito defensivo | muito atacante | ± pontos de ataque e defesa (simétrico: marca mais e sofre mais, ou o contrário) |
+| `fairPlay` | «fairplay é treta» | super corretos | faltas, cartões, defesa e risco de lesão do adversário (usa `toughness = 6 − fairPlay` nas tabelas) |
+| `urgency` | queimar tempo sempre e provocar | aproveitar cada segundo | quem **ganha** depois do minuto 60 e queima tempo corta as oportunidades dos dois lados, leva mais cartões e faz o adversário levar mais (provocação); quem aproveita cada segundo cria um pouco mais |
+| `directness` | toques curtos | bola na frente, siga | de *bonito* (técnica; menos faltas) a *direto* (menos bola, mais cantos e faltas, ataque contra linhas altas); com mentalidade defensiva o direto passa a **contra-ataque** (não se somam) |
+| `shooting` | só remates fáceis | rematar de onde der | mais remates mas piores (xG), ou menos e melhores; o remate de longe do finalizador (`longShot`) compensa |
+| `line` | colados à área | muito subida | controlo e ataque contra defesa exposta |
+| `area` | alas · esquerda · direita · meio · qualquer | | ataque ± conforme os jogadores dessa zona (velocidade, drible, cruzamento, técnica…) superam ou não os defesas adversários que a guardam (`areaEdge`) |
+
+**Contexto.** As opções arrojadas (mentalidade, estilo, linha, área) valem × `boldness`: **casa** +20 % / fora −20 %, a **forma média do onze** (`context.form`) e a **qualidade do treinador** (`MatchTeam.coach`, 1-20, por omissão 10; `context.coach` por ponto), limitado a 0,5…1,5. A qualidade do treinador e do staff ainda não está ligada ao jogo real (ver Parking lot); o motor já a usa.
+
+**Calibração** (`tactic.slow.test.ts`): nenhuma opção muda os pontos por jogo entre equipas iguais em mais de 0,3; mentalidade atacante marca e sofre mais; remate fácil dá menos remates e melhores; queimar tempo corta oportunidades e dá cartões; a área só rende com vantagem; casa, treinador e forma contam.
+
+
 ## 8. Cartões e castigos (RZ-106)
 
 **No jogo** (`simulador.ts`, `parametros.jogo.cartoes`). Cada falta pode dar cartão: vermelho direto (raro; mais provável num penálti), senão amarelo; quem já tem amarelo e vê outro é expulso (evento `cartao` amarelo seguido de vermelho com `segundoAmarelo`). A probabilidade escala com o **fair play** da equipa (0,5 … 1,8) e com a agressividade do infrator. Quem já tem amarelo joga com mais cuidado (menos faltas, menos cartões). O expulso sai do onze, não volta com `alterarEquipa` e a equipa perde pontos de ataque, controlo e defesa por cada jogador a menos (`penalizacaoExpulso`); se for o guarda-redes, fica sem guarda-redes (ainda sem banco). Calibração (`cartoes.test.ts`): ≈ 4,1 amarelos e ≈ 0,18 vermelhos por jogo; com dez, a equipa marca menos e sofre mais.

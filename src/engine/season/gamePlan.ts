@@ -6,7 +6,8 @@
 import type { Params } from "../config/parameters";
 import { clubSuspended } from "../discipline/suspensions";
 import { aptitudeIn, automaticLineup, type LineupCandidate } from "../match/team";
-import { FORMATIONS, DEFAULT_TACTIC, STYLES } from "../match/formations";
+import { FORMATIONS, DEFAULT_TACTIC, normalizeTactic } from "../match/formations";
+import { AREAS } from "../match/types";
 import { BENCH_SIZE, missingPositions } from "../match/lineup";
 import type { OnPitchPlayer, Tactic } from "../match/types";
 import { INJURY_EVENT } from "../injuries/state";
@@ -25,7 +26,7 @@ export function readPlan(repo: Repository, club: string): Plan {
   if (!raw) return { tactic: { ...DEFAULT_TACTIC } };
   try {
     const p = JSON.parse(raw) as Plan;
-    return { tactic: { ...DEFAULT_TACTIC, ...p.tactic }, ...(p.lineup ? { lineup: p.lineup } : {}), ...(p.bench ? { bench: p.bench } : {}) };
+    return { tactic: normalizeTactic(p.tactic), ...(p.lineup ? { lineup: p.lineup } : {}), ...(p.bench ? { bench: p.bench } : {}) };
   } catch {
     return { tactic: { ...DEFAULT_TACTIC } };
   }
@@ -36,8 +37,8 @@ const validLevel = (n: unknown) => Number.isInteger(n) && (n as number) >= 1 && 
 /** Lança se a tática não fizer sentido. */
 export function validateTactic(t: Tactic): void {
   if (!(t.formation in FORMATIONS)) throw new Error("Formação desconhecida");
-  if (!STYLES.includes(t.style)) throw new Error("Estilo desconhecido");
-  for (const k of ["intensity", "line", "tempo", "fairPlay"] as const) if (!validLevel(t[k])) throw new Error(`${k} deve ser de 1 a 5`);
+  if (!AREAS.includes(t.area)) throw new Error("Área desconhecida");
+  for (const k of ["intensity", "mentality", "fairPlay", "urgency", "directness", "shooting", "line"] as const) if (!validLevel(t[k])) throw new Error(`${k} deve ser de 1 a 5`);
 }
 
 /** Valida e guarda. Lança se a tática ou o onze não fizerem sentido. */

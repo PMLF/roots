@@ -209,7 +209,7 @@ describe("lesões em jogo", () => {
     const weakMedical = rate((i) => input(`x${i}`, {}, withBench({ ...syntheticTeam("A", 10), medical: 2 })), "home");
     const goodMedical = rate((i) => input(`x${i}`, {}, withBench({ ...syntheticTeam("A", 10), medical: 19 })), "home");
     expect(weakMedical).toBeGreaterThan(goodMedical * 1.3);
-    const hard: Tactic = { ...DEFAULT_TACTIC, fairPlay: 5 };
+    const hard: Tactic = { ...DEFAULT_TACTIC, fairPlay: 1 };
     const hardOpponent = rate((i) => input(`x${i}`, {}, undefined, { ...withBench(syntheticTeam("B", 10)), tactic: hard }), "home");
     expect(hardOpponent).toBeGreaterThan(normal * 1.25);
     const tired = withBench(syntheticTeam("A", 10));

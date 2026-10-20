@@ -85,7 +85,7 @@ describe("jogo do gamer minuto a minuto (RZ-170)", () => {
     await handle({ id: 20, type: "startMatch", input: { match: a.pause.match } }, a.s);
     await handle({ id: 21, type: "matchStep", input: { minutes: 30 } }, a.s);
     const base30 = await handle({ id: 22, type: "liveMatch", input: {} }, a.s);
-    const tactic = { ...(base30!.tactic ?? DEFAULT_TACTIC), intensity: 5 as const, line: 5 as const, tempo: 5 as const, style: "direct" as const };
+    const tactic = { ...(base30!.tactic ?? DEFAULT_TACTIC), intensity: 5 as const, line: 5 as const, directness: 5 as const };
     const changed = await handle({ id: 23, type: "tacticInMatch", input: { tactic: tactic } }, a.s);
     expect(changed.tactic?.intensity).toBe(5);
     expect(changed.lines.filter((l) => l.minute <= 30)).toEqual(base30!.lines);

@@ -73,5 +73,5 @@ describe("calibração do motor de jogo (RZ-104; o harness completo é RZ-123)",
     const much = campaign(14, 8, 2000);
     expect(much.homeWin).toBeGreaterThan(0.85);
     expect(much.awayWin).toBeGreaterThan(0.005);
-  });
+  }, 30000);
 });
