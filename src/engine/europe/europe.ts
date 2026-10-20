@@ -16,7 +16,9 @@ import type { BaseData } from "../data/types";
 import { DEFAULT_FORMATION, lineupWithValue } from "../match/team";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
+import { Rng } from "../random/rng";
 import { foreignClubList } from "../squad/foreign";
+import { allocateEntries, type EuropeSlots, type Winners } from "./access";
 
 export type EuropeKind = keyof Params["europe"]["competitions"];
 export const CHAMPIONS_LEAGUE = "Liga dos Campeões";
@@ -65,39 +67,52 @@ export function squadStrength(repo: Repository, club: string, params: Params): n
 
 export type EuropeEntrants = Record<EuropeKind, Entrant[]>;
 
+/** Quem ganhou (na época anterior) a Taça e as três provas europeias. */
+export type PreviousWinners = Winners;
+
 /**
  * Quem joga cada competição europeia na época. `undefined` se o save não tem clubes estrangeiros suficientes (saves antigos).
- * Portugal: classificação da Primeira Liga da época anterior (na 1.ª época, pela reputação); a Taça de Portugal dá o lugar na
- * Liga Europa. O resto: os clubes estrangeiros mais fortes para a Liga dos Campeões, os seguintes para a Liga Europa, e assim por diante.
+ * Portugal: vagas pelo ranking (`access.ts`) sobre a classificação da Primeira Liga da época anterior (na 1.ª época, pela reputação),
+ * com a Taça e os vencedores europeus. A vaga de pré-eliminatória da Liga dos Campeões joga-se contra um clube estrangeiro; quem
+ * perde cai para a Liga Europa. O resto: os clubes estrangeiros mais fortes (os vencedores europeus estrangeiros entram sempre).
  */
-export function europeEntrants(repo: Repository, data: BaseData, params: Params, season: number, cupWinner: string | undefined, previousTable: readonly string[] | undefined): EuropeEntrants | undefined {
+export function europeEntrants(repo: Repository, data: BaseData, params: Params, season: number, winners: PreviousWinners, previousTable: readonly string[] | undefined, slots: EuropeSlots): EuropeEntrants | undefined {
   const eu = params.europe;
-  const want = (k: EuropeKind) => eu.size - eu.portugal[k];
   const foreign = foreignClubList(repo);
-  if (foreign.length < want("championsLeague") + want("europaLeague") + want("conferenceLeague")) return undefined;
   const top = data.clubs.filter((c) => c.tier === "firstLeague");
   const order = previousTable && previousTable.length > 0 ? previousTable.filter((id) => data.clubs.some((c) => c.id === id)) : [...top].sort((a, b) => b.reputation - a.reputation || (a.id < b.id ? -1 : 1)).map((c) => c.id);
-  const taken = new Set<string>();
-  const next = (n: number, first?: string): string[] => {
-    const out: string[] = [];
-    if (first && !taken.has(first)) out.push(first);
-    for (const id of order) { if (out.length >= n) break; if (!taken.has(id) && !out.includes(id)) out.push(id); }
-    out.slice(0, n).forEach((id) => taken.add(id));
-    return out.slice(0, n);
-  };
-  const pt: Record<EuropeKind, string[]> = { championsLeague: next(eu.portugal.championsLeague), europaLeague: [], conferenceLeague: [] };
-  const cupEntry = cupWinner && data.clubs.some((c) => c.id === cupWinner) ? cupWinner : undefined;
-  pt.europaLeague = next(eu.portugal.europaLeague, cupEntry);
-  pt.conferenceLeague = next(eu.portugal.conferenceLeague);
+  const known = (id: string | undefined) => (id && data.clubs.some((c) => c.id === id) ? id : undefined);
+  const pt = allocateEntries(order, slots, { cup: known(winners.cup), champions: known(winners.champions), europa: known(winners.europa), conference: known(winners.conference) });
+  const q = pt.championsQualifying.length;
+  const need = { championsLeague: eu.size - pt.championsLeague.length - q, europaLeague: eu.size - pt.europaLeague.length - q, conferenceLeague: eu.size - pt.conferenceLeague.length };
+  if (foreign.length < need.championsLeague + need.europaLeague + need.conferenceLeague + q) return undefined;
   const strength = new Map<string, number>();
   const ratingOf = (id: string) => strength.get(id) ?? strength.set(id, squadStrength(repo, id, params)).get(id) as number;
-  const sortedForeign = [...foreign].sort((a, b) => ratingOf(b.id) - ratingOf(a.id) || (a.id < b.id ? -1 : 1)).map((c) => c.id);
-  let cursor = 0;
+  const sorted = [...foreign].sort((a, b) => ratingOf(b.id) - ratingOf(a.id) || (a.id < b.id ? -1 : 1)).map((c) => c.id);
+  const taken = new Set<string>();
+  const fill = (n: number): string[] => { const out: string[] = []; for (const id of sorted) { if (out.length >= n) break; if (!taken.has(id)) { out.push(id); taken.add(id); } } return out; };
+  const force = (id: string | undefined, into: string[]) => { if (id && foreign.some((c) => c.id === id) && !taken.has(id)) { into.push(id); taken.add(id); } };
+  // vencedores estrangeiros: Liga dos Campeões e Liga Europa → Liga dos Campeões; Conferência → Liga Europa
+  const cl: string[] = [];
+  const el: string[] = [];
+  force(winners.champions, cl); force(winners.europa, cl); force(winners.conference, el);
   const out = {} as EuropeEntrants;
-  for (const k of EUROPEAN) {
-    const clubs = [...pt[k], ...sortedForeign.slice(cursor, cursor + want(k))];
-    cursor += want(k);
-    out[k] = clubs.sort((a, b) => ratingOf(b) - ratingOf(a) || (a < b ? -1 : 1)).map((club, i) => ({ club, seed: i + 1, tier: 0 }));
-  }
+  const abroad: Record<EuropeKind, string[]> = { championsLeague: [], europaLeague: [], conferenceLeague: [] };
+  abroad.championsLeague = [...cl, ...fill(need.championsLeague - cl.length)];
+  const opponents = fill(q);
+  abroad.europaLeague = [...el, ...fill(need.europaLeague - el.length)];
+  abroad.conferenceLeague = fill(need.conferenceLeague);
+  // pré-eliminatória: o vencedor fica com a vaga na Liga dos Campeões, o vencido cai para a Liga Europa
+  const rng = new Rng(repo.meta("seed") ?? "?", `europe/qualifier/${season}`);
+  const joined: Record<EuropeKind, string[]> = { championsLeague: [...pt.championsLeague, ...abroad.championsLeague], europaLeague: [...pt.europaLeague, ...abroad.europaLeague], conferenceLeague: [...pt.conferenceLeague, ...abroad.conferenceLeague] };
+  pt.championsQualifying.forEach((club, i) => {
+    const rival = opponents[i] as string;
+    const p = 1 / (1 + Math.exp(-eu.access.qualifierSensitivity * (ratingOf(club) - ratingOf(rival))));
+    const [winner, loser] = rng.derive(`${club}|${rival}`).prob(p) ? [club, rival] : [rival, club];
+    joined.championsLeague.push(winner);
+    joined.europaLeague.push(loser);
+    repo.appendEvent({ type: "EUROPE_QUALIFIER", date: (repo.meta("date.today") as IsoDate | undefined) ?? createDate(params.calendar.initialYear + season - 1, params.calendar.seasonStartMonth, 1), season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "qualifier" }], data: { competition: CHAMPIONS_LEAGUE, opponent: rival, won: winner === club } });
+  });
+  for (const k of EUROPEAN) out[k] = joined[k].sort((a, b) => ratingOf(b) - ratingOf(a) || (a < b ? -1 : 1)).map((club, i) => ({ club, seed: i + 1, tier: 0 }));
   return out;
 }

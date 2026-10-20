@@ -13,7 +13,7 @@ import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { Icon } from "@/ui/components/Icon";
 import { CloseButton } from "@/ui/components/CloseButton";
 import { EventIcon, iconKey } from "@/ui/components/EventIcon";
-import { SubsCounters, withoutSubstitutions } from "@/ui/components/match/Substitutions";
+import { SubsCounters, SubstitutionsPanel } from "@/ui/components/match/Substitutions";
 import { EntityLink } from "@/ui/components/Link";
 import type { Key } from "@/ui/i18n";
 import { abbreviationPosition } from "@/ui/i18n/position";
@@ -188,9 +188,9 @@ function pitchSlots(formation: FormationId, players: readonly LivePlayer[]): (Li
 
 /**
  * Tática durante o jogo, num popup (RZ-251): as opções no topo; por baixo, o campo à esquerda e a lista da equipa à direita
- * (só para consulta: a formação e o onze não mudam a meio; as trocas fazem-se nas substituições). Conta a partir do minuto seguinte.
+ * (só para consulta: a formação e o onze não mudam a meio) e as substituições à direita. Conta a partir do minuto seguinte.
  */
-export function TacticInMatch({ match, tactic, onChange, onClose, busy }: { match: LiveMatch; tactic: Tactic; onChange: (t: Tactic) => void; onClose: () => void; busy: boolean }) {
+export function TacticInMatch({ match, tactic, onChange, onClose, busy, subsError, onConfirmSubs }: { match: LiveMatch; tactic: Tactic; onChange: (t: Tactic) => void; onClose: () => void; busy: boolean; subsError?: string; onConfirmSubs: (substitutions: { playerOut: string; playerIn: string }[]) => Promise<boolean> }) {
   const { t } = useT();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -199,18 +199,8 @@ export function TacticInMatch({ match, tactic, onChange, onClose, busy }: { matc
   }, []);
   const mine = match.teams?.[match.gamerSide ?? "home"] ?? [];
   const onPitch = mine.filter((j) => j.state === "pitch");
-  const bench = mine.filter((j) => j.state === "bench");
   const slots = pitchSlots(tactic.formation, onPitch);
   const background = backgroundColours(readColours(match.colours?.[match.gamerSide === "away" ? match.away.id : match.home.id] ?? ""));
-  const row = (j: LivePlayer) => (
-    <tr key={j.id} className={j.injured ? "indisponivel" : undefined}>
-      <td><EntityLink k="person" id={j.id}>{j.name}</EntityLink></td>
-      <td>{abbreviationPosition(t, j.position)}</td>
-      <td>{j.stars !== undefined ? <Stars value={j.stars} /> : null}</td>
-      <td className="num">{j.rating !== undefined ? j.rating.toFixed(1).replace(".", ",") : "—"}</td>
-      <td className="num">{j.goals > 0 ? `⚽${j.goals}` : ""}{j.yellows > 0 ? " 🟨" : ""}{j.red ? " 🟥" : ""}</td>
-    </tr>
-  );
   return (
     <dialog ref={ref} className="popup tatica-jogo" aria-labelledby="h-tatica-jogo" onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
       <CloseButton onClose={() => ref.current?.close()} />
@@ -232,23 +222,15 @@ export function TacticInMatch({ match, tactic, onChange, onClose, busy }: { matc
             );
           })}
         </div>
-        <div className="tatica-tabela">
-          <div className="tabela-rolar">
-            <table className="tabela densa tabela-onze">
-              <thead><tr><th>{t("tactic.col.name")}</th><th>{t("tactic.col.pos")}</th><th>{t("tactic.col.level")}</th><th className="num">{t("match.rating")}</th><th /></tr></thead>
-              <tbody><tr className="tabela-secao"><th colSpan={5}>{t("tactic.starting", { n: onPitch.length })}</th></tr>{onPitch.map(row)}</tbody>
-              <tbody><tr className="tabela-secao"><th colSpan={5}>{t("tactic.bench")}</th></tr>{bench.map(row)}</tbody>
-            </table>
-          </div>
-        </div>
+        <SubstitutionsPanel match={match} busy={busy} {...(subsError ? { error: subsError } : {})} onConfirm={onConfirmSubs} />
       </div>
       <p className="suave tatica-aviso">{t("match.tacticWarning")}</p>
     </dialog>
   );
 }
 
-/** Popup do intervalo: o jogo está parado; resumo da primeira parte e as decisões possíveis (tática; substituições no RZ-215). */
-export function HalfTime({ match, onTactic, aoSubs, onContinue }: { match: LiveMatch; onTactic: () => void; aoSubs: () => void; onContinue: () => void }) {
+/** Popup do intervalo: o jogo está parado; resumo da primeira parte e as decisões possíveis (tática; as substituições vão na mesma janela). */
+export function HalfTime({ match, onTactic, onContinue }: { match: LiveMatch; onTactic: () => void; onContinue: () => void }) {
   const { t } = useT();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -282,7 +264,6 @@ export function HalfTime({ match, onTactic, aoSubs, onContinue }: { match: LiveM
       {match.subs && <p className="subs-resumo"><SubsCounters subs={match.subs} /></p>}
       <p className="acoes">
         <button type="button" onClick={onTactic}><Icon name="tactic" />{t("match.halfTimeTactic")}</button>
-        <button type="button" onClick={aoSubs} disabled={withoutSubstitutions(match.subs, true)}><EventIcon rowKey="substitution" />{t("match.subs.button")}</button>
         <button type="button" className="primario" onClick={onContinue} autoFocus>{t("match.secondHalf")}</button>
       </p>
     </dialog>

@@ -13,9 +13,11 @@ import type { Repository } from "../persistence/repository";
 import type { ScheduledMatch } from "../persistence/types";
 import { seasonName } from "../season/saveYear";
 import { currentSeason } from "../season/seasonPyramid";
+import { europeSlots } from "../europe/access";
+import { europeZone, type EuropeSlots } from "../europe/zones";
 import { competitionTable } from "./table";
 
-export type Zone = "champion" | "promotion" | "relegation";
+export type Zone = "champion" | "promotion" | "relegation" | "cl" | "clq" | "el" | "ecl";
 
 export type TableRow = {
   position: number;
@@ -94,9 +96,10 @@ export function zoneSizes(tier: Tier, params: Params): { promoted: number; releg
   }
 }
 
-export function zoneOf(position: number, total: number, tier: Tier, params: Params): Zone | undefined {
+export function zoneOf(position: number, total: number, tier: Tier, params: Params, europe?: EuropeSlots): Zone | undefined {
   const { promoted, relegated } = zoneSizes(tier, params);
   if (position === 1) return "champion";
+  if (tier === "firstLeague" && europe) { const z = europeZone(position, europe); if (z) return z; }
   if (position <= promoted) return "promotion";
   if (relegated > 0 && position > total - relegated) return "relegation";
   return undefined;
@@ -150,8 +153,9 @@ export function competitionPage(repo: Repository, data: BaseData, params: Params
   for (const c of [...clubs].filter((x) => !present.has(x.id)).sort((x, y) => y.reputation - x.reputation || x.name.localeCompare(y.name, "pt"))) {
     rows.push({ position: rows.length + 1, club: c.id, name: c.name, played: 0, won: 0, drawn: 0, lost: 0, goalsFor: 0, goalsAgainst: 0, goalDifference: 0, points: 0 });
   }
+  const euroSlots = tier === "firstLeague" ? europeSlots(repo, data, params, season) : undefined;
   const table: TableRow[] = rows.map((r) => {
-    const zone = zoneOf(r.position, rows.length, tier, params);
+    const zone = zoneOf(r.position, rows.length, tier, params, euroSlots);
     return zone ? { ...r, zone } : r;
   });
 

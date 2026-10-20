@@ -2,7 +2,6 @@
 import { Suspense, useEffect, useState } from "react";
 import type { CityProfileData } from "@/engine/api/contracts";
 import { WithClub } from "@/ui/components/WithClub";
-import { CitySections } from "@/ui/components/CitySoon";
 import { CityProfile } from "@/ui/components/profiles/CityProfile";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { useEngine } from "@/ui/EngineProvider";
@@ -23,7 +22,7 @@ function Content({ club }: { club: string }) {
   }, [engine, club]);
   if (d === undefined) return <p>{t("profile.loading")}</p>;
   if (d === null) return <p className="erro">{t("profile.notFound")}</p>;
-  return <><CitySections /><CityProfile d={d} /></>;
+  return <CityProfile d={d} />;
 }
 
 /** Cidade (RZ-133): o concelho do clube do gamer. As das outras cidades abrem pelas ligações (`/profile/?type=city`). */

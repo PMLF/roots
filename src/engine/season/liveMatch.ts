@@ -182,7 +182,7 @@ export type LiveMatch = {
   /** Estádio, assistência, árbitro, ... */
   info?: MatchInfo;
   /** Quantos sobem e descem nesta competição (para as zonas da tabela). */
-  zones?: { promoted: number; relegated: number };
+  zones?: { promoted: number; relegated: number; europe?: { rank: number; championsLeague: number; championsQualifying: number; europaLeague: number; conferenceLeague: number } };
   /** De que lado joga o clube do gamer. */
   gamerSide?: Side;
   /** Só ao vivo (RZ-170): o jogo está a decorrer, no minuto indicado, com esta tática do lado do gamer. */

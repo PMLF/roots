@@ -26,13 +26,23 @@ describe("competições europeias (RZ-902)", () => {
     let end = false, keeps = 0;
     while (!end && keeps++ < 90) end = (await handle({ id: 2, type: "advance", input: { mode: "week" } }, s)).seasonEnd;
     expect(end).toBe(true);
-    for (const [name, perClub, ptSlots] of [[CHAMPIONS_LEAGUE, 8, 2], [EUROPA_LEAGUE, 8, 2], [CONFERENCE_LEAGUE, 6, 1]] as const) {
+    // Portugal no ranking inicial (vagas guardadas em `europe.slots.1`): o n.º de portugueses em cada prova segue essas vagas (o perdedor da pré-eliminatória cai para a Liga Europa, a Taça acrescenta uma na Liga Europa)
+    const slots = JSON.parse(repo.meta("europe.slots.1")!) as { rank: number; championsLeague: number; championsQualifying: number; europaLeague: number; conferenceLeague: number };
+    expect(slots.rank).toBeGreaterThanOrEqual(5);
+    expect(slots.rank).toBeLessThanOrEqual(12);
+    for (const [name, perClub, minPt, maxPt] of [
+      [CHAMPIONS_LEAGUE, 8, slots.championsLeague, slots.championsLeague + slots.championsQualifying],
+      [EUROPA_LEAGUE, 8, slots.europaLeague, slots.europaLeague + slots.championsQualifying + 1],
+      [CONFERENCE_LEAGUE, 6, slots.conferenceLeague, slots.conferenceLeague],
+    ] as const) {
       const run = readRun(repo, 1, name)!;
       expect(run, name).toBeDefined();
       expect(run.done, `${name} acabou`).toBe(true);
       const first = run.outcomes[0]!.ranking;
       expect(first).toHaveLength(P.europe.size);
-      expect(first.filter((c) => !c.startsWith("x-"))).toHaveLength(ptSlots);
+      const portuguese = first.filter((c) => !c.startsWith("x-")).length;
+      expect(portuguese).toBeGreaterThanOrEqual(minPt);
+      expect(portuguese).toBeLessThanOrEqual(maxPt);
       const games = repo.competitionMatches(name, 1);
       const league = games.filter((g) => g.id.includes("-lp-"));
       expect(league).toHaveLength((P.europe.size * perClub) / 2);
@@ -61,7 +71,7 @@ describe("competições europeias (RZ-902)", () => {
       const mine = (await handle({ id: 4, type: "clubCompetitions", input: { club: pt, season: 1 } }, s)) as ClubCompetition[];
       expect(mine.find((c) => c.competition === name)).toBeDefined();
       // notícias (RZ-250): qualificação e sorteio no início, resultado da fase de liga no fim
-      const events = repo.eventsOf({ k: "club", id: pt }, {}).filter((e) => (e.entities.some((x) => x.k === "competition" && x.id === name)));
+      const events = repo.eventsOf({ k: "club", id: pt }, {}).filter((e) => (e.season === 1 && e.entities.some((x) => x.k === "competition" && x.id === name)));
       expect(events.filter((e) => e.type === "EUROPE_QUALIFIED")).toHaveLength(1);
       const draw = events.find((e) => e.type === "EUROPE_DRAW")!;
       expect((draw.data as { opponents: string[] }).opponents).toHaveLength(perClub);

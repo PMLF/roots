@@ -1,7 +1,6 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import type { LivePlayer, LiveMatch, LiveSubs } from "@/engine/season/liveMatch";
-import { CloseButton } from "@/ui/components/CloseButton";
 import { Stars } from "@/ui/components/Stars";
 import { EventIcon } from "@/ui/components/EventIcon";
 import { abbreviationPosition } from "@/ui/i18n/position";
@@ -34,20 +33,15 @@ const aptitudeFor = (j: LivePlayer, pos: string): number | undefined => j.positi
 type Choice = { type: "playerOut" | "playerIn"; id: string };
 
 /**
- * Popup das substituições (RZ-215): escolhe-se quem sai (em campo) e quem entra (banco), por clique ou a arrastar, e confirma-se
+ * Substituições (RZ-215), dentro do popup «Tática e substituições»: escolhe-se quem sai (em campo) e quem entra (banco), por clique ou a arrastar, e confirma-se
  * tudo de uma vez. O semáforo mostra quão bem cada suplente cobre a posição de cada titular. Uma paragem gasta uma pausa,
  * façam-se uma ou várias trocas; ao intervalo não gasta pausas. Quem sai não volta.
  */
-export function SubstitutionsInMatch({ match, busy, error, onConfirm, onClose }: { match: LiveMatch; busy: boolean; error?: string; onConfirm: (substitutions: Pair[]) => void; onClose: () => void }) {
+export function SubstitutionsPanel({ match, busy, error, onConfirm }: { match: LiveMatch; busy: boolean; error?: string; onConfirm: (substitutions: Pair[]) => Promise<boolean> }) {
   const { t } = useT();
-  const ref = useRef<HTMLDialogElement>(null);
   const [selected, setSelected] = useState<Choice | null>(null);
   const [drag, setDrag] = useState<Choice | null>(null);
   const [pairs, setPairs] = useState<Pair[]>([]);
-  useEffect(() => {
-    const d = ref.current;
-    if (d && !d.open) d.showModal();
-  }, []);
   const subs = match.subs;
   const side = match.gamerSide ?? "home";
   const all = match.teams?.[side] ?? [];
@@ -91,9 +85,7 @@ export function SubstitutionsInMatch({ match, busy, error, onConfirm, onClose }:
   });
 
   return (
-    <dialog ref={ref} className="popup subs-jogo" aria-labelledby="h-subs" onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
-      <CloseButton onClose={() => ref.current?.close()} />
-      <h2 id="h-subs">{t("match.subs.title")}</h2>
+    <div className="subs-jogo">
       {hurt.size > 0 && <p className="mensagem-renovacao erro" role="alert">{t("match.subs.injuryForced")}</p>}
       {subs && <p className="subs-resumo"><SubsCounters subs={subs} /></p>}
       {pairs.length > 0 && (
@@ -156,8 +148,8 @@ export function SubstitutionsInMatch({ match, busy, error, onConfirm, onClose }:
       {selected && activeJ && <p className="suave subs-dica">{t(selected.type === "playerOut" ? "match.subs.chooseIn" : "match.subs.chooseOut", { name: activeJ.name })}</p>}
       {error && <p className="erro" role="alert">{error}</p>}
       <p className="acoes">
-        <button type="button" className="primario" disabled={pairs.length === 0 || busy} onClick={() => onConfirm(pairs)}>{t("match.subs.confirm")}{pairs.length > 0 ? ` (${pairs.length})` : ""}</button>
+        <button type="button" className="primario" disabled={pairs.length === 0 || busy} onClick={() => void onConfirm(pairs).then((ok) => { if (ok) setPairs([]); })}>{t("match.subs.confirm")}{pairs.length > 0 ? ` (${pairs.length})` : ""}</button>
       </p>
-    </dialog>
+    </div>
   );
 }

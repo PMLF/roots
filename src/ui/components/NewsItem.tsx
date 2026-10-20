@@ -23,11 +23,12 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n
   if (typeof values.fee === "number") values.fee = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(values.fee);
   const tone = n.type === "bid_agreed" ? "ok" : n.type === "bid_rejected" ? "erro" : undefined;
   if (n.type === "europe_phase") values.zoneText = t(`newsItem.europe_phase.zone.${values.zone}` as Key);
+  if (n.type === "europe_qualifier") values.outcomeText = t(values.won === 1 ? "newsItem.europe_qualifier.won" : "newsItem.europe_qualifier.lost", { opponent: String(values.opponent) });
   const toSquad = n.type === "youth_intake";
   const toScouting = n.type === "scout_search" || n.type === "scout_report";
   const base = `newsItem.${type}.${n.variant}`;
   // acontecimentos importantes do teu clube: cartão alto com as cores do clube (RZ-247)
-  const europe = n.type === "europe_qualified" || n.type === "europe_draw" || n.type === "europe_phase";
+  const europe = n.type === "europe_qualified" || n.type === "europe_draw" || n.type === "europe_phase" || n.type === "europe_qualifier";
   if (n.type === "youth_intake" || n.type === "transfer_offer" || (europe && n.ofClubYour)) {
     const clubId = n.type === "transfer_offer" || europe ? n.links.find((l) => l.k === "club")?.id : mine;
     return (

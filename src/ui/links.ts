@@ -26,7 +26,7 @@ export function readProfile(params: { get(name: string): string | null }): { k: 
 export const TABS: Record<ProfileEntityType, readonly string[]> = {
   club: ["summary", "squad", "staff", "matches", "story"],
   person: ["summary", "contract", "career", "story"],
-  city: ["summary", "clubs", "story"],
+  city: ["summary", "clubs", "services", "talent", "companies", "council", "stadium", "story"],
   locality: ["summary", "clubs", "story"],
   competition: ["summary", "statistics", "clubs", "story"],
 };

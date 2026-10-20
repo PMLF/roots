@@ -14,8 +14,8 @@ export function Card({ title, children, wide, dev, className }: { title?: ReactN
 export function Data({ lines }: { lines: { label: string; value: ReactNode }[] }) {
   return (
     <dl className="dados">
-      {lines.map((l) => (
-        <div key={l.label}>
+      {lines.map((l, i) => (
+        <div key={`${l.label}-${i}`}>
           <dt>{l.label}</dt>
           <dd>{l.value}</dd>
         </div>

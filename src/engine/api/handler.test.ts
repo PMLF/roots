@@ -191,7 +191,7 @@ describe("competition page (RZ-145)", () => {
     expect(d.currentRound).toBe(0);
     expect(d.table).toHaveLength(20);
     expect(d.table.every((l) => l.points === 0 && l.played === 0)).toBe(true);
-    expect(d.table.map((l) => l.zone)).toEqual(["champion", ...Array(16).fill(undefined), "relegation", "relegation", "relegation"]);
+    expect(d.table.map((l) => l.zone)).toEqual(["champion", "cl", "clq", "el", "ecl", ...Array(12).fill(undefined), "relegation", "relegation", "relegation"]);
     expect(d.highlights.topScorers).toEqual([]);
     expect(d.highlights.bestAttack).toBeUndefined();
     expect(d.highlights.attackRanking).toEqual([]);

@@ -524,7 +524,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .velocidade select { width: auto; }
 .so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .jogo-grelha { grid-template-columns: minmax(0, 1fr); margin-top: 12px; }
-@media (min-width: 1000px) { .jogo-grelha { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 0.95fr); } }
+@media (min-width: 1000px) { .jogo-grelha { grid-template-columns: repeat(3, minmax(0, 1fr)); } .jogo-grelha-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 .jogo-coluna { display: grid; gap: 14px; align-content: start; min-width: 0; }
 .jogo-coluna h2 { font-size: 15px; margin: 0 0 8px; }
 .jogo-coluna .feed { max-height: 68vh; overflow-y: auto; margin: 0; }
@@ -553,6 +553,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .estat-barra i { display: block; height: 100%; background: color-mix(in srgb, currentColor 55%, transparent); }
 .popup.tatica-jogo { width: min(96vw, 1080px); max-height: 96vh; overflow: auto; padding: 16px 20px; }
 .popup.tatica-jogo h2 { margin-bottom: 8px; }
+.popup.tatica-jogo .subs-listas { margin-bottom: 8px; }
 .popup.tatica-jogo .opcoes-tatica { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px 16px; }
 .tatica-jogo-corpo { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 14px; align-items: stretch; margin-top: 12px; }
 .tatica-jogo-corpo .campo { width: auto; height: clamp(300px, calc(100vh - 360px), 480px); }
@@ -602,7 +603,7 @@ button.dev { border-style: dashed; }
 .jogo-grelha .ligacao:hover, .placar .ligacao:hover { text-decoration: underline; }
 
 /* Página de jogo: separadores; cartão de equipa com o onze a rolar */
-.pagina-jogo > .separadores { margin-top: 12px; }
+.pagina-jogo > .separadores { margin-top: 4px; }
 .cartao-equipa h2 { display: flex; align-items: center; gap: 8px; font-size: 15px; }
 .cartao-equipa .equipa-vivo { position: relative; }
 .onze-banco { position: absolute; inset: 0; overflow-y: auto; background: var(--painel); }
@@ -678,14 +679,14 @@ button.dev { border-style: dashed; }
 .contador-subs { display: inline-flex; align-items: center; gap: 8px; }
 .contador-barras { display: inline-flex; gap: 3px; }
 .contador-barras i { display: block; width: 16px; height: 6px; border-radius: 2px; }
-.contador-barras .livre { background: var(--destaque); }
+.contador-barras .free { background: var(--destaque); }
 .contador-barras .gasta { background: var(--linha-forte); }
-.subs-jogo { width: min(94vw, 760px); }
+.subs-jogo { min-width: 0; }
 .subs-jogo h3 { margin: 0 0 6px; font-size: 13px; color: var(--suave); font-weight: 600; }
 .subs-dica { text-align: center; max-width: none; margin: 0 0 8px; font-size: 13px; }
 .subs-listas { display: grid; gap: 18px; margin-bottom: 12px; }
 @media (min-width: 640px) { .subs-listas { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
-.subs-listas ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 42vh; overflow-y: auto; }
+.subs-listas ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 34vh; overflow-y: auto; }
 .subs-jogador { display: grid; grid-template-columns: auto 2.4rem minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 5px 10px; font-size: 13px; }
 .subs-listas section:nth-child(2) .subs-jogador { grid-template-columns: 2.4rem minmax(0, 1fr) auto; }
 .subs-jogador.escolhido { border-color: var(--destaque); background: var(--destaque-fundo); }
@@ -741,13 +742,14 @@ button.dev { border-style: dashed; }
 
 
 /* Topo do jogo: competição, estádio, árbitro, resultado, minuto, contadores, botões */
-.pagina-jogo .jogo-contexto { margin: 14px 0 4px; }
-.pagina-jogo .info-cabecalho { margin: 0 0 18px; line-height: 1.5; }
+.pagina-jogo .jogo-contexto { margin: 8px 0 2px; }
+.pagina-jogo .info-cabecalho { margin: 0 0 6px; line-height: 1.4; }
 .pagina-jogo .info-cabecalho p { margin: 0; }
 .pagina-jogo .placar { margin: 0; }
-.pagina-jogo .relogio { margin: 4px 0 12px; }
-.pagina-jogo .subs-resumo { margin: 0 0 12px; }
-.pagina-jogo .controlos-jogo { margin: 0 0 20px; }
+.jogo-estado { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 22px; margin: 2px 0 8px; }
+.pagina-jogo .jogo-estado .relogio { width: auto; margin: 0; }
+.jogo-estado .controlos-jogo { display: inline-flex; align-items: center; gap: 14px; margin: 0; }
+.pagina-jogo .separadores { margin-top: 4px; }
 
 /* Estrelas (RZ-916): qualidade e potencial relativos ao escalão */
 .estrelas { display: inline-flex; align-items: baseline; gap: 1px; white-space: nowrap; line-height: 1; }
@@ -975,7 +977,7 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .opcao-formacao select { width: 100%; }
 @media (pointer: coarse) { .opcao-tatica .passo { height: 26px; } .opcao-tatica .area { padding-block: 6px; } }
 .tatica-grelha { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 14px; align-items: stretch; grid-column: 1 / -1; }
-.tatica-grelha .campo { width: auto; height: clamp(340px, calc(100vh - 512px), 600px); }
+.tatica-grelha .campo { width: auto; aspect-ratio: 10 / 11; height: clamp(400px, calc(100vh - 470px), 640px); }
 .tatica-plantel { display: flex; flex-direction: column; min-height: 0; }
 .tatica-plantel > p { margin: 0 0 6px; font-size: 12px; }
 .tatica-tabela { position: relative; flex: 1 1 auto; min-height: 200px; margin-top: 4px; }
@@ -992,7 +994,7 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .campo .relva-a { fill: #2f7d3a; }
 .campo .relva-b { fill: #2a7235; }
 .campo .linhas { fill: none; stroke: rgb(255 255 255 / 0.7); stroke-width: 0.5; vector-effect: non-scaling-stroke; }
-.lugar { position: absolute; transform: translate(-50%, -50%); width: 17cqw; min-width: 54px; max-width: 84px; padding: 0; border: 0; background: none; }
+.lugar { position: absolute; transform: translate(-50%, -50%); width: 21cqw; min-width: 56px; max-width: 96px; padding: 0; border: 0; background: none; }
 .lugar-cartao { position: relative; display: block; width: 100%; padding: 0; text-align: center; user-select: none; -webkit-user-select: none; border: 1px solid rgb(0 0 0 / 0.35); border-radius: 6px; overflow: hidden; background: #fff; color: #111; cursor: grab; font: inherit; z-index: 1; }
 .lugar::before { content: ""; position: absolute; inset: -6px; border-radius: 12px; background: var(--halo, transparent); filter: blur(7px); opacity: 0.95; z-index: 0; }
 .lugar-verde { --halo: #34d058; }
@@ -1002,7 +1004,7 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .lugar-cores .estrelas { font-size: 8px; letter-spacing: -1px; }
 .lugar-nome { display: block; padding: 2px 3px 3px; font-size: 11px; line-height: 1.15; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: #fff; }
 .lugar.escolhido .lugar-cartao { outline: 2px solid #fff; outline-offset: 1px; }
-.lugar.indisponivel .lugar-cartao { filter: grayscale(0.8); opacity: 0.8; }
+.lugar.indisponivel .lugar-cartao { filter: sepia(0.9) hue-rotate(-38deg) saturate(2.6) brightness(0.9); opacity: 0.92; }
 .lugar-vazio { display: grid; place-items: center; height: 44px; border: 2px dashed rgb(255 255 255 / 0.75); border-radius: 8px; color: #fff; font-weight: 700; font-size: 12px; background: rgb(0 0 0 / 0.12); cursor: pointer; }
 .lugar-tirar { position: absolute; top: -7px; right: -7px; z-index: 2; width: 18px; height: 18px; padding: 0; line-height: 16px; border-radius: 50%; border: 1px solid rgb(0 0 0 / 0.4); background: #fff; color: #111; font-size: 12px; cursor: pointer; }
 .tabela-rolar { overflow-x: auto; }
@@ -1030,11 +1032,6 @@ h1, h2 { text-wrap: balance; }
 button:active:not(:disabled) { transform: scale(.97); }
 button { transition: background-color .12s, border-color .12s, transform .12s cubic-bezier(.23, 1, .32, 1); }
 :focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
-/* Secções da Cidade: ligações com o aspeto dos separadores */
-.separadores { overflow-x: auto; scrollbar-width: none; }
-.separadores a { flex: none; border-bottom: 2px solid transparent; padding: 8px 14px; color: var(--suave); margin-bottom: -1px; white-space: nowrap; }
-.separadores a:hover { color: var(--texto); text-decoration: none; }
-.separadores a[aria-current="page"] { color: var(--texto); border-bottom-color: var(--destaque); font-weight: 600; }
 /* Plantel e tabelas densas: o nome nunca parte em duas linhas */
 .tabela td:first-child { white-space: nowrap; }
 @media (max-width: 700px) {
@@ -1068,7 +1065,7 @@ button { transition: background-color .12s, border-color .12s, transform .12s cu
 .banco-nome { flex: 1; display: block; text-align: center; line-height: 24px; padding: 0 4px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .banco-cartao .estrelas { display: none; }
 .banco-cartao.escolhido { outline: 2px solid var(--destaque); outline-offset: 1px; }
-.banco-cartao.indisponivel { filter: grayscale(.8); opacity: .8; }
+.banco-cartao.indisponivel { filter: sepia(.9) hue-rotate(-38deg) saturate(2.6) brightness(.9); opacity: .92; }
 .banco-cartao.dica-verde { box-shadow: 0 0 0 3px #34d058; }
 .banco-cartao.dica-amarelo { box-shadow: 0 0 0 3px #ffd33d; }
 .banco-cartao.esmaecido { opacity: .4; }
@@ -1089,3 +1086,12 @@ body {
   :root:not([data-tema="claro"]) body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .045) 0 46px, transparent 46px 92px), radial-gradient(rgb(232 238 234 / .13) 1px, transparent 1.4px); }
 }
 :root[data-tema="escuro"] body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .045) 0 46px, transparent 46px 92px), radial-gradient(rgb(232 238 234 / .13) 1px, transparent 1.4px); }
+
+/* Zonas europeias da Primeira Liga: Champions (azul), pré-eliminatória (azul claro), Liga Europa (tijolo), Conferência (verde) */
+:root { --zona-cl: #2f6fd6; --zona-clq: #8fb0e8; --zona-el: #b5483a; --zona-ecl: #2e9d57; }
+.zona-cl { --zona-cor: var(--zona-cl); }
+.zona-clq { --zona-cor: var(--zona-clq); }
+.zona-el { --zona-cor: var(--zona-el); }
+.zona-ecl { --zona-cor: var(--zona-ecl); }
+.mini-tabela tr.zona td:first-child { box-shadow: inset 4px 0 0 var(--zona-cor); }
+.mini-tabela tr.zona { background: color-mix(in srgb, var(--zona-cor) 12%, transparent); }
