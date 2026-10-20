@@ -5,10 +5,11 @@
 import type { BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import { cupKind } from "../season/competitions";
+import { europeKind } from "../europe/europe";
 import { currentSeason, pyramidData } from "../season/seasonPyramid";
 
 /** Chave do nome curto da competição: um escalão ou um tipo de taça/fase (a UI traduz: 1L, 2L, 3L, CP, Dist., TP, TD, ST, SD, FP). */
-export type CompetitionShort = "firstLeague" | "secondLeague" | "thirdLeague" | "cp" | "district" | "cup" | "districtCup" | "supercup" | "districtSupercup" | "promotion";
+export type CompetitionShort = "firstLeague" | "secondLeague" | "thirdLeague" | "cp" | "district" | "cup" | "districtCup" | "supercup" | "districtSupercup" | "promotion" | "championsLeague" | "europaLeague" | "conferenceLeague";
 
 export type RecentMatch = {
   id: string;
@@ -28,9 +29,11 @@ export type RecentMatch = {
 
 export function recentMatches(repo: Repository, data: BaseData, club: string, limit = 3, season = currentSeason(repo)): RecentMatch[] {
   const clubs = new Map(pyramidData(repo, data, season).clubs.map((c) => [c.id, c] as const));
-  const name = (id: string) => data.clubs.find((c) => c.id === id)?.name ?? id;
+  const name = (id: string) => data.clubs.find((c) => c.id === id)?.name ?? data.foreignClubs?.find((c) => c.id === id)?.name ?? id;
   const shortOf = (competition: string): CompetitionShort => {
     const k = cupKind(competition);
+    const eu = europeKind(competition);
+    if (eu) return eu;
     if (k === "cup") return "cup";
     if (k === "supercup") return "supercup";
     if (k === "districtCup") return "districtCup";

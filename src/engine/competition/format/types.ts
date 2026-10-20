@@ -77,7 +77,7 @@ export type LeaguePhaseStage = {
   name: string;
   /** Potes por seed, todos do mesmo tamanho. */
   pots: number;
-  /** Adversários de cada clube em cada pote (inclusive o seu), metade em casa e metade fora: par. */
+  /** Adversários de cada clube em cada pote (inclusive o seu), metade em casa e metade fora: par, ou 1 (Liga Conferência). */
   perPot: number;
 };
 export type StageDef = KnockoutStage | GroupsStage | LeaguePhaseStage;

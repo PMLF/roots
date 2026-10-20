@@ -7,13 +7,15 @@ import type { Params } from "../config/parameters";
 import type { BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import { matchWinner, type Match, type ScheduledMatch } from "../persistence/types";
+import { isEuropean } from "../europe/europe";
+import { europeView } from "../europe/view";
 import { activeCompetitions, readRun, CUP, SUPERCUP, cupKind } from "../season/competitions";
 import { seasonName } from "../season/saveYear";
 import { currentSeason, pyramidData } from "../season/seasonPyramid";
 import type { KnockoutState } from "./format/knockout";
 
 /** `final`, `semi`, `quarter`, `round16`, `round32` ou `round` (com `n` = número da ronda). */
-export type CupRoundKey = "final" | "semi" | "quarter" | "round16" | "round32" | "round";
+export type CupRoundKey = "final" | "playoff" | "semi" | "quarter" | "round16" | "round32" | "round";
 export type CupMatchView = { id: string; home: string; away: string; homeName: string; awayName: string; homeTier?: string; awayTier?: string; homeGoals?: number; awayGoals?: number; extraTime?: boolean; shootout?: { home: number; away: number } };
 export type CupRoundView = { key: CupRoundKey; n: number; /** Meias-finais a duas mãos: 1.ª ou 2.ª mão. */ leg?: 1 | 2; date: string; matches: CupMatchView[] };
 export type CupView = {
@@ -44,7 +46,7 @@ function roundLabels(competition: string, state: KnockoutState): Map<number, { k
 
 export function cupView(repo: Repository, data: BaseData, params: Params, competition: string, season = currentSeason(repo)): CupView | undefined {
   const run = readRun(repo, season, competition);
-  if (!run || run.state.kind !== "knockout") return undefined;
+  if (!run || run.state.kind !== "knockout" || isEuropean(competition)) return undefined;
   const clubs = new Map(pyramidData(repo, data, season).clubs.map((c) => [c.id, c] as const));
   const name = (id: string) => clubs.get(id)?.name ?? id;
   const scheduled = repo.calendar(competition, season).matches;
@@ -96,31 +98,48 @@ export function clubCompetitions(repo: Repository, data: BaseData, params: Param
   for (const competition of activeCompetitions(repo, season)) {
     if (!cupKind(competition)) continue;
     const run = readRun(repo, season, competition);
+    if (run && isEuropean(competition) && run.entrants[club]) {
+      const eu = europeView(repo, data, params, competition, season);
+      const i = eu ? eu.table.findIndex((r) => r.club === club) : -1;
+      if (!eu || i < 0) continue;
+      const zone = eu.table[i]!.zone;
+      const leaguePhaseOver = run.outcomes.length > 0;
+      const base = { competition, kind: "cup" as const, position: i + 1, of: eu.table.length };
+      if (!leaguePhaseOver) { out.push({ ...base, status: "alive" }); continue; }
+      if (zone === "out") { out.push({ ...base, status: "out" }); continue; }
+      const r = knockoutStatus(repo, eu.rounds, club, run.done, run.winner, run.runnerUp);
+      out.push({ ...base, ...(r.status === "waiting" || !r.round ? { status: "alive" as const, round: { key: "round16" as const, n: 2 } } : r) });
+      continue;
+    }
     if (!run || run.state.kind !== "knockout" || !run.entrants[club]) continue;
     const view = cupView(repo, data, params, competition, season);
     if (!view) continue;
-    const mine = view.rounds.filter((r) => r.matches.some((m) => m.home === club || m.away === club));
-    if (run.done && run.winner === club) { out.push({ competition, kind: "cup", status: "champion", round: { key: "final", n: view.rounds.length } }); continue; }
-    if (run.done && run.runnerUp === club) { out.push({ competition, kind: "cup", status: "runnerUp", round: { key: "final", n: view.rounds.length } }); continue; }
-    const last = mine[mine.length - 1];
-    if (!last) { out.push({ competition, kind: "cup", status: run.done ? "out" : "waiting" }); continue; }
-    // eliminado se alguma ronda já decidida foi perdida; senão está em prova na última ronda em que joga
-    const ties = new Map<string, Match[]>();
-    for (const r of mine) for (const m of r.matches.filter((x) => x.home === club || x.away === club)) { const rec = repo.match(m.id); if (rec) (ties.get(r.n.toString()) ?? ties.set(r.n.toString(), []).get(r.n.toString())!).push(rec); }
-    const lastTie = ties.get(last.n.toString()) ?? [];
-    const legs = last.leg ? 2 : 1;
-    const decided = lastTie.length === legs;
-    let status: ClubCompetitionStatus = "alive";
-    if (decided) {
-      let g = 0, a = 0;
-      for (const m of lastTie) { g += m.home === club ? m.homeGoals : m.awayGoals; a += m.home === club ? m.awayGoals : m.homeGoals; }
-      const lastLeg = lastTie[lastTie.length - 1] as Match;
-      const won = g !== a ? g > a : matchWinner(lastLeg) === club;
-      status = won ? "alive" : "out";
-    }
-    out.push({ competition, kind: "cup", status, round: { key: last.key, n: last.n } });
+    const r = knockoutStatus(repo, view.rounds, club, run.done, run.winner, run.runnerUp);
+    out.push({ competition, kind: "cup", ...r });
   }
   return out;
+}
+
+/** Estado de um clube numa eliminatória: campeão, finalista vencido, à espera, em prova ou eliminado (e a ronda em causa). */
+function knockoutStatus(repo: Repository, rounds: CupRoundView[], club: string, done: boolean, winner?: string, runnerUp?: string): { status: ClubCompetitionStatus; round?: { key: CupRoundKey; n: number } } {
+  const mine = rounds.filter((r) => r.matches.some((m) => m.home === club || m.away === club));
+  if (done && winner === club) return { status: "champion", round: { key: "final", n: rounds.length } };
+  if (done && runnerUp === club) return { status: "runnerUp", round: { key: "final", n: rounds.length } };
+  const last = mine[mine.length - 1];
+  if (!last) return { status: done ? "out" : "waiting" };
+  // eliminado se alguma ronda já decidida foi perdida; senão está em prova na última ronda em que joga
+  const ties = new Map<string, Match[]>();
+  for (const r of mine) for (const m of r.matches.filter((x) => x.home === club || x.away === club)) { const rec = repo.match(m.id); if (rec) (ties.get(r.n.toString()) ?? ties.set(r.n.toString(), []).get(r.n.toString())!).push(rec); }
+  const lastTie = ties.get(last.n.toString()) ?? [];
+  const legs = last.leg ? 2 : 1;
+  let status: ClubCompetitionStatus = "alive";
+  if (lastTie.length === legs) {
+    let g = 0, a = 0;
+    for (const m of lastTie) { g += m.home === club ? m.homeGoals : m.awayGoals; a += m.home === club ? m.awayGoals : m.homeGoals; }
+    const lastLeg = lastTie[lastTie.length - 1] as Match;
+    status = (g !== a ? g > a : matchWinner(lastLeg) === club) ? "alive" : "out";
+  }
+  return { status, round: { key: last.key, n: last.n } };
 }
 
 /** Vencedores da taça por época (épocas já decididas), da mais recente para a mais antiga. */

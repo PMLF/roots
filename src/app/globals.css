@@ -928,3 +928,6 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .resultado-ponto.win { background: var(--destaque); }
 .resultado-ponto.draw { background: var(--atencao); }
 .resultado-ponto.loss { background: var(--aviso); }
+.zona-direct { --zona-cor: var(--zona-subida); }
+.zona-playoff { --zona-cor: var(--zona-campeao); }
+.zona-out { --zona-cor: var(--zona-descida); }

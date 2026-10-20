@@ -8,6 +8,7 @@ import { secondDistrictLeague } from "./districts";
 import type { Tier } from "../config/parameters";
 import type { ClubId, BaseData, CpSeries } from "../data/types";
 import type { Repository } from "../persistence/repository";
+import { foreignAsBase, type ForeignClub } from "../world/foreign";
 import { SERIES, type Pyramid } from "./movements";
 
 const rowKey = (season: number) => `pyramid.${season}`;
@@ -59,8 +60,10 @@ export function pyramidData(repo: Repository, data: BaseData, season: number): B
 /** Os dados com a liga e o escalão **atuais** de cada clube. Idempotente. */
 export function seasonData(repo: Repository, data: BaseData): BaseData {
   const season = currentSeason(repo);
-  if (season === 1 && repo.meta(rowKey(1)) === undefined) return data;
-  return pyramidData(repo, data, season);
+  const raw = repo.meta("foreign.clubs");
+  const foreign = raw ? (JSON.parse(raw) as ForeignClub[]).map(foreignAsBase) : [];
+  const base = season === 1 && repo.meta(rowKey(1)) === undefined ? data : pyramidData(repo, data, season);
+  return foreign.length > 0 ? { ...base, foreignClubs: foreign } : base;
 }
 
 /** Ligas por onde o clube passou, época a época (o gráfico de divisões). */

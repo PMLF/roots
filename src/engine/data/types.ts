@@ -121,6 +121,8 @@ export type BaseData = {
   localities: BaseLocality[];
   clubs: BaseClub[];
   rivalries: BaseRivalry[];
+  /** Clubes estrangeiros (só nos dados de uma época, vindos do save): para bilheteira, nomes e cores nas competições europeias. */
+  foreignClubs?: BaseClub[];
 };
 
 export type SourcesCsv = { clubs: string; cities: string; localities: string; rivalries: string; districts: string };

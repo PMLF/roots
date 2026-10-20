@@ -19,6 +19,9 @@ export type RunState = {
   /** Todos os que entraram, por clube (para as qualificações reaproveitarem seed e escalão). */
   entrants: Record<ClubId, Entrant>;
   done: boolean;
+  /** Jornadas já usadas por fases anteriores: as rondas de cada fase continuam a numeração da competição (nunca se repetem). */
+  roundBase?: number;
+  lastRound?: number;
   winner?: ClubId;
   runnerUp?: ClubId;
 };
@@ -33,13 +36,21 @@ function startStage(def: CompetitionDef, stage: number, entrants: readonly Entra
   return startLeaguePhase(s, stage, entrants, ctx);
 }
 
+/** Passa as rondas dos jogos a continuar a numeração da competição inteira. */
+function offset(state: RunState, fixtures: Fixture[]): Fixture[] {
+  const base = state.roundBase ?? 0;
+  const out = base === 0 ? fixtures : fixtures.map((f) => ({ ...f, round: f.round + base }));
+  for (const f of out) state.lastRound = Math.max(state.lastRound ?? 0, f.round);
+  return out;
+}
+
 export function startRun(def: CompetitionDef, entrants: readonly Entrant[], ctx: RunContext): Step {
   const first = startStage(def, 0, entrants, ctx);
   const all: Record<ClubId, Entrant> = {};
   for (const e of entrants) all[e.club] = e;
   for (const s of def.stages) if (s.kind === "knockout") for (const w of s.lateWaves ?? []) for (const e of w) all[e.club] = e;
   const state: RunState = { v: 1, id: def.id, season: ctx.season, stage: 0, state: first.state, outcomes: [], entrants: all, done: false };
-  const step: Step = { state, fixtures: first.fixtures, events: first.events };
+  const step: Step = { state, fixtures: offset(state, first.fixtures), events: first.events };
   // uma fase pode ficar decidida logo à partida (um só clube, p. ex.)
   const next = stepRun(def, state, () => undefined, ctx);
   return { state: next.state, fixtures: [...step.fixtures, ...next.fixtures], events: [...step.events, ...next.events] };
@@ -56,7 +67,7 @@ export function stepRun(def: CompetitionDef, run: RunState, results: Results, ct
     let outcome: StageOutcome | undefined;
     if (stageDef.kind === "knockout" && state.state.kind === "knockout") {
       const r = stepKnockout(stageDef, state.state, results, ctx);
-      fixtures.push(...r.fixtures);
+      fixtures.push(...offset(state, r.fixtures));
       events.push(...r.events);
       if (r.done) outcome = knockoutOutcome(state.state);
     } else if (stageDef.kind === "groups" && state.state.kind === "groups") {
@@ -85,7 +96,8 @@ export function stepRun(def: CompetitionDef, run: RunState, results: Results, ct
     const started = startStage(def, next, entrants, ctx, lateWaves);
     state.stage = next;
     state.state = started.state;
-    fixtures.push(...started.fixtures);
+    state.roundBase = state.lastRound ?? 0;
+    fixtures.push(...offset(state, started.fixtures));
     events.push(...started.events);
   }
   return { state, fixtures, events };

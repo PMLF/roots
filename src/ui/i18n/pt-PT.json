@@ -1372,5 +1372,18 @@
   "home.atHome": "Em casa",
   "home.away": "Fora",
   "home.homeShort": "C",
-  "home.awayShort": "F"
+  "home.awayShort": "F",
+  "zone.direct": "Oitavos de final",
+  "zone.playoff": "Play-off",
+  "zone.out": "Eliminado",
+  "europe.kind": "Competição europeia",
+  "europe.leaguePhase": "Fase de liga",
+  "europe.knockout": "Eliminatórias",
+  "europe.matchdays": "Jornada {played} de {total}",
+  "cup.round.playoff": "Play-off",
+  "comp.short.championsLeague": "LC",
+  "comp.short.europaLeague": "LE",
+  "comp.short.conferenceLeague": "LCf",
+  "clubCompetitions.outLeaguePhase": "Eliminado na fase de liga · {n}.º",
+  "clubCompetitions.leaguePhase": "Fase de liga · {n}.º de {of}"
 }
