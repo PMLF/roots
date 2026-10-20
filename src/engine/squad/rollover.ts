@@ -23,10 +23,11 @@ import { marketValue } from "../market/value";
 import { releaseClause } from "../market/clauses";
 import { agentTraits } from "../agent/assign";
 import { newProspects } from "./prospects";
+import { lockLocalSigning, pruneLocks } from "./localPriority";
 import { rolloverForeign } from "./foreign";
 import { TIER_BONUS, youthFocus } from "./youthFocus";
 
-export type RolloverSummary = { retired: number; developed: number; expired: number; renewed: number; released: number; signedFree: number; youth: number; emergencyYouth: number };
+export type RolloverSummary = { retired: number; developed: number; expired: number; renewed: number; released: number; signedFree: number; youth: number; emergencyYouth: number; /** Jovens da terra que acabaram noutra cidade (2.ª fase). */ prospectsAway: number };
 
 export type RolloverInput = {
   season: number;
@@ -71,7 +72,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
   const seed = repo.meta("seed") ?? "?";
   const sc = params.squadCycle;
   const world = params.world;
-  const summary: RolloverSummary = { retired: 0, developed: 0, expired: 0, renewed: 0, released: 0, signedFree: 0, youth: 0, emergencyYouth: 0 };
+  const summary: RolloverSummary = { retired: 0, developed: 0, expired: 0, renewed: 0, released: 0, signedFree: 0, youth: 0, emergencyYouth: 0, prospectsAway: 0 };
   if (repo.peopleTotal() === 0) return summary; // save sem mundo gerado (testes de calendário)
   const date = o.seasonStart;
   const rngOf = (path: string) => new Rng(seed, `rollover/${o.season}/${path}`);
@@ -162,6 +163,8 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     repo.appendEvent({ type, date, season: o.season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: j, roleKind: "player" }, { k: "club", id: club }], data: extra });
 
   const newYouth: string[] = [];
+  // contexto de cada clube no fim da sua ronda: a 2.ª fase dos jovens da terra (tentar a sorte noutra cidade) precisa de saber quem tem lugar
+  const rooms: { club: BaseClub; tier: Tier; target: number; desired: number; wageScale: number; kept: Member[]; counts: Map<Position, number>; missing: () => Position[]; rng: Rng }[] = [];
   for (const club of order) {
     const tier = o.tiers.get(club.id) ?? club.tier;
     const stats = tierStats.get(tier) as { repMin: number; repMax: number; medianFinances: number };
@@ -224,7 +227,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
       prospects.forEach((m, i) => {
         if (m.position !== position) return;
         const home = homeCity(m.record.person);
-        const score = Math.abs(m.quality - expected) + (home === club.city ? 0 : home !== undefined && cities.some((c) => c.id === home) ? 1 : Infinity);
+        const score = Math.abs(m.quality - expected) + (home === club.city ? 0 : Infinity);
         if (Math.abs(m.quality - expected) > sc.squad.freeAgentTolerance || score >= bestScore) return;
         best = i;
         bestScore = score;
@@ -236,6 +239,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
       repo.updatePlayer(m.record.person, { club: club.id, trainedAt: club.id, state: "active" });
       repo.saveContract(contract);
       event("PLAYER_SIGNED", m.record.person, club.id, { from: "local", wage: contract.monthlyWage, years: y });
+      lockLocalSigning(repo, params, m.record.person, o.seasonStart);
       if (o.gamerClub === club.id) newYouth.push(m.record.person);
       counts.set(position, (counts.get(position) ?? 0) + 1);
       kept.push(member({ ...m.record, club: club.id, trainedAt: club.id, state: "active" }));
@@ -294,12 +298,46 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
       kept.push(member({ ...m.record, club: club.id, state: "active" }));
       summary.signedFree++;
     }
+    rooms.push({ club, tier, target, desired, wageScale, kept, counts, missing, rng });
   }
-  // quem ninguém contratou sai do futebol; nasce a geração seguinte
+  // 2.ª fase: os jovens que a terra não quis vão tentar a sorte noutras cidades, onde um clube tenha lugar e o nível sirva (melhores primeiro)
+  for (const m of [...prospects].sort((a, b) => b.quality - a.quality || (a.record.person < b.record.person ? -1 : 1))) {
+    const home = homeCity(m.record.person);
+    const homeDistrict = data.cities.find((c) => c.id === home)?.district;
+    let best: (typeof rooms)[number] | undefined;
+    let bestScore = Infinity;
+    for (const r of rooms) {
+      if (r.club.id === o.gamerClub || r.club.city === home || r.kept.length >= r.target + sc.squad.slack || !r.missing().includes(m.position)) continue;
+      const gap = Math.abs(m.quality - (r.desired - Math.max(0, world.peakAge - 3 - 17) * 0.35));
+      if (gap > sc.squad.freeAgentTolerance) continue;
+      const score = gap + (r.club.district === homeDistrict ? 0 : 0.8);
+      if (score < bestScore) { best = r; bestScore = score; }
+    }
+    if (!best) continue;
+    const r = best;
+    prospects.splice(prospects.indexOf(m), 1);
+    const y = years(r.rng);
+    const contract: ContractRecord = { person: m.record.person, club: r.club.id, monthlyWage: wageFor(params, r.tier, clamp(m.quality, 1, 20), r.wageScale), ...contractDates(o.seasonStart, y) };
+    repo.updatePlayer(m.record.person, { club: r.club.id, trainedAt: r.club.id, state: "active" });
+    repo.saveContract(contract);
+    event("PLAYER_SIGNED", m.record.person, r.club.id, { from: "luck", wage: contract.monthlyWage, years: y });
+    r.counts.set(m.position, (r.counts.get(m.position) ?? 0) + 1);
+    r.kept.push(member({ ...m.record, club: r.club.id, trainedAt: r.club.id, state: "active" }));
+    summary.youth++;
+    summary.prospectsAway++;
+  }
+  // quem ninguém quis sai do futebol; nasce a geração seguinte
   for (const m of prospects) repo.updatePlayer(m.record.person, { state: "retired" });
+  pruneLocks(repo, o.seasonStart);
   const cohort = newProspects(data, params, { season: o.season, seasonStart: o.seasonStart, seed, nextId: newId });
   batch.people.push(...cohort.people);
   batch.players.push(...cohort.players);
+  // a caixa de entrada do gamer avisa dos jovens livres que apareceram na cidade do clube
+  const gamerCity = o.gamerClub ? data.clubs.find((c) => c.id === o.gamerClub)?.city : undefined;
+  const ofCity = gamerCity ? cohort.people.filter((x) => x.birthCity === gamerCity) : [];
+  if (o.gamerClub && gamerCity && ofCity.length > 0) {
+    repo.appendEvent({ type: "TALENT_APPEARED", date, season: o.season, visibility: "exposed", origin: "generated", entities: [{ k: "club", id: o.gamerClub }, { k: "city", id: gamerCity }], data: { n: ofCity.length, clubs: data.clubs.filter((c) => c.city === gamerCity).length } });
+  }
   rolloverForeign(repo, params, { season: o.season, seasonStart: o.seasonStart }, batch, newId);
   if (batch.people.length > 0) repo.addPeople(batch);
   // a caixa de entrada do gamer avisa dos recrutas da formação (os de urgência não contam: são tapa-buracos)

@@ -19,6 +19,7 @@ import { distributePositions } from "../world/generateWorld";
 import type { Attributes, Position } from "../world/types";
 import { contractDates, wageFor } from "../squad/youth";
 import { isInSecondDistrict } from "../season/districts";
+import { localBlock, readLocks } from "../squad/localPriority";
 import { marketValue } from "./value";
 import { releaseClause } from "./clauses";
 import { isImportantFee } from "./newsworthy";
@@ -125,6 +126,7 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
   const signKey = (club: ClubId) => `market.${win.id}.${club}`;
   const signed = (club: ClubId) => Number(repo.meta(signKey(club)) ?? 0);
 
+  const locks = readLocks(repo);
   const order = rng.shuffle(clubs.filter((c) => c.id !== o.gamerClub));
   for (const club of order) {
     const crng = rng.derive(club.id);
@@ -171,7 +173,7 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
     const wageScale = clamp((club.finances / st.medianFinances) ** 0.4, 0.4, 2.5);
 
     // candidatos: qualidade acima do piso e não muito acima do que o clube pode querer
-    const pool = (byPos.get(position) ?? []).filter((e) => e.club !== club.id && (o.gamerClub === undefined || e.club !== o.gamerClub) && e.quality >= floor && e.quality <= desired + mk.qualityCeiling);
+    const pool = (byPos.get(position) ?? []).filter((e) => e.club !== club.id && (o.gamerClub === undefined || e.club !== o.gamerClub) && e.quality >= floor && e.quality <= desired + mk.qualityCeiling && !localBlock(repo, e.record.person, club, date, locks));
     let best: { e: Entry; fee: number; wage: number; commission: number; compensation: number; trainer: BaseClub | undefined; years: number; score: number } | undefined;
     for (const e of crng.shuffle(pool).slice(0, 80)) {
       const ct = repo.contract(e.record.person);

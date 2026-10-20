@@ -1,3 +1,4 @@
+import { interestedClubs } from "../market/interest";
 import { setBudget, clubBudget } from "../club/budget";
 import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
 import { ageAt, createDate } from "../calendar/dates";
@@ -148,6 +149,12 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         output.biddable = true;
         const open = bids(repository).find((b) => b.person === m.input.id && (b.stage === "club" || b.stage === "agent" || b.stage === "agreed"));
         if (open) output.bid = { stage: open.stage as "club" | "agent" | "agreed", ...(open.moving ? { moving: { club: gamerBase.name, date: open.moving.date } } : {}) };
+      }
+      if (asPlayer && asPlayer.state !== "retired") {
+        const today = (repository.meta("date.today") ?? "") as IsoDate;
+        const clubs = interestedClubs(repository, data, params, m.input.id, today).map((x) => ({ club: { k: "club" as const, id: x.club, name: data.clubs.find((c) => c.id === x.club)?.name ?? x.club }, level: x.level, local: x.local }));
+        const offers = pendingOffers(repository).filter((o) => o.person === m.input.id).map((o) => offerViewOf(repository, data, params, o)).filter((v): v is OfferView => v !== undefined).map((v) => ({ buyer: { k: "club" as const, id: v.buyer.id, name: v.buyer.name }, fee: v.fee }));
+        output.interest = { clubs, offers };
       }
       // um mês de observação dá a informação toda sobre o jogador (atributos exatos, contrato, personalidade)
       const monthScouted = scoutedLevel(repository, m.input.id) === "month";

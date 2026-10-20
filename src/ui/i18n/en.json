@@ -1482,5 +1482,17 @@
   "menu.matchLive": "Match in progress",
   "tactic.zone.left": "Left wing",
   "tactic.zone.centre": "Centre",
-  "tactic.zone.right": "Right wing"
+  "tactic.zone.right": "Right wing",
+  "bid.local.prospect": "Local youngsters can only sign for clubs from their own city.",
+  "bid.local.locked": "He signed for a hometown club recently: only clubs from that city can sign him until half a season has passed.",
+  "newsItem.local_talent.1.title": "{n} free youngsters in {city}",
+  "newsItem.local_talent.1.body": "A new generation of local youngsters without a club has appeared. The other {clubs} clubs in the city are watching them too: see who interests you before they sign.",
+  "youth.viewTalent": "See local talent",
+  "interest.card": "Interest from other clubs",
+  "interest.none": "No club seems interested right now.",
+  "interest.offer": "Offer of {fee}",
+  "interest.high": "Very interested",
+  "interest.medium": "Interested",
+  "interest.low": "Watching",
+  "interest.local": "hometown club"
 }

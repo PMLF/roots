@@ -136,7 +136,7 @@ export type BidAction =
   | { person: string; action: "confirm" }
   | { person: string; action: "cancel" };
 export type BidReply = { status: "accepted" | "counter" | "closed" | "blocked"; reason?: string; /** Contraproposta do agente. */ terms?: RenewalTermsView };
-export type BidResult = { ok: true; bid: BidView; reply?: BidReply; /** Resultado da confirmação. */ confirmed?: { moved: boolean; date?: string; failed?: string } } | { ok: false; reason: "own" | "invalid" | "retired" | "noClub" };
+export type BidResult = { ok: true; bid: BidView; reply?: BidReply; /** Resultado da confirmação. */ confirmed?: { moved: boolean; date?: string; failed?: string } } | { ok: false; reason: "own" | "invalid" | "retired" | "noClub" | "prospect" | "locked" };
 /** Proposta da IA por um jogador do gamer (RZ-232). */
 export type OfferView = {
   id: number;
@@ -243,6 +243,8 @@ export type PersonProfileData = {
   contractEndingSoon?: boolean;
   /** Jogador do clube do gamer: se está à venda. */
   forSale?: boolean;
+  /** Clubes que o poderiam querer (RZ-256) e propostas conhecidas: do gamer e as recebidas por jogadores do gamer. */
+  interest?: { clubs: { club: EntityRef; level: "high" | "medium" | "low"; local: boolean }[]; offers: { buyer: EntityRef; fee: number }[] };
   /** O gamer pode fazer uma proposta por este jogador (RZ-231). */
   biddable?: boolean;
   /** Negociação em curso (aberta) ou acordo à espera da janela: «vai mudar-se para X em Y». */
