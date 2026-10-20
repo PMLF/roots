@@ -1,3 +1,4 @@
+import { CHAMPIONS_LEAGUE, CONFERENCE_LEAGUE, EUROPA_LEAGUE } from "../europe/europe";
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { handle, type Servicos } from "../api/handler";
@@ -52,16 +53,20 @@ describe("avançar no tempo (época inteira)", () => {
     for (const j of [...repo.competitionMatches("CP Meias-Finais", 1), ...repo.competitionMatches("CP Final", 1)].filter((x) => x.competition === "CP Meias-Finais")) {
       expect(seriesChampions.has(j.home) && seriesChampions.has(j.away)).toBe(true);
     }
-    expect(repo.count("CHAMPION")).toBe(9); // sete campeões de liga/série, o campeão do CP e o vencedor da Taça
+    const european = [CHAMPIONS_LEAGUE, EUROPA_LEAGUE, CONFERENCE_LEAGUE].reduce((n, c) => n + repo.count("CHAMPION", { k: "competition", id: c }), 0);
+    expect(repo.count("CHAMPION") - european).toBe(9); // sete campeões de liga/série, o campeão do CP e o vencedor da Taça (europeias à parte: só se um clube português as ganha)
     // Taça (RZ-140): jogo único, só jogos com vencedor, final no Estádio Nacional e último jogo interno da época
     const cupMatches = repo.competitionMatches(CUP, 1);
-    expect(cupMatches.every((j) => matchWinner(j) !== undefined)).toBe(true);
     const cupCalendar = repo.calendar(CUP, 1).matches;
+    // meias-finais a duas mãos: a 1.ª pode acabar empatada e a 2.ª decide-se pelo agregado; os jogos únicos têm todos vencedor
+    const firstLegs = new Set(cupCalendar.flatMap((j) => (j.firstLeg ? [j.firstLeg] : [])));
+    const twoLegged = new Set(cupCalendar.filter((j) => j.firstLeg || firstLegs.has(j.id)).map((j) => j.id));
+    expect(cupMatches.filter((j) => !twoLegged.has(j.id)).every((j) => matchWinner(j) !== undefined)).toBe(true);
     const cupFinal = cupCalendar.reduce((a, b) => (b.date > a.date ? b : a));
     expect(cupCalendar.filter((j) => j.date === cupFinal.date)).toHaveLength(1);
     expect(cupFinal.neutral).toBe(true);
     expect(cupFinal.venue).toBe(NATIONAL_STADIUM);
-    expect(cupCalendar.every((j) => j.knockout === true)).toBe(true);
+    expect(cupCalendar.every((j) => j.knockout === true || firstLegs.has(j.id))).toBe(true);
     const comps = await handle({ id: 10, type: "competitions", input: null }, s);
     const everyLeague = [...comps.map((c) => c.league), "CP Meias-Finais", "CP Final", ...["A", "B", "C", "D"].map((g) => `Fase de Promoção ${g}`)];
     for (const c of everyLeague) expect(last(c) < cupFinal.date, c).toBe(true);
@@ -109,7 +114,8 @@ describe("avançar no tempo (época inteira)", () => {
     expect(tight).toBe(0);
     // prémios por vencer cada competição (RZ-216): 3 ligas + 4 séries + vencedor do CP + 20 distritais + 4 grupos da Fase de Promoção;
     // taças: vencedor e finalista de 21 taças, mais um prémio por cada eliminatória ganha na Taça antes da final
-    expect(repo.count("COMPETITION_PRIZE")).toBe(32 + 2 * 21 + (cupMatches.length - 1));
+    const europeanPrizes = [CHAMPIONS_LEAGUE, EUROPA_LEAGUE, CONFERENCE_LEAGUE].reduce((n, c) => n + repo.count("COMPETITION_PRIZE", { k: "competition", id: c }), 0);
+    expect(repo.count("COMPETITION_PRIZE") - europeanPrizes).toBe(32 + 2 * 21 + (cupMatches.length - 1 - twoLegged.size / 2));
     // fecho da época: qualificados para a Taça seguinte e supertaças distritais fixadas
     expect(JSON.parse(repo.meta("cupQualifiers.2")!).length).toBeGreaterThanOrEqual(20);
     expect(Object.keys(JSON.parse(repo.meta("districtSupercup.2")!)).length).toBe(20);

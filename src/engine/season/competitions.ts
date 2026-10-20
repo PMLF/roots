@@ -29,6 +29,8 @@ import { districtFactors, finalistValue, prizeValue, roundPrize } from "./compet
 import { finalPhaseDates } from "./cpFinalPhase";
 import { isInSecondDistrict } from "./districts";
 import { districtVenue, NATIONAL_STADIUM } from "./venues";
+import { announceEurope } from "../europe/announce";
+import { europeDates, europeDef, europeEntrants, europeKind, EUROPE_NAME, EUROPEAN, type EuropeKind } from "../europe/europe";
 
 export const CUP = "Taça de Portugal";
 export const SUPERCUP = "Supertaça";
@@ -37,9 +39,9 @@ export const DISTRICT_SUPERCUP_PREFIX = "Supertaça Distrital ";
 export const districtCupName = (district: string) => `${DISTRICT_CUP_PREFIX}${district}`;
 export const districtSupercupName = (district: string) => `${DISTRICT_SUPERCUP_PREFIX}${district}`;
 
-export type CupKind = "cup" | "supercup" | "districtCup" | "districtSupercup";
+export type CupKind = "cup" | "supercup" | "districtCup" | "districtSupercup" | "europe";
 export const cupKind = (competition: string): CupKind | undefined =>
-  competition === CUP ? "cup" : competition === SUPERCUP ? "supercup" : competition.startsWith(DISTRICT_CUP_PREFIX) ? "districtCup" : competition.startsWith(DISTRICT_SUPERCUP_PREFIX) ? "districtSupercup" : undefined;
+  competition === CUP ? "cup" : competition === SUPERCUP ? "supercup" : competition.startsWith(DISTRICT_CUP_PREFIX) ? "districtCup" : competition.startsWith(DISTRICT_SUPERCUP_PREFIX) ? "districtSupercup" : europeKind(competition) ? "europe" : undefined;
 /** É uma competição a eliminar gerida aqui (sem tabela). */
 export const isCup = (competition: string): boolean => cupKind(competition) !== undefined;
 const districtOfCup = (competition: string): string => competition.slice((competition.startsWith(DISTRICT_CUP_PREFIX) ? DISTRICT_CUP_PREFIX : DISTRICT_SUPERCUP_PREFIX).length);
@@ -50,7 +52,12 @@ export const TIER_NUMBER: Record<Tier, number> = { firstLeague: 0, secondLeague:
 const DRAW: DrawRules = { pairing: "random", advantage: "lowerTier" };
 
 /** A definição de cada tipo de taça: uma só fase a eliminar, a jogo único, com final em campo neutro. */
-export function cupDef(competition: string, lateWaves?: Entrant[][]): CompetitionDef {
+export function cupDef(competition: string, lateWaves?: Entrant[][], params?: Params): CompetitionDef {
+  const eu = europeKind(competition);
+  if (eu) {
+    if (!params) throw new Error(`${competition}: parameters needed`);
+    return europeDef(eu, params);
+  }
   // Taça de Portugal: meias-finais a duas mãos (com prolongamento e penáltis se o agregado ficar empatado); o resto a uma mão
   return { id: competition, stages: [{ kind: "knockout", name: competition, legs: 1, rules: DRAW, finalNeutral: true, ...(competition === CUP ? { semiLegs: 2 as const } : {}), ...(lateWaves ? { lateWaves } : {}) }] };
 }
@@ -257,19 +264,33 @@ const toScheduled = (competition: string, season: number, f: Fixture): Scheduled
 function contextOf(repo: Repository, data: BaseData, params: Params, season: number, competition: string, allocateDates: RunContext["allocateDates"]): RunContext {
   const seed = `${repo.meta("seed") ?? "?"}|${competition}|${season}`;
   const kind = cupKind(competition);
-  const neutralVenue = kind === "districtCup" || kind === "districtSupercup" ? (a: string, b: string) => districtVenue(data, districtOfCup(competition), a, b, new Rng(seed, "venue")) : () => NATIONAL_STADIUM;
+  const neutralVenue = kind === "districtCup" || kind === "districtSupercup" ? (a: string, b: string) => districtVenue(data, districtOfCup(competition), a, b, new Rng(seed, "venue")) : kind === "europe" ? () => undefined : () => NATIONAL_STADIUM;
   return { seed, competition, season, params, idPrefix: `e${season}-${slug(competition)}`, allocateDates, neutralVenue };
 }
 const noDates: RunContext["allocateDates"] = () => {
   throw new Error("The cup dates are already fixed");
 };
 
+/** Datas pedidas por uma competição: as europeias saem do calendário dos parâmetros (uma lista por fase); as taças já têm as suas fixas. */
+function competitionDates(params: Params, season: number, competition: string, fallback: RunContext["allocateDates"]): RunContext["allocateDates"] {
+  const eu = europeKind(competition);
+  if (!eu) return fallback;
+  const dates = europeDates(params, season, eu);
+  return (stage, count) => {
+    const pool = stage === 0 ? dates.leaguePhase : dates.knockout;
+    // a última data do 2.º bloco é a final; as jornadas da fase de liga que sobrarem não se usam
+    if (stage === 0) return pool.slice(0, count);
+    if (pool.length !== count) throw new Error(`${competition}: ${count} dates needed, ${pool.length} planned`);
+    return pool;
+  };
+}
+
 function begin(repo: Repository, data: BaseData, params: Params, season: number, competition: string, entrants: Entrant[], lateWaves: Entrant[][], dates: IsoDate[]): void {
-  const def = cupDef(competition, lateWaves);
-  const ctx = contextOf(repo, data, params, season, competition, (_stage, count) => {
+  const def = cupDef(competition, lateWaves, params);
+  const ctx = contextOf(repo, data, params, season, competition, competitionDates(params, season, competition, (_stage, count) => {
     if (dates.length !== count) throw new Error(`${competition}: ${count} dates needed, ${dates.length} planned`);
     return dates;
-  });
+  }));
   const step = startRun(def, entrants, ctx);
   saveRun(repo, step.state);
   if (step.fixtures.length > 0) repo.saveCalendar(step.fixtures.map((f) => toScheduled(competition, season, f)), []);
@@ -291,11 +312,24 @@ export function ensureCompetitions(repo: Repository, data: BaseData, params: Par
     for (const [district, p] of Object.entries(supers).sort(([a], [b]) => (a < b ? -1 : 1))) if (p.every(known)) begin(repo, data, params, season, districtSupercupName(district), seeded(p), [], [plan.districtSupercup]);
     const [first = [], ...late] = nationalEntrants(repo, data, params, season);
     begin(repo, data, params, season, CUP, first, late, plan.national);
+    // competições europeias: só com clubes estrangeiros suficientes (saves antigos não têm)
+    const previous = previousPremierTable(repo, data, season);
+    const europe = europeEntrants(repo, data, params, season, season > 1 ? cupResult(repo, season - 1, CUP).winner : undefined, previous);
+    if (europe) for (const kind of EUROPEAN) begin(repo, data, params, season, EUROPE_NAME[kind], europe[kind], [], []);
     for (const [district, members] of districtMembers(data)) {
       const dates = plan.district[district];
       if (dates) begin(repo, data, params, season, districtCupName(district), rankedEntrants(members), [], dates);
     }
   });
+}
+
+/** Classificação final da Primeira Liga da época anterior (ids dos clubes), se existe. */
+function previousPremierTable(repo: Repository, data: BaseData, season: number): string[] | undefined {
+  if (season <= 1) return undefined;
+  const league = data.clubs.find((c) => c.tier === "firstLeague")?.league;
+  if (!league) return undefined;
+  const rows = [...repo.standings(league, season - 1)].sort((a, b) => b.points - a.points || (b.scoredGoals - b.concededGoals) - (a.scoredGoals - a.concededGoals) || b.scoredGoals - a.scoredGoals);
+  return rows.length > 0 ? rows.map((r) => r.club) : undefined;
 }
 
 // ---------- avanço ----------
@@ -317,9 +351,9 @@ export function advanceCompetitions(repo: Repository, data: BaseData, params: Pa
     const run = readRun(repo, season, competition);
     const kind = cupKind(competition);
     if (!run || run.done || !kind) continue;
-    const ctx = contextOf(repo, data, params, season, competition, noDates);
+    const ctx = contextOf(repo, data, params, season, competition, competitionDates(params, season, competition, noDates));
     const before = JSON.stringify(run);
-    const step = stepRun(cupDef(competition), run, results, ctx);
+    const step = stepRun(cupDef(competition, undefined, params), run, results, ctx);
     if (step.events.length === 0 && step.fixtures.length === 0 && JSON.stringify(step.state) === before) continue;
     repo.transaction(() => {
       saveRun(repo, step.state);
@@ -336,6 +370,7 @@ export function advanceCompetitions(repo: Repository, data: BaseData, params: Pa
 /** Prémios por ronda e na final, campeão e surpresas. Corre dentro da transação de quem chama. */
 function announce(repo: Repository, data: BaseData, params: Params, season: number, kind: CupKind, competition: string, run: RunState, events: readonly StageEvent[]): void {
   const today = (repo.meta("date.today") as IsoDate | undefined) ?? createDate(params.calendar.initialYear + season - 1, params.calendar.seasonStartMonth, 1);
+  if (kind === "europe") { announceEurope(repo, data, params, season, europeKind(competition) as EuropeKind, events, today); return; }
   const byId = new Map(data.clubs.map((c) => [c.id, c] as const));
   const district = kind === "districtCup" || kind === "districtSupercup" ? districtOfCup(competition) : undefined;
   const factor = district ? districtFactors(data.cities, params).get(district) ?? 1 : 1;

@@ -2,6 +2,7 @@ import type { Params } from "../config/parameters";
 import type { SearchResult } from "../search/search";
 import type { CompetitionPage } from "../competition/profile";
 import type { CupView, ClubCompetition } from "../competition/cup";
+import type { EuropeView } from "../europe/view";
 import type { CompetitionHistory } from "../competition/history";
 import type { RecentMatch } from "../competition/recent";
 import type { SummaryCompetition, LabMatch, LabLeague } from "../lab/lab";
@@ -350,6 +351,7 @@ export type CityProfileData = {
   incidents: { date: string; season: number; label: string; type: string; regional: boolean; hub?: string }[];
 };
 
+export type { EuropeView };
 export type { SearchResult, SummaryCompetition, LabMatch, LabLeague, CompetitionPage, CupView, ClubCompetition, CompetitionHistory, RecentMatch };
 
 /** O plano de jogo do clube do gamer, pronto para a página Tática. */
@@ -401,6 +403,12 @@ export type EngineRequests = {
   competitionPage: { input: { league: string; season?: number }; output: CompetitionPage | null };
   /** Taça: rondas com resultados (RZ-244). */
   cupView: { input: { competition: string; season?: number }; output: CupView | null };
+  /** Cores de todos os clubes, estrangeiros incluídos (para as amostras). */
+  clubColours: { input: null; output: { id: string; colours: string }[] };
+  /** Competição europeia: tabela da fase de liga e eliminatórias (RZ-246). */
+  europeView: { input: { competition: string; season?: number }; output: EuropeView | null };
+  /** Competições europeias da época atual. */
+  europeCups: { input: null; output: EuropeView[] };
   /** Taças nacionais da época atual. */
   nationalCups: { input: null; output: CupView[] };
   /** Histórico de uma liga ou taça. */

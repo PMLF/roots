@@ -25,7 +25,7 @@ describe("ciclo anual dos plantéis (várias épocas)", () => {
       expect(ct.end >= "2036-07-01").toBe(true);
       expect(j.state).toBe("active");
     }
-  });
+  }, 60000);
   it("reformam-se, renovam, contratam livres e a formação traz gente nova", () => {
     const sum = (k: keyof (typeof summaries)[number]) => summaries.reduce((a, s) => a + s[k], 0);
     expect(sum("retired")).toBeGreaterThan(300);

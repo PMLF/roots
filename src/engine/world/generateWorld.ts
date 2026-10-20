@@ -316,9 +316,8 @@ export function generateWorld(e: WorldInput): WorldBatch {
     const country = foreignById.get(fc.country) as Country;
     const target = m.targetQuality[fc.tier];
     const pseudo = { id: fc.id, name: fc.name, city: "", district: "", tier: fc.tier } as unknown as BaseClub;
-    const squad = { ...m.squad, [fc.tier]: m.foreignLeagues.squad };
-    for (const pos of distributePositions(squad[fc.tier], m.placesByPosition)) {
-      const targetQ = clamp(rng.gauss(target.mean + (country.tradition - 70) / 40, target.deviation), 1, 20);
+    for (const pos of distributePositions(m.foreignLeagues.squad, m.placesByPosition)) {
+      const targetQ = clamp(rng.gauss(fc.quality, target.deviation), 1, 20);
       createPlayer(c, rng, { pos, tier: fc.tier, targetQ, club: pseudo, foreignerP: 0, lod: 2, wageScale: 1, country });
     }
   }

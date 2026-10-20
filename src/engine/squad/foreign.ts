@@ -47,13 +47,14 @@ export function rolloverForeign(repo: Repository, params: Params, o: { season: n
     const size = params.world.foreignLeagues.squad;
     const club = { id: fc.id, name: fc.name, city: "", district: "", tier: fc.tier } as unknown as BaseClub;
     const tq = params.world.targetQuality[fc.tier];
+    const quality = fc.quality ?? tq.mean;
     const wanted = distributePositions(size, params.world.placesByPosition);
     const left = new Map<Position, number>();
     for (const p of kept) left.set(p, (left.get(p) ?? 0) + 1);
     for (const position of wanted) {
       const have = left.get(position) ?? 0;
       if (have > 0) { left.set(position, have - 1); continue; }
-      const kit = createYouth(rng.derive(`youth/${batch.people.length}`), { id: newId(), club, tier: fc.tier, position, targetQuality: clamp(rng.gauss(tq.mean - 0.5, tq.deviation), 1, 20), wageScale: 1, seasonStart: o.seasonStart, years: rng.integer(1, 3), cities: [], districtCities: [], nationality: fc.country, nameFamily: fc.family }, params);
+      const kit = createYouth(rng.derive(`youth/${batch.people.length}`), { id: newId(), club, tier: fc.tier, position, targetQuality: clamp(rng.gauss(quality - 0.5, tq.deviation), 1, 20), wageScale: 1, seasonStart: o.seasonStart, years: rng.integer(1, 3), cities: [], districtCities: [], nationality: fc.country, nameFamily: fc.family }, params);
       batch.people.push(kit.person);
       batch.players.push(kit.player);
       batch.contracts.push(kit.contract);

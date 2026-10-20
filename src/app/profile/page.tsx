@@ -1,10 +1,11 @@
 "use client";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import type { ClubProfileData, CompetitionPage, CupView, CityProfileData, LocalityProfileData, PersonProfileData } from "@/engine/api/contracts";
+import type { ClubProfileData, CompetitionPage, CupView, EuropeView, CityProfileData, LocalityProfileData, PersonProfileData } from "@/engine/api/contracts";
 import { CityProfile } from "@/ui/components/profiles/CityProfile";
 import { ClubProfile } from "@/ui/components/profiles/ClubProfile";
 import { CupProfile } from "@/ui/components/profiles/CupProfile";
+import { EuropeProfile } from "@/ui/components/profiles/EuropeProfile";
 import { CompetitionProfile } from "@/ui/components/profiles/CompetitionProfile";
 import { LocalityProfile } from "@/ui/components/profiles/LocalityProfile";
 import { PersonProfile } from "@/ui/components/profiles/PersonProfile";
@@ -22,7 +23,8 @@ type State =
   | { phase: "locality"; d: LocalityProfileData }
   | { phase: "city"; d: CityProfileData }
   | { phase: "competition"; d: CompetitionPage }
-  | { phase: "cup"; d: CupView };
+  | { phase: "cup"; d: CupView }
+  | { phase: "europe"; d: EuropeView };
 
 function Content() {
   const { t } = useT();
@@ -56,7 +58,11 @@ function Content() {
           if (d) { if (live) setState({ phase: "competition", d }); }
           else {
             const cup = await engine.call("cupView", { competition: id });
-            if (live) setState(cup ? { phase: "cup", d: cup } : { phase: "not-found" });
+            if (cup) { if (live) setState({ phase: "cup", d: cup }); }
+            else {
+              const eu = await engine.call("europeView", { competition: id });
+              if (live) setState(eu ? { phase: "europe", d: eu } : { phase: "not-found" });
+            }
           }
         }
       } catch (e) {
@@ -77,6 +83,7 @@ function Content() {
     case "city": return <CityProfile d={state.d} />;
     case "competition": return <CompetitionProfile d={state.d} />;
     case "cup": return <CupProfile d={state.d} />;
+    case "europe": return <EuropeProfile d={state.d} />;
   }
 }
 

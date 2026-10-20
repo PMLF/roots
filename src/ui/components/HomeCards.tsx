@@ -9,7 +9,7 @@ import { useEngine } from "@/ui/EngineProvider";
 
 const SHORT: Record<RecentMatch["short"], Key> = {
   firstLeague: "tier.short.firstLeague", secondLeague: "tier.short.secondLeague", thirdLeague: "tier.short.thirdLeague", cp: "tier.short.cp", district: "tier.short.district",
-  cup: "comp.short.cup", districtCup: "comp.short.districtCup", supercup: "comp.short.supercup", districtSupercup: "comp.short.districtSupercup", promotion: "comp.short.promotion",
+  cup: "comp.short.cup", districtCup: "comp.short.districtCup", supercup: "comp.short.supercup", districtSupercup: "comp.short.districtSupercup", promotion: "comp.short.promotion", championsLeague: "comp.short.championsLeague", europaLeague: "comp.short.europaLeague", conferenceLeague: "comp.short.conferenceLeague",
 };
 
 /** A posição do clube na liga: ele, os dois de cima e os dois de baixo. */

@@ -220,7 +220,9 @@ describe("fase de grupos", () => {
     }
   });
   it("passam 16 e os confrontos da fase a eliminar não repetem o grupo", () => {
-    const first = res.fixtures.filter((f) => f.stage === 1 && f.round === 1);
+    const stage1 = res.fixtures.filter((f) => f.stage === 1);
+    const firstRound = Math.min(...stage1.map((f) => f.round));
+    const first = stage1.filter((f) => f.round === firstRound);
     expect(first).toHaveLength(8);
     const origin = (c: string) => res.state.entrants[c]!.origin;
     for (const f of first) expect(origin(f.home)).not.toBe(origin(f.away));
@@ -258,6 +260,23 @@ describe("fase de liga (suíça)", () => {
       expect(new Set(clubs).size).toBe(clubs.length);
     }
   });
+  it("Liga Conferência: 6 potes de 6, um adversário de cada pote, 6 jogos, 3 em casa", () => {
+    const es = entrants(36);
+    const def = { kind: "leaguePhase" as const, name: "uecl", pots: 6, perPot: 1 };
+    const edges = leaguePhaseEdges(def, es, new Rng("uecl"));
+    expect(edges).toHaveLength(108);
+    const pot = (c: string) => Math.floor((es.find((e) => e.club === c)!.seed - 1) / 6);
+    for (const e of es) {
+      const own = edges.filter((x) => x.home === e.club || x.away === e.club);
+      expect(own).toHaveLength(6);
+      expect(own.filter((x) => x.home === e.club)).toHaveLength(3);
+      const opp = own.map((x) => (x.home === e.club ? x.away : x.home));
+      expect(new Set(opp).size).toBe(6);
+      for (let p = 0; p < 6; p++) expect(opp.filter((o) => pot(o) === p), `pote ${p}`).toHaveLength(1);
+    }
+    const colour = colourEdges(edges, new Rng("uecl2"));
+    expect(Math.max(...colour) + 1).toBeLessThanOrEqual(7);
+  });
   it("recusa potes que não batem certo", () => {
     expect(() => leaguePhaseEdges(def36, entrants(35), rng)).toThrow();
     expect(() => leaguePhaseEdges({ ...def36, perPot: 3 }, entrants(36), rng)).toThrow();
@@ -284,12 +303,13 @@ describe("fase de liga (suíça)", () => {
     expect(stage0).toHaveLength(144);
     const ko = res.fixtures.filter((f) => f.stage === 1);
     // 1.ª ronda: play-off de 16 clubes = 8 eliminatórias a duas mãos; depois oitavos (16), quartos, meias e final
-    expect(ko.filter((f) => f.round === 1)).toHaveLength(8);
+    const r1 = Math.min(...ko.map((f) => f.round));
+    expect(ko.filter((f) => f.round === r1)).toHaveLength(8);
     expect(ko.filter((f) => f.firstLeg).length).toBe(8 + 8 + 4 + 2);
     const rounds = res.events.filter((e) => e.type === "roundPlayed");
     expect(rounds).toHaveLength(5);
     // os 8 primeiros só entram na segunda ronda
     const top8 = new Set(res.state.outcomes[0]!.ranking.slice(0, 8));
-    expect(ko.filter((f) => f.round <= 2).flatMap((f) => [f.home, f.away]).filter((c) => top8.has(c))).toEqual([]);
+    expect(ko.filter((f) => f.round <= r1 + 1).flatMap((f) => [f.home, f.away]).filter((c) => top8.has(c))).toEqual([]);
   });
 });

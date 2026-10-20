@@ -38,6 +38,8 @@ export function broadcastFee(repo: Repository, data: BaseData, params: Params, s
   if (repo.meta("companies.enabled") !== "1") return undefined;
   const bp = params.broadcast;
   const kind = cupKind(match.competition);
+  // as competições europeias não têm direitos de transmissão no jogo (ainda)
+  if (kind === "europe") return undefined;
   const home = data.clubs.find((c) => c.id === match.home);
   if (!home) return undefined;
   let scope: string;

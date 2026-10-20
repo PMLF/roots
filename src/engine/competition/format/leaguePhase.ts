@@ -17,11 +17,56 @@ export type LeaguePhaseState = { kind: "leaguePhase"; stage: number; clubs: Club
 
 type Edge = { home: ClubId; away: ClubId };
 
+/**
+ * `perPot = 1` (Liga Conferência: 6 potes, um adversário de cada pote, o próprio incluído): cada par de potes liga-se por um
+ * emparelhamento perfeito deslocado, o pote por dentro por outro; como todos acabam com grau par (um por pote), orienta-se
+ * cada percurso fechado (circuito de Euler) e cada clube joga metade em casa e metade fora.
+ */
+function singleEdges(def: LeaguePhaseStage, sorted: readonly Entrant[], n: number, rng: Rng): Edge[] {
+  const P = def.pots;
+  if (P % 2 !== 0) throw new Error("League phase: perPot 1 needs an even number of pots");
+  if (n % 2 !== 0) throw new Error("League phase: perPot 1 needs an even number of clubs per pot");
+  const pots = Array.from({ length: P }, (_, i) => rng.derive(`pot${i}`).shuffle(sorted.slice(i * n, (i + 1) * n)).map((e) => e.club));
+  const pairs: [ClubId, ClubId][] = [];
+  for (let i = 0; i < P; i++) {
+    const own = rng.derive(`in${i}`).shuffle(pots[i]!);
+    for (let k = 0; k < n; k += 2) pairs.push([own[k]!, own[k + 1]!]);
+    for (let j = i + 1; j < P; j++) {
+      const shift = rng.derive(`x${i}-${j}`).integer(0, n - 1);
+      for (let a = 0; a < n; a++) pairs.push([pots[i]![a]!, pots[j]![(a + shift) % n]!]);
+    }
+  }
+  // orientação de Euler: percorre cada percurso fechado e a ordem de passagem dá casa → fora
+  const at = new Map<ClubId, number[]>();
+  pairs.forEach(([x, y], i) => { for (const c of [x, y]) at.set(c, [...(at.get(c) ?? []), i]); });
+  const used = new Array<boolean>(pairs.length).fill(false);
+  const edges: Edge[] = [];
+  for (const start of sorted.map((e) => e.club)) {
+    for (;;) {
+      let v = start;
+      let moved = false;
+      for (;;) {
+        const idx = (at.get(v) ?? []).find((i) => !used[i]);
+        if (idx === undefined) break;
+        used[idx] = true;
+        const [x, y] = pairs[idx] as [ClubId, ClubId];
+        const w = x === v ? y : x;
+        edges.push({ home: v, away: w });
+        v = w;
+        moved = true;
+      }
+      if (!moved) break;
+    }
+  }
+  return edges;
+}
+
 export function leaguePhaseEdges(def: LeaguePhaseStage, entrants: readonly Entrant[], rng: Rng): Edge[] {
   const P = def.pots;
   const n = entrants.length / P;
   if (!Number.isInteger(n) || n < 2) throw new Error(`League phase: ${entrants.length} clubs do not split into ${P} pots`);
-  if (def.perPot % 2 !== 0 || def.perPot < 2) throw new Error("League phase: perPot must be even and ≥ 2");
+  if (def.perPot === 1) return singleEdges(def, [...entrants].sort((a, b) => a.seed - b.seed || (a.club < b.club ? -1 : 1)), n, rng);
+  if (def.perPot % 2 !== 0 || def.perPot < 2) throw new Error("League phase: perPot must be even and ≥ 2 (or exactly 1)");
   if (def.perPot > n) throw new Error(`League phase: perPot ${def.perPot} is too many for pots of ${n} clubs`);
   if (def.perPot / 2 > Math.floor((n - 1) / 2)) throw new Error(`League phase: perPot ${def.perPot} is too many to play inside a pot of ${n} clubs`);
   const sorted = [...entrants].sort((a, b) => a.seed - b.seed || (a.club < b.club ? -1 : 1));

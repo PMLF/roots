@@ -1,8 +1,9 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import type { CompetitionPage, CupView, SummaryCompetition } from "@/engine/api/contracts";
+import type { CompetitionPage, CupView, EuropeView, SummaryCompetition } from "@/engine/api/contracts";
 import { Card } from "@/ui/components/Card";
 import { CupRounds } from "@/ui/components/competition/CupRounds";
+import { EuropeTable } from "@/ui/components/competition/EuropeTable";
 import { LeagueTable } from "@/ui/components/competition/LeagueTable";
 import { EntityLink } from "@/ui/components/Link";
 import { save, read } from "@/ui/storage";
@@ -48,6 +49,7 @@ export default function CompetitionsPage() {
   const [isOpen, setIsOpen] = useState(false);
   const selector = useRef<HTMLDivElement>(null);
   const [cups, setCups] = useState<CupView[]>([]);
+  const [europe, setEurope] = useState<EuropeView[]>([]);
   const [pages, setPages] = useState<Record<string, CompetitionPage>>({});
   /** Época escolhida; sem escolha mostra-se a época atual (o momento de agora). */
   const [season, setSeason] = useState<number | undefined>(undefined);
@@ -75,6 +77,7 @@ export default function CompetitionsPage() {
     if (!engine || !list) return;
     let live = true;
     engine.call("nationalCups", null).then((c) => live && setCups(c)).catch(() => undefined);
+    engine.call("europeCups", null).then((c) => live && setEurope(c)).catch(() => undefined);
     return () => { live = false; };
   }, [engine, list]);
   useEffect(() => {
@@ -154,6 +157,12 @@ export default function CompetitionsPage() {
               <Card key={c.competition} title={<EntityLink k="competition" id={c.competition}>{c.competition}</EntityLink>}>
                 <p className="suave cartao-sub">{c.done && c.winner ? t("cup.wonBy", { club: c.winner.name }) : c.seasonLabel}</p>
                 <CupRounds cup={c} compact />
+              </Card>
+            ))}
+            {europe.map((c) => (
+              <Card key={c.competition} title={<EntityLink k="competition" id={c.competition}>{c.competition}</EntityLink>}>
+                <p className="suave cartao-sub">{c.done && c.winner ? t("cup.wonBy", { club: c.winner.name }) : c.seasonLabel}</p>
+                {c.rounds.length > 0 ? <CupRounds cup={c as CupView} compact /> : <EuropeTable view={c} compact />}
               </Card>
             ))}
             {visible.map((c) => {

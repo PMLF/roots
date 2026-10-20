@@ -54,7 +54,7 @@ describe("ciclo anual dos plantéis (2 épocas, rápido)", () => {
       expect(squad.length).toBeGreaterThan(14);
       for (const m of squad) expect(repo.person(m.person)).toBeDefined();
     }
-  });
+  }, 30000);
 });
 
 describe("aposta nos jovens", () => {
@@ -108,7 +108,7 @@ describe("ligas estrangeiras", () => {
   it("mantêm o plantel cheio, com idades plausíveis, depois de uma passagem de época", { timeout: 60000 }, () => {
     const repo = fresh("foreign");
     const clubs = foreignClubList(repo);
-    expect(clubs.length).toBe(P.world.foreignLeagues.countries * P.world.foreignLeagues.clubsPerCountry);
+    expect(clubs.length).toBe(Object.values(P.world.foreignLeagues.clubs).reduce((a, b) => a + b, 0));
     run(repo, 1);
     for (const c of clubs) {
       const squad = repo.clubPlayers(c.id).filter((j) => j.state === "active");

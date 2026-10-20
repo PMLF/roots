@@ -1372,5 +1372,18 @@
   "home.atHome": "Home",
   "home.away": "Away",
   "home.homeShort": "H",
-  "home.awayShort": "A"
+  "home.awayShort": "A",
+  "zone.direct": "Round of 16",
+  "zone.playoff": "Play-off",
+  "zone.out": "Eliminated",
+  "europe.kind": "European competition",
+  "europe.leaguePhase": "League phase",
+  "europe.knockout": "Knockout phase",
+  "europe.matchdays": "Matchday {played} of {total}",
+  "cup.round.playoff": "Play-off",
+  "comp.short.championsLeague": "UCL",
+  "comp.short.europaLeague": "UEL",
+  "comp.short.conferenceLeague": "UECL",
+  "clubCompetitions.outLeaguePhase": "Out in the league phase · {n}",
+  "clubCompetitions.leaguePhase": "League phase · {n} of {of}"
 }

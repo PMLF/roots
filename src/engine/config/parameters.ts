@@ -158,6 +158,28 @@ export type Params = {
    * Taças (RZ-140/141/142), como na vida real: as rondas jogam-se em fins de semana de taça (domingo), em que as ligas
    * respetivas param; as finais, em estádios neutros depois de tudo; as supertaças, antes de começarem as ligas.
    */
+  /**
+   * Competições europeias (RZ-902, formato de 2024/25): Liga dos Campeões, Liga Europa e Liga Conferência, cada uma com 36 clubes,
+   * fase de liga «suíça» (8 jogos; 6 na Conferência), os 8 primeiros diretos aos oitavos, 9.º-24.º num play-off a duas mãos,
+   * oitavos, quartos e meias a duas mãos e final a uma só, em campo neutro. Só a 2.ª mão (ou a final) tem prolongamento e penáltis.
+   */
+  europe: {
+    /** Clubes por competição. */
+    size: number;
+    /** Lugares de Portugal: 1.º… da Primeira Liga na Liga dos Campeões; os seguintes (e o vencedor da Taça) na Liga Europa, depois na Conferência. */
+    portugal: { championsLeague: number; europaLeague: number; conferenceLeague: number };
+    /** Datas: a 1.ª jornada é o primeiro dia da semana de cada competição a partir de `anchor`; as seguintes, em semanas desde essa. */
+    calendar: { anchor: { month: number; day: number }; leaguePhaseWeeks: number[]; knockoutWeeks: number[] };
+    competitions: Record<"championsLeague" | "europaLeague" | "conferenceLeague", {
+      pots: number; perPot: number;
+      /** 0 = domingo … 6 = sábado. */ weekday: number;
+      finalWeek: number; finalWeekday: number;
+      /** Prémios em euros: participação, por vitória e por empate na fase de liga, bónus dos 8 primeiros, por eliminatória ultrapassada (play-off, oitavos, quartos, meias), finalista e vencedor. */
+      prizes: { participation: number; win: number; draw: number; topEight: number; rounds: [number, number, number, number]; finalist: number; winner: number };
+    }>;
+    /** Quanto a força do plantel (qualidade média do onze) vale ao ordenar clubes para os potes. */
+    ratingNoise: number;
+  };
   cups: {
     cup: {
       /** Vaga em que entra cada escalão (0 = logo na primeira ronda; as seguintes entram mais tarde). As distritais só entram com o vencedor da taça e o campeão do distrito. */
@@ -441,7 +463,7 @@ export type Params = {
     free: number;
     staffPerClub: number;
     /** Ligas estrangeiras inventadas (RZ-230): quantos países, quantos clubes por país e jogadores por clube. */
-    foreignLeagues: { countries: number; clubsPerCountry: number; squad: number };
+    foreignLeagues: { /** Clubes inventados por país (id do país → n.º de clubes): são o conjunto de onde saem os participantes das competições europeias. */ clubs: Record<string, number>; squad: number; /** Amplitude (em pontos de qualidade) entre o melhor e o pior clube de um país. */ rankSpread: number };
     /** Olheiros por clube no início, por escalão: sobe com a reputação (entre mínimo e máximo); `chance` = probabilidade de ter algum (distritais). */
     scouts: Record<Tier, { min: number; max: number; chance: number }>;
     /** Pessoas fora dos plantéis (GERACAO_MUNDO §1). */
@@ -748,6 +770,17 @@ export const DEFAULT_PARAMETERS: Params = {
     simultaneousFinalRounds: 1,
     cpFinalPhase: { seriesAfterDays: 7, roundsBetweenDays: 7 },
   },
+  europe: {
+    size: 36,
+    portugal: { championsLeague: 2, europaLeague: 2, conferenceLeague: 1 },
+    calendar: { anchor: { month: 9, day: 15 }, leaguePhaseWeeks: [0, 2, 5, 7, 10, 12, 18, 19, 20, 21], knockoutWeeks: [22, 23, 25, 26, 29, 30, 32, 33] },
+    competitions: {
+      championsLeague: { pots: 4, perPot: 2, weekday: 3, finalWeek: 37, finalWeekday: 6, prizes: { participation: 4_000_000, win: 500_000, draw: 170_000, topEight: 1_500_000, rounds: [800_000, 1_200_000, 1_800_000, 2_600_000], finalist: 3_500_000, winner: 5_500_000 } },
+      europaLeague: { pots: 4, perPot: 2, weekday: 4, finalWeek: 35, finalWeekday: 3, prizes: { participation: 1_800_000, win: 220_000, draw: 75_000, topEight: 600_000, rounds: [350_000, 500_000, 750_000, 1_100_000], finalist: 1_500_000, winner: 2_300_000 } },
+      conferenceLeague: { pots: 6, perPot: 1, weekday: 4, finalWeek: 36, finalWeekday: 3, prizes: { participation: 900_000, win: 110_000, draw: 40_000, topEight: 300_000, rounds: [180_000, 250_000, 380_000, 550_000], finalist: 750_000, winner: 1_150_000 } },
+    },
+    ratingNoise: 0.15,
+  },
   cups: {
     cup: { wave: { district: 0, cp: 0, thirdLeague: 1, secondLeague: 1, firstLeague: 2 }, firstRound: { month: 9, day: 12 }, lastRound: { month: 5, day: 3 }, finalDaysAfterLeagues: 5, qualifiersPerDistrictWithoutHistory: 2 },
     supercupDaysBeforeFirstRound: 6,
@@ -935,7 +968,11 @@ export const DEFAULT_PARAMETERS: Params = {
     placesByPosition: { GK: 3, RB: 2, CB: 4, LB: 2, DM: 2, CM: 3, AM: 2, RW: 2, LW: 2, ST: 3 },
     free: 3000,
     staffPerClub: 6,
-    foreignLeagues: { countries: 8, clubsPerCountry: 6, squad: 18 },
+    foreignLeagues: {
+      clubs: { gb: 11, es: 10, de: 9, it: 9, fr: 9, nl: 7, tr: 6, be: 5, gr: 4, hr: 4, rs: 4, ch: 4, se: 4, dk: 4, pl: 4, ua: 4, ro: 4, cz: 3, no: 3, ie: 2, bg: 2, ba: 2 },
+      squad: 22,
+      rankSpread: 4,
+    },
     scouts: { firstLeague: { min: 3, max: 6, chance: 1 }, secondLeague: { min: 2, max: 4, chance: 1 }, thirdLeague: { min: 1, max: 2, chance: 1 }, cp: { min: 1, max: 1, chance: 0.8 }, district: { min: 1, max: 1, chance: 0.4 } },
     others: { businesspeople: 500, fansOfficials: 400, agents: 150, referees: 250, journalists: 200, freeStaff: 500 },
     wage: { average: { firstLeague: 11000, secondLeague: 4200, thirdLeague: 1600, cp: 800, district: 280 }, elasticity: 0.22, yearsContractMin: 1, yearsContractMax: 4 },
@@ -1118,6 +1155,11 @@ export function validateParameters(p: Params): string[] {
   const cup = p.cups.cup;
   for (const [tier, w] of Object.entries(cup.wave)) if (!Number.isInteger(w) || w < 0 || w > 2) errors.push(`cups.cup.wave.${tier}: vaga entre 0 e 2`);
   if (!(cup.finalDaysAfterLeagues >= 1) || !(cup.qualifiersPerDistrictWithoutHistory >= 1)) errors.push("cups.cup: finalDaysAfterLeagues ≥ 1 e qualifiersPerDistrictWithoutHistory ≥ 1");
+  const eu = p.europe;
+  if (!(eu.size % eu.competitions.conferenceLeague.pots === 0 && eu.size % eu.competitions.championsLeague.pots === 0)) errors.push("europe.size tem de dividir pelos potes");
+  if (eu.portugal.championsLeague + eu.portugal.europaLeague + eu.portugal.conferenceLeague > 8) errors.push("europe.portugal: lugares a mais");
+  if (eu.calendar.knockoutWeeks.length !== 8 || eu.calendar.leaguePhaseWeeks.length < 9) errors.push("europe.calendar: 8 semanas de eliminatórias (play-off, oitavos, quartos e meias a duas mãos) e pelo menos 9 de fase de liga");
+  if (!(eu.calendar.knockoutWeeks.every((w, i, a) => i === 0 || w > (a[i - 1] as number)) && eu.calendar.leaguePhaseWeeks.every((w, i, a) => i === 0 || w > (a[i - 1] as number)) && (eu.calendar.leaguePhaseWeeks.at(-1) as number) < (eu.calendar.knockoutWeeks[0] as number))) errors.push("europe.calendar: semanas crescentes e a fase de liga antes das eliminatórias");
   if (!(p.cups.supercupDaysBeforeFirstRound >= 1) || !(p.cups.districtCup.finalDaysAfterDistrictsEnd >= 1) || !(p.cups.minRestDays >= 1)) errors.push("cups: intervalos ≥ 1 dia");
   if (!(p.cups.nationalStadium.capacity > 0)) errors.push("cups.nationalStadium.capacity > 0");
   if (c.simultaneousFinalRounds < 0) errors.push("calendario: jornadasFinaisSimultaneas ≥ 0");
@@ -1192,6 +1234,7 @@ export function validateParameters(p: Params): string[] {
   for (const [tier, q] of Object.entries(m.targetQuality)) if (!(q.mean >= 1 && q.mean <= 20 && q.deviation > 0)) errors.push(`world.targetQuality.${tier} inválida`);
   if (!(m.stars.pointsPerStar > 0 && m.stars.centre >= 0.5 && m.stars.centre <= 5)) errors.push("world.stars inválido");
   for (const [tier, n] of Object.entries(m.squad)) if (n < 16) errors.push(`world.squad.${tier} ≥ 16`);
+  if (!(m.foreignLeagues.squad >= 18 && m.foreignLeagues.rankSpread >= 0 && Object.values(m.foreignLeagues.clubs).every((n) => Number.isInteger(n) && n >= 1))) errors.push("world.foreignLeagues inválido (plantel ≥ 18, clubes ≥ 1 por país)");
   if (Object.values(m.placesByPosition).some((n) => n < 1)) errors.push("mundo.lugaresPorPosicao: pelo menos 1 por posição");
   if (Object.values(m.wage.average).some((x) => !(x > 0)) || m.wage.yearsContractMin < 1 || m.wage.yearsContractMax < m.wage.yearsContractMin) errors.push("mundo.salario inválido");
   if (!(m.age.min < m.age.max && m.age.min >= 15)) errors.push("mundo.idade: 15 ≤ min < max");

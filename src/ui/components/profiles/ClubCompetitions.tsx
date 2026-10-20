@@ -23,6 +23,8 @@ export function ClubCompetitions({ club }: { club: string }) {
     if (c.kind === "league") return c.position ? <b>{t("club.place", { n: c.position })}{c.of ? <small className="suave"> / {c.of}</small> : null}</b> : "—";
     if (c.status === "champion") return <b>{t("clubCompetitions.champion")}</b>;
     if (c.status === "runnerUp") return <b>{t("clubCompetitions.runnerUp")}</b>;
+    if (c.position && c.status === "out" && !c.round) return <span className="suave">{t("clubCompetitions.outLeaguePhase", { n: c.position })}</span>;
+    if (c.position && c.status === "alive" && !c.round) return <b>{t("clubCompetitions.leaguePhase", { n: c.position, of: c.of ?? 36 })}</b>;
     if (c.status === "waiting" || !c.round) return <span className="suave">{t("clubCompetitions.waiting")}</span>;
     const name = roundName({ key: c.round.key, n: c.round.n });
     return c.status === "out" ? <span className="suave">{t("clubCompetitions.out", { round: name })}</span> : <b>{name}</b>;

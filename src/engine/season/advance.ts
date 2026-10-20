@@ -28,6 +28,7 @@ import { isInSecondDistrict } from "./districts";
 import { CP_FINAL_COMPETITION, generateCpFinal, generateCpFinalSemi } from "./cpFinalPhase";
 import { advanceCompetitions } from "./competitions";
 import { NATIONAL_STADIUM, venueStadium, type Stadium } from "./venues";
+import { isForeignClub } from "../world/foreign";
 import { closeSeason, generatePromotionPhase, type SeasonSummary } from "./closeSeason";
 import { playersForm } from "./fitness";
 import { rivalEvent, rivalReason } from "./rivals";
@@ -109,8 +110,8 @@ export function zonesOf(data: BaseData, params: Params, club: string): { promote
 }
 
 /** Cores (texto dos dados) dos clubes pedidos. */
-export function coloursOf(data: { clubs: readonly { id: string; colours: string }[] }, ids: Iterable<string>): Record<string, string> {
-  const por = new Map(data.clubs.map((c) => [c.id, c.colours] as const));
+export function coloursOf(data: { clubs: readonly { id: string; colours: string }[]; foreignClubs?: readonly { id: string; colours: string }[] }, ids: Iterable<string>): Record<string, string> {
+  const por = new Map([...data.clubs, ...(data.foreignClubs ?? [])].map((c) => [c.id, c.colours] as const));
   const out: Record<string, string> = {};
   for (const id of ids) { const c = por.get(id); if (c) out[id] = c; }
   return out;
@@ -133,11 +134,12 @@ export const inputFlags = (g: MatchFlags): { knockout?: true; neutral?: true } =
  * clube `venue` e a receita reparte-se pelos dois clubes (`shared`).
  */
 export function matchTicket(data: BaseData, params: Params, home: string, away: string, competition: string, flags: MatchFlags = {}): { attendance: number; revenue: number; club: BaseClub; /** O estádio onde se joga. */ stadium: Stadium; shared?: [BaseClub, BaseClub] } | undefined {
-  const cc = data.clubs.find((x) => x.id === home);
-  const cf = data.clubs.find((x) => x.id === away);
+  const club = (id: string) => data.clubs.find((x) => x.id === id) ?? data.foreignClubs?.find((x) => x.id === id);
+  const cc = club(home);
+  const cf = club(away);
   if (!cc || !cf) return undefined;
   const neutral = flags.neutral && flags.venue ? venueStadium(data, params, flags.venue) : undefined;
-  const stadium: Stadium = neutral ?? { name: cc.stadium.name, locality: cc.locality, capacity: cc.stadium.capacity };
+  const stadium: Stadium = neutral ?? { name: cc.stadium.name, locality: cc.locality || cc.name, capacity: cc.stadium.capacity };
   const hostCity = flags.neutral && flags.venue && flags.venue !== NATIONAL_STADIUM ? data.clubs.find((x) => x.id === flags.venue)?.city : cc.city;
   const b = matchAttendance({ home: neutral ? { ...cc, stadium: { ...cc.stadium, name: neutral.name, capacity: neutral.capacity } } : cc, away: cf, footballCulture: data.cities.find((x) => x.id === hostCity)?.footballCulture ?? 50, final: competition === CP_FINAL_COMPETITION || !!flags.neutral }, params);
   return { ...b, club: cc, stadium, ...(flags.neutral ? { shared: [cc, cf] as [BaseClub, BaseClub] } : {}) };
@@ -145,6 +147,8 @@ export function matchTicket(data: BaseData, params: Params, home: string, away: 
 
 /** Lança a receita de bilheteira nas tesourarias: tudo ao clube da casa ou, em campo neutro, metade a cada um. */
 export function postTicketing(repo: Repository, ticket: NonNullable<ReturnType<typeof matchTicket>>): void {
+  // os clubes estrangeiros não têm finanças no jogo
+  if (isForeignClub(ticket.club.id)) return;
   if (!ticket.shared) return post(repo, ticket.club, "ticketing", ticket.revenue);
   const half = Math.floor(ticket.revenue / 2);
   post(repo, ticket.shared[0], "ticketing", ticket.revenue - half);
@@ -167,7 +171,7 @@ export function advanceDay(repo: Repository, base: BaseData, params: Params, gam
   const data = seasonData(repo, base);
   const { today, season } = prepareSeason(repo, data, params);
   const seed = repo.meta("seed") ?? "?";
-  const clubName = new Map(data.clubs.map((c) => [c.id, c.name] as const));
+  const clubName = new Map([...data.clubs, ...(data.foreignClubs ?? [])].map((c) => [c.id, c.name] as const));
   const personName = (id: string) => repo.publicPerson(id)?.sportingName ?? id;
   return repo.transaction(() => {
     ensureBudgets(repo, data, params, season);

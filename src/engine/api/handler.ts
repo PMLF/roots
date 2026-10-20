@@ -37,6 +37,8 @@ import { INJURY_EVENT } from "../injuries/state";
 import { cityProfile } from "../city/profile";
 import { competitionPage } from "../competition/profile";
 import { cupView, nationalCups, clubCompetitions } from "../competition/cup";
+import { europeView } from "../europe/view";
+import { EUROPEAN, EUROPE_NAME } from "../europe/europe";
 import { recentMatches } from "../competition/recent";
 import { competitionHistory } from "../competition/history";
 import { reputationLevel } from "../club/reputation";
@@ -97,6 +99,10 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     case "clubs": {
       const { data } = await context(servicos);
       return data.clubs.map((c): SummaryClub => ({ id: c.id, name: c.name, league: c.league, colours: c.colours }));
+    }
+    case "clubColours": {
+      const { data } = await context(servicos);
+      return [...data.clubs, ...(data.foreignClubs ?? [])].map((c) => ({ id: c.id, colours: c.colours }));
     }
     case "worldState": {
       const { repository, data } = await context(servicos);
@@ -281,6 +287,14 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     case "cupView": {
       const { repository, data, params } = await context(servicos);
       return cupView(repository, data, params, m.input.competition, m.input.season) ?? null;
+    }
+    case "europeView": {
+      const { repository, data, params } = await context(servicos);
+      return europeView(repository, data, params, m.input.competition, m.input.season) ?? null;
+    }
+    case "europeCups": {
+      const { repository, data, params } = await context(servicos);
+      return EUROPEAN.flatMap((k) => europeView(repository, data, params, EUROPE_NAME[k]) ?? []);
     }
     case "nationalCups": {
       const { repository, data, params } = await context(servicos);

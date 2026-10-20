@@ -10,7 +10,7 @@ const listeners = new Set<() => void>();
 
 function fetchClubColours(engine: ClientEngine) {
   if (cache || pendingRequest) return;
-  pendingRequest = engine.call("clubs", null).then((cs) => {
+  pendingRequest = engine.call("clubColours", null).then((cs) => {
     cache = new Map(cs.map((c) => [c.id, c.colours] as const));
     pendingRequest = undefined;
     listeners.forEach((f) => f());
