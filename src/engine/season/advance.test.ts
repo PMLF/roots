@@ -158,8 +158,8 @@ describe("plano de jogo", () => {
     await expect(handle({ id: 6, type: "savePlan", input: { tactic: { ...p.tactic, formation: "4-4-2" }, lineup: pick } }, s)).rejects.toThrow();
     await expect(handle({ id: 7, type: "savePlan", input: { tactic: { ...p.tactic, intensity: 9 as never } } }, s)).rejects.toThrow();
     await expect(handle({ id: 61, type: "savePlan", input: { tactic: p.tactic, lineup: pick, bench: [pick[0]!.player] } }, s)).rejects.toThrow(/onze e no banco/);
-    const fresh = await handle({ id: 8, type: "savePlan", input: { tactic: { ...p.tactic, style: "direct", tempo: 5 }, lineup: pick, bench } }, s);
-    expect(fresh.tactic).toMatchObject({ style: "direct", tempo: 5 });
+    const fresh = await handle({ id: 8, type: "savePlan", input: { tactic: { ...p.tactic, directness: 5, intensity: 5 }, lineup: pick, bench } }, s);
+    expect(fresh.tactic).toMatchObject({ directness: 5, intensity: 5 });
     expect(fresh.bench).toEqual(bench);
     expect(fresh.lineup.map((o) => o.player)).toEqual(pick.map((o) => o.player));
     // um onze incompleto guarda-se (a montar) mas não se confirma

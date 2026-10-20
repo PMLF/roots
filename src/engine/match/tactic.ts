@@ -6,19 +6,22 @@ import { Rng, clamp } from "../random/rng";
 import type { Params } from "../config/parameters";
 import type { Personality } from "../personality/generate";
 import { lineupWithValue, type LineupCandidate } from "./team";
-import { BASE, STYLES, FORMATION_IDS, FORMATIONS, formationLines } from "./formations";
-import type { MatchTeam, Style, FormationId, Level } from "./types";
+import { BASE, FORMATION_IDS, FORMATIONS, formationLines } from "./formations";
+import type { Area, MatchTeam, FormationId, Level } from "./types";
 
 // ---------- treinador
 
 export type TacticalProfile = {
   /** Formações favoritas, da preferida para a menos preferida. */
   formations: FormationId[];
-  style: Style;
   intensity: Level;
-  line: Level;
-  tempo: Level;
+  mentality: Level;
   fairPlay: Level;
+  urgency: Level;
+  directness: Level;
+  shooting: Level;
+  line: Level;
+  area: Area;
   /** 0 = teimoso (insiste nas favoritas), 1 = adapta-se ao plantel. */
   flexibility: number;
 };
@@ -56,22 +59,19 @@ export function coachProfile(seed: string, personId: string, personality: Person
     formations.push(f);
     free.splice(free.indexOf(f), 1);
   }
-  const style = chooseWeighted(rng, STYLES, (e) => {
-    switch (e) {
-      case "beautiful": return 0.6 + personality.vanity / 12 + personality.patience / 20;
-      case "direct": return 0.6 + (20 - personality.patience) / 14 + personality.ambition / 30;
-      case "counterAttack": return 0.4 + (20 - personality.ambition) / 16 + (20 - personality.vanity) / 30;
-      default: return 1.2;
-    }
-  });
   const flexibility = clamp(0.5 * (tacticQuality / 20) + 0.5 * (1 - personality.vanity / 20) + rng.gauss(0, 0.05), 0, 1);
   return {
     formations,
-    style,
-    intensity: level(3 + (personality.ambition - 10) / 5 + rng.gauss(0, 0.6)),
+    intensity: level(3 + (personality.ambition - 10) / 5 + (10 - personality.patience) / 12 + rng.gauss(0, 0.6)),
+    mentality: level(3 + (personality.ambition - 10) / 6 + (personality.vanity - 10) / 12 + rng.gauss(0, 0.6)),
+    // 5 = super corretos: o pavio curto e o pouco íntegro jogam duro
+    fairPlay: level(3 - (personality.temperament - 10) / 5 + (personality.integrity - 10) / 10 + rng.gauss(0, 0.5)),
+    urgency: level(3 + (personality.patience - 10) / 8 + rng.gauss(0, 0.6)),
+    // paciente e vaidoso: toques curtos; impaciente: bola na frente
+    directness: level(3 + (10 - personality.patience) / 5 - (personality.vanity - 10) / 12 + rng.gauss(0, 0.6)),
+    shooting: level(3 + (personality.ambition - 10) / 8 + (10 - personality.patience) / 12 + rng.gauss(0, 0.6)),
     line: level(3 + (personality.vanity + personality.ambition - 20) / 12 + rng.gauss(0, 0.6)),
-    tempo: level(3 + (10 - personality.patience) / 6 + rng.gauss(0, 0.6)),
-    fairPlay: level(3 + (personality.temperament - 10) / 5 - (personality.integrity - 10) / 10 + rng.gauss(0, 0.5)),
+    area: chooseWeighted(rng, ["wings", "left", "right", "centre", "any"] as const, (a) => (a === "any" ? 2 : a === "wings" ? 1.2 : 0.7)),
     flexibility,
   };
 }
@@ -92,5 +92,5 @@ export function chooseTeam(club: string, candidates: readonly LineupCandidate[],
     if (!best || u > best.u) best = { f, lineup, u };
   }
   const m = best as NonNullable<typeof best>;
-  return { club, lineup: m.lineup, tactic: { formation: m.f, style: profile.style, intensity: profile.intensity, line: profile.line, tempo: profile.tempo, fairPlay: profile.fairPlay } };
+  return { club, lineup: m.lineup, tactic: { formation: m.f, intensity: profile.intensity, mentality: profile.mentality, fairPlay: profile.fairPlay, urgency: profile.urgency, directness: profile.directness, shooting: profile.shooting, line: profile.line, area: profile.area } };
 }

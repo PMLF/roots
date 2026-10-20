@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 
 /** Bloco de informação de uma ficha: título e conteúdo. `larga` ocupa a linha toda; `dev` marca informação só de developer. */
-export function Card({ title, children, wide, dev }: { title?: ReactNode; children: ReactNode; wide?: boolean; dev?: boolean }) {
+export function Card({ title, children, wide, dev, className }: { title?: ReactNode; children: ReactNode; wide?: boolean; dev?: boolean; className?: string }) {
   return (
-    <section className={`cartao${wide ? " larga" : ""}${dev ? " dev" : ""}`}>
+    <section className={`cartao${wide ? " larga" : ""}${dev ? " dev" : ""}${className ? ` ${className}` : ""}`}>
       {title !== undefined && <h2>{title}</h2>}
       {children}
     </section>

@@ -551,6 +551,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .estat-nome { text-align: center; color: var(--suave, inherit); }
 .estat-barra { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: color-mix(in srgb, currentColor 14%, transparent); overflow: hidden; }
 .estat-barra i { display: block; height: 100%; background: color-mix(in srgb, currentColor 55%, transparent); }
+.popup.tatica-jogo { width: min(94vw, 640px); }
 .tatica-jogo .formulario { display: grid; gap: 8px; }
 button.dev { border-style: dashed; }
 .prematch-cabecalho { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; justify-content: space-between; }
@@ -941,15 +942,50 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .cartao-alto .acoes { margin: 8px 0 0; }
 
 /* Ecrã de táticas (RZ-248): campo em vetor com os cartões dos jogadores */
-.tatica-grelha { display: grid; grid-template-columns: minmax(300px, 380px) minmax(0, 1fr); gap: 14px; align-items: start; grid-column: 1 / -1; }
-@media (max-width: 960px) { .tatica-grelha { grid-template-columns: 1fr; } }
+/* Tática (RZ-249): opções em cima, em horizontal; campo e plantel lado a lado com a mesma altura, a tabela a rolar por dentro */
+.tatica-pagina { align-content: start; gap: 12px; }
+.tatica-proximo { grid-column: 1 / -1; margin: 0; font-size: 14px; }
+.tatica-pagina .cartao { padding-block: 12px 14px; }
+.tatica-aviso { margin: 8px 0 0; font-size: 12px; }
+.opcoes-tatica { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 20px; }
+.opcao-tatica { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; font-size: 13px; align-content: start; }
+.opcao-tatica-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; min-width: 0; }
+.opcao-tatica-nome { color: var(--suave); font-size: 12px; white-space: nowrap; }
+.opcao-tatica-valor { font-weight: 600; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opcao-tatica-passos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 3px; }
+.opcao-tatica .passo { height: 14px; min-height: 0; padding: 0; border: 0; border-radius: 3px; background: var(--linha); cursor: pointer; transition: background-color 120ms ease-out, transform 120ms ease-out; }
+.opcao-tatica .passo.cheio { background: color-mix(in srgb, var(--destaque) 45%, var(--linha)); }
+.opcao-tatica .passo.atual { background: var(--destaque); }
+.opcao-tatica .passo:hover:not(:disabled) { transform: scaleY(1.25); }
+.opcao-tatica .passo:focus-visible, .opcao-tatica .area:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+.opcao-tatica-extremos { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--suave); }
+.opcao-tatica-extremos > span { min-width: 0; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opcao-tatica-extremos > span:last-child { text-align: right; }
+.opcao-tatica-areas { display: flex; flex-wrap: wrap; gap: 4px; }
+.opcao-tatica .area { min-height: 0; padding: 2px 9px; font-size: 12px; line-height: 1.5; border-radius: 999px; border: 1px solid var(--linha-forte); background: none; color: inherit; cursor: pointer; }
+.opcao-tatica .area.atual { background: var(--destaque); border-color: var(--destaque); color: var(--fundo); font-weight: 600; }
+.opcao-formacao select { width: 100%; }
+@media (pointer: coarse) { .opcao-tatica .passo { height: 26px; } .opcao-tatica .area { padding-block: 6px; } }
+.tatica-grelha { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 14px; align-items: stretch; grid-column: 1 / -1; }
+.tatica-grelha .campo { width: auto; height: clamp(380px, calc(100vh - 420px), 640px); }
+.tatica-plantel { display: flex; flex-direction: column; min-height: 0; }
+.tatica-plantel > p { margin: 0 0 6px; font-size: 12px; }
+.tatica-tabela { position: relative; flex: 1 1 auto; min-height: 200px; margin-top: 4px; }
+.tatica-tabela > .tabela-rolar { position: absolute; inset: 0; overflow: auto; border: 1px solid var(--linha); border-radius: var(--r-m); }
+.tabela-onze { overflow: visible; border: 0; border-radius: 0; min-width: 560px; }
+.tabela-onze thead th { position: sticky; top: 0; z-index: 2; background: var(--painel); }
+@media (max-width: 960px) {
+  .tatica-grelha { grid-template-columns: minmax(0, 1fr); }
+  .tatica-grelha .campo { width: 100%; height: auto; }
+  .tatica-tabela { min-height: 420px; }
+}
 .campo { position: relative; width: 100%; aspect-ratio: 2 / 3; border-radius: var(--r-m); overflow: hidden; container-type: inline-size; }
 .campo-desenho { position: absolute; inset: 0; width: 100%; height: 100%; }
 .campo .relva-a { fill: #2f7d3a; }
 .campo .relva-b { fill: #2a7235; }
 .campo .linhas { fill: none; stroke: rgb(255 255 255 / 0.7); stroke-width: 0.5; vector-effect: non-scaling-stroke; }
 .lugar { position: absolute; transform: translate(-50%, -50%); width: 17cqw; min-width: 54px; max-width: 84px; padding: 0; border: 0; background: none; }
-.lugar-cartao { position: relative; display: block; width: 100%; padding: 0; border: 1px solid rgb(0 0 0 / 0.35); border-radius: 6px; overflow: hidden; background: #fff; color: #111; cursor: grab; font: inherit; z-index: 1; }
+.lugar-cartao { position: relative; display: block; width: 100%; padding: 0; text-align: center; user-select: none; -webkit-user-select: none; border: 1px solid rgb(0 0 0 / 0.35); border-radius: 6px; overflow: hidden; background: #fff; color: #111; cursor: grab; font: inherit; z-index: 1; }
 .lugar::before { content: ""; position: absolute; inset: -6px; border-radius: 12px; background: var(--halo, transparent); filter: blur(7px); opacity: 0.95; z-index: 0; }
 .lugar-verde { --halo: #34d058; }
 .lugar-amarelo { --halo: #ffd33d; }
@@ -971,3 +1007,10 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .halo-amostra.verde { background: #34d058; }
 .halo-amostra.amarelo { background: #ffd33d; }
 .halo-amostra.vermelho { background: #ff4d4f; }
+
+/* Cartão pequeno que o rato arrasta ao mover um jogador (RZ-249); fica fora do ecrã só para o browser o fotografar */
+.arrasto-cartao { position: fixed; top: 0; left: -9999px; width: 78px; border: 1px solid rgb(0 0 0 / 0.45); border-radius: 6px; overflow: hidden; background: #fff; color: #111; font: 11px/1.15 system-ui, sans-serif; box-shadow: 0 4px 10px rgb(0 0 0 / 0.35); }
+.arrasto-cartao-cores { display: block; padding: 3px 4px; min-height: 18px; color: #fff; font-weight: 700; text-shadow: 0 0 3px rgb(0 0 0 / 0.9), 0 0 1px #000; }
+.arrasto-cartao-nome { display: block; padding: 2px 3px 3px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lugar.alvo .lugar-cartao, .lugar-vazio.alvo { outline: 2px dashed #fff; outline-offset: 2px; }
+.lugar-vazio.alvo { background: rgb(255 255 255 / 0.28); }

@@ -8,9 +8,9 @@
  */
 import { Rng, clamp } from "../random/rng";
 import type { Params } from "../config/parameters";
-import { aptitudeIn, teamStrength, type TeamStrength } from "./team";
+import { aptitudeIn, areaEdge, teamStrength, type TeamStrength } from "./team";
 import { riskPer90, drawLotsInjury } from "../injuries/injury";
-import { DEFAULT_TACTIC, fatigueIn, foulsMultiplier } from "./formations";
+import { DEFAULT_TACTIC, cornerShotMultiplier, fatigueIn, foulsMultiplier, styleWeights, toughness } from "./formations";
 import { otherSide, type MatchInput, type MatchTeam, type SideStat, type MatchEvent, type OnPitchPlayer, type Side, type Origin, type MatchSummary, type Tactic, type Shootout } from "./types";
 
 const logit = (p: number): number => Math.log(p / (1 - p));
@@ -79,12 +79,23 @@ export class MatchSimulator {
     this.neutral = input.neutral ?? false;
     this.carry = input.carry ?? { home: 0, away: 0 };
     this.teams = { home: input.home, away: input.away };
-    this.strengths = { home: this.computeStrength(input.home), away: this.computeStrength(input.away) };
+    this.strengths = { home: this.computeStrength(input.home, "home"), away: this.computeStrength(input.away, "away") };
     this.effective = { home: this.strengths.home, away: this.strengths.away };
   }
 
-  private computeStrength(eq: MatchTeam): TeamStrength {
-    return teamStrength(eq.lineup, eq.tactic ?? DEFAULT_TACTIC, this.params);
+  private computeStrength(eq: MatchTeam, side: Side): TeamStrength {
+    return teamStrength(eq.lineup, eq.tactic ?? DEFAULT_TACTIC, this.params, this.boldness(eq, side));
+  }
+
+  /**
+   * Quanto rendem as opções arrojadas (mentalidade, estilo, linha, área) neste contexto (RZ-249): mais em casa que fora,
+   * mais com a equipa em forma, mais com um treinador que sabe de táticas. 1 = neutro.
+   */
+  private boldness(eq: MatchTeam, side: Side): number {
+    const c = this.params.tactic.context;
+    const form = eq.lineup.length > 0 ? eq.lineup.reduce((a, j) => a + j.form, 0) / eq.lineup.length : 0.95;
+    const venue = this.neutral ? 0 : side === "home" ? c.home : -c.home;
+    return clamp(1 + venue + c.form * (form - 0.95) + c.coach * ((eq.coach ?? 10) - 10), c.min, c.max);
   }
   private tactic(side: Side): Tactic {
     return this.teams[side].tactic ?? DEFAULT_TACTIC;
@@ -109,7 +120,7 @@ export class MatchSimulator {
   changeTeam(side: Side, team: MatchTeam): void {
     const away = (j: OnPitchPlayer) => this.sentOff[side].has(j.id) || this.injured[side].has(j.id);
     this.teams[side] = { ...team, lineup: team.lineup.filter((j) => !away(j)), ...(team.bench ? { bench: team.bench.filter((j) => !away(j)) } : {}) };
-    this.strengths[side] = this.computeStrength(this.teams[side]);
+    this.strengths[side] = this.computeStrength(this.teams[side], side);
     this.baseRisks[side] = undefined;
   }
 
@@ -141,7 +152,7 @@ export class MatchSimulator {
       out.push({ type: "substitution", minute: this.last, side, playerOut: playerOut.id, playerIn: playerIn.id, reason: injured ? "injury" : "coach" });
     }
     this.teams[side] = eq;
-    this.strengths[side] = this.computeStrength(eq);
+    this.strengths[side] = this.computeStrength(eq, side);
     this.baseRisks[side] = undefined;
     this.updateEffective(this.last);
     return out;
@@ -245,26 +256,40 @@ export class MatchSimulator {
     }
     // estilos que reagem ao adversário: o contra-ataque rende mais quanto mais bola o outro tem; o jogo direto explora linhas altas
     for (const side of ["home", "away"] as const) {
-      if (this.tactic(side).style === "direct") {
-        const e = this.effective[side];
-        this.effective[side] = { ...e, attack: e.attack + this.params.tactic.attackDirectPerLine * Math.max(0, this.tactic(otherSide(side)).line - 3) };
-        continue;
-      }
-      if (this.tactic(side).style !== "counterAttack") continue;
+      const t = this.tactic(side);
+      const w = styleWeights(t);
       const c = this.params.tactic.counterAttack;
-      const foul = clamp(this.effective[otherSide(side)].control - this.effective[side].control, 0, c.max);
+      const scale = this.boldness(this.teams[side], side);
+      const open = clamp(this.effective[otherSide(side)].control - this.effective[side].control, 0, c.max);
       const e = this.effective[side];
-      this.effective[side] = { ...e, attack: e.attack + c.attackPerPoint * foul, defence: e.defence + c.defencePerPoint * foul };
+      const edge = clamp(areaEdge(this.teams[side].lineup, this.teams[otherSide(side)].lineup, t.area) / this.params.tactic.area.scale, -1, 1);
+      this.effective[side] = {
+        ...e,
+        attack: e.attack + scale * (this.params.tactic.attackDirectPerLine * w.direct * Math.max(0, this.tactic(otherSide(side)).line - 3) + c.attackPerPoint * w.counter * open + this.params.tactic.area.attack * edge),
+        defence: e.defence + c.defencePerPoint * w.counter * open,
+      };
     }
+  }
+
+  /** Quanto «queima tempo» a equipa que ganha (0 a 1; negativo se aproveita cada segundo): só depois do minuto `urgency.start`. */
+  private wasting(side: Side, m: number): number {
+    const u = this.params.tactic.urgency;
+    if (m < u.start) return 0;
+    const lead = this.stats[side].goals + this.carry[side] - (this.stats[otherSide(side)].goals + this.carry[otherSide(side)]);
+    return lead > 0 ? (3 - this.tactic(side).urgency) / 2 : 0;
   }
 
   private step(m: number, out: MatchEvent[]): void {
     const r = this.rng.derive(`m${m}`);
     this.updateEffective(m);
-    const tempo = 1 + (this.params.tactic.tempo.chances * (this.tactic("home").tempo + this.tactic("away").tempo - 6)) / 2;
+    const tempo = 1 + (this.params.tactic.tempo.chances * (this.tactic("home").intensity + this.tactic("away").intensity - 6)) / 2;
+    const u = this.params.tactic.urgency;
+    const burning = Math.max(this.wasting("home", m), this.wasting("away", m));
     this.stats[r.prob(this.quota("home")) ? "home" : "away"].possessionMinutes++;
     for (const side of ["home", "away"] as const) {
-      const lambda = (2 * this.p.chancesPerTeam * tempo * this.quota(side)) / this.regularDuration;
+      // quem ganha e queima tempo corta as oportunidades dos dois; quem perde e aproveita cada segundo cria mais
+      const hurry = this.wasting(otherSide(side), m) > 0 ? 0 : 1 + u.hurry * Math.max(0, (this.tactic(side).urgency - 3) / 2);
+      const lambda = (2 * this.p.chancesPerTeam * tempo * this.quota(side) * (1 - u.chances * Math.max(0, burning)) * (burning > 0 ? 1 : hurry)) / this.regularDuration;
       if (r.prob(lambda)) this.chance(r, m, side, out);
     }
     for (const side of ["home", "away"] as const) {
@@ -281,7 +306,8 @@ export class MatchSimulator {
     const eq = this.teams[side];
     this.stats[side].chances++;
     const d = this.difference(side);
-    const shotP = sigmoide(logit(this.p.baseShotP) + (this.p.sensitivity.shot * d) / 10);
+    const sh = this.params.tactic.shooting;
+    const shotP = sigmoide(logit(this.p.baseShotP) + (this.p.sensitivity.shot * d) / 10 + sh.shotLogit * (this.tactic(side).shooting - 3));
     if (!r.prob(shotP)) {
       const driver = chooseWeighted(r, eq.lineup, (j) => this.p.attendanceWeight[j.position] ?? 0);
       out.push({ type: "play", minute: m, side, player: driver.id });
@@ -289,8 +315,11 @@ export class MatchSimulator {
       return;
     }
     const xg0 = this.p.xg.base + this.p.xg.amplitude * Math.pow(r.float(), this.p.xg.exponent);
-    const xg = clamp(sigmoide(logit(clamp(xg0, 0.001, 0.999)) + (this.p.sensitivity.xg * d) / 10), this.p.xg.min, this.p.xg.max);
     const finisher = chooseWeighted(r, eq.lineup, (j) => (this.p.shotWeight[j.position] ?? 0) * Math.pow(j.attributes.finishing / 10, 2));
+    // rematar de mais longe vale menos, a não ser que o finalizador tenha remate de longe
+    const far = this.tactic(side).shooting - 3;
+    const xgFactor = Math.max(0.3, 1 - sh.xg * far + sh.skill * far * ((finisher.attributes.longShot - 10) / 10));
+    const xg = clamp(sigmoide(logit(clamp(xg0, 0.001, 0.999)) + (this.p.sensitivity.xg * d) / 10) * xgFactor, this.p.xg.min, this.p.xg.max);
     const assistant = r.prob(this.p.assistedP)
       ? chooseWeighted(
           r,
@@ -340,7 +369,7 @@ export class MatchSimulator {
     const eq = this.teams[side];
     this.stats[side].corners++;
     out.push({ type: "corner", minute: m, side });
-    if (depth >= 1 || !r.prob(this.p.corners.shotP * this.params.tactic.styles[this.tactic(side).style].shotCorner)) return;
+    if (depth >= 1 || !r.prob(this.p.corners.shotP * cornerShotMultiplier(this.tactic(side), this.params.tactic))) return;
     const header = chooseWeighted(r, eq.lineup, (j) => (this.p.headingWeight[j.position] ?? 0) * Math.pow((j.attributes.heading / 10) * (j.heightCm / 178), 2));
     const scorer = eq.lineup.filter((j) => j.position !== "GK").reduce((a, b) => (b.attributes.setPieces + b.attributes.crossing > a.attributes.setPieces + a.attributes.crossing ? b : a));
     const xg0 = this.p.xg.base + this.p.xg.amplitude * this.p.corners.xgFactor * Math.pow(r.float(), this.p.xg.exponent);
@@ -356,7 +385,7 @@ export class MatchSimulator {
     // o cansaço multiplica o risco de todos por igual: calcula-se uma vez por equipa e muda-se só quando a equipa muda
     const base = (this.baseRisks[side] ??= eq.lineup.map(
       (j) =>
-        riskPer90({ form: j.form, physicalAptitude: j.attributes.physicalAptitude, turf: this.turf, medical: eq.medical ?? 10, opponentPlayFair: this.tactic(otherSide(side)).fairPlay, intensity: t.intensity, relapse: !!j.relapse }, this.params) / this.regularDuration,
+        riskPer90({ form: j.form, physicalAptitude: j.attributes.physicalAptitude, turf: this.turf, medical: eq.medical ?? 10, opponentPlayFair: toughness(this.tactic(otherSide(side))) as 1 | 2 | 3 | 4 | 5, intensity: t.intensity, relapse: !!j.relapse }, this.params) / this.regularDuration,
     ));
     const factor = 1 + this.params.injuries.risk.fatigue * fatigue;
     const risks = base.map((x) => x * factor);
@@ -392,7 +421,7 @@ export class MatchSimulator {
       this.teams[side] = { ...eq, lineup };
       this.withoutSubstitute[side]++;
     }
-    this.strengths[side] = this.computeStrength(this.teams[side]);
+    this.strengths[side] = this.computeStrength(this.teams[side], side);
     this.baseRisks[side] = undefined;
     this.updateEffective(m);
   }
@@ -400,7 +429,9 @@ export class MatchSimulator {
   /** Cartão por uma falta: vermelho direto, amarelo (e vermelho se já tinha um). O expulso sai do jogo. */
   private card(r: Rng, m: number, side: Side, out: MatchEvent[], inf: OnPitchPlayer, penalty: boolean): void {
     const c = this.p.cards;
-    const mult = (this.params.tactic.fairPlay.cards[this.tactic(side).fairPlay - 1] as number) * ((inf.attributes.aggression + 10) / 20);
+    const u = this.params.tactic.urgency;
+    const mult = (this.params.tactic.fairPlay.cards[toughness(this.tactic(side)) - 1] as number) * ((inf.attributes.aggression + 10) / 20)
+      * (1 + u.cards * Math.max(0, this.wasting(side, m))) * (1 + u.provoke * Math.max(0, this.wasting(otherSide(side), m)));
     const redP = Math.min(1, (penalty ? c.penaltyRedP : c.directRedP) * mult);
     const yellowP = Math.min(1, (penalty ? c.penaltyYellowP : c.yellowP) * mult * (this.yellows[side].has(inf.id) ? c.alreadyYellow.card : 1));
     if (r.prob(redP)) {
@@ -418,7 +449,7 @@ export class MatchSimulator {
     out.push({ type: "card", minute: m, side, player: inf.id, colour: "red", ...(secondYellow ? { secondYellow: true as const } : {}) });
     this.sentOff[side].add(inf.id);
     this.teams[side] = { ...this.teams[side], lineup: this.teams[side].lineup.filter((j) => j.id !== inf.id) };
-    this.strengths[side] = this.computeStrength(this.teams[side]);
+    this.strengths[side] = this.computeStrength(this.teams[side], side);
     this.baseRisks[side] = undefined;
     this.updateEffective(m);
   }

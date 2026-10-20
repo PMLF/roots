@@ -21,14 +21,14 @@ describe("laboratório", () => {
 
     const clubs = await handle({ id: 3, type: "clubs", input: null }, servicos);
     const [a, b] = clubs.filter((c) => c.league === comps[0]!.league) as [(typeof clubs)[0], (typeof clubs)[0]];
-    const j = await handle({ id: 4, type: "matchLab", input: { home: a.id, away: b.id, seed: "s1", homeTactic: { formation: "4-4-2", style: "direct" } } }, servicos);
-    expect(j.home.tactic).toMatchObject({ formation: "4-4-2", style: "direct" });
+    const j = await handle({ id: 4, type: "matchLab", input: { home: a.id, away: b.id, seed: "s1", homeTactic: { formation: "4-4-2", directness: 5 } } }, servicos);
+    expect(j.home.tactic).toMatchObject({ formation: "4-4-2", directness: 5 });
     expect(j.report.goals).toHaveLength(j.report.homeGoals + j.report.awayGoals);
     expect(j.lineups.home).toHaveLength(11);
     for (const p of j.lineups.home) expect(j.names[p.id]).toBeTruthy();
     for (const g of j.report.goals) expect(j.names[g.player]).toBeTruthy();
     // mesma seed, mesmo jogo; seed diferente, jogo (quase de certeza) diferente
-    expect((await handle({ id: 5, type: "matchLab", input: { home: a.id, away: b.id, seed: "s1", homeTactic: { formation: "4-4-2", style: "direct" } } }, servicos)).report).toEqual(j.report);
+    expect((await handle({ id: 5, type: "matchLab", input: { home: a.id, away: b.id, seed: "s1", homeTactic: { formation: "4-4-2", directness: 5 } } }, servicos)).report).toEqual(j.report);
     await expect(handle({ id: 6, type: "matchLab", input: { home: a.id, away: a.id, seed: "x" } }, servicos)).rejects.toThrow();
 
     const l = await handle({ id: 7, type: "leagueLab", input: { league: comps[0]!.league, seed: "s1" } }, servicos);

@@ -76,7 +76,7 @@ describe("cartões", () => {
       for (let i = 0; i < 1500; i++) t += simulateMatch(input(`fp${fp}-${i}`, fp), P).summary.home.yellows;
       return t / 1500;
     };
-    const [hard, normal, clean] = [mean(5), mean(3), mean(1)];
+    const [hard, normal, clean] = [mean(1), mean(3), mean(5)];
     expect(hard).toBeGreaterThan(normal * 1.4);
     expect(clean).toBeLessThan(normal * 0.65);
   });

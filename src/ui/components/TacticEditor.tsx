@@ -2,11 +2,14 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ViewPlan } from "@/engine/api/contracts";
 import { BENCH_SIZE, moveToBench, moveToReserve, moveToSlot, remapLineup, type Board } from "@/engine/match/lineup";
-import type { Style, FormationId, Tactic } from "@/engine/match/types";
+import type { FormationId, Tactic } from "@/engine/match/types";
 import { Card } from "@/ui/components/Card";
+import { startPlayerDrag } from "@/ui/components/dragCard";
 import { EntityLink } from "@/ui/components/Link";
 import { PitchBoard } from "@/ui/components/PitchBoard";
 import { Stars } from "@/ui/components/Stars";
+import { TacticControls } from "@/ui/components/TacticControls";
+import { backgroundColours, readColours } from "@/ui/colours";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { abbreviationPosition } from "@/ui/i18n/position";
@@ -15,9 +18,6 @@ import { useEngine } from "@/ui/EngineProvider";
 type Squad = ViewPlan["squad"][number];
 type Zone = "starting" | "bench" | "reserves";
 
-const STYLES: Style[] = ["beautiful", "balanced", "direct", "counterAttack"];
-const LEVELS = [1, 2, 3, 4, 5] as const;
-const FIELDS_LEVEL = ["intensity", "line", "tempo", "fairPlay"] as const;
 const ORDER = ["GK", "RB", "CB", "LB", "DM", "CM", "AM", "RW", "LW", "ST"];
 const byPosition = (a: Squad, b: Squad) => ORDER.indexOf(a.positions[0]?.pos ?? "ST") - ORDER.indexOf(b.positions[0]?.pos ?? "ST") || (b.stars ?? 0) - (a.stars ?? 0) || a.name.localeCompare(b.name, "pt");
 const energy = (form: number) => Math.max(0, Math.min(100, Math.round(((form - 0.85) / 0.15) * 100)));
@@ -80,6 +80,7 @@ export function TacticEditor({ withoutNextMatch = false }: { withoutNextMatch?: 
     reserves: plan.squad.filter((p) => !start.has(p.player) && !plan.bench.includes(p.player)).sort(byPosition),
   };
   const slotOf = (id: string) => plan.lineup[start.get(id) ?? -1];
+  const background = backgroundColours(readColours(plan.clubColours));
   const missing = plan.lineup.filter((o) => !o.player).length;
   const outOfPosition = plan.lineup.filter((o) => o.outOfPosition);
   const tired = plan.lineup.filter((o) => o.player && (plan.squad.find((p) => p.player === o.player)?.form ?? 1) < 0.97);
@@ -103,7 +104,7 @@ export function TacticEditor({ withoutNextMatch = false }: { withoutNextMatch?: 
           <tr
             key={p.player}
             draggable
-            onDragStart={(e) => { e.dataTransfer.setData("text/plain", p.player); e.dataTransfer.effectAllowed = "move"; }}
+            onDragStart={(e) => startPlayerDrag(e, p.player, { name: p.name, position: abbreviationPosition(t, slot?.position ?? p.positions[0]?.pos ?? "ST"), background })}
             onClick={() => setSelected(selected === p.player ? undefined : p.player)}
             className={`${selected === p.player ? "escolhido" : ""}${p.unavailable ? " indisponivel" : ""}`}
             aria-selected={selected === p.player}
@@ -124,36 +125,15 @@ export function TacticEditor({ withoutNextMatch = false }: { withoutNextMatch?: 
   );
 
   return (
-    <div className="cartoes">
+    <div className="cartoes tatica-pagina">
       {!withoutNextMatch && plan.nextMatch && (
-        <Card title={t("tactic.nextMatch")} wide>
-          <p>
-            <b>{plan.nextMatch.atHome ? "" : "@ "}{plan.nextMatch.opponent}</b> <span className="suave">· {plan.nextMatch.date} · {plan.nextMatch.competition}</span>
-            {plan.nextMatch.confirmed && <span className="suave"> · {t("tactic.confirmed")}</span>}
-          </p>
-        </Card>
+        <p className="tatica-proximo">
+          <span className="suave">{t("tactic.nextMatch")}:</span> <b>{plan.nextMatch.atHome ? "" : "@ "}{plan.nextMatch.opponent}</b> <span className="suave">· {plan.nextMatch.date} · {plan.nextMatch.competition}{plan.nextMatch.confirmed && ` · ${t("tactic.confirmed")}`}</span>
+        </p>
       )}
-      <Card title={t("tactic.title")}>
-        <div className="formulario">
-          <label>{t("lab.formation")}{" "}
-            <select value={plan.tactic.formation} onChange={(e) => changeFormation(e.target.value as FormationId)}>
-              {plan.formations.map((f) => <option key={f} value={f}>{f}</option>)}
-            </select>
-          </label>
-          <label>{t("lab.style")}{" "}
-            <select value={plan.tactic.style} onChange={(e) => commit(board, { ...plan.tactic, style: e.target.value as Style })}>
-              {STYLES.map((s) => <option key={s} value={s}>{t(`lab.style.${s}` as Key)}</option>)}
-            </select>
-          </label>
-          {FIELDS_LEVEL.map((k) => (
-            <label key={k}>{t(`tactic.${k}` as Key)}{" "}
-              <select value={plan.tactic[k]} onChange={(e) => commit(board, { ...plan.tactic, [k]: Number(e.target.value) as 1 })}>
-                {LEVELS.map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </label>
-          ))}
-        </div>
-        <p className="suave">{t("tactic.formationWarning")}</p>
+      <Card title={t("tactic.card")} wide>
+        <TacticControls tactic={plan.tactic} onChange={(next) => commit(board, next)} formations={plan.formations} onFormation={changeFormation} />
+        <p className="suave tatica-aviso">{t("tactic.formationWarning")}</p>
       </Card>
       <div className="tatica-grelha">
         <Card title={t("tactic.pitch")}>
@@ -164,25 +144,27 @@ export function TacticEditor({ withoutNextMatch = false }: { withoutNextMatch?: 
             <li><span className="halo-amostra vermelho" aria-hidden="true" /> {t("tactic.halo.vermelho")}</li>
           </ul>
         </Card>
-        <Card title={t("tactic.lineup")}>
+        <Card title={t("tactic.lineup")} className="tatica-plantel">
           <p className="suave">{t("tactic.dragHint")}</p>
           {missing > 0 && <p className="erro" role="status">{t("tactic.missing", { n: missing })}</p>}
           {plan.ready.reason === "unavailable" && <p className="erro" role="status">{t("tactic.unavailableWarning", { names: (plan.ready.names ?? []).join(", ") })}</p>}
-          <div className="tabela-rolar">
-            <table className="tabela densa tabela-onze">
-              <thead>
-                <tr>
-                  <th>{t("tactic.col.name")}</th><th>{t("tactic.col.pos")}</th><th className="num">{t("tactic.col.games")}</th><th className="num">{t("tactic.col.last5")}</th><th className="num">{t("tactic.col.energy")}</th><th>{t("tactic.col.level")}</th><th className="num">{t("tactic.col.age")}</th><th className="num">{t("tactic.col.goals")}</th><th />
-                </tr>
-              </thead>
-              {section("starting", t("tactic.starting", { n: 11 - missing }), "")}
-              {section("bench", t("tactic.bench"), `${plan.bench.length}/${BENCH_SIZE}`)}
-              {section("reserves", t("tactic.reserves"), `${rows.reserves.length}`)}
-            </table>
-          </div>
           {outOfPosition.length > 0 && <p className="erro" role="status">{t("tactic.outOfPositionWarning", { names: outOfPosition.map((o) => `${o.name} (${abbreviationPosition(t, o.position)}, ${Math.round((o.performance ?? 1) * 100)}%)`).join(", ") })}</p>}
           {tired.length > 0 && <p className="suave" role="status">{t("tactic.tiredWarning", { names: tired.map((o) => o.name).join(", ") })}</p>}
           {error && <p className="erro" role="alert">{error}</p>}
+          <div className="tatica-tabela">
+            <div className="tabela-rolar">
+              <table className="tabela densa tabela-onze">
+                <thead>
+                  <tr>
+                    <th>{t("tactic.col.name")}</th><th>{t("tactic.col.pos")}</th><th className="num">{t("tactic.col.games")}</th><th className="num">{t("tactic.col.last5")}</th><th className="num">{t("tactic.col.energy")}</th><th>{t("tactic.col.level")}</th><th className="num">{t("tactic.col.age")}</th><th className="num">{t("tactic.col.goals")}</th><th />
+                  </tr>
+                </thead>
+                {section("starting", t("tactic.starting", { n: 11 - missing }), "")}
+                {section("bench", t("tactic.bench"), `${plan.bench.length}/${BENCH_SIZE}`)}
+                {section("reserves", t("tactic.reserves"), `${rows.reserves.length}`)}
+              </table>
+            </div>
+          </div>
         </Card>
       </div>
     </div>

@@ -22,14 +22,22 @@ export type OnPitchPlayer = {
 };
 
 export type FormationId = "4-3-3" | "4-4-2" | "4-2-3-1" | "4-1-4-1" | "3-5-2" | "5-3-2" | "3-4-3" | "4-3-1-2";
-export type Style = "beautiful" | "balanced" | "direct" | "counterAttack";
 export type Level = 1 | 2 | 3 | 4 | 5;
+/** Zona do campo por onde a equipa procura atacar (RZ-249). */
+export type Area = "wings" | "left" | "right" | "centre" | "any";
+export const AREAS: readonly Area[] = ["wings", "left", "right", "centre", "any"];
 
 /**
- * Tática de uma equipa (RZ-108). Intensidade, linha, ritmo: 1 baixo … 5 alto (3 = normal).
- * Fair play: 1 cavalheiro · 2 limpo · 3 normal · 4 duro · 5 agressivo.
+ * Tática de uma equipa (RZ-108, RZ-249). Cada opção tem 5 níveis, do extremo da esquerda (1) ao da direita (5); 3 = neutro.
+ * - intensity: 1 muito lenta … 5 muito intensa.
+ * - mentality: 1 muito defensivo … 5 muito atacante.
+ * - fairPlay: 1 «fairplay é treta» … 5 super corretos.
+ * - urgency (queimar tempo): 1 queimar sempre e provocar adversários … 5 aproveitar cada segundo.
+ * - directness (forma de jogo): 1 toques curtos … 5 bola na frente, siga.
+ * - shooting (frequência de remate): 1 só remates fáceis … 5 rematar de onde der.
+ * - line: 1 colados à área … 5 linha muito subida.
  */
-export type Tactic = { formation: FormationId; style: Style; intensity: Level; line: Level; tempo: Level; fairPlay: Level };
+export type Tactic = { formation: FormationId; intensity: Level; mentality: Level; fairPlay: Level; urgency: Level; directness: Level; shooting: Level; line: Level; area: Area };
 
 export type MatchTeam = {
   club: string;
@@ -40,6 +48,8 @@ export type MatchTeam = {
   bench?: OnPitchPlayer[];
   /** Qualidade do staff médico (1-20, por omissão 10): menos lesões e paragens mais curtas. */
   medical?: number;
+  /** Qualidade tática do treinador (1-20, por omissão 10): quem sabe tira mais partido das opções arrojadas (RZ-249). */
+  coach?: number;
 };
 
 export type Origin = "openPlay" | "corner" | "free" | "penalty";

@@ -3,7 +3,7 @@ import { currentQuality } from "../world/player";
 import type { Attribute, Attributes, Position } from "../world/types";
 import type { Params } from "../config/parameters";
 import { FORMATIONS, tacticModifiers } from "./formations";
-import type { MatchTeam, OnPitchPlayer, Tactic } from "./types";
+import type { Area, MatchTeam, OnPitchPlayer, Tactic } from "./types";
 
 export type TeamStrength = { attack: number; control: number; defence: number; goalkeeper: number };
 
@@ -46,7 +46,7 @@ function weighted(lineup: readonly OnPitchPlayer[], g: Group, params?: Params): 
  * Quatro números (escala 1-20) que resumem a equipa. Pura.
  * Com `tatica` e `params`, somam-se os efeitos da formação realmente em campo, do estilo, da intensidade, da linha e do fair play (RZ-108).
  */
-export function teamStrength(lineup: readonly OnPitchPlayer[], tactic?: Tactic, params?: Params): TeamStrength {
+export function teamStrength(lineup: readonly OnPitchPlayer[], tactic?: Tactic, params?: Params, scale = 1): TeamStrength {
   const gk = lineup.find((j) => j.position === "GK");
   const base = {
     attack: weighted(lineup, ATTACK, params),
@@ -55,7 +55,7 @@ export function teamStrength(lineup: readonly OnPitchPlayer[], tactic?: Tactic, 
     goalkeeper: gk ? mean(gk.attributes, ATTRIBUTES_GK) * gk.form * (params ? aptitudeFactor(gk.aptitude, "GK", params) : 1) : 3,
   };
   if (!tactic || !params) return base;
-  const m = tacticModifiers(lineup.map((j) => j.position), tactic, params.tactic, base.control);
+  const m = tacticModifiers(lineup.map((j) => j.position), tactic, params.tactic, base.control, scale);
   return { ...base, attack: base.attack + m.attack, control: base.control + m.control, defence: base.defence + m.defence };
 }
 
@@ -98,4 +98,33 @@ export function lineupWithValue(candidates: readonly LineupCandidate[], formatio
 
 export function teamOf(club: string, candidates: readonly LineupCandidate[], formation?: readonly Position[]): MatchTeam {
   return { club, lineup: automaticLineup(candidates, formation) };
+}
+
+// ---------- área a explorar (RZ-249)
+
+const AREA_ATTACK: Record<Exclude<Area, "any">, { positions: readonly Position[]; attributes: readonly Attribute[] }> = {
+  wings: { positions: ["RW", "LW", "RB", "LB"], attributes: ["speed", "dribble", "crossing", "technical"] },
+  left: { positions: ["LW", "LB"], attributes: ["speed", "dribble", "crossing", "technical"] },
+  right: { positions: ["RW", "RB"], attributes: ["speed", "dribble", "crossing", "technical"] },
+  centre: { positions: ["ST", "AM", "CM"], attributes: ["finishing", "pass", "vision", "unmarking"] },
+};
+/** Quem defende a zona atacada (a esquerda de quem ataca é a direita de quem defende). */
+const AREA_DEFENCE: Record<Exclude<Area, "any">, { positions: readonly Position[]; attributes: readonly Attribute[] }> = {
+  wings: { positions: ["RB", "LB", "RW", "LW"], attributes: ["tackling", "marking", "speed", "positioning"] },
+  left: { positions: ["RB", "RW"], attributes: ["tackling", "marking", "speed", "positioning"] },
+  right: { positions: ["LB", "LW"], attributes: ["tackling", "marking", "speed", "positioning"] },
+  centre: { positions: ["CB", "DM", "CM"], attributes: ["tackling", "marking", "positioning", "heading"] },
+};
+
+function areaLevel(lineup: readonly OnPitchPlayer[], g: { positions: readonly Position[]; attributes: readonly Attribute[] }): number | undefined {
+  const xs = lineup.filter((j) => g.positions.includes(j.position));
+  return xs.length === 0 ? undefined : xs.reduce((a, j) => a + mean(j.attributes, g.attributes) * j.form, 0) / xs.length;
+}
+
+/** Vantagem (em pontos da escala 1-20) de quem ataca sobre quem defende a zona escolhida; 0 se não há zona ou ninguém joga lá. */
+export function areaEdge(attacking: readonly OnPitchPlayer[], defending: readonly OnPitchPlayer[], area: Area): number {
+  if (area === "any") return 0;
+  const a = areaLevel(attacking, AREA_ATTACK[area]);
+  const d = areaLevel(defending, AREA_DEFENCE[area]);
+  return a === undefined || d === undefined ? 0 : a - d;
 }

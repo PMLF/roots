@@ -2,7 +2,8 @@
 import type { LivePlayer, LiveMatch, LiveLine } from "@/engine/season/liveMatch";
 import { useEffect, useRef, useState } from "react";
 import { predominantColour } from "@/ui/colours";
-import type { Style, Level, Tactic } from "@/engine/match/types";
+import type { Tactic } from "@/engine/match/types";
+import { TacticControls } from "@/ui/components/TacticControls";
 import type { ReactNode } from "react";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { Icon } from "@/ui/components/Icon";
@@ -170,9 +171,6 @@ export function Statistics({ match, withoutPanel = false }: { match: LiveMatch; 
   );
 }
 
-const STYLES: Style[] = ["beautiful", "balanced", "direct", "counterAttack"];
-const FIELDS_LEVEL = ["intensity", "line", "tempo", "fairPlay"] as const;
-
 /** Mudanças de tática durante o jogo, num popup: contam a partir do minuto seguinte. A formação e o onze ficam como estavam. */
 export function TacticInMatch({ tactic, onChange, onClose, busy }: { tactic: Tactic; onChange: (t: Tactic) => void; onClose: () => void; busy: boolean }) {
   const { t } = useT();
@@ -187,18 +185,7 @@ export function TacticInMatch({ tactic, onChange, onClose, busy }: { tactic: Tac
       <h2 id="h-tatica-jogo">{t("match.tacticTitle")}</h2>
       <div className="formulario">
         <p className="suave">{t("lab.formation")}: <b>{tactic.formation}</b></p>
-        <label>{t("lab.style")}{" "}
-          <select value={tactic.style} disabled={busy} onChange={(e) => onChange({ ...tactic, style: e.target.value as Style })}>
-            {STYLES.map((s) => <option key={s} value={s}>{t(`lab.style.${s}` as Key)}</option>)}
-          </select>
-        </label>
-        {FIELDS_LEVEL.map((k) => (
-          <label key={k}>{t(`tactic.${k}` as Key)}{" "}
-            <select value={tactic[k]} disabled={busy} onChange={(e) => onChange({ ...tactic, [k]: Number(e.target.value) as Level })}>
-              {([1, 2, 3, 4, 5] as const).map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </label>
-        ))}
+        <TacticControls tactic={tactic} onChange={onChange} disabled={busy} />
       </div>
       <p className="suave">{t("match.tacticWarning")}</p>
     </dialog>

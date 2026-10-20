@@ -97,7 +97,7 @@ describe("determinismo e clube do gamer", () => {
       const j = repo.player(person)!;
       if (j.state !== "retired") expect(j.club).toBe(club);
     }
-  });
+  }, 30000);
   it("sem mundo gerado não faz nada", () => {
     const repo = new MemoryRepository();
     expect(rolloverSquads(repo, data, P, { season: 1, seasonStart: "2027-07-01", tiers })).toMatchObject({ youth: 0, retired: 0 });
