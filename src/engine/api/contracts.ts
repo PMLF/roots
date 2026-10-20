@@ -450,7 +450,7 @@ export type EngineRequests = {
   setBudget: { input: { wageBillMax: number; transfers: number }; output: ClubFinances };
   tacticInMatch: { input: { tactic: Tactic }; output: LiveMatch };
   /** Substituições do gamer (todas as de uma paragem): sai quem está em campo, entra quem está no banco. */
-  substitutionsInMatch: { input: { substitutions: { playerOut: string; playerIn: string }[] }; output: LiveMatch };
+  substitutionsInMatch: { input: { substitutions: { playerOut: string; playerIn: string }[]; /** Quem em campo passa a jogar onde (RZ-255); não gasta substituições nem pausas. */ positions?: { player: string; position: Position }[] }; output: LiveMatch };
   /** Marca uma mensagem como lida ou por ler. */
   markMessage: { input: { id: number; isRead: boolean }; output: null };
   resign: { input: null; output: { club: string } };

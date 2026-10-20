@@ -24,11 +24,22 @@ const FORMS: Record<string, Form> = {
 };
 
 export function iconKey(l: LiveLine): string {
+  if (l.type === "card" && l.colour === "red" && l.secondYellow) return "card-second";
   if (l.type === "shot") return `shot-${l.outcome ?? "away"}`;
   return l.type;
 }
 
 export function EventIcon({ rowKey, colour }: { rowKey: string; colour?: "yellow" | "red" }) {
+  // segundo amarelo: o vermelho sobrepõe-se ligeiramente ao amarelo
+  if (rowKey === "card-second") {
+    const card = (FORMS["card"] as Form).d;
+    return (
+      <svg className="ev-icone ev-card-second" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <path d={card} className="ev-cheio ev-amarelo" transform="translate(-3.500 0.500) rotate(-10 12 12)" />
+        <path d={card} className="ev-cheio ev-vermelho" transform="translate(3.500 0) rotate(8 12 12)" />
+      </svg>
+    );
+  }
   const f = FORMS[rowKey] ?? FORMS["end"]!;
   return (
     <svg className={`ev-icone ev-${rowKey}${colour ? ` ev-${colour}` : ""}`} viewBox="0 0 24 24" aria-hidden="true" focusable="false">

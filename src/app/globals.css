@@ -554,7 +554,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .popup.tatica-jogo { width: min(96vw, 1180px); max-height: 96vh; overflow: auto; padding: 16px 20px; }
 .popup.tatica-jogo h2 { margin-bottom: 8px; }
 .popup.tatica-jogo .subs-listas { margin-bottom: 8px; }
-.popup.tatica-jogo .opcoes-tatica { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px 16px; }
+.popup.tatica-jogo .opcoes-tatica-grelha { gap: 8px 16px; }
 /* o campo na janela do jogo é mais baixo: os controlos ocupam o topo */
 .popup.tatica-jogo .tatica-grelha { margin-top: 12px; }
 .popup.tatica-jogo .tatica-grelha .campo { height: clamp(320px, calc(100vh - 400px), 560px); }
@@ -649,6 +649,9 @@ button.dev { border-style: dashed; }
 .ev-card.ev-yellow { color: #e0b100; }
 .ev-card.ev-red { color: #d32f2f; }
 .ev-injury { color: #d32f2f; }
+.ev-card-second { width: 26px; stroke: var(--painel); stroke-width: 1.2; }
+.ev-card-second .ev-amarelo { color: #e0b100; }
+.ev-card-second .ev-vermelho { color: #d32f2f; }
 .ev-substitution { color: var(--texto); }
 .ev-shot-saved, .ev-shot-away, .ev-shot-blocked, .ev-corner { color: var(--suave); }
 .painel-eventos .feed > li.vazio { width: auto; border: 0; padding: 0; }
@@ -958,7 +961,10 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .tatica-proximo { margin: 0; font-size: 13px; }
 .tatica-pagina .cartao { padding: 10px 14px 12px; }
 .tatica-aviso { margin: 8px 0 0; font-size: 12px; }
-.opcoes-tatica { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px 20px; }
+.opcoes-tatica { display: grid; gap: 10px; }
+.opcoes-tatica-grelha { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 20px; }
+@media (max-width: 1000px) { .opcoes-tatica-grelha { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 420px) { .opcoes-tatica-grelha { grid-template-columns: minmax(0, 1fr); } }
 .opcao-tatica { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; font-size: 13px; align-content: start; }
 .opcao-tatica-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; min-width: 0; }
 .opcao-tatica-nome { color: var(--suave); font-size: 12px; white-space: nowrap; }
@@ -968,15 +974,21 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .opcao-tatica .passo.cheio { background: color-mix(in srgb, var(--destaque) 45%, var(--linha)); }
 .opcao-tatica .passo.atual { background: var(--destaque); }
 .opcao-tatica .passo:hover:not(:disabled) { transform: scaleY(1.25); }
-.opcao-tatica .passo:focus-visible, .opcao-tatica .area:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+.opcao-tatica .passo:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
 .opcao-tatica-extremos { display: flex; justify-content: space-between; gap: 8px; font-size: 11px; color: var(--suave); }
 .opcao-tatica-extremos > span { min-width: 0; max-width: 50%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .opcao-tatica-extremos > span:last-child { text-align: right; }
-.opcao-tatica-areas { display: flex; flex-wrap: wrap; gap: 4px; }
-.opcao-tatica .area { min-height: 0; padding: 2px 9px; font-size: 12px; line-height: 1.5; border-radius: 999px; border: 1px solid var(--linha-forte); background: none; color: inherit; cursor: pointer; }
-.opcao-tatica .area.atual { background: var(--destaque); border-color: var(--destaque); color: var(--fundo); font-weight: 600; }
+/* Área a explorar: mini meio campo com três zonas (RZ-255) */
+.mini-campo { position: relative; display: grid; grid-template-columns: 1fr 1.4fr 1fr; height: 28px; border-radius: 4px; overflow: hidden; background: color-mix(in srgb, var(--destaque) 14%, var(--linha)); }
+.mini-campo .zona { position: relative; z-index: 1; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; cursor: pointer; transition: background-color 120ms ease-out; }
+.mini-campo .zona:hover:not(:disabled) { background: color-mix(in srgb, var(--destaque) 25%, transparent); }
+.mini-campo .zona.ligada { background: var(--destaque); }
+.mini-campo .zona:focus-visible { outline: 2px solid var(--texto); outline-offset: -3px; }
+.mini-campo-linhas { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; fill: none; stroke: color-mix(in srgb, var(--texto) 35%, transparent); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.mini-campo-linhas * { vector-effect: non-scaling-stroke; }
+.opcao-formacao { grid-template-columns: auto minmax(0, 220px); justify-content: start; align-items: center; gap: 10px; }
 .opcao-formacao select { width: 100%; }
-@media (pointer: coarse) { .opcao-tatica .passo { height: 26px; } .opcao-tatica .area { padding-block: 6px; } }
+@media (pointer: coarse) { .opcao-tatica .passo { height: 26px; } .mini-campo { height: 40px; } }
 .tatica-grelha { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 14px; align-items: stretch; grid-column: 1 / -1; }
 .tatica-grelha .campo { width: auto; aspect-ratio: 10 / 11; height: clamp(400px, calc(100vh - 470px), 640px); }
 .tatica-plantel { display: flex; flex-direction: column; min-height: 0; }
@@ -1031,6 +1043,7 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 :root { accent-color: var(--destaque); scrollbar-width: thin; scrollbar-color: var(--linha-forte) transparent; }
 h1, h2 { text-wrap: balance; }
 button:active:not(:disabled) { transform: scale(.97); }
+button.lugar:active:not(:disabled) { transform: translate(-50%, -50%) scale(.97); }
 button { transition: background-color .12s, border-color .12s, transform .12s cubic-bezier(.23, 1, .32, 1); }
 :focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
 /* Plantel e tabelas densas: o nome nunca parte em duas linhas */
@@ -1104,14 +1117,16 @@ body {
 .jogo-a-decorrer .jogo-minuto { margin-left: auto; font-variant-numeric: tabular-nums; }
 @keyframes ponto-vivo { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
 .jogo-faixa { display: none; grid-area: faixa; }
-.feed li.feed-alerta { border-radius: var(--r-s); animation: lance-pisca 1.5s ease-in-out 2; }
-.feed li.feed-alerta-red, .feed li.feed-alerta-injury { --pisca: var(--aviso-fundo); }
-.feed li.feed-alerta-goal { --pisca: var(--destaque-fundo); }
-@keyframes lance-pisca { 0%, 100% { background: transparent; box-shadow: none; } 50% { background: var(--pisca, var(--destaque-fundo)); box-shadow: 0 0 0 2px var(--pisca, var(--destaque-fundo)); } }
+.feed li.feed-alerta { border-radius: var(--r-s); animation: lance-pisca .45s ease-in-out 6; }
+.feed li.feed-alerta-red, .feed li.feed-alerta-injury { --pisca: #d32f2f; --pisca-texto: #fff; }
+.feed li.feed-alerta-goal { --pisca: #14804f; --pisca-texto: #fff; }
+@keyframes lance-pisca { 0%, 100% { background: transparent; box-shadow: none; } 50% { background: var(--pisca); color: var(--pisca-texto); box-shadow: 0 0 0 3px var(--pisca), 0 0 22px 6px color-mix(in srgb, var(--pisca) 70%, transparent); } }
+.feed li.feed-alerta a, .feed li.feed-alerta .ev-icone { color: inherit; }
+.feed li.feed-alerta-goal.feed-alerta .feed-cab, .feed li.feed-alerta .feed-cab b, .feed li.feed-alerta .feed-assist { color: inherit; }
 @media (max-width: 900px) and (orientation: portrait), (max-width: 640px) {
   .jogo-faixa { display: block; }
   .jogo-faixa a { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px; background: var(--destaque); color: #fff; font-weight: 600; }
   .jogo-faixa a:hover { text-decoration: none; }
   .menu-jogo { display: none; }
 }
-@media (prefers-reduced-motion: reduce) { .feed li.feed-alerta { animation: none; background: var(--pisca, var(--destaque-fundo)); } .jogo-a-decorrer .ponto-vivo { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .feed li.feed-alerta { animation: none; background: var(--pisca); color: var(--pisca-texto); } .jogo-a-decorrer .ponto-vivo { animation: none; } }

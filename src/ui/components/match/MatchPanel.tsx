@@ -223,8 +223,8 @@ function PlayerLine({ j }: { j: LivePlayer }) {
       <span className="inds">
         {marks(j.goals, <EventIcon rowKey="goal" />, "match.ind.goal")}
         {marks(j.assists, <b className="ind-assist">A</b>, "match.ind.attendance")}
-        {marks(j.yellows, <EventIcon rowKey="card" colour="yellow" />, "match.ind.yellow")}
-        {j.red && <span className="ind" title={t("match.ind.red")} aria-label={t("match.ind.red")}><EventIcon rowKey="card" colour="red" /></span>}
+        {marks(j.red && j.yellows >= 2 ? j.yellows - 2 : j.yellows, <EventIcon rowKey="card" colour="yellow" />, "match.ind.yellow")}
+        {j.red && <span className="ind" title={t("match.ind.red")} aria-label={t("match.ind.red")}><EventIcon rowKey={j.yellows >= 2 ? "card-second" : "card"} colour="red" /></span>}
         {j.injured && <span className="ind" title={t("match.ind.injury")} aria-label={t("match.ind.injury")}><EventIcon rowKey="injury" /></span>}
         {j.cameOn !== undefined && <span className="ind sub-entra" title={t("match.ind.cameOn", { min: Math.floor(j.cameOn) })}>▲ {Math.floor(j.cameOn)}'</span>}
         {j.left !== undefined && j.state !== "sentOff" && <span className="ind sub-sai" title={t("match.ind.left", { min: Math.floor(j.left) })}>▼ {Math.floor(j.left)}'</span>}

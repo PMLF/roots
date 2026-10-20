@@ -184,6 +184,22 @@ describe("jogo do gamer minuto a minuto (RZ-170)", () => {
       expect(free.subs!.used).toBe(4);
     }, 120000);
 
+    it("reposicionar jogadores em campo (RZ-255) é de borla, muda as posições e rejeita quem não está em campo", async () => {
+      const a = await untilMatch("reposicionar-1");
+      await handle({ id: 60, type: "startMatch", input: { match: a.pause.match } }, a.s);
+      const j = await handle({ id: 61, type: "matchStep", input: { minutes: 25 } }, a.s);
+      const side = j.gamerSide!;
+      const field = j.teams![side].filter((x) => x.state === "pitch" && x.position !== "GK");
+      const [p, q] = [field[0]!, field[1]!];
+      const bench = j.teams![side].find((x) => x.state === "bench")!;
+      const moved = await handle({ id: 62, type: "substitutionsInMatch", input: { substitutions: [], positions: [{ player: p.id, position: q.position }, { player: q.id, position: p.position }] } }, a.s);
+      expect(moved.subs).toMatchObject({ used: 0, usedPauses: 0 });
+      const after = moved.teams![side];
+      expect(after.find((x) => x.id === p.id)!.position).toBe(q.position);
+      expect(after.find((x) => x.id === q.id)!.position).toBe(p.position);
+      await expect(handle({ id: 63, type: "substitutionsInMatch", input: { substitutions: [], positions: [{ player: bench.id, position: p.position }] } }, a.s)).rejects.toThrow();
+    }, 120000);
+
     it("rejeita jogadores que não estão em campo ou no banco; o jogo guardado inclui as trocas", async () => {
       const { j, swap, step, pitch, bench } = await aos(10, "subs-3");
       const c = pitch(j)[0]!;
