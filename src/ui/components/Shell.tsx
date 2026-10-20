@@ -14,7 +14,7 @@ import { Search } from "@/ui/components/Search";
 import { ClubBar } from "@/ui/components/ClubBar";
 import { useTime } from "@/ui/useTime";
 import { ClubSelector, useClubs } from "@/ui/components/WithClub";
-import { MatchProgress, useOngoingMatch } from "@/ui/components/GameProgress";
+import { MatchProgress, useMatchProgress } from "@/ui/components/GameProgress";
 import { useOwnClub } from "@/ui/myClub";
 
 type ItemMenu = { rowKey: Key; icon: IconName; href?: string; whenActive: (path: string) => boolean; /** Ferramenta de developer: só no modo dev (`ui/dev.ts`). */ devOnly?: true; /** Não aparece no menu (tem lugar noutra página), mas continua a ter rota e migalhas. */ hidden?: true };
@@ -99,7 +99,10 @@ export function Shell({ children }: { children: ReactNode }) {
     const timer = window.setTimeout(() => setPassing(false), Math.max(0, 450 - (Date.now() - passStart.current)));
     return () => window.clearTimeout(timer);
   }, [time.advancing]);
-  const matchInProgress = useOngoingMatch() && path.startsWith("/match");
+  const progress = useMatchProgress();
+  const matchRunning = progress !== null;
+  const onMatchPage = path.startsWith("/match");
+  const matchInProgress = matchRunning && onMatchPage;
   const items = MENU.filter((m) => (!m.devOnly || dev) && !m.hidden);
   // «Mais» fica ativa quando a página atual só se chega pela gaveta
   const onlyInMore = !MENU.filter((m) => TABS.includes(m.rowKey)).some((m) => m.whenActive(path));
@@ -115,6 +118,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <button type="button" className="menu-fechar" aria-label={t("menu.close")} onClick={() => setDrawer(false)}><Icon name="close" /></button>
         </div>
         <ul>
+          {matchRunning && !onMatchPage && <MatchLink minute={progress.minute} />}
           {items.filter((m) => !m.devOnly).map((m) => <ItemDoMenu key={m.rowKey} m={m} path={path} />)}
         </ul>
         {dev && (
@@ -162,6 +166,7 @@ export function Shell({ children }: { children: ReactNode }) {
         <ClubBar club={ownClub} time={time} />
         <AdvanceButton />
       </footer>
+      {matchRunning && !onMatchPage && <MatchLink minute={progress.minute} strip />}
       <nav className="abas" aria-label={t("menu.tabs")}>
         <ul>
           {TABS.map((k) => MENU.filter((m) => m.rowKey === k).map((m) => <ItemDoMenu key={m.rowKey} m={m} path={path} tab />))}
@@ -232,4 +237,17 @@ function ItemDoMenu({ m, path, tab = false }: { m: ItemMenu; path: string; tab?:
       {m.href ? <Link href={m.href}>{content}</Link> : <span>{content}</span>}
     </li>
   );
+}
+
+/** «Jogo a decorrer»: ponto vivo, minuto e ligação de volta à página do jogo; na barra lateral/gaveta ou, no telemóvel, como faixa por cima das abas. */
+function MatchLink({ minute, strip = false }: { minute: number; strip?: boolean }) {
+  const { t } = useT();
+  const link = (
+    <Link href="/match/" className="jogo-a-decorrer" data-testid={strip ? "match-strip" : "match-nav"}>
+      <span className="ponto-vivo" aria-hidden="true" />
+      <span className="menu-texto">{t("menu.matchLive")}</span>
+      <span className="jogo-minuto">{Math.floor(minute)}&apos;</span>
+    </Link>
+  );
+  return strip ? <div className="jogo-faixa">{link}</div> : <li className="menu-jogo">{link}</li>;
 }

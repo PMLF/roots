@@ -1,20 +1,14 @@
 "use client";
 import type { LivePlayer, LiveMatch, LiveLine } from "@/engine/season/liveMatch";
 import { useEffect, useRef, useState } from "react";
-import { backgroundColours, predominantColour, readColours } from "@/ui/colours";
-import { FORMATIONS } from "@/engine/match/formations";
-import type { FormationId, Tactic } from "@/engine/match/types";
-import { PITCH_LAYOUT } from "@/ui/components/pitchLayout";
-import { PitchSurface } from "@/ui/components/PitchSurface";
-import { Stars } from "@/ui/components/Stars";
-import { TacticControls } from "@/ui/components/TacticControls";
+import { predominantColour } from "@/ui/colours";
 import type { ReactNode } from "react";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { Icon } from "@/ui/components/Icon";
-import { CloseButton } from "@/ui/components/CloseButton";
 import { EventIcon, iconKey } from "@/ui/components/EventIcon";
-import { SubsCounters, SubstitutionsPanel } from "@/ui/components/match/Substitutions";
+import { SubsCounters } from "@/ui/components/match/Substitutions";
 import { EntityLink } from "@/ui/components/Link";
+import { lineKey, type MatchAlert } from "@/ui/match/alerts";
 import type { Key } from "@/ui/i18n";
 import { abbreviationPosition } from "@/ui/i18n/position";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -57,7 +51,7 @@ function lineText(l: LiveLine, t: T): string {
 }
 
 /** O feed do jogo, do lance mais recente para o mais antigo. Só os lances do próprio jogo: os outros jogos têm cartão à parte. */
-export function HistoryEvents({ match, importantOnly }: { match: LiveMatch; importantOnly: boolean }) {
+export function HistoryEvents({ match, importantOnly, alert }: { match: LiveMatch; importantOnly: boolean; alert?: MatchAlert | undefined }) {
   const { t } = useT();
   const minute = match.minute ?? match.duration;
   const lines = match.lines.filter((l) => l.minute <= minute && (!importantOnly || l.important || l.type === "end" || l.type === "halfTime" || l.type === "start"));
@@ -65,7 +59,7 @@ export function HistoryEvents({ match, importantOnly }: { match: LiveMatch; impo
   return (
     <ol className="feed" reversed aria-label={t("match.events")}>
       {[...lines].reverse().map((l, i) => (
-        <li key={`${l.minute}-${l.type}-${lines.length - i}`} className={`feed-${l.type}${l.type === "card" && l.colour ? ` feed-cartao-${l.colour}` : ""}${l.important ? " importante" : ""}`}>
+        <li key={`${l.minute}-${l.type}-${lines.length - i}`} className={`feed-${l.type}${l.type === "card" && l.colour ? ` feed-cartao-${l.colour}` : ""}${l.important ? " importante" : ""}${alert && alert.key === lineKey(l) ? ` feed-alerta feed-alerta-${alert.kind}` : ""}`}>
           <span className="feed-cab"><EventIcon rowKey={iconKey(l)} {...(l.type === "card" && l.colour ? { colour: l.colour } : {})} /><b>{Math.floor(l.minute)}'</b>{l.side && <span className="feed-clube"><EntityLink k="club" id={l.side === "home" ? match.home.id : match.away.id} withoutSwatch>{nameOf(l.side)}</EntityLink></span>}{l.type === "goal" && <b className="feed-marcador">{l.homeGoals}–{l.awayGoals}</b>}</span>
           <span className="feed-texto">{withLinks(lineText(l, t), l)}</span>
           {l.type === "goal" && l.assistant && <span className="feed-assist">{withLinks(t("match.attendance", { name: MARK.assistant }), l)}</span>}
@@ -172,60 +166,6 @@ export function Statistics({ match, withoutPanel = false }: { match: LiveMatch; 
       <h2 id="h-estat">{t("match.statistics")}</h2>
       {list}
     </section>
-  );
-}
-
-/** Põe cada jogador em campo no lugar da formação que tem a sua posição (quem sobra, nos lugares que restam). */
-function pitchSlots(formation: FormationId, players: readonly LivePlayer[]): (LivePlayer | undefined)[] {
-  const slots = FORMATIONS[formation];
-  const free = [...players];
-  const out: (LivePlayer | undefined)[] = slots.map((pos) => {
-    const k = free.findIndex((p) => p.position === pos);
-    return k < 0 ? undefined : free.splice(k, 1)[0];
-  });
-  return out.map((x) => x ?? free.shift());
-}
-
-/**
- * Tática durante o jogo, num popup (RZ-251): as opções no topo; por baixo, o campo à esquerda e a lista da equipa à direita
- * (só para consulta: a formação e o onze não mudam a meio) e as substituições à direita. Conta a partir do minuto seguinte.
- */
-export function TacticInMatch({ match, tactic, onChange, onClose, busy, subsError, onConfirmSubs }: { match: LiveMatch; tactic: Tactic; onChange: (t: Tactic) => void; onClose: () => void; busy: boolean; subsError?: string; onConfirmSubs: (substitutions: { playerOut: string; playerIn: string }[]) => Promise<boolean> }) {
-  const { t } = useT();
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const d = ref.current;
-    if (d && !d.open) d.showModal();
-  }, []);
-  const mine = match.teams?.[match.gamerSide ?? "home"] ?? [];
-  const onPitch = mine.filter((j) => j.state === "pitch");
-  const slots = pitchSlots(tactic.formation, onPitch);
-  const background = backgroundColours(readColours(match.colours?.[match.gamerSide === "away" ? match.away.id : match.home.id] ?? ""));
-  return (
-    <dialog ref={ref} className="popup tatica-jogo" aria-labelledby="h-tatica-jogo" onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
-      <CloseButton onClose={() => ref.current?.close()} />
-      <h2 id="h-tatica-jogo">{t("match.tacticTitle")} <small className="suave">· {tactic.formation}</small></h2>
-      <TacticControls tactic={tactic} onChange={onChange} disabled={busy} />
-      <div className="tatica-jogo-corpo">
-        <div className="campo" role="group" aria-label={t("tactic.pitch")}>
-          <PitchSurface />
-          {slots.map((j, i) => {
-            if (!j) return null;
-            const [x, y] = PITCH_LAYOUT[tactic.formation][i] ?? [50, 50];
-            return (
-              <div key={j.id} className={`lugar${j.injured ? " indisponivel" : ""}`} style={{ left: `${x}%`, top: `${y}%` }}>
-                <div className="lugar-cartao" title={j.name}>
-                  <span className="lugar-cores" style={{ background }}><b>{abbreviationPosition(t, j.position)}</b>{j.stars !== undefined && <Stars value={j.stars} />}</span>
-                  <span className="lugar-nome">{j.name}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <SubstitutionsPanel match={match} busy={busy} {...(subsError ? { error: subsError } : {})} onConfirm={onConfirmSubs} />
-      </div>
-      <p className="suave tatica-aviso">{t("match.tacticWarning")}</p>
-    </dialog>
   );
 }
 

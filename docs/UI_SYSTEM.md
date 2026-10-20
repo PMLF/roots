@@ -122,3 +122,8 @@ Linhas que mostravam sempre «?»/«—» porque o motor não tem o dado foram r
 - **Jogadores do teu clube** conhecem-se por inteiro: atributos exatos, potencial com margem pequena, ordenado, nível e estrelas, sem depender de observações (`ownProfile`).
 - **Substituições**: estrelas de nível de cada jogador (`stars` no `LivePlayer` do clube do gamer), botão de confirmar à direita e as cores de aptidão a funcionar (o CSS usava os nomes antigos `apt-bom/medio/mau`; o código usa `good/average/bad`).
 - **Eventos do jogo** traduzidos: as chaves dos comentários ainda eram as portuguesas antigas (`jogo.*`) em vez de `match.*`.
+
+## Jogo e táticas (RZ-254, 20-10-2026)
+- **Uma só componente de táticas:** a janela «Tática e substituições» do jogo (`match/LiveTactic.tsx`) converte o jogo ao vivo num `ViewPlan` e usa `TacticControls`, `PitchBoard`, `BenchStrip` e a tabela de Onze/Suplentes da página de Táticas. Aqui o onze e o banco só mudam por substituições (suplente ↔ titular, por clique ou a arrastar), limitadas pelos contadores, e confirmam-se de uma vez; quem sai não volta.
+- **Jogo a decorrer:** `useMatchProgress()` (em `GameProgress.tsx`) diz ao `Shell` se há jogo do gamer em curso. Fora da página do jogo aparece «Jogo a decorrer · minuto» a cheio na cor de destaque (topo do menu; no telemóvel, faixa por cima das abas). O gamer navega à vontade; o relógio só corre na página do jogo, por isso sair pausa.
+- **Lances que param o tempo:** golo (qualquer equipa), vermelho e lesão pausam 3 s e o lance pisca devagar no feed (verde no golo, vermelho no cartão/lesão; sem animação com `prefers-reduced-motion`). Se for vermelho ou lesão da equipa do gamer, abre-se a seguir a janela de táticas; depois o jogo retoma como estava.

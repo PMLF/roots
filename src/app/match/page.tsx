@@ -7,8 +7,10 @@ import type { Tactic } from "@/engine/match/types";
 import { Icon } from "@/ui/components/Icon";
 import { EntityLink } from "@/ui/components/Link";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
-import { TeamCard, Meetings, Statistics, HistoryEvents, XgChart, HeaderInfo, HalfTime, OthersMatches, LiveTable, TacticInMatch } from "@/ui/components/match/MatchPanel";
+import { TeamCard, Meetings, Statistics, HistoryEvents, XgChart, HeaderInfo, HalfTime, OthersMatches, LiveTable } from "@/ui/components/match/MatchPanel";
 import { liveTable } from "@/ui/match/matchView";
+import { alertOf, lineKey, type MatchAlert } from "@/ui/match/alerts";
+import { TacticInMatch } from "@/ui/components/match/LiveTactic";
 import { SubsCounters } from "@/ui/components/match/Substitutions";
 import { save, read } from "@/ui/storage";
 import { useDevMode } from "@/ui/dev";
@@ -47,6 +49,8 @@ function Content() {
   const seenHalfTime = useRef<string | undefined>(undefined);
   const seenInjury = useRef<string | undefined>(undefined);
   const ofHalfTimePause = useRef(false);
+  const [alert, setAlert] = useState<MatchAlert | undefined>(undefined);
+  const alertState = useRef({ matchId: "", count: 0, wasRunning: false, mine: false, tactic: false });
 
   useEffect(() => { setTab(read("raizes.matchTab", isTab) ?? "match"); }, []);
   useEffect(() => { setSpeed(read("raizes.matchSpeed", isSpeed) ?? 0); }, []);
@@ -101,13 +105,41 @@ function Content() {
   // lesão na equipa do gamer: o jogo pára e abre-se a janela «Tática e substituições» para ele resolver (uma vez por lesão)
   const pendingKey = match?.pendingInjury?.join(",");
   useEffect(() => {
-    if (!ongoing || !pendingKey || seenInjury.current === `${matchId}/${matchMinute}/${pendingKey}`) return;
+    if (!ongoing || alert || !pendingKey || seenInjury.current === `${matchId}/${matchMinute}/${pendingKey}`) return;
     seenInjury.current = `${matchId}/${matchMinute}/${pendingKey}`;
     beforeRan.current = true;
     setRunning(false);
     setSubsError(undefined);
     setIsOpenTactic(true);
-  }, [ongoing, pendingKey, matchId, matchMinute]);
+  }, [ongoing, alert, pendingKey, matchId, matchMinute]);
+
+  // golo, vermelho ou lesão: o tempo pára 3 segundos com o lance a piscar no feed; depois o jogo continua (golo) ou abre-se «Tática e substituições» (vermelho/lesão na equipa do gamer)
+  const lineCount = match?.lines.length ?? 0;
+  alertState.current.tactic = tacticOpen;
+  useEffect(() => {
+    if (!match || !ongoing) return;
+    const st = alertState.current;
+    if (st.matchId !== match.id) { st.matchId = match.id; st.count = match.lines.length; return; }
+    const fresh = match.lines.slice(st.count);
+    st.count = match.lines.length;
+    const line = [...fresh].reverse().find((l) => alertOf(l) !== undefined);
+    if (!line) return;
+    st.wasRunning = running;
+    st.mine = line.side !== undefined && line.side === match.gamerSide;
+    setRunning(false);
+    setAlert({ key: lineKey(line), kind: alertOf(line) as MatchAlert["kind"] });
+  }, [lineCount, match?.id]);
+  useEffect(() => {
+    if (!alert) return;
+    const timer = window.setTimeout(() => {
+      const st = alertState.current;
+      setAlert(undefined);
+      if (st.tactic) return;
+      if (alert.kind !== "goal" && st.mine) { beforeRan.current = st.wasRunning; setSubsError(undefined); setIsOpenTactic(true); return; }
+      if (st.wasRunning) setRunning(true);
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [alert]);
 
   // espaço: pausa e continua (a barra global não avança o tempo nesta página)
   useEffect(() => {
@@ -205,7 +237,7 @@ function Content() {
           <>
             <section className="painel painel-eventos" aria-label={t("match.events")}>
               <h2>{t("match.events")}</h2>
-              <HistoryEvents match={match} importantOnly={importantOnly} />
+              <HistoryEvents match={match} importantOnly={importantOnly} alert={alert} />
             </section>
             <div className={`jogo-grelha${hasTable ? " jogo-grelha-4" : ""}`}>
               <div className="jogo-coluna"><TeamCard match={match} side="home" /></div>

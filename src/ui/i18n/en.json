@@ -1477,5 +1477,7 @@
   "city.talent.noUnsigned": "No local youngsters without a club right now.",
   "city.talent.noneAtClubs": "No local players at clubs yet.",
   "city.talent.none": "Unknown city.",
-  "city.talent.yours": "your club"
+  "city.talent.yours": "your club",
+  "match.subs.in": "on",
+  "menu.matchLive": "Match in progress"
 }

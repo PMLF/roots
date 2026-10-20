@@ -1477,5 +1477,7 @@
   "city.talent.noUnsigned": "Nenhum jovem da terra sem clube neste momento.",
   "city.talent.noneAtClubs": "Ainda não há jogadores da terra a jogar em clubes.",
   "city.talent.none": "Cidade desconhecida.",
-  "city.talent.yours": "o teu clube"
+  "city.talent.yours": "o teu clube",
+  "match.subs.in": "entra",
+  "menu.matchLive": "Jogo a decorrer"
 }
