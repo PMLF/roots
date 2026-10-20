@@ -161,10 +161,6 @@ legend { padding: 0 6px; color: var(--suave); }
 .separadores button { border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: none; padding: 8px 14px; color: var(--suave); margin-bottom: -1px; }
 .separadores button:hover:not(:disabled) { background: none; color: var(--texto); }
 .separadores button[aria-selected="true"] { color: var(--texto); border-bottom-color: var(--destaque); font-weight: 600; }
-.separadores a { border-bottom: 2px solid transparent; padding: 8px 14px; color: var(--suave); margin-bottom: -1px; text-decoration: none; white-space: nowrap; }
-.separadores a:hover { color: var(--texto); }
-.separadores a[aria-current="page"] { color: var(--texto); border-bottom-color: var(--destaque); font-weight: 600; }
-.separadores { overflow-x: auto; }
 
 /* ---- Pesquisa global ---- */
 .pesquisa-fundo { position: fixed; inset: 0; background: rgba(8, 14, 11, .45); backdrop-filter: blur(2px); display: flex; justify-content: center; align-items: flex-start; padding-top: 12vh; z-index: 10; }
@@ -1026,3 +1022,25 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .arrasto-cartao-nome { display: block; padding: 2px 3px 3px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lugar.alvo .lugar-cartao, .lugar-vazio.alvo { outline: 2px dashed #fff; outline-offset: 2px; }
 .lugar-vazio.alvo { background: rgb(255 255 255 / 0.28); }
+
+/* Revisão de UI (branch design/ui-review): refinamentos que não mudam a identidade. */
+::selection { background: var(--destaque-fundo); color: var(--texto); }
+:root { accent-color: var(--destaque); scrollbar-width: thin; scrollbar-color: var(--linha-forte) transparent; }
+h1, h2 { text-wrap: balance; }
+button:active:not(:disabled) { transform: scale(.97); }
+button { transition: background-color .12s, border-color .12s, transform .12s cubic-bezier(.23, 1, .32, 1); }
+:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+/* Navegação entre secções de uma mesma entidade (Cidade): pílulas, para não se confundir com os separadores da página */
+.seccoes { display: flex; gap: 6px; overflow-x: auto; margin: 0 0 14px; padding-bottom: 2px; scrollbar-width: none; }
+.seccoes::-webkit-scrollbar { display: none; }
+.seccoes a { flex: none; padding: 5px 14px; border: 1px solid var(--linha-forte); border-radius: 999px; background: var(--painel); color: var(--suave); text-decoration: none; font-size: 14px; transition: background-color .12s, color .12s, border-color .12s; }
+.seccoes a:hover { color: var(--texto); border-color: var(--suave); }
+.seccoes a[aria-current="page"] { background: var(--destaque-fundo); border-color: var(--destaque); color: var(--destaque-texto); font-weight: 600; }
+/* Plantel e tabelas densas: o nome nunca parte em duas linhas */
+.tabela td:first-child { white-space: nowrap; }
+@media (max-width: 700px) {
+  .ficha-topo-cartao .dados { grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .ficha-topo-cartao .dados > div { display: block; }
+  .ficha-topo-cartao .dados dt { font-size: 12px; }
+  .ficha-topo-cartao .dados dd { text-align: left; }
+}
