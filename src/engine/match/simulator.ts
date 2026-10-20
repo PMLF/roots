@@ -271,24 +271,24 @@ export class MatchSimulator {
     }
   }
 
-  /** Quanto «queima tempo» a equipa que ganha (0 a 1; negativo se aproveita cada segundo): só depois do minuto `urgency.start`. */
+  /** Quanto «queima tempo» a equipa que ganha (0 a 1; negativo se aproveita cada segundo): só depois do minuto `timeWasting.start`. */
   private wasting(side: Side, m: number): number {
-    const u = this.params.tactic.urgency;
+    const u = this.params.tactic.timeWasting;
     if (m < u.start) return 0;
     const lead = this.stats[side].goals + this.carry[side] - (this.stats[otherSide(side)].goals + this.carry[otherSide(side)]);
-    return lead > 0 ? (3 - this.tactic(side).urgency) / 2 : 0;
+    return lead > 0 ? (this.tactic(side).timeWasting - 3) / 2 : 0;
   }
 
   private step(m: number, out: MatchEvent[]): void {
     const r = this.rng.derive(`m${m}`);
     this.updateEffective(m);
     const tempo = 1 + (this.params.tactic.tempo.chances * (this.tactic("home").intensity + this.tactic("away").intensity - 6)) / 2;
-    const u = this.params.tactic.urgency;
+    const u = this.params.tactic.timeWasting;
     const burning = Math.max(this.wasting("home", m), this.wasting("away", m));
     this.stats[r.prob(this.quota("home")) ? "home" : "away"].possessionMinutes++;
     for (const side of ["home", "away"] as const) {
       // quem ganha e queima tempo corta as oportunidades dos dois; quem perde e aproveita cada segundo cria mais
-      const hurry = this.wasting(otherSide(side), m) > 0 ? 0 : 1 + u.hurry * Math.max(0, (this.tactic(side).urgency - 3) / 2);
+      const hurry = this.wasting(otherSide(side), m) > 0 ? 0 : 1 + u.hurry * Math.max(0, (3 - this.tactic(side).timeWasting) / 2);
       const lambda = (2 * this.p.chancesPerTeam * tempo * this.quota(side) * (1 - u.chances * Math.max(0, burning)) * (burning > 0 ? 1 : hurry)) / this.regularDuration;
       if (r.prob(lambda)) this.chance(r, m, side, out);
     }
@@ -429,7 +429,7 @@ export class MatchSimulator {
   /** Cartão por uma falta: vermelho direto, amarelo (e vermelho se já tinha um). O expulso sai do jogo. */
   private card(r: Rng, m: number, side: Side, out: MatchEvent[], inf: OnPitchPlayer, penalty: boolean): void {
     const c = this.p.cards;
-    const u = this.params.tactic.urgency;
+    const u = this.params.tactic.timeWasting;
     const mult = (this.params.tactic.fairPlay.cards[toughness(this.tactic(side)) - 1] as number) * ((inf.attributes.aggression + 10) / 20)
       * (1 + u.cards * Math.max(0, this.wasting(side, m))) * (1 + u.provoke * Math.max(0, this.wasting(otherSide(side), m)));
     const redP = Math.min(1, (penalty ? c.penaltyRedP : c.directRedP) * mult);

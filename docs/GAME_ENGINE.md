@@ -98,7 +98,7 @@ Cada opção passou a ter **5 níveis** (do extremo da esquerda ao da direita; 3
 | `intensity` | muito lenta | muito intensa | controlo, defesa, faltas, lesões, oportunidades dos dois lados e **cansaço** |
 | `mentality` | muito defensivo | muito atacante | ± pontos de ataque e defesa (simétrico: marca mais e sofre mais, ou o contrário) |
 | `fairPlay` | «fairplay é treta» | super corretos | faltas, cartões, defesa e risco de lesão do adversário (usa `toughness = 6 − fairPlay` nas tabelas) |
-| `urgency` | queimar tempo sempre e provocar | aproveitar cada segundo | quem **ganha** depois do minuto 60 e queima tempo corta as oportunidades dos dois lados, leva mais cartões e faz o adversário levar mais (provocação); quem aproveita cada segundo cria um pouco mais |
+| `timeWasting` | aproveitar cada segundo | queimar tempo sempre e provocar | quem **ganha** depois do minuto 60 e queima tempo corta as oportunidades dos dois lados, leva mais cartões e faz o adversário levar mais (provocação); quem aproveita cada segundo cria um pouco mais |
 | `directness` | toques curtos | bola na frente, siga | de *bonito* (técnica; menos faltas) a *direto* (menos bola, mais cantos e faltas, ataque contra linhas altas); com mentalidade defensiva o direto passa a **contra-ataque** (não se somam) |
 | `shooting` | só remates fáceis | rematar de onde der | mais remates mas piores (xG), ou menos e melhores; o remate de longe do finalizador (`longShot`) compensa |
 | `line` | colados à área | muito subida | controlo e ataque contra defesa exposta |

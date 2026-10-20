@@ -428,7 +428,7 @@ export type Params = {
     /** Frequência de remate: por nível acima do 3, mais remates (logit) e remates piores (xG ×(1−xg·nível)); `skill` = efeito dos remates de longe do finalizador. */
     shooting: { shotLogit: number; xg: number; skill: number };
     /** Queimar tempo: a partir do minuto `start`, quem ganha e queima tempo corta `chances` das oportunidades dos dois lados e arrisca cartões (`cards`); o adversário provocado vê os seus cartões aumentarem `provoke`; `hurry` = oportunidades extra de quem aproveita cada segundo sem estar a ganhar. */
-    urgency: { start: number; chances: number; cards: number; provoke: number; hurry: number };
+    timeWasting: { start: number; chances: number; cards: number; provoke: number; hurry: number };
     /** Área a explorar: pontos de ataque que a vantagem (ou desvantagem) dos jogadores dessa zona sobre os adversários dá, e a diferença de qualidade que vale o máximo. */
     area: { attack: number; scale: number };
     /** Contexto (RZ-249): as opções arrojadas valem ×(1 ± `home`) em casa/fora, ×(1 + `form`·(forma média − 0,95)) e ×(1 + `coach`·(treinador − 10)). */
@@ -956,7 +956,7 @@ export const DEFAULT_PARAMETERS: Params = {
     tempo: { chances: 0.06, fatigue: 0.6 },
     mentality: { attack: 0.8, defence: 0.8, control: 0 },
     shooting: { shotLogit: 0.25, xg: 0.07, skill: 0.06 },
-    urgency: { start: 60, chances: 0.3, cards: 0.3, provoke: 0.25, hurry: 0.1 },
+    timeWasting: { start: 60, chances: 0.3, cards: 0.3, provoke: 0.25, hurry: 0.1 },
     area: { attack: 0.8, scale: 3 },
     context: { home: 0.2, form: 2, coach: 0.03, min: 0.5, max: 1.5 },
     fairPlay: { fouls: [0.7, 0.85, 1, 1.2, 1.45], defence: [-0.6, -0.3, 0, 0.3, 0.6], cards: [0.5, 0.75, 1, 1.35, 1.8] },
@@ -1217,7 +1217,7 @@ export function validateParameters(p: Params): string[] {
   const dis = p.discipline;
   if (!(Number.isInteger(dis.yellowsPerSuspension) && dis.yellowsPerSuspension >= 1 && dis.directRed.matches >= 1 && dis.directRed.max >= dis.directRed.matches && dis.directRed.morePA >= 0 && dis.directRed.morePA < 1 && dis.secondYellow.matches >= 1)) errors.push("disciplina: amarelosPorSuspensao inteiro ≥ 1, vermelhoDireto.jogos ≥ 1 ≤ max, 0 ≤ pMaisUm < 1, segundoAmarelo.jogos ≥ 1");
   const t = p.tactic;
-  if (!(t.urgency.start >= 0 && t.urgency.chances >= 0 && t.urgency.chances < 1 && t.area.scale > 0 && t.context.min > 0 && t.context.min <= 1 && t.context.max >= 1)) errors.push("tatica: urgencia.inicio ≥ 0, urgencia.oportunidades entre 0 e 1, area.escala > 0, contexto.min entre 0 e 1 e max ≥ 1");
+  if (!(t.timeWasting.start >= 0 && t.timeWasting.chances >= 0 && t.timeWasting.chances < 1 && t.area.scale > 0 && t.context.min > 0 && t.context.min <= 1 && t.context.max >= 1)) errors.push("tatica: urgencia.inicio ≥ 0, urgencia.oportunidades entre 0 e 1, area.escala > 0, contexto.min entre 0 e 1 e max ≥ 1");
   if (t.fairPlay.cards.length !== 5 || !t.fairPlay.cards.every((x) => x > 0)) errors.push("tatica.fairPlay.cartoes: 5 níveis, multiplicadores > 0");
   if (!(t.fairPlay.fouls.length === 5 && t.fairPlay.defence.length === 5 && t.fairPlay.fouls.every((x) => x > 0))) errors.push("tatica.fairPlay: 5 níveis, multiplicadores de faltas > 0");
   if (!(t.fatigue.max >= 0 && t.fatigue.start >= 0 && t.coach.preferenceBonus >= 0 && t.coach.favourite >= 1)) errors.push("tatica: fadiga.max ≥ 0, fadiga.inicio ≥ 0, treinador.bonusPreferencia ≥ 0 e favoritas ≥ 1");

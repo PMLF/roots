@@ -201,7 +201,7 @@ function Content() {
       {error && <p className="erro" role="alert">{error}</p>}
       {halfTime && ongoing && <HalfTime match={match} onTactic={halfTimeTactic} aoSubs={halfTimeSubs} onContinue={secondHalf} />}
       {subsOpen && ongoing && <SubstitutionsInMatch match={match} busy={changing} {...(subsError ? { error: subsError } : {})} onConfirm={(x) => void confirmSubs(x)} onClose={closeSubs} />}
-      {tacticOpen && ongoing && match.tactic && <TacticInMatch tactic={match.tactic} onChange={(x) => void changeTactic(x)} onClose={closeTactic} busy={changing} />}
+      {tacticOpen && ongoing && match.tactic && <TacticInMatch match={match} tactic={match.tactic} onChange={(x) => void changeTactic(x)} onClose={closeTactic} busy={changing} />}
       <div className="separadores" role="tablist" aria-label={t("match.tabs")}>
         {TABS.map((x) => (
           <button key={x} type="button" role="tab" id={`sep-${x}`} aria-selected={tab === x} aria-controls={`pn-${x}`} onClick={() => { setTab(x); save("raizes.matchTab", x); }}>{t(`match.tab.${x}` as Key)}</button>

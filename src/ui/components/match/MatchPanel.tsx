@@ -1,8 +1,12 @@
 "use client";
 import type { LivePlayer, LiveMatch, LiveLine } from "@/engine/season/liveMatch";
 import { useEffect, useRef, useState } from "react";
-import { predominantColour } from "@/ui/colours";
-import type { Tactic } from "@/engine/match/types";
+import { backgroundColours, predominantColour, readColours } from "@/ui/colours";
+import { FORMATIONS } from "@/engine/match/formations";
+import type { FormationId, Tactic } from "@/engine/match/types";
+import { PITCH_LAYOUT } from "@/ui/components/pitchLayout";
+import { PitchSurface } from "@/ui/components/PitchSurface";
+import { Stars } from "@/ui/components/Stars";
 import { TacticControls } from "@/ui/components/TacticControls";
 import type { ReactNode } from "react";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
@@ -171,23 +175,74 @@ export function Statistics({ match, withoutPanel = false }: { match: LiveMatch; 
   );
 }
 
-/** Mudanças de tática durante o jogo, num popup: contam a partir do minuto seguinte. A formação e o onze ficam como estavam. */
-export function TacticInMatch({ tactic, onChange, onClose, busy }: { tactic: Tactic; onChange: (t: Tactic) => void; onClose: () => void; busy: boolean }) {
+/** Põe cada jogador em campo no lugar da formação que tem a sua posição (quem sobra, nos lugares que restam). */
+function pitchSlots(formation: FormationId, players: readonly LivePlayer[]): (LivePlayer | undefined)[] {
+  const slots = FORMATIONS[formation];
+  const free = [...players];
+  const out: (LivePlayer | undefined)[] = slots.map((pos) => {
+    const k = free.findIndex((p) => p.position === pos);
+    return k < 0 ? undefined : free.splice(k, 1)[0];
+  });
+  return out.map((x) => x ?? free.shift());
+}
+
+/**
+ * Tática durante o jogo, num popup (RZ-251): as opções no topo; por baixo, o campo à esquerda e a lista da equipa à direita
+ * (só para consulta: a formação e o onze não mudam a meio; as trocas fazem-se nas substituições). Conta a partir do minuto seguinte.
+ */
+export function TacticInMatch({ match, tactic, onChange, onClose, busy }: { match: LiveMatch; tactic: Tactic; onChange: (t: Tactic) => void; onClose: () => void; busy: boolean }) {
   const { t } = useT();
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
     if (d && !d.open) d.showModal();
   }, []);
+  const mine = match.teams?.[match.gamerSide ?? "home"] ?? [];
+  const onPitch = mine.filter((j) => j.state === "pitch");
+  const bench = mine.filter((j) => j.state === "bench");
+  const slots = pitchSlots(tactic.formation, onPitch);
+  const background = backgroundColours(readColours(match.colours?.[match.gamerSide === "away" ? match.away.id : match.home.id] ?? ""));
+  const row = (j: LivePlayer) => (
+    <tr key={j.id} className={j.injured ? "indisponivel" : undefined}>
+      <td><EntityLink k="person" id={j.id}>{j.name}</EntityLink></td>
+      <td>{abbreviationPosition(t, j.position)}</td>
+      <td>{j.stars !== undefined ? <Stars value={j.stars} /> : null}</td>
+      <td className="num">{j.rating !== undefined ? j.rating.toFixed(1).replace(".", ",") : "—"}</td>
+      <td className="num">{j.goals > 0 ? `⚽${j.goals}` : ""}{j.yellows > 0 ? " 🟨" : ""}{j.red ? " 🟥" : ""}</td>
+    </tr>
+  );
   return (
     <dialog ref={ref} className="popup tatica-jogo" aria-labelledby="h-tatica-jogo" onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
       <CloseButton onClose={() => ref.current?.close()} />
-      <h2 id="h-tatica-jogo">{t("match.tacticTitle")}</h2>
-      <div className="formulario">
-        <p className="suave">{t("lab.formation")}: <b>{tactic.formation}</b></p>
-        <TacticControls tactic={tactic} onChange={onChange} disabled={busy} />
+      <h2 id="h-tatica-jogo">{t("match.tacticTitle")} <small className="suave">· {tactic.formation}</small></h2>
+      <TacticControls tactic={tactic} onChange={onChange} disabled={busy} />
+      <div className="tatica-jogo-corpo">
+        <div className="campo" role="group" aria-label={t("tactic.pitch")}>
+          <PitchSurface />
+          {slots.map((j, i) => {
+            if (!j) return null;
+            const [x, y] = PITCH_LAYOUT[tactic.formation][i] ?? [50, 50];
+            return (
+              <div key={j.id} className={`lugar${j.injured ? " indisponivel" : ""}`} style={{ left: `${x}%`, top: `${y}%` }}>
+                <div className="lugar-cartao" title={j.name}>
+                  <span className="lugar-cores" style={{ background }}><b>{abbreviationPosition(t, j.position)}</b>{j.stars !== undefined && <Stars value={j.stars} />}</span>
+                  <span className="lugar-nome">{j.name}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="tatica-tabela">
+          <div className="tabela-rolar">
+            <table className="tabela densa tabela-onze">
+              <thead><tr><th>{t("tactic.col.name")}</th><th>{t("tactic.col.pos")}</th><th>{t("tactic.col.level")}</th><th className="num">{t("match.rating")}</th><th /></tr></thead>
+              <tbody><tr className="tabela-secao"><th colSpan={5}>{t("tactic.starting", { n: onPitch.length })}</th></tr>{onPitch.map(row)}</tbody>
+              <tbody><tr className="tabela-secao"><th colSpan={5}>{t("tactic.bench")}</th></tr>{bench.map(row)}</tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      <p className="suave">{t("match.tacticWarning")}</p>
+      <p className="suave tatica-aviso">{t("match.tacticWarning")}</p>
     </dialog>
   );
 }

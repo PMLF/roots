@@ -38,7 +38,7 @@ const validLevel = (n: unknown) => Number.isInteger(n) && (n as number) >= 1 && 
 export function validateTactic(t: Tactic): void {
   if (!(t.formation in FORMATIONS)) throw new Error("Formação desconhecida");
   if (!AREAS.includes(t.area)) throw new Error("Área desconhecida");
-  for (const k of ["intensity", "mentality", "fairPlay", "urgency", "directness", "shooting", "line"] as const) if (!validLevel(t[k])) throw new Error(`${k} deve ser de 1 a 5`);
+  for (const k of ["intensity", "mentality", "fairPlay", "timeWasting", "directness", "shooting", "line"] as const) if (!validLevel(t[k])) throw new Error(`${k} deve ser de 1 a 5`);
 }
 
 /** Valida e guarda. Lança se a tática ou o onze não fizerem sentido. */

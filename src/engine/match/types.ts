@@ -32,12 +32,12 @@ export const AREAS: readonly Area[] = ["wings", "left", "right", "centre", "any"
  * - intensity: 1 muito lenta … 5 muito intensa.
  * - mentality: 1 muito defensivo … 5 muito atacante.
  * - fairPlay: 1 «fairplay é treta» … 5 super corretos.
- * - urgency (queimar tempo): 1 queimar sempre e provocar adversários … 5 aproveitar cada segundo.
+ * - timeWasting (queimar tempo): 1 aproveitar cada segundo … 5 queimar sempre e provocar adversários.
  * - directness (forma de jogo): 1 toques curtos … 5 bola na frente, siga.
  * - shooting (frequência de remate): 1 só remates fáceis … 5 rematar de onde der.
  * - line: 1 colados à área … 5 linha muito subida.
  */
-export type Tactic = { formation: FormationId; intensity: Level; mentality: Level; fairPlay: Level; urgency: Level; directness: Level; shooting: Level; line: Level; area: Area };
+export type Tactic = { formation: FormationId; intensity: Level; mentality: Level; fairPlay: Level; timeWasting: Level; directness: Level; shooting: Level; line: Level; area: Area };
 
 export type MatchTeam = {
   club: string;
