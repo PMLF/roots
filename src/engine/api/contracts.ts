@@ -371,7 +371,7 @@ export type ViewPlan = {
   /** Pode confirmar-se o jogo? Falta onze, ou há escolhidos indisponíveis. */
   ready: { ok: boolean; reason?: "incomplete" | "unavailable"; names?: string[] };
   /** `forma` (0,85-1): energia; `avgLast5`: nota média dos últimos jogos com nota; `stars`: nível que o gamer conhece. */
-  squad: { player: string; name: string; age: number; form: number; positions: { pos: Position; aptitude: number }[]; stars?: number; matches: number; goals: number; avgLast5?: number; unavailable?: "injury" | "suspended"; matchesPerMeet?: number }[];
+  squad: { player: string; name: string; age: number; form: number; positions: { pos: Position; aptitude: number }[]; /** Quanto rende (0-1) em cada posição; serve para realçar onde joga melhor. */ fit: Record<Position, number>; stars?: number; matches: number; goals: number; avgLast5?: number; unavailable?: "injury" | "suspended"; matchesPerMeet?: number }[];
   nextMatch?: { id: string; date: string; competition: string; opponent: string; atHome: boolean; confirmed: boolean; /** O jogo já começou e está a decorrer. */ ongoing: boolean; opponentId: string; opponentColours: string };
 };
 

@@ -44,7 +44,7 @@ export default function Start() {
   const [world, setWorld] = useState<CreatedWorldSummary | null | undefined>(undefined);
   const [mine] = useOwnClub();
   const time = useTime();
-  const inbox = useRecentInbox(5);
+  const inbox = useRecentInbox(200);
 
   useEffect(() => {
     if (!engine) return;
@@ -111,7 +111,8 @@ export default function Start() {
   const homeAway = next && club ? (next.home ? [club.profile.name, next.opponentName] : [next.opponentName, club.profile.name]) : [];
   // uma só mensagem por proposta/negociação: o cartão de ação substitui o aviso «houve uma proposta»
   const openPeople = new Set([...offersIn.map((o) => o.person), ...pendingBids.map((b) => b.person), ...confirmBids.map((b) => b.person)]);
-  const shownMessages = inbox.messages.filter((m) => !(["transfer_offer", "bid_progress", "bid_agreed"].includes(m.type) && m.links.some((l) => l.k === "person" && openPeople.has(l.id))));
+  const limit30 = time.state?.today ? new Date(Date.parse(`${time.state.today}T00:00:00Z`) - 30 * DAY_MS).toISOString().slice(0, 10) : "";
+  const shownMessages = inbox.messages.filter((m) => m.date >= limit30).filter((m) => !(["transfer_offer", "bid_progress", "bid_agreed"].includes(m.type) && m.links.some((l) => l.k === "person" && openPeople.has(l.id))));
   const decisions = (time.pause ? 1 : 0) + (world && !mine ? 1 : 0) + pendingBids.length + confirmBids.length + offersIn.length;
 
   return (
@@ -156,16 +157,10 @@ export default function Start() {
         </section>
       )}
 
-      {club && (
-        <div className="inicio-mini">
-          <MiniTable league={club.league} club={club.profile.id} />
-          <LastMatches club={club.profile.id} {...(today ? { today } : {})} />
-        </div>
-      )}
-
       <div className="inicio-colunas">
         <section className="painel" aria-labelledby="i-caixa">
           <h2 id="i-caixa">{t("menu.inbox")}{inbox.unread + decisions > 0 && <span className="distintivo" aria-label={t("inbox.unread", { n: inbox.unread + decisions })}>{inbox.unread + decisions > 99 ? "99+" : inbox.unread + decisions}</span>}</h2>
+          <div className="caixa-rolar">
           {time.pause && (
             <div className="decisao">
               <p><ClubSwatch id={pj?.opponentId} /><b>{t(time.pause.ongoing ? "today.matchInProgress" : "today.matchToday", { match: `${time.pause.atHome ? "" : "@ "}${time.pause.opponent}` })}</b></p>
@@ -203,6 +198,7 @@ export default function Start() {
               {shownMessages.map((m) => <li key={m.id}><NewsItemView n={m} unread={!m.isRead} compact onToggleIsRead={() => { void engine?.call("markMessage", { id: m.id, isRead: !m.isRead }).then(() => window.dispatchEvent(new Event("raizes:caixa"))); }} /></li>)}
             </ul>
           )}
+          </div>
           <p className="painel-rodape"><Link href="/inbox/">{t("start.seeInbox")}</Link>{inbox.unread > 0 && <button type="button" className="ligacao-botao" onClick={() => { void engine?.call("markInboxRead", null).then(() => window.dispatchEvent(new Event("raizes:caixa"))); }}>{t("inbox.markAllRead")}</button>}</p>
         </section>
 
@@ -215,6 +211,13 @@ export default function Start() {
           )}
         </section>
       </div>
+
+      {club && (
+        <div className="inicio-mini">
+          <MiniTable league={club.league} club={club.profile.id} />
+          <LastMatches club={club.profile.id} {...(today ? { today } : {})} />
+        </div>
+      )}
 
       <ResultsFita matches={fita} />
     </section>

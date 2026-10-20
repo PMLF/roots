@@ -474,7 +474,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .inicio-factos { display: flex; gap: 28px; margin: 0; flex-wrap: wrap; }
 .inicio-factos dt { color: var(--suave); font-size: 12px; }
 .inicio-factos dd { margin: 0; font-weight: 600; }
-.inicio-colunas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; align-items: stretch; }
+.inicio-colunas { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 14px; align-items: stretch; }
 .inicio-colunas .painel { display: flex; flex-direction: column; min-width: 0; }
 .painel-rodape { margin: auto 0 0; padding-top: 10px; font-size: 13px; }
 .lista-compacta { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
@@ -484,12 +484,12 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .lista-compacta .noticia p { font-size: 12px; margin: 0; }
 .inicio .decisao { margin-bottom: 8px; }
 .inicio .distintivo { margin-left: 0; }
-@media (max-width: 1100px) { .inicio-colunas { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 720px) { .inicio-colunas { grid-template-columns: 1fr; } }
+@media (max-width: 900px) { .inicio-colunas { grid-template-columns: 1fr; } }
 
 /* Fita de resultados: corre sem parar, pára com o rato ou o foco; estática com «reduzir movimento» */
-.fita { position: sticky; bottom: 0; margin-top: auto; display: flex; align-items: center; gap: 12px; background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 8px 14px; overflow: hidden; z-index: 5; }
-.fita-rotulo { flex: none; font-weight: 600; font-size: 13px; color: var(--destaque-texto); padding-right: 12px; border-right: 1px solid var(--linha); }
+.fita { position: sticky; bottom: -22px; margin-top: auto; display: flex; align-items: center; gap: 12px; background: rgb(14 22 18 / .72); color: #eef4f0; backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); border: 1px solid rgb(255 255 255 / .12); border-radius: var(--r-m); padding: 8px 14px; overflow: hidden; z-index: 5; box-shadow: 0 6px 20px rgb(0 0 0 / .18); }
+.fita-rotulo { flex: none; font-weight: 600; font-size: 13px; color: #7fe0b0; padding-right: 12px; border-right: 1px solid rgb(255 255 255 / .18); }
+.fita .suave { color: #aab9b0; }
 .fita-janela { overflow: hidden; flex: 1; min-width: 0; }
 .fita-pista { display: flex; width: max-content; list-style: none; margin: 0; padding: 0; animation: fita-correr linear infinite; font-size: 13px; white-space: nowrap; }
 .fita-pista li { padding-right: 36px; }
@@ -975,7 +975,7 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .opcao-formacao select { width: 100%; }
 @media (pointer: coarse) { .opcao-tatica .passo { height: 26px; } .opcao-tatica .area { padding-block: 6px; } }
 .tatica-grelha { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 14px; align-items: stretch; grid-column: 1 / -1; }
-.tatica-grelha .campo { width: auto; height: clamp(380px, calc(100vh - 420px), 640px); }
+.tatica-grelha .campo { width: auto; height: clamp(340px, calc(100vh - 512px), 600px); }
 .tatica-plantel { display: flex; flex-direction: column; min-height: 0; }
 .tatica-plantel > p { margin: 0 0 6px; font-size: 12px; }
 .tatica-tabela { position: relative; flex: 1 1 auto; min-height: 200px; margin-top: 4px; }
@@ -1022,3 +1022,70 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .arrasto-cartao-nome { display: block; padding: 2px 3px 3px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lugar.alvo .lugar-cartao, .lugar-vazio.alvo { outline: 2px dashed #fff; outline-offset: 2px; }
 .lugar-vazio.alvo { background: rgb(255 255 255 / 0.28); }
+
+/* Revisão de UI (branch design/ui-review): refinamentos que não mudam a identidade. */
+::selection { background: var(--destaque-fundo); color: var(--texto); }
+:root { accent-color: var(--destaque); scrollbar-width: thin; scrollbar-color: var(--linha-forte) transparent; }
+h1, h2 { text-wrap: balance; }
+button:active:not(:disabled) { transform: scale(.97); }
+button { transition: background-color .12s, border-color .12s, transform .12s cubic-bezier(.23, 1, .32, 1); }
+:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+/* Secções da Cidade: ligações com o aspeto dos separadores */
+.separadores { overflow-x: auto; scrollbar-width: none; }
+.separadores a { flex: none; border-bottom: 2px solid transparent; padding: 8px 14px; color: var(--suave); margin-bottom: -1px; white-space: nowrap; }
+.separadores a:hover { color: var(--texto); text-decoration: none; }
+.separadores a[aria-current="page"] { color: var(--texto); border-bottom-color: var(--destaque); font-weight: 600; }
+/* Plantel e tabelas densas: o nome nunca parte em duas linhas */
+.tabela td:first-child { white-space: nowrap; }
+@media (max-width: 700px) {
+  .ficha-topo-cartao .dados { grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .ficha-topo-cartao .dados > div { display: block; }
+  .ficha-topo-cartao .dados dt { font-size: 12px; }
+  .ficha-topo-cartao .dados dd { text-align: left; }
+}
+
+/* Início: cartões de posição e últimos jogos mais baixos */
+.inicio-mini .painel { padding: 10px 16px 10px; }
+.inicio-mini .painel h2 { margin-bottom: 4px; }
+.mini-tabela th, .mini-tabela td { padding: 2px 6px; font-size: 13px; }
+.ultimos-jogos { gap: 4px; font-size: 13px; }
+
+/* Tática: realces ao premir um jogador, banco de suplentes e destinos de largar */
+.lugar.dica-verde .lugar-cartao, .lugar-vazio.dica-verde { box-shadow: 0 0 0 3px #34d058, 0 0 18px 4px rgb(52 208 88 / .7); animation: dica-pulsar 1.1s ease-in-out infinite alternate; }
+.lugar.dica-amarelo .lugar-cartao, .lugar-vazio.dica-amarelo { box-shadow: 0 0 0 3px #ffd33d, 0 0 18px 4px rgb(255 211 61 / .7); animation: dica-pulsar 1.1s ease-in-out infinite alternate; }
+.lugar.esmaecido, .lugar-vazio.esmaecido { opacity: .4; filter: saturate(.5); }
+.lugar, .lugar-vazio { transition: opacity .15s, filter .15s; }
+@keyframes dica-pulsar { from { transform: scale(1); } to { transform: scale(1.04); } }
+.tabela-onze tr.dica-verde td { background: color-mix(in srgb, #34d058 28%, transparent); }
+.tabela-onze tr.dica-amarelo td { background: color-mix(in srgb, #ffd33d 32%, transparent); }
+.tabela-onze tr.esmaecido td { opacity: .4; }
+.tabela-onze tr.alvo-vazio td { height: 34px; border: 1px dashed var(--linha-forte); }
+.banco { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; width: 0; min-width: 100%; margin-top: 10px; }
+.banco-casa { position: relative; display: flex; flex-direction: column; min-width: 0; height: 44px; padding: 0; overflow: hidden; border: 1px dashed var(--linha-forte); border-radius: 6px; background: var(--painel-2); font-size: 11px; transition: opacity .15s, filter .15s, box-shadow .15s; }
+.banco-casa.alvo { border-color: var(--destaque); background: var(--destaque-fundo); }
+.banco-cartao { border-style: solid; background: #fff; color: #111; cursor: grab; overflow: hidden; user-select: none; }
+.banco-pos { flex: none; display: flex; align-items: center; padding: 0 5px; height: 20px; font-size: 10.5px; color: #fff; font-weight: 700; text-shadow: 0 0 3px rgb(0 0 0 / .9), 0 0 1px #000; }
+.banco-nome { flex: 1; display: block; text-align: center; line-height: 24px; padding: 0 4px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.banco-cartao .estrelas { display: none; }
+.banco-cartao.escolhido { outline: 2px solid var(--destaque); outline-offset: 1px; }
+.banco-cartao.indisponivel { filter: grayscale(.8); opacity: .8; }
+.banco-cartao.dica-verde { box-shadow: 0 0 0 3px #34d058; }
+.banco-cartao.dica-amarelo { box-shadow: 0 0 0 3px #ffd33d; }
+.banco-cartao.esmaecido { opacity: .4; }
+@media (prefers-reduced-motion: reduce) { .lugar.dica-verde .lugar-cartao, .lugar.dica-amarelo .lugar-cartao, .lugar-vazio.dica-verde, .lugar-vazio.dica-amarelo { animation: none; } }
+
+/* Fundo com textura: grelha de pontos, riscas de relva na diagonal e dois focos de verde (relva vista de cima) */
+body {
+  background-color: var(--fundo);
+  background-image:
+    radial-gradient(1100px 620px at 4% -12%, rgb(20 128 79 / .26), transparent 70%),
+    radial-gradient(900px 560px at 104% 108%, rgb(20 128 79 / .22), transparent 70%),
+    repeating-linear-gradient(115deg, rgb(20 128 79 / .045) 0 46px, transparent 46px 92px),
+    radial-gradient(rgb(16 26 21 / .16) 1px, transparent 1.4px);
+  background-size: auto, auto, auto, 16px 16px;
+  background-attachment: fixed;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-tema="claro"]) body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .045) 0 46px, transparent 46px 92px), radial-gradient(rgb(232 238 234 / .13) 1px, transparent 1.4px); }
+}
+:root[data-tema="escuro"] body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .045) 0 46px, transparent 46px 92px), radial-gradient(rgb(232 238 234 / .13) 1px, transparent 1.4px); }

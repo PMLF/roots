@@ -1460,5 +1460,13 @@
   "tactic.reserves": "Reservas",
   "tactic.empty.starting": "Ninguém escolhido.",
   "tactic.empty.bench": "Arrasta jogadores para aqui para os convocares.",
-  "tactic.empty.reserves": "Todo o plantel está convocado."
+  "tactic.empty.reserves": "Todo o plantel está convocado.",
+  "city.sections": "Secções da cidade",
+  "city.section.overview": "Resumo",
+  "city.section.services": "Serviços",
+  "city.section.youth": "Talento local",
+  "city.section.companies": "Empresas",
+  "city.section.council": "Câmara",
+  "city.section.stadium": "Estádio",
+  "city.soon": "«{section}» ainda não existe. Esta página fica em branco até ser implementada."
 }

@@ -1,8 +1,9 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import type { ViewPlan } from "@/engine/api/contracts";
-import { BENCH_SIZE, moveToBench, moveToReserve, moveToSlot, remapLineup, type Board } from "@/engine/match/lineup";
+import { BENCH_SIZE, moveToBench, moveToReserve, moveToSlot, remapLineup, swapPlayers, type Board } from "@/engine/match/lineup";
 import type { FormationId, Tactic } from "@/engine/match/types";
+import { BenchStrip } from "@/ui/components/BenchStrip";
 import { Card } from "@/ui/components/Card";
 import { startPlayerDrag } from "@/ui/components/dragCard";
 import { EntityLink } from "@/ui/components/Link";
@@ -29,6 +30,16 @@ export function TacticEditor({ withoutNextMatch = false, heading }: { withoutNex
   const [plan, setPlan] = useState<ViewPlan | null | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [selected, setSelected] = useState<string | undefined>(undefined);
+  const [held, setHeld] = useState<string | undefined>(undefined);
+  // o realce dura enquanto o rato está premido ou o jogador anda a ser arrastado
+  useEffect(() => {
+    if (!held) return;
+    const end = () => setHeld(undefined);
+    window.addEventListener("mouseup", end);
+    window.addEventListener("dragend", end);
+    window.addEventListener("drop", end);
+    return () => { window.removeEventListener("mouseup", end); window.removeEventListener("dragend", end); window.removeEventListener("drop", end); };
+  }, [held]);
 
   useEffect(() => {
     if (!engine) return;
@@ -72,6 +83,9 @@ export function TacticEditor({ withoutNextMatch = false, heading }: { withoutNex
   };
   const place = (player: string, slot: number) => commit(moveToSlot(board, player, slot));
   const toZone = (player: string, zone: Zone) => commit(zone === "bench" ? moveToBench(board, player) : moveToReserve(board, player));
+  const swap = (dragged: string, over: string) => { if (dragged !== over) commit(swapPlayers(board, dragged, over)); };
+  // largar numa casa livre do banco convoca; por cima de um suplente troca
+  const dropOnBench = (dragged: string, over: string | undefined) => (over ? swap(dragged, over) : toZone(dragged, "bench"));
 
   const start = new Map(plan.lineup.flatMap((o, i) => (o.player ? [[o.player, i] as const] : [])));
   const rows: Record<Zone, Squad[]> = {
@@ -81,9 +95,19 @@ export function TacticEditor({ withoutNextMatch = false, heading }: { withoutNex
   };
   const slotOf = (id: string) => plan.lineup[start.get(id) ?? -1];
   const background = backgroundColours(readColours(plan.clubColours));
+  // realces ao agarrar um jogador: lugares onde rende bem (se não está no onze) ou quem o substituiria bem (se está)
+  const tone = (fit: number | undefined): "verde" | "amarelo" | undefined => (fit === undefined ? undefined : fit >= 0.95 ? "verde" : fit >= 0.8 ? "amarelo" : undefined);
+  const heldInfo = held ? plan.squad.find((p) => p.player === held) : undefined;
+  const heldSlot = held ? start.get(held) : undefined;
+  const slotHints = new Map<number, "verde" | "amarelo">();
+  const playerHints = new Map<string, "verde" | "amarelo">();
+  if (heldInfo && heldSlot === undefined) plan.lineup.forEach((o, i) => { const h = tone(heldInfo.fit[o.position]); if (h) slotHints.set(i, h); });
+  if (heldInfo && heldSlot !== undefined) {
+    const position = plan.lineup[heldSlot]!.position;
+    for (const p of plan.squad) { if (p.player === held || p.unavailable) continue; const h = tone(p.fit[position]); if (h) playerHints.set(p.player, h); }
+  }
+  const dimmed = heldInfo !== undefined && heldSlot !== undefined;
   const missing = plan.lineup.filter((o) => !o.player).length;
-  const outOfPosition = plan.lineup.filter((o) => o.outOfPosition);
-  const tired = plan.lineup.filter((o) => o.player && (plan.squad.find((p) => p.player === o.player)?.form ?? 1) < 0.97);
 
   const section = (zone: Zone, title: string, hint: string) => (
     <tbody
@@ -97,7 +121,7 @@ export function TacticEditor({ withoutNextMatch = false, heading }: { withoutNex
           {selected && zone !== "starting" && !rows[zone].some((p) => p.player === selected) && <button type="button" className="ligacao-botao" onClick={() => toZone(selected, zone)}>{t("tactic.moveHere")}</button>}
         </th>
       </tr>
-      {rows[zone].length === 0 && <tr><td colSpan={9} className="vazio">{t(`tactic.empty.${zone}` as Key)}</td></tr>}
+      {rows[zone].length === 0 && <tr className="alvo-vazio"><td colSpan={9} /></tr>}
       {rows[zone].map((p) => {
         const slot = slotOf(p.player);
         return (
@@ -105,8 +129,12 @@ export function TacticEditor({ withoutNextMatch = false, heading }: { withoutNex
             key={p.player}
             draggable
             onDragStart={(e) => startPlayerDrag(e, p.player, { name: p.name, position: abbreviationPosition(t, slot?.position ?? p.positions[0]?.pos ?? "ST"), background })}
+            onMouseDown={() => setHeld(p.player)}
+            onContextMenu={(e) => { e.preventDefault(); toZone(p.player, "reserves"); }}
+            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+            onDrop={(e) => { e.preventDefault(); e.stopPropagation(); setHeld(undefined); const id = e.dataTransfer.getData("text/plain"); if (id) swap(id, p.player); }}
             onClick={() => setSelected(selected === p.player ? undefined : p.player)}
-            className={`${selected === p.player ? "escolhido" : ""}${p.unavailable ? " indisponivel" : ""}`}
+            className={`${selected === p.player ? "escolhido" : ""}${p.unavailable ? " indisponivel" : ""}${playerHints.has(p.player) ? ` dica-${playerHints.get(p.player)}` : dimmed && p.player !== held ? " esmaecido" : ""}`}
             aria-selected={selected === p.player}
           >
             <td><EntityLink k="person" id={p.player}>{p.name}</EntityLink></td>
@@ -141,19 +169,10 @@ export function TacticEditor({ withoutNextMatch = false, heading }: { withoutNex
       </Card>
       <div className="tatica-grelha">
         <Card>
-          <PitchBoard formation={plan.tactic.formation} plan={plan} selected={selected} onSelect={(id) => setSelected(selected === id ? undefined : id)} onPlace={place} onRemove={(id) => toZone(id, "reserves")} />
-          <ul className="legenda-zonas">
-            <li><span className="halo-amostra verde" aria-hidden="true" /> {t("tactic.halo.verde")}</li>
-            <li><span className="halo-amostra amarelo" aria-hidden="true" /> {t("tactic.halo.amarelo")}</li>
-            <li><span className="halo-amostra vermelho" aria-hidden="true" /> {t("tactic.halo.vermelho")}</li>
-          </ul>
+          <PitchBoard formation={plan.tactic.formation} plan={plan} selected={selected} onSelect={(id) => setSelected(selected === id ? undefined : id)} onPlace={place} onRemove={(id) => toZone(id, "reserves")} held={held} hints={slotHints} onGrab={setHeld} />
+          <BenchStrip plan={plan} selected={selected} dimmed={dimmed} hints={playerHints} held={held} onSelect={(id) => setSelected(selected === id ? undefined : id)} onGrab={setHeld} onDropOn={dropOnBench} onRemove={(id) => toZone(id, "reserves")} />
         </Card>
         <Card className="tatica-plantel">
-          {missing > 0 && <p className="suave">{t("tactic.dragHint")}</p>}
-          {missing > 0 && <p className="erro" role="status">{t("tactic.missing", { n: missing })}</p>}
-          {plan.ready.reason === "unavailable" && <p className="erro" role="status">{t("tactic.unavailableWarning", { names: (plan.ready.names ?? []).join(", ") })}</p>}
-          {outOfPosition.length > 0 && <p className="erro" role="status">{t("tactic.outOfPositionWarning", { names: outOfPosition.map((o) => `${o.name} (${abbreviationPosition(t, o.position)}, ${Math.round((o.performance ?? 1) * 100)}%)`).join(", ") })}</p>}
-          {tired.length > 0 && <p className="suave" role="status">{t("tactic.tiredWarning", { names: tired.map((o) => o.name).join(", ") })}</p>}
           {error && <p className="erro" role="alert">{error}</p>}
           <div className="tatica-tabela">
             <div className="tabela-rolar">
