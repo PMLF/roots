@@ -11,6 +11,7 @@ import { MatchSimulator } from "../match/simulator";
 import { playMatch, resolveMatch } from "../match/detail";
 import type { MatchInput, MatchEvent, Side, Tactic } from "../match/types";
 import type { Repository } from "../persistence/repository";
+import type { Position } from "../world/types";
 import type { IsoDate } from "../persistence/types";
 import { matchReferee } from "../match/matchContext";
 import { europeSlots, type EuropeSlots } from "../europe/access";
@@ -24,6 +25,8 @@ import { prepareSeason } from "./prepare";
 type Change = { minute: number; tactic: Tactic };
 /** Uma substituição do gamer. `pausa`: número da paragem que a trouxe (0 = intervalo, que não gasta pausas). */
 export type MadeSubstitution = { minute: number; playerOut: string; playerIn: string; pause: number };
+/** Uma reorganização do gamer: quem em campo passa a jogar em que posição (RZ-255). */
+export type Repositioning = { minute: number; moves: { player: string; position: Position }[] };
 export type SavedSession = {
   match: string;
   competition: string;
@@ -34,6 +37,7 @@ export type SavedSession = {
   input: MatchInput;
   changes: Change[];
   substitutions?: MadeSubstitution[];
+  repositions?: Repositioning[];
   minute: number;
   table: LiveTableLine[];
   others: OtherLiveMatch[];
@@ -61,12 +65,14 @@ function replay(s: SavedSession, params: Params, until: number = s.minute): { si
   const tactics = s.changes.filter((m) => m.minute <= until);
   const substitutions = (s.substitutions ?? []).filter((t) => t.minute <= until);
   // no mesmo minuto aplica-se primeiro a tática e depois as substituições (sempre pela mesma ordem, para a repetição ser igual)
-  const minutes = [...new Set([...tactics.map((m) => m.minute), ...substitutions.map((t) => t.minute)])].sort((x, y) => x - y);
+  const repositions = (s.repositions ?? []).filter((t) => t.minute <= until);
+  const minutes = [...new Set([...tactics.map((m) => m.minute), ...substitutions.map((t) => t.minute), ...repositions.map((t) => t.minute)])].sort((x, y) => x - y);
   for (const m of minutes) {
     events.push(...sim.simulateUntil(m));
     for (const x of tactics.filter((y) => y.minute === m)) sim.changeTactic(s.side, x.tactic);
     const ofMinute = substitutions.filter((t) => t.minute === m);
     if (ofMinute.length > 0) events.push(...sim.substitute(s.side, ofMinute));
+    for (const x of repositions.filter((y) => y.minute === m)) sim.reposition(s.side, x.moves);
   }
   events.push(...sim.simulateUntil(until));
   return { sim, events };
@@ -81,7 +87,8 @@ function view(repo: Repository, s: SavedSession, params: Params, names: Readonly
   const summary = sim.summary();
   const personName = (id: string) => repo.publicPerson(id)?.sportingName ?? id;
   const lines = matchLines(events, sim.duration, personName).filter((l) => l.minute <= s.minute && (l.type !== "end" || sim.finished));
-  const teams = matchTeams(s.input, events, matchReport(s.input, s.input, events, summary, params), personName);
+  const current = new Map([...sim.team("home").lineup, ...sim.team("away").lineup].map((j) => [j.id, j.position] as const));
+  const teams = matchTeams(s.input, events, matchReport(s.input, s.input, events, summary, params), personName, current);
   const last = [...s.changes].reverse()[0]?.tactic ?? (s.side === "home" ? s.input.home.tactic : s.input.away.tactic);
   const others = s.others.map((o) => {
     const goals = o.goals.filter((g) => g.minute <= s.minute);
@@ -191,15 +198,15 @@ export function changeSessionTactic(repo: Repository, base: BaseData, params: Pa
  * Substituições do gamer (RZ-215), todas as que confirma de uma vez. Fora do intervalo gastam uma pausa (3 por jogo), seja
  * qual for o número de trocas; ao intervalo não gastam pausas. No total, no máximo 5 (as lesões também contam).
  */
-export function substituteSession(repo: Repository, base: BaseData, params: Params, substitutions: readonly { playerOut: string; playerIn: string }[]): LiveMatch {
+export function substituteSession(repo: Repository, base: BaseData, params: Params, substitutions: readonly { playerOut: string; playerIn: string }[], positions: readonly { player: string; position: Position }[] = []): LiveMatch {
   const s = readSession(repo);
   if (!s) throw new Error("Não há jogo a decorrer");
-  if (substitutions.length === 0) throw new Error("Escolhe pelo menos uma substituição");
+  if (substitutions.length === 0 && positions.length === 0) throw new Error("Escolhe pelo menos uma substituição ou uma mudança de posição");
   const { sim, events } = replay(s, params);
   if (sim.finished || s.minute < 1) throw new Error("Só se fazem substituições com o jogo a decorrer");
   const cfg = params.match.substitutions;
   const used = events.filter((e) => e.type === "substitution" && e.side === s.side).length;
-  if (used >= cfg.max) throw new Error("Já não tens substituições");
+  if (substitutions.length > 0 && used >= cfg.max) throw new Error("Já não tens substituições");
   if (used + substitutions.length > cfg.max) throw new Error(`Só tens mais ${cfg.max - used} substituições`);
   // substituir só lesionados é uma paragem forçada: não gasta pausas
   const pendingInjury = new Set(sim.pendingInjuries(s.side));
@@ -218,7 +225,13 @@ export function substituteSession(repo: Repository, base: BaseData, params: Para
     playerIn.add(t.playerIn);
   }
   const pause = halfTime ? 0 : Math.max(0, ...(s.substitutions ?? []).map((t) => t.pause)) + 1;
-  const fresh: SavedSession = { ...s, substitutions: [...(s.substitutions ?? []), ...substitutions.map((t) => ({ minute: s.minute, playerOut: t.playerOut, playerIn: t.playerIn, pause }))] };
+  const fresh: SavedSession = {
+    ...s,
+    ...(substitutions.length > 0 ? { substitutions: [...(s.substitutions ?? []), ...substitutions.map((t) => ({ minute: s.minute, playerOut: t.playerOut, playerIn: t.playerIn, pause }))] } : {}),
+    ...(positions.length > 0 ? { repositions: [...(s.repositions ?? []), { minute: s.minute, moves: positions.map((x) => ({ player: x.player, position: x.position })) }] } : {}),
+  };
+  // valida já (a repetição lança se algum jogador não estiver em campo)
+  replay(fresh, params);
   save(repo, fresh);
   return view(repo, fresh, params, namesOf(seasonData(repo, base)));
 }

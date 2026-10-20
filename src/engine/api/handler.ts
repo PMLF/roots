@@ -482,7 +482,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     }
     case "substitutionsInMatch": {
       const { repository, data, params } = await context(servicos);
-      return substituteSession(repository, data, params, m.input.substitutions);
+      return substituteSession(repository, data, params, m.input.substitutions, m.input.positions ?? []);
     }
     case "timeState": {
       const { repository, data, params } = await context(servicos);

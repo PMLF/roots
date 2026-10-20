@@ -1,4 +1,5 @@
 "use client";
+import type { Position } from "@/engine/world/types";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
@@ -164,11 +165,11 @@ function Content() {
     setIsOpenTactic((isOpen) => { if (isOpen) setRunning(beforeRan.current); return false; });
     if (ofHalfTimePause.current) { ofHalfTimePause.current = false; setHalfTime(true); }
   }, []);
-  const confirmSubs = async (substitutions: { playerOut: string; playerIn: string }[]): Promise<boolean> => {
+  const confirmSubs = async (substitutions: { playerOut: string; playerIn: string }[], positions: { player: string; position: Position }[] = []): Promise<boolean> => {
     if (!engine) return false;
     setChanging(true);
     setSubsError(undefined);
-    try { setMatch(await engine.call("substitutionsInMatch", { substitutions })); return true; } catch (e) { setSubsError(e instanceof Error ? e.message : String(e)); return false; } finally { setChanging(false); }
+    try { setMatch(await engine.call("substitutionsInMatch", { substitutions, ...(positions.length > 0 ? { positions } : {}) })); return true; } catch (e) { setSubsError(e instanceof Error ? e.message : String(e)); return false; } finally { setChanging(false); }
   };
   const halfTimeTactic = () => { ofHalfTimePause.current = true; setHalfTime(false); openTactic(); };
   const secondHalf = () => { setHalfTime(false); setRunning(true); };

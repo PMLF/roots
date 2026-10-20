@@ -68,7 +68,7 @@ export type LiveSubs = { used: number; max: number; usedPauses: number; pausesMa
 export type LiveTeams = { home: LivePlayer[]; away: LivePlayer[] };
 
 /** Constrói o painel das equipas no minuto a que `eventos` e `relatorio` chegam. */
-export function matchTeams(teams: { home: MatchTeam; away: MatchTeam }, events: readonly MatchEvent[], report: MatchReport, name: (id: string) => string): LiveTeams {
+export function matchTeams(teams: { home: MatchTeam; away: MatchTeam }, events: readonly MatchEvent[], report: MatchReport, name: (id: string) => string, current?: ReadonlyMap<string, string>): LiveTeams {
   const stat = new Map(report.players.map((j) => [j.id, j] as const));
   const cameOn = new Map<string, number>();
   const left = new Map<string, { minute: number; sentOff: boolean }>();
@@ -90,7 +90,7 @@ export function matchTeams(teams: { home: MatchTeam; away: MatchTeam }, events: 
       const played = initial || entity !== undefined;
       const other = substitution.get(j.id);
       return {
-        id: j.id, name: name(j.id), position: st?.position ?? j.position,
+        id: j.id, name: name(j.id), position: (current?.get(j.id) as Position | undefined) ?? st?.position ?? j.position,
         state: playerOut ? (playerOut.sentOff ? "sentOff" : "left") : played ? "pitch" : "bench",
         ...(played && st ? { rating: st.rating } : {}),
         goals: st?.goals ?? 0, assists: st?.assists ?? 0, yellows: st?.yellows ?? 0, red: (st?.reds ?? 0) > 0, injured: !!st?.injury,
@@ -205,7 +205,10 @@ export function matchLines(events: readonly MatchEvent[], duration: number, name
   const out: LiveLine[] = [];
   const base = (e: { minute: number; side: Side }) => ({ minute: e.minute, side: e.side });
   const scorer = () => ({ homeGoals: gc, awayGoals: gf });
+  // um segundo amarelo aparece como um só lance (amarelo e vermelho no mesmo cartão), não como dois
+  const secondYellows = new Set(events.filter((e) => e.type === "card" && e.secondYellow).map((e) => `${e.minute}/${(e as { player: string }).player}`));
   for (const e of [...events].sort((a, b) => a.minute - b.minute)) {
+    if (e.type === "card" && e.colour === "yellow" && secondYellows.has(`${e.minute}/${e.player}`)) continue;
     if (e.type === "shot") {
       let situation: LiveLine["situation"];
       if (e.outcome === "goal") {

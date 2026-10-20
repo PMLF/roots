@@ -1479,5 +1479,8 @@
   "city.talent.none": "Unknown city.",
   "city.talent.yours": "your club",
   "match.subs.in": "on",
-  "menu.matchLive": "Match in progress"
+  "menu.matchLive": "Match in progress",
+  "tactic.zone.left": "Left wing",
+  "tactic.zone.centre": "Centre",
+  "tactic.zone.right": "Right wing"
 }

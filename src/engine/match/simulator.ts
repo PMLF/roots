@@ -6,6 +6,7 @@
  * e mudar a equipa a meio (`alterarEquipa`) só afeta os minutos seguintes.
  * Puro e determinístico: sem relógio, sem DOM, sem base de dados.
  */
+import type { Position } from "../world/types";
 import { Rng, clamp } from "../random/rng";
 import type { Params } from "../config/parameters";
 import { aptitudeIn, areaEdge, teamStrength, type TeamStrength } from "./team";
@@ -156,6 +157,25 @@ export class MatchSimulator {
     this.baseRisks[side] = undefined;
     this.updateEffective(this.last);
     return out;
+  }
+
+  /**
+   * Reposicionamento do treinador (RZ-255): cada jogador em campo passa a jogar na posição indicada (a aptidão recalcula-se).
+   * Não gasta substituições nem pausas. Serve para reorganizar a equipa depois de uma expulsão ou lesão (uma posição pode ficar vazia).
+   */
+  reposition(side: Side, moves: readonly { player: string; position: Position }[]): void {
+    const eq = this.teams[side];
+    const by = new Map(moves.map((m) => [m.player, m.position] as const));
+    for (const id of by.keys()) if (!eq.lineup.some((j) => j.id === id)) throw new Error(`reposicionar: ${id} não está em campo`);
+    const lineup = eq.lineup.map((j) => {
+      const position = by.get(j.id);
+      if (!position || position === j.position) return j;
+      return { ...j, position, ...(j.positions ? { aptitude: aptitudeIn(j.positions, position, this.params) } : {}) };
+    });
+    this.teams[side] = { ...eq, lineup };
+    this.strengths[side] = this.computeStrength(this.teams[side], side);
+    this.baseRisks[side] = undefined;
+    this.updateEffective(this.last);
   }
 
   /** Lesionados à espera de substituição (só no lado manual). */

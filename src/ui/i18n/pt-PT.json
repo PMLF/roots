@@ -1479,5 +1479,8 @@
   "city.talent.none": "Cidade desconhecida.",
   "city.talent.yours": "o teu clube",
   "match.subs.in": "entra",
-  "menu.matchLive": "Jogo a decorrer"
+  "menu.matchLive": "Jogo a decorrer",
+  "tactic.zone.left": "Ala esquerda",
+  "tactic.zone.centre": "Meio",
+  "tactic.zone.right": "Ala direita"
 }
