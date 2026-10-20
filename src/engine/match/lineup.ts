@@ -73,3 +73,9 @@ export function moveToBench(b: Board, player: string): Board | undefined {
 export function moveToReserve(b: Board, player: string): Board {
   return without(b, player);
 }
+
+/** Troca dois jogadores de sítio (lugar, banco ou reservas): quem larga por cima de outro fica com o lugar dele, e o outro vai para onde estava (ou para os reservas). */
+export function swapPlayers(b: Board, a: string, c: string): Board {
+  const sw = (p: string) => (p === a ? c : p === c ? a : p);
+  return { slots: b.slots.map((p) => (p === undefined ? p : sw(p))), bench: b.bench.map(sw) };
+}

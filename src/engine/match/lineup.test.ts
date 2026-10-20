@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BENCH_SIZE, missingPositions, moveToBench, moveToReserve, moveToSlot, remapLineup, type Board } from "./lineup";
+import { BENCH_SIZE, missingPositions, moveToBench, moveToReserve, moveToSlot, remapLineup, swapPlayers, type Board } from "./lineup";
 
 const empty = (): Board => ({ slots: Array.from({ length: 11 }, () => undefined), bench: [] });
 
@@ -36,5 +36,12 @@ describe("onze do gamer (RZ-248)", () => {
     expect(moveToBench(b!, "extra")).toBeUndefined();
     b = moveToReserve(b!, "s0");
     expect(moveToBench(b, "extra")?.bench).toHaveLength(BENCH_SIZE);
+  });
+  it("largar um do banco por cima de um reserva troca-os; entre reservas nada muda", () => {
+    const b: Board = { slots: ["a", ...Array.from({ length: 10 }, () => undefined)], bench: ["x", "y"] };
+    expect(swapPlayers(b, "x", "r").bench).toEqual(["r", "y"]);
+    expect(swapPlayers(b, "a", "r").slots[0]).toBe("r");
+    expect(swapPlayers(b, "r", "s")).toEqual(b);
+    expect(swapPlayers(b, "a", "y")).toEqual({ slots: ["y", ...Array.from({ length: 10 }, () => undefined)], bench: ["x", "a"] });
   });
 });

@@ -5,7 +5,7 @@ import type { Params } from "../config/parameters";
 import type { BaseData } from "../data/types";
 import { FORMATION_IDS, FORMATIONS } from "../match/formations";
 import type { FormationId } from "../match/types";
-import type { Position } from "../world/types";
+import { POSITIONS, type Position } from "../world/types";
 import type { Repository } from "../persistence/repository";
 import { addDays } from "../calendar/dates";
 import { aptitudeIn, aptitudeFactor } from "../match/team";
@@ -61,6 +61,7 @@ export function planView(repo: Repository, data: BaseData, params: Params, club:
         const recent = repo.playerRecentRatings(j.person, 5);
         return {
           player: j.person, name: name(j.person), age: ageAt(repo.person(j.person)?.birth ?? today, today), form: Math.round((form.get(j.person) ?? 1) * 100) / 100, positions: j.positions as { pos: Position; aptitude: number }[],
+          fit: Object.fromEntries(POSITIONS.map((pos) => [pos, Math.round(aptitudeFactor(aptitudeIn(candidates.find((c) => c.person === j.person)?.positions ?? [], pos, params), pos, params) * 100) / 100])) as Record<Position, number>,
           matches: stats.reduce((n, l) => n + l.matches, 0), goals: stats.reduce((n, l) => n + l.goals, 0),
           ...(recent.length > 0 ? { avgLast5: Math.round((recent.reduce((a, b) => a + b, 0) / recent.length) * 10) / 10 } : {}),
           ...(f ? { unavailable: f.reason, ...(f.detail !== undefined ? { matchesPerMeet: f.detail } : {}) } : {}),

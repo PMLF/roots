@@ -19,7 +19,7 @@ export function CitySections() {
   const { t } = useT();
   const path = (usePathname() ?? "").replace(/\/?$/, "/");
   return (
-    <nav className="seccoes" aria-label={t("city.sections")}>
+    <nav className="separadores" aria-label={t("city.sections")}>
       {CITY_SECTIONS.map((s) => (
         <Link key={s.id} href={s.href} aria-current={path === s.href ? "page" : undefined} >{t(s.label)}</Link>
       ))}

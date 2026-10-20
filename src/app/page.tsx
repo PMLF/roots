@@ -156,13 +156,6 @@ export default function Start() {
         </section>
       )}
 
-      {club && (
-        <div className="inicio-mini">
-          <MiniTable league={club.league} club={club.profile.id} />
-          <LastMatches club={club.profile.id} {...(today ? { today } : {})} />
-        </div>
-      )}
-
       <div className="inicio-colunas">
         <section className="painel" aria-labelledby="i-caixa">
           <h2 id="i-caixa">{t("menu.inbox")}{inbox.unread + decisions > 0 && <span className="distintivo" aria-label={t("inbox.unread", { n: inbox.unread + decisions })}>{inbox.unread + decisions > 99 ? "99+" : inbox.unread + decisions}</span>}</h2>
@@ -215,6 +208,13 @@ export default function Start() {
           )}
         </section>
       </div>
+
+      {club && (
+        <div className="inicio-mini">
+          <MiniTable league={club.league} club={club.profile.id} />
+          <LastMatches club={club.profile.id} {...(today ? { today } : {})} />
+        </div>
+      )}
 
       <ResultsFita matches={fita} />
     </section>

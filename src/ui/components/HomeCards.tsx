@@ -56,7 +56,7 @@ export function LastMatches({ club, today }: { club: string; today?: string }) {
       <h2 id="i-ultimos">{t("home.lastMatches")}</h2>
       {list.length === 0 ? <p className="vazio">{t("home.noMatches")}</p> : (
         <ul className="ultimos-jogos">
-          {list.map((m) => (
+          {[...list].reverse().map((m) => (
             <li key={m.id}>
               <span className={`resultado-ponto ${m.outcome}`} role="img" aria-label={t(`home.outcome.${m.outcome}` as Key)} />
               <span className="nome-clube"><ClubSwatch id={m.opponent} /><EntityLink k="club" id={m.opponent} withoutSwatch>{m.opponentName}</EntityLink></span>
