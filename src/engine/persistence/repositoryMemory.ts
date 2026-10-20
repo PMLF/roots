@@ -309,6 +309,9 @@ export class MemoryRepository implements Repository {
   playersByState(state: PlayerState): PlayerRecord[] {
     return [...this.mapPlayers.values()].filter((j) => j.state === state).sort((a, b) => cmp(a.person, b.person)).map((j) => clone(j));
   }
+  playersBornIn(city: string): string[] {
+    return [...this.mapPlayers.keys()].filter((id) => this.people.get(id)?.birthCity === city).sort(cmp);
+  }
   peopleTotal(): number {
     return this.people.size;
   }

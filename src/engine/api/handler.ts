@@ -1,7 +1,7 @@
 import { setBudget, clubBudget } from "../club/budget";
 import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
 import { ageAt, createDate } from "../calendar/dates";
-import type { IsoDate } from "../persistence/types";
+import type { IsoDate, PlayerRecord } from "../persistence/types";
 import { pendingOffers, respondOffer, type Offer } from "../market/offers";
 import { valueOf } from "../market/bids";
 import { addDays } from "../calendar/dates";
@@ -51,8 +51,9 @@ import { buildIndex, find, type InputIndex, type Indexed } from "../search/searc
 import { Rng } from "../random/rng";
 import { startCompanies } from "../company/cycle";
 import { assignAgents } from "../agent/assign";
+import { newProspects } from "../squad/prospects";
 import { potentialRange, referenceTier, starsOf } from "../world/stars";
-import type { ViewPlan, OfferView, BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
+import type { LocalTalentData, ViewPlan, OfferView, BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SCHEMA_VERSION = DB_SCHEMA;
@@ -259,6 +260,10 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         history,
       };
       return output;
+    }
+    case "localTalent": {
+      const { repository, data, params } = await context(servicos);
+      return localTalentData(repository, data, params, m.input.city);
     }
     case "scouting": {
       const { repository, data, params } = await context(servicos);
@@ -544,6 +549,49 @@ function playerRating(r: Repository, id: string, level: EstimatedLevel | undefin
   return rating;
 }
 
+/** Uma linha de jogador para o gamer: só o que ele sabe (estrelas só depois de observar). */
+function scoutRowOf(r: Repository, data: BaseData, params: Params, tier: Tier, view: ReturnType<typeof gamerView>, foreignName: Map<string, string>, j: PlayerRecord, today: string, level: "week" | "month" | undefined, isFound: boolean, busy: Map<string, "week" | "month">): ScoutRow | undefined {
+  const p = r.person(j.person);
+  if (!p) return undefined;
+  const pos = j.positions[0]?.pos ?? "";
+  const profile = view.profile(j.person);
+  const lvl = playerLevel(r, j.person, pos, profile?.attributes?.fields, false);
+  const rating = playerRating(r, j.person, lvl, profile?.potential?.fields.potential, tier, params, false);
+  const ct = r.contract(j.person);
+  const dataClub = j.club ? data.clubs.find((c) => c.id === j.club) : undefined;
+  return {
+    id: j.person, name: p.sportingName, age: ageAt(p.birth, today), position: pos, nationality: p.nationality,
+    ...(j.club ? { club: { id: j.club, name: dataClub?.name ?? foreignName.get(j.club) ?? j.club, foreign: !dataClub } } : {}),
+    ...(ct ? { contractEnd: ct.end } : {}),
+    ...(rating ? { rating } : {}),
+    knowledge: level ?? "none",
+    ...(isFound ? { found: true } : {}),
+    ...(busy.has(j.person) ? { busy: busy.get(j.person) as "week" | "month" } : {}),
+  };
+}
+
+/** Talento local (RZ-234): os jovens do concelho sem clube e os da terra que jogam noutros clubes (incluindo o do gamer). */
+function localTalentData(r: Repository, data: BaseData, params: Params, cityId: string): LocalTalentData | null {
+  if (!data.cities.some((c) => c.id === cityId)) return null;
+  const club = gamerClubOf(r, data);
+  const view = gamerView(r);
+  const today = (r.meta("date.today") ?? "") as string;
+  const foreign = foreignClubList(r);
+  const foreignName = new Map(foreign.map((c) => [c.id, c.name] as const));
+  const tier = club?.tier ?? params.world.stars.freeAgentTier;
+  const busy = new Map(orders(r).filter((o) => !o.done && o.person).map((o) => [o.person as string, o.kind as "week" | "month"] as const));
+  const unsigned: ScoutRow[] = [];
+  const atClubs: ScoutRow[] = [];
+  for (const person of r.playersBornIn(cityId)) {
+    const j = r.player(person);
+    if (!j || (j.state !== "prospect" && j.state !== "active")) continue;
+    const row = scoutRowOf(r, data, params, tier, view, foreignName, j, today, scoutedLevel(r, j.person), false, busy);
+    if (!row) continue;
+    (j.state === "prospect" ? unsigned : atClubs).push(row);
+  }
+  return { city: cityId, ...(club ? { mine: club.id } : {}), unsigned, atClubs };
+}
+
 /** Tabela de scouting do gamer: o que os olheiros alcançam, o que já foi observado e o que apareceu nas pesquisas. */
 function scoutingData(r: Repository, data: BaseData, params: Params): ScoutingData {
   const club = gamerClubOf(r, data);
@@ -564,23 +612,8 @@ function scoutingData(r: Repository, data: BaseData, params: Params): ScoutingDa
       const level = scoutedLevel(r, j.person);
       const isFound = found.has(j.person);
       if (!level && !isFound && !isVisible(seed, season, club.id, scouts.count, j, params)) continue;
-      const p = r.person(j.person);
-      if (!p) continue;
-      const pos = j.positions[0]?.pos ?? "";
-      const profile = view.profile(j.person);
-      const lvl = playerLevel(r, j.person, pos, profile?.attributes?.fields, false);
-      const rating = playerRating(r, j.person, lvl, profile?.potential?.fields.potential, club.tier, params, false);
-      const ct = r.contract(j.person);
-      const dataClub = j.club ? data.clubs.find((c) => c.id === j.club) : undefined;
-      rows.push({
-        id: j.person, name: p.sportingName, age: ageAt(p.birth, today), position: pos, nationality: p.nationality,
-        ...(j.club ? { club: { id: j.club, name: dataClub?.name ?? foreignName.get(j.club) ?? j.club, foreign: !dataClub } } : {}),
-        ...(ct ? { contractEnd: ct.end } : {}),
-        ...(rating ? { rating } : {}),
-        knowledge: level ?? "none",
-        ...(isFound ? { found: true } : {}),
-        ...(busy.has(j.person) ? { busy: busy.get(j.person) as "week" | "month" } : {}),
-      });
+      const row = scoutRowOf(r, data, params, club.tier, view, foreignName, j, today, level, isFound, busy);
+      if (row) rows.push(row);
     }
   }
   const names = (id: string): EntityRef => ({ k: "person", id, name: r.person(id)?.sportingName ?? id });
@@ -834,6 +867,9 @@ async function createWorld(seed: string, servicos: Servicos, onProgress: (p: Wor
     onProgress({ phase: "companies", done: 0, total: 1 });
     startCompanies(repository, data, params, { seasonStart: createDate(year, params.calendar.seasonStartMonth, 1), year, tiers: new Map(data.clubs.map((c) => [c.id, c.tier] as const)) });
     assignAgents(repository, new Rng(seed, "agents/start"), params, (club) => data.clubs.find((c) => c.id === club)?.tier);
+    // primeira geração de jovens da terra (RZ-234), para o separador «Talento local» não começar vazio
+    let nextId = repository.peopleTotal();
+    repository.addPeople(newProspects(data, params, { season: 1, seasonStart: createDate(year, params.calendar.seasonStartMonth, 1), seed, nextId: () => `p${String(++nextId).padStart(6, "0")}` }));
   });
   return { seed, clubs: data.clubs.length, people: repository.peopleTotal(), players: batch.players.length, ms: Date.now() - t0, warnings: v.warnings, alreadyExisted: false };
 }

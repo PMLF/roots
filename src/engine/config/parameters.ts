@@ -578,6 +578,12 @@ export type Params = {
       /** Efeito da aposta na renovação: sobe os jovens (≤ 21) e desce os veteranos (≥ 30), por unidade acima/abaixo de 1. */
       renewalYouthEffect: number;
       renewalVeteranEffect: number;
+      /**
+       * Talento local (RZ-234): jovens sem clube que nascem em cada concelho. Teto = população^expoente × cultura de futebol;
+       * `perCityMean` jovens para o concelho médio (probabilidade de arredondamento por sorteio), idade à chegada, e quanto o teto
+       * desloca o potencial (±`potentialShift` pontos de qualidade nos extremos). Quem ninguém contrata em 1 ano sai do futebol.
+       */
+      prospects: { perCityMean: number; ageMin: number; ageMax: number; popExponent: number; potentialShift: number };
     };
   };
   /** Empresas e patrocínios (RZ-219, RZ-311). */
@@ -1020,7 +1026,7 @@ export const DEFAULT_PARAMETERS: Params = {
     retirement: { fromAge: 33, baseProbability: 0.06, perYear: 0.14, goalkeeperExtraYears: 3, maxAge: 40, freeMultiplier: 1.6 },
     contracts: { yearsMin: 1, yearsMax: 3, renewBase: 0.7, renewPerQualityPoint: 0.1, renewPerOldYear: 0.08, oldAge: 31, renewMin: 0.05, renewMax: 0.95, renewalWageFactor: 1, negotiation: { acceptFloor: 0.92, floorByLoyalty: 0.01, floorNative: 0.04, floorMin: 0.6, askYears: 2, maxRounds: 4, walkAway: 0.5, concession: 0.7, maxYears: 5, clauseWage: 0.08, noClauseRatio: 2.5, clauseCeiling: 2, level: { margin: 1.2, ambitionMin: 12, loyaltyStay: 14 }, distance: { tiers: ["cp", "district"], wageFactor: 1.5, loyaltyStay: 14 } } },
     squad: { slack: 2, freeAgentTolerance: 2.5 },
-    youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal", focus: { spread: 0.4, byPatience: 0.05, byAmbition: 0.03, min: 0.25, max: 1.9 }, agePenalty: 0.25, qualityByFocus: 0.6, potentialByFocus: 1.0, renewalYouthEffect: 0.2, renewalVeteranEffect: 0.12 },
+    youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal", focus: { spread: 0.4, byPatience: 0.05, byAmbition: 0.03, min: 0.25, max: 1.9 }, agePenalty: 0.25, qualityByFocus: 0.6, potentialByFocus: 1.0, renewalYouthEffect: 0.2, renewalVeteranEffect: 0.12, prospects: { perCityMean: 5, ageMin: 15, ageMax: 17, popExponent: 0.6, potentialShift: 1 } },
   },
   companies: {
     perCity: { base: 3, perDecade: 4, min: 2 },
@@ -1263,6 +1269,8 @@ export function validateParameters(p: Params): string[] {
   if (!(ci.events.cityProb >= 0 && ci.events.cityProb <= 1 && ci.events.hubProb >= 0 && ci.events.hubProb <= 1)) errors.push("cidade.eventos: probabilidades entre 0 e 1");
   for (const t of CITY_EVENT_TYPES) if (!ci.events.types[t]) errors.push(`city.events.types.${t} em falta`);
   for (const [t, e] of Object.entries(ci.events.types)) if (Object.values(e.weight).some((x) => x < 0)) errors.push(`city.events.types.${t}: pesos ≥ 0`);
+  const prosp = p.squadCycle.youth.prospects;
+  if (!(prosp.perCityMean >= 0 && prosp.ageMin >= 14 && prosp.ageMax >= prosp.ageMin && prosp.ageMax <= 18 && prosp.popExponent > 0 && prosp.potentialShift >= 0)) errors.push("squadCycle.youth.prospects inválido (idades 14-18, expoente > 0)");
   const m = p.world;
   if (!(m.talent.muIndex0 < m.talent.muIndex100 && m.talent.sigma > 0)) errors.push("mundo.talento: muIndice0 < muIndice100 e sigma > 0");
   if (!(m.talent.seasonsIndex0 > 0 && m.talent.seasonsIndex0 <= m.talent.seasonsIndex100 && m.talent.seasonsIndex100 < 1)) errors.push("mundo.talento: 0 < epsIndice0 ≤ epsIndice100 < 1 (a cauda nunca é zero)");

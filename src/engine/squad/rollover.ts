@@ -22,6 +22,7 @@ import { decisionOf, negotiationOf } from "./renewals";
 import { marketValue } from "../market/value";
 import { releaseClause } from "../market/clauses";
 import { agentTraits } from "../agent/assign";
+import { newProspects } from "./prospects";
 import { rolloverForeign } from "./foreign";
 import { TIER_BONUS, youthFocus } from "./youthFocus";
 
@@ -120,6 +121,18 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     if (m) pool.push(m);
   }
 
+  // jovens da terra sem clube (RZ-234): desenvolvem-se um ano e os clubes contratam-nos da sua zona antes de criarem jovens de raiz
+  const prospects: Member[] = [];
+  for (const j of repo.playersByState("prospect")) {
+    const m = process(j);
+    if (m) prospects.push(m);
+  }
+  const homeOf = new Map<string, string | undefined>();
+  const homeCity = (id: string): string | undefined => {
+    if (!homeOf.has(id)) homeOf.set(id, repo.person(id)?.birthCity);
+    return homeOf.get(id);
+  };
+
   // ---------- estatísticas por escalão (reputação normalizada, mediana de capital) para qualidade e ordenados
   const byTier = new Map<Tier, BaseClub[]>();
   for (const c of data.clubs) {
@@ -204,7 +217,33 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
       return out;
     };
     const cities = citiesByDistrict.get(club.district) ?? [];
+    const takeProspect = (position: Position): boolean => {
+      const expected = desired - Math.max(0, world.peakAge - 3 - 17) * 0.35;
+      let best = -1;
+      let bestScore = Infinity;
+      prospects.forEach((m, i) => {
+        if (m.position !== position) return;
+        const home = homeCity(m.record.person);
+        const score = Math.abs(m.quality - expected) + (home === club.city ? 0 : home !== undefined && cities.some((c) => c.id === home) ? 1 : Infinity);
+        if (Math.abs(m.quality - expected) > sc.squad.freeAgentTolerance || score >= bestScore) return;
+        best = i;
+        bestScore = score;
+      });
+      if (best < 0) return false;
+      const [m] = prospects.splice(best, 1) as [Member];
+      const y = years(rng);
+      const contract: ContractRecord = { person: m.record.person, club: club.id, monthlyWage: wageFor(params, tier, clamp(m.quality, 1, 20), wageScale), ...contractDates(o.seasonStart, y) };
+      repo.updatePlayer(m.record.person, { club: club.id, trainedAt: club.id, state: "active" });
+      repo.saveContract(contract);
+      event("PLAYER_SIGNED", m.record.person, club.id, { from: "local", wage: contract.monthlyWage, years: y });
+      if (o.gamerClub === club.id) newYouth.push(m.record.person);
+      counts.set(position, (counts.get(position) ?? 0) + 1);
+      kept.push(member({ ...m.record, club: club.id, trainedAt: club.id, state: "active" }));
+      summary.youth++;
+      return true;
+    };
     const addYouth = (position: Position, emergency: boolean) => {
+      if (!emergency && takeProspect(position)) return;
       const y = years(rng);
       const kit = createYouth(
         rng.derive(`youth/${nextId + 1}`),
@@ -256,6 +295,11 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
       summary.signedFree++;
     }
   }
+  // quem ninguém contratou sai do futebol; nasce a geração seguinte
+  for (const m of prospects) repo.updatePlayer(m.record.person, { state: "retired" });
+  const cohort = newProspects(data, params, { season: o.season, seasonStart: o.seasonStart, seed, nextId: newId });
+  batch.people.push(...cohort.people);
+  batch.players.push(...cohort.players);
   rolloverForeign(repo, params, { season: o.season, seasonStart: o.seasonStart }, batch, newId);
   if (batch.people.length > 0) repo.addPeople(batch);
   // a caixa de entrada do gamer avisa dos recrutas da formação (os de urgência não contam: são tapa-buracos)

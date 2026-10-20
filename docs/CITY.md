@@ -207,6 +207,8 @@ Dois passos, para que a terra defina o **teto** e o clube decida **quanto desse 
 
 Aos **jogadores da terra** (RZ-207) soma-se o efeito «orgulho»: mais jovens do concelho a querer ficar. Quem sai do viveiro e não fica pode ser **comprado por um clube maior** (custo do sucesso, §12.7).
 
+**Implementado (RZ-234, 1.ª parte).** Cada concelho gera por ano uma geração de jovens sem clube (15–17 anos, `prospect`): `n = perCityMean × teto / teto médio` (arredondado por sorteio) e o potencial desloca-se até ±`potentialShift` pontos com o teto (educação ainda não entra: RZ-233). Na passagem de época, cada clube que precisa de um jovem procura primeiro um da sua cidade (depois do seu distrito) cuja qualidade encaixe no escalão e na posição; só se não houver cria um jovem «de raiz». Quem ninguém contrata sai do futebol. O separador **Talento local** da cidade mostra os sem clube e, à parte, os da terra que já jogam em clubes (qualquer idade, com o clube); o gamer só vê estrelas dos que observou e pode propor contrato aos dois grupos.
+
 ### 12.4 O clube devolve à cidade
 
 Fecho de época, em `cidades.ts` (já faz título/subida/descida): acrescenta-se **assistência média** (emprego e turismo de dia de jogo), **estádio** (obras dão emprego e puxam o solo), **escolinhas** (cultura de futebol e educação desportiva, lenta: ~+1/ano no máximo), **população** (RZ-309: ±3 %/ano, ligada à economia e ao orgulho; a da localidade segue a do concelho com a fatia do clube). Nenhum efeito é imediato: tudo é **anual e lento**, para a cidade parecer viva e não um botão.
