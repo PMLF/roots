@@ -48,5 +48,12 @@ describe("dispersão dos resultados da liga", () => {
     }
     process.stdout.write("\nDISPERSAO " + JSON.stringify(result, (_, v) => (typeof v === "number" ? Math.round(v * 100) / 100 : v)) + "\n");
     expect(Object.keys(result)).toHaveLength(LEAGUES.length);
+    // calibração (RZ-263): a reputação explica bem a classificação em todas as saves, e os cinco maiores acabam perto do topo
+    for (const [league, r] of Object.entries(result)) {
+      for (const rho of r.rho) expect(rho, `${league} rho`).toBeGreaterThan(0.6);
+      expect(r.rho.reduce((a, b) => a + b, 0) / r.rho.length, `${league} rho médio`).toBeGreaterThan(0.72);
+      for (const t of r.topFive) expect(t, `${league} cinco maiores`).toBeLessThan(5.5);
+      for (const sp of r.spread) { expect(sp).toBeGreaterThan(45); expect(sp).toBeLessThan(85); }
+    }
   }, 1_200_000);
 });
