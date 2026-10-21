@@ -1095,3 +1095,17 @@ body {
 
 .mensagem-foco { outline: 2px solid var(--mercado); outline-offset: 3px; border-radius: var(--r-m); animation: foco-msg 1.2s ease-out 1; }
 @keyframes foco-msg { from { outline-color: transparent; } 30% { outline-color: var(--mercado); } }
+
+/* Opções táticas recolhidas por defeito no pré-jogo e na página de táticas (RZ-259) */
+.cartao.tatica-colapso { padding: 0; }
+.tatica-colapso-topo { all: unset; box-sizing: border-box; width: 100%; display: flex; align-items: center; gap: 14px; padding: 12px 16px; cursor: pointer; border-radius: var(--r-m); }
+.tatica-colapso-topo:hover { background: var(--painel-2); }
+.tatica-colapso-topo:focus-visible { outline: 2px solid var(--destaque); outline-offset: -2px; }
+.tatica-colapso-titulo { font-weight: 600; }
+.tatica-colapso-resumo { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.tatica-colapso-acao { display: inline-flex; align-items: center; gap: 6px; color: var(--destaque-texto); font-size: 14px; font-weight: 600; }
+.tatica-colapso-acao svg { transition: transform .2s ease; }
+.tatica-colapso-topo[aria-expanded="true"] .tatica-colapso-acao svg { transform: rotate(180deg); }
+.tatica-colapso-corpo { padding: 4px 16px 16px; border-top: 1px solid var(--linha); padding-top: 14px; }
+@media (max-width: 600px) { .tatica-colapso-resumo { display: none; } .tatica-colapso-topo { justify-content: space-between; } }
+@media (prefers-reduced-motion: reduce) { .tatica-colapso-acao svg { transition: none; } }
