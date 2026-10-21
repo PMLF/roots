@@ -3,7 +3,7 @@ import { DEFAULT_PARAMETERS as P } from "../config/parameters";
 import type { CardRecord } from "../persistence/types";
 import { MemoryRepository } from "../persistence/repositoryMemory";
 import { syntheticMatch } from "../persistence/repository.contract";
-import { disciplinaryState, directRedMatches, withoutSuspended, clubSuspended } from "./suspensions";
+import { disciplinaryState, directRedMatches, withoutSuspended, clubSuspended, europeRules, carriedSuspensions } from "./suspensions";
 
 const ca = (round: number, player = "p"): CardRecord => ({ player, match: `j${round}`, round, minute: 30, type: "CA", extra: "" });
 const cv = (round: number, extra = "", player = "p"): CardRecord => ({ player, match: `j${round}`, round, minute: 60, type: "CV", extra });
@@ -106,10 +106,49 @@ describe("castigos disciplinares", () => {
     expect(susp.map((s) => s.player)).toEqual(["A-4"]);
     expect(susp[0]).toMatchObject({ yellows: 5, matchesPerMeet: 1, reason: "accumulation" });
     expect(clubSuspended(r, "A", players, "TP", 1, 6, "s", P)).toEqual([]);
-    expect(clubSuspended(r, "A", players, "PL", 2, 6, "s", P)).toEqual([]);
+    // na época seguinte os amarelos recomeçam do zero, mas o castigo por cumprir (5.º amarelo na última jornada) passa
+    const next = clubSuspended(r, "A", players, "PL", 2, 6, "s", P);
+    expect(next.map((x) => [x.player, x.yellows, x.matchesPerMeet])).toEqual([["A-4", 0, 1]]);
+    expect(clubSuspended(r, "A", players, "PL", 3, 6, "s", P)).toEqual([]);
     const candidates = [{ person: "A-4" }, { person: "A-9" }];
     expect(withoutSuspended(candidates, susp)).toEqual([{ person: "A-9" }]);
     // pendente da época anterior
     expect(clubSuspended(r, "A", ["A-9"], "PL", 1, 1, "s", P, new Map([["A-9", 1]]))).toHaveLength(1);
+  });
+
+  describe("europeias e reset de época", () => {
+    const eu = (cards: CardRecord[], played: number, wipe?: number, next = played + 1) => disciplinaryState("p", cards, rounds(played), next, "s", P, 0, europeRules(P.discipline, wipe));
+
+    it("nas europeias, um jogo de suspensão a cada 3 amarelos e a contagem recomeça", () => {
+      expect(eu([1, 2].map((j) => ca(j)), 2)).toMatchObject({ yellows: 2, suspended: false, forSuspension: 1 });
+      expect(eu([1, 2, 3].map((j) => ca(j)), 3)).toMatchObject({ yellows: 3, suspended: true, matchesPerMeet: 1, reason: "accumulation" });
+      // cumpre na jornada 4; amarelos na 5 e 6 e 7 → 6.º no total, de novo suspenso para a 8
+      const cards = [1, 2, 3, 5, 6, 7].map((j) => ca(j));
+      expect(eu(cards, 4, undefined, 5)).toMatchObject({ suspended: false });
+      expect(eu(cards, 7)).toMatchObject({ yellows: 6, suspended: true, matchesPerMeet: 1 });
+    });
+
+    it("os amarelos europeus apagam-se depois dos quartos de final", () => {
+      // dois amarelos antes do apagão (jornada 5 = 2.ª mão dos quartos), um nas meias: não há 3.º
+      const cards = [ca(2), ca(4), ca(7)];
+      expect(eu(cards, 7, 5)).toMatchObject({ yellows: 1, suspended: false, forSuspension: 2 });
+      // sem apagão, o 3.º amarelo suspendia
+      expect(eu(cards, 7)).toMatchObject({ yellows: 3, suspended: true });
+      // um castigo ganho nos quartos cumpre-se nas meias
+      expect(eu([ca(3), ca(4), ca(5)], 5, 5)).toMatchObject({ suspended: true, matchesPerMeet: 1 });
+    });
+
+    it("na época seguinte, o castigo europeu por cumprir passa mas só conta em jogos europeus", () => {
+      const r = new MemoryRepository();
+      for (let j = 1; j <= 3; j++) {
+        const x = syntheticMatch(`e${j}`, { home: "A", away: "B", homeGoals: 0, awayGoals: 0, round: j, date: `2026-09-${10 + j}`, competition: "Liga dos Campeões" }, { cards: true });
+        r.recordMatch(x.match, x.facts, x.part);
+      }
+      // A-4 vê amarelo em casa em cada jogo: 3 amarelos na Liga dos Campeões = castigo, e já não há mais jogos nesta época
+      const carried = carriedSuspensions(r, "A", ["A-4"], "Liga Europa", 2, "s", P);
+      expect(carried.get("A-4")).toBe(1);
+      expect(carriedSuspensions(r, "A", ["A-4"], "PL", 2, "s", P).size).toBe(0);
+      expect(carriedSuspensions(r, "A", ["A-4"], "Liga dos Campeões", 1, "s", P).size).toBe(0);
+    });
   });
 });
