@@ -28,7 +28,7 @@ describe("talento local ao longo das épocas (RZ-234)", () => {
     // quem foi contratado passou a jogador de um clube e mantém a cidade natal; quem sobrou saiu do futebol
     const states = new Map<string, number>();
     for (const id of ids) { const st = repo.player(id)!.state; states.set(st, (states.get(st) ?? 0) + 1); }
-    expect(states.get("active") ?? 0).toBeGreaterThan(200);
+    expect(states.get("active") ?? 0).toBeGreaterThan(150); // o mercado enche os plantéis e deixa mais livres a competir pelas vagas
     expect(states.get("prospect") ?? 0).toBe(0);
     const signed = [...ids].filter((id) => repo.player(id)!.state === "active");
     expect(signed.every((id) => repo.player(id)!.club !== undefined && repo.contract(id) !== undefined)).toBe(true);
