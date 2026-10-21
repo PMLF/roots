@@ -5,6 +5,8 @@ import { FORMATIONS, FORMATION_IDS } from "@/engine/match/formations";
 import type { Tactic } from "@/engine/match/types";
 import type { LiveMatch, LivePlayer } from "@/engine/season/liveMatch";
 import { POSITIONS, type Position } from "@/engine/world/types";
+import { backgroundColours, readColours } from "@/ui/colours";
+import { startPlayerDrag } from "@/ui/components/dragCard";
 import { BenchStrip } from "@/ui/components/BenchStrip";
 import { Card } from "@/ui/components/Card";
 import { CloseButton } from "@/ui/components/CloseButton";
@@ -131,7 +133,14 @@ export function TacticInMatch({ match, tactic, onChange, onClose, busy, subsErro
     if (!j) return null;
     const slot = plan.lineup[startOf.get(id) ?? -1];
     return (
-      <tr key={id} onClick={() => setSelected(selected === id ? undefined : id)} aria-selected={selected === id} className={`${selected === id ? "escolhido" : ""}${j.injured ? " indisponivel" : ""}`}>
+      <tr
+        key={id}
+        draggable={!j.injured}
+        onDragStart={(e) => startPlayerDrag(e, id, { name: j.name, position: abbreviationPosition(t, slot?.position ?? j.position), background: backgroundColours(readColours(plan.clubColours)) })}
+        onMouseDown={() => setHeld(id)}
+        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+        onDrop={(e) => { e.preventDefault(); setHeld(undefined); const from = e.dataTransfer.getData("text/plain"); if (!from || from === id) return; const to = startOf.get(id); if (startOf.has(from) && to !== undefined) moveTo(from, to); else swap(from, id); }}
+        onClick={() => setSelected(selected === id ? undefined : id)} aria-selected={selected === id} className={`${selected === id ? "escolhido" : ""}${j.injured ? " indisponivel" : ""}`}>
         <td><EntityLink k="person" id={id}>{j.name}</EntityLink>{original.has(id) && <small className="suave"> · {t("match.subs.in")}</small>}</td>
         <td>{abbreviationPosition(t, slot?.position ?? j.position)}</td>
         <td>{j.stars !== undefined ? <Stars value={j.stars} /> : "?"}</td>

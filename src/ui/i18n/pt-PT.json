@@ -1494,5 +1494,7 @@
   "interest.high": "Muito interessado",
   "interest.medium": "Interessado",
   "interest.low": "A acompanhar",
-  "interest.local": "clube da terra"
+  "interest.local": "clube da terra",
+  "interest.pillWanted": "Clubes interessados",
+  "interest.pillOffers": "Ofertas feitas"
 }

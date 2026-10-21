@@ -51,6 +51,9 @@ describe("notícias e caixa de entrada", () => {
     expect(cx.messages.length).toBeGreaterThanOrEqual(3);
     expect(cx.messages.every((m) => m.ofClubYour)).toBe(true);
     expect(cx.unread).toBe(cx.messages.length);
+    // «Avançar» vai à mensagem por ler mais antiga (RZ-257)
+    const attention = await handle({ id: 49, type: "attention", input: null }, s);
+    expect(attention.unread).toBe(Math.min(...cx.messages.map((m) => m.id)));
     await handle({ id: 51, type: "markInboxRead", input: null }, s);
     const isRead = await handle({ id: 52, type: "inbox", input: {} }, s);
     expect(isRead.unread).toBe(0);

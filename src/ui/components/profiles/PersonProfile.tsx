@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { BidView, CareerLine, PersonProfileData } from "@/engine/api/contracts";
 import { PHYSICAL_ATTRIBUTES, GK_ATTRIBUTES, MENTAL_ATTRIBUTES, TECHNICAL_ATTRIBUTES } from "@/engine/world/types";
 import { Attributes, Chip, type AttributesGroup, type AttributeLine } from "@/ui/components/Attributes";
@@ -8,7 +8,6 @@ import { Table } from "@/ui/components/Table";
 import { PersonHistoryTable } from "@/ui/components/profiles/PersonHistoryTable";
 import { Profile } from "@/ui/components/Profile";
 import { EntityLink } from "@/ui/components/Link";
-import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { seasonName } from "@/engine/calendar/seasonName";
 import { Stars } from "@/ui/components/Stars";
 import { Flag } from "@/ui/components/Flag";
@@ -36,6 +35,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   const [renewing, setRenewing] = useState(false);
   const [agreed, setAgreed] = useState(false);
   const [bidding, setBidding] = useState(false);
+  // «Avançar» com uma negociação por responder abre-a logo (RZ-257)
+  useEffect(() => { if (typeof window !== "undefined" && new URLSearchParams(window.location.search).get("negociar")) setBidding(true); }, []);
   const [observing, setObserving] = useState(false);
   const engine = useEngine();
   const [saleOverride, setSaleOverride] = useState<boolean | undefined>(undefined);
@@ -84,7 +85,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   const labels = (
     <>
       {j && <Chip tone="destaque">{namePosition(t, j.position)}</Chip>}
-      {forSale && <Chip tone="aviso">{t("person.forSale")}</Chip>}
+      {forSale && <Chip tone="mercado">{t("person.forSale")}</Chip>}
+      {d.interest && d.interest.offers.length > 0 ? <Chip tone="mercado">{t("interest.pillOffers")}</Chip> : d.interest && d.interest.clubs.length > 0 && <Chip tone="mercado">{t("interest.pillWanted")}</Chip>}
       {!j && p.fn && <Chip tone="destaque">{t(`fn.${p.fn}` as Key)}</Chip>}
       {d.club && <Chip><EntityLink k="club" id={d.club.id}>{d.club.name}</EntityLink></Chip>}
       {d.foreignClub && <Chip>{d.foreignClub.name}</Chip>}
@@ -223,15 +225,15 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     <Card title={t("interest.card")}>
       {d.interest.offers.length === 0 && d.interest.clubs.length === 0 && <p className="vazio">{t("interest.none")}</p>}
       {d.interest.offers.length > 0 && (
-        <Data lines={d.interest.offers.map((o) => ({ label: t("interest.offer", { fee: eur(locale, o.fee) }), value: <span className="clube-linha"><ClubSwatch id={o.buyer.id} /> <EntityLink k="club" id={o.buyer.id}>{o.buyer.name}</EntityLink></span> }))} />
+        <Data lines={d.interest.offers.map((o) => ({ label: t("interest.offer", { fee: eur(locale, o.fee) }), value: <span className="clube-linha"><EntityLink k="club" id={o.buyer.id}>{o.buyer.name}</EntityLink></span> }))} />
       )}
       {d.interest.clubs.length > 0 && (
-        <Data lines={d.interest.clubs.map((c) => ({ label: t(`interest.${c.level}` as Key) + (c.local ? ` · ${t("interest.local")}` : ""), value: <span className="clube-linha"><ClubSwatch id={c.club.id} /> <EntityLink k="club" id={c.club.id}>{c.club.name}</EntityLink></span> }))} />
+        <div className="interesse-lista"><Data lines={d.interest.clubs.map((c) => ({ label: t(`interest.${c.level}` as Key) + (c.local ? ` · ${t("interest.local")}` : ""), value: <span className="clube-linha"><EntityLink k="club" id={c.club.id}>{c.club.name}</EntityLink></span> }))} /></div>
       )}
     </Card>
   ) : null;
   const contractTab = (
-    <div className="cartoes-par">
+    <div className={`cartoes-par${interest ? " tres" : ""}`}>
       {contract}
       {cardPersonality}
       {interest}

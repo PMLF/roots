@@ -353,6 +353,18 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const { repository, data } = await context(servicos);
       return inbox(repository, data, m.input);
     }
+    case "attention": {
+      const { repository, data, params } = await context(servicos);
+      const out: { unread?: number; offer?: { person: string }; bid?: { person: string } } = {};
+      const all = inbox(repository, data, { limit: 500 });
+      const oldest = all.messages.filter((x) => !x.isRead).map((x) => x.id).sort((a, b) => a - b)[0];
+      if (oldest !== undefined) out.unread = oldest;
+      const offer = pendingOffers(repository)[0];
+      if (offer) out.offer = { person: offer.person };
+      const bid = bids(repository).map((b) => bidViewOf(repository, data, params, b)).find((v) => (v.stage === "club" || v.stage === "agent") && !v.pending && !v.closed);
+      if (bid) out.bid = { person: bid.person };
+      return out;
+    }
     case "markInboxRead": {
       const { repository } = await context(servicos);
       markInboxRead(repository);
