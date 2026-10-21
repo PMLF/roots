@@ -787,7 +787,7 @@ function renewalsOf(r: Repository, data: BaseData, params: Params): RenewalsData
   return { season, nextSeasonStart, lines: lines.sort((a, b) => b.currentWage - a.currentWage) };
 }
 
-const CAREER_KIND: Record<string, CareerLine["kind"]> = { TRANSFER: "transfer", PLAYER_SIGNED: "signed", CONTRACT_RENEWED: "renewed", CONTRACT_EXPIRED: "released", PLAYER_RETIRED: "retired" };
+const CAREER_KIND: Record<string, CareerLine["kind"]> = { TRANSFER: "transfer", PLAYER_SIGNED: "signed", CONTRACT_RENEWED: "renewed", CONTRACT_EXPIRED: "released", PLAYER_RETIRED: "retired", LOAN_STARTED: "loan", LOAN_ENDED: "loanEnd" };
 
 /** Percurso de um jogador a partir dos eventos expostos de contratos e transferências (mais antigo primeiro). */
 function personCareer(r: Repository, data: BaseData, person: string): CareerLine[] {
@@ -801,11 +801,12 @@ function personCareer(r: Repository, data: BaseData, person: string): CareerLine
     .map((e): CareerLine => {
       const kind = CAREER_KIND[e.type] as CareerLine["kind"];
       const clubs = e.entities.filter((x) => x.k === "club");
-      const buyer = clubs.find((x) => x.roleKind === "buyer")?.id;
-      const seller = clubs.find((x) => x.roleKind === "seller")?.id;
-      const main = ref(kind === "transfer" ? buyer : clubs.find((x) => !x.roleKind)?.id ?? clubs[0]?.id);
-      const from = kind === "transfer" ? ref(seller) : undefined;
-      const fee = kind === "transfer" ? (e.data as { fee?: number }).fee : undefined;
+      const lent = kind === "loan" || kind === "loanEnd";
+      const buyer = clubs.find((x) => x.roleKind === (lent ? "borrower" : "buyer"))?.id;
+      const seller = clubs.find((x) => x.roleKind === (lent ? "lender" : "seller"))?.id;
+      const main = ref(kind === "transfer" || lent ? buyer : clubs.find((x) => !x.roleKind)?.id ?? clubs[0]?.id);
+      const from = kind === "transfer" || lent ? ref(seller) : undefined;
+      const fee = kind === "transfer" || kind === "loan" ? (e.data as { fee?: number }).fee : undefined;
       return { id: e.id, date: e.date, season: e.season, kind, ...(main ? { club: main } : {}), ...(from ? { from } : {}), ...(fee !== undefined ? { fee } : {}) };
     });
 }

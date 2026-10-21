@@ -5,6 +5,7 @@
  * - `fecharMes` grava o evento privado `FECHO_FINANCEIRO` por clube com o saldo e o resumo do mês, e zera o mês.
  * Valores em `parametros.financas.modelo`. A UI nunca lê isto: só o clube do gamer em exato e, para os outros, a palavra de `estadoFinanceiro`.
  */
+import { activeLoans, wageSplit } from "../loans/loans";
 import { Rng } from "../random/rng";
 import type { Tier, Params } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
@@ -47,7 +48,15 @@ export function factorReputation(club: BaseClub, params: Params): number {
 }
 
 export function monthlyWageBill(repo: Repository, club: string): number {
-  return repo.clubPlayers(club).reduce((t, j) => t + (repo.contract(j.person)?.monthlyWage ?? 0), 0);
+  const loans = Object.fromEntries(activeLoans(repo).map((l) => [l.person, l] as const));
+  // quem joga aqui emprestado custa só a parte do clube que recebe; o dono paga o resto dos que emprestou (RZ-268)
+  const own = repo.clubPlayers(club).reduce((t, j) => {
+    const w = repo.contract(j.person)?.monthlyWage ?? 0;
+    const loan = loans[j.person];
+    return t + (loan && loan.to === club ? wageSplit(loan, w).borrower : w);
+  }, 0);
+  const lent = Object.values(loans).filter((l) => l.from === club).reduce((t, l) => t + wageSplit(l, repo.contract(l.person)?.monthlyWage ?? 0).owner, 0);
+  return own + lent;
 }
 
 /** Custos mensais (salários + staff + estádio + fixos), sempre positivos. */

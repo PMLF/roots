@@ -45,7 +45,7 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
     else if (b.terms) setTerms((x) => x ?? { wage: String(b.terms?.wages[Math.floor((b.terms?.wages.length ?? 0) / 2)] ?? b.terms?.ask.wage ?? ""), years: String(b.terms?.ask.years ?? 2), release: b.terms?.ask.release ? String(b.terms.ask.release) : NONE });
   }, []);
   useEffect(() => {
-    engine?.call("bid", { person, action: "open" }).then((r) => { if (r.ok) take(r.bid); else setError(t(r.reason === "prospect" ? "bid.local.prospect" : r.reason === "locked" ? "bid.local.locked" : "bid.error")); }).catch(() => setError(t("bid.error")));
+    engine?.call("bid", { person, action: "open" }).then((r) => { if (r.ok) take(r.bid); else setError(t(r.reason === "prospect" ? "bid.local.prospect" : r.reason === "locked" ? "bid.local.locked" : r.reason === "loaned" ? "bid.loaned" : "bid.error")); }).catch(() => setError(t("bid.error")));
   }, [engine, person, take, t]);
 
   const send = async (input: Input) => {

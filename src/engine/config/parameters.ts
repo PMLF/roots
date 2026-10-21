@@ -682,6 +682,8 @@ export type Params = {
     /** Negócios que cada clube pode tentar por ronda e peso de cada janela na probabilidade de agir (verão cheio, inverno mais calmo). */
     dealsPerRound: number;
     windowFactor: number[];
+    /** Na janela de inverno cada clube volta a ter pelo menos esta fração do orçamento de transferências por defeito (recalculado com a caixa de então) e a massa salarial por defeito atual. */
+    winterRefresh: number;
     /** Contratações máximas por clube e janela. */
     maxSigningsPerWindow: number;
     /** Um clube só compra se o plantel tiver menos do que alvo + folga. */
@@ -711,6 +713,13 @@ export type Params = {
     saleToBudget: number;
     /** Consentimento do jogador: probabilidade base de aceitar subir de escalão e de descer, efeito da ambição e da lealdade (por ponto acima de 10). */
     consent: { up: number; down: number; byAmbition: number; byLoyalty: number; byWageRatio: number };
+    /**
+     * Empréstimos (RZ-268): até ao fim da época; o clube que recebe paga `wageShares` do ordenado (a primeira fração que a massa salarial
+     * deixa) e, se o jogador estava à venda, `feeRate` do valor. Emprestam-se excedentes e jovens (até `prospectAgeMax` anos, com `prospectGap`
+     * pontos de potencial acima da qualidade, sem lugar no onze), para clubes do mesmo escalão ou inferiores; o clube dono nunca fica abaixo
+     * de alvo − `lenderMinSquad` jogadores. Cada clube recebe no máximo `maxPerClub`; em janeiro o dono chama de volta com `recallProbability`.
+     */
+    loans: { actProbability: number; maxPerClub: number; wageShares: number[]; feeRate: number; prospectAgeMax: number; prospectGap: number; lenderMinSquad: number; recallProbability: number };
     /**
      * Decisão do jogador (RZ-266): o jogador tem a palavra final. Compara o conjunto clube + cidade do clube que propõe com o de onde joga
      * (`club`: peso do escalão, da reputação e do estádio; `city`: peso de cada indicador e da população; `cityShare`: parte da cidade no
@@ -1152,8 +1161,9 @@ export const DEFAULT_PARAMETERS: Params = {
     actProbabilityLastDay: 0.9,
     dealsPerRound: 2,
     windowFactor: [1, 0.6],
+    winterRefresh: 0.5,
     maxSigningsPerWindow: 8,
-    squadSlack: 2,
+    squadSlack: 6,
     ageFactor: [[18, 11.9], [22, 11.2], [25, 9.8], [28, 7.7], [31, 4.2], [34, 1.4], [38, 0.35]],
     potentialPremium: 0.22,
     potentialPremiumAgeMax: 24,
@@ -1171,6 +1181,7 @@ export const DEFAULT_PARAMETERS: Params = {
     contractYears: [2, 4],
     saleToBudget: 0.6,
     consent: { up: 0.9, down: 0.35, byAmbition: 0.03, byLoyalty: 0.025, byWageRatio: 0.5 },
+    loans: { actProbability: 0.5, maxPerClub: 4, wageShares: [0.5, 0.75, 1], feeRate: 0.04, prospectAgeMax: 23, prospectGap: 2, lenderMinSquad: 3, recallProbability: 0.5 },
     decision: {
       tier: { firstLeague: 1, secondLeague: 0.72, thirdLeague: 0.48, cp: 0.25, district: 0.08 },
       club: { tier: 0.5, reputation: 0.35, stadium: 0.15 },
@@ -1319,6 +1330,8 @@ export function validateParameters(p: Params): string[] {
   if (le.severities.length !== 5 || Math.abs(le.severities.reduce((a, g) => a + g.weight, 0) - 1) > 1e-9 || !le.severities.every((g) => g.days[0] >= 1 && g.days[1] >= g.days[0])) errors.push("lesoes.gravidades: 5 níveis, pesos a somar 1 e dias [mín ≥ 1, máx ≥ mín]");
   if (le.risk.opponentPlayFair.length !== 5) errors.push("lesoes.risco.fairPlayAdversario: 5 níveis");
   if (!(le.form.min < le.form.max && le.form.min <= le.form.onReturn && le.form.onReturn <= le.form.max && le.form.base >= le.form.min && le.form.base <= le.form.max)) errors.push("lesoes.forma: min < max e base/aoRegressar dentro dos limites");
+  const ln = p.market.loans;
+  if (!(ln.actProbability >= 0 && ln.actProbability <= 1 && ln.maxPerClub >= 0 && ln.wageShares.length > 0 && ln.wageShares.every((x) => x > 0 && x <= 1) && ln.feeRate >= 0 && ln.recallProbability >= 0 && ln.recallProbability <= 1)) errors.push("market.loans: probabilidades entre 0 e 1, wageShares entre 0 e 1 (sem zero), feeRate ≥ 0");
   const dc = p.market.decision;
   if (!(dc.scale > 0 && dc.minWillingness >= 0 && dc.minWillingness < 1 && dc.wagePremiums.length > 0 && dc.wagePremiums.every((x) => x >= 1) && dc.cityShare >= 0 && dc.cityShare <= 1 && dc.listing.discount > 0 && dc.listing.discount <= 1 && dc.listing.maxPerClub >= 0)) errors.push("market.decision: scale > 0, 0 ≤ minWillingness < 1, wagePremiums ≥ 1, 0 ≤ cityShare ≤ 1, 0 < listing.discount ≤ 1");
   const dis = p.discipline;

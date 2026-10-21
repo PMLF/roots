@@ -136,7 +136,7 @@ export type BidAction =
   | { person: string; action: "confirm" }
   | { person: string; action: "cancel" };
 export type BidReply = { status: "accepted" | "counter" | "closed" | "blocked"; reason?: string; /** Contraproposta do agente. */ terms?: RenewalTermsView };
-export type BidResult = { ok: true; bid: BidView; reply?: BidReply; /** Resultado da confirmação. */ confirmed?: { moved: boolean; date?: string; failed?: string } } | { ok: false; reason: "own" | "invalid" | "retired" | "noClub" | "prospect" | "locked" };
+export type BidResult = { ok: true; bid: BidView; reply?: BidReply; /** Resultado da confirmação. */ confirmed?: { moved: boolean; date?: string; failed?: string } } | { ok: false; reason: "own" | "invalid" | "retired" | "noClub" | "prospect" | "locked" | "loaned" };
 /** Proposta da IA por um jogador do gamer (RZ-232). */
 export type OfferView = {
   id: number;
@@ -169,7 +169,7 @@ export type RenewalsData = { season: number; nextSeasonStart: string; lines: Ren
 export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string };
 
 /** Uma passagem pela carreira de um jogador (eventos públicos de contratos e transferências). */
-export type CareerLine = { id: number; date: string; season: number; kind: "transfer" | "signed" | "renewed" | "released" | "retired" | "current"; club?: EntityRef; from?: EntityRef; fee?: number };
+export type CareerLine = { id: number; date: string; season: number; kind: "transfer" | "signed" | "renewed" | "released" | "retired" | "loan" | "loanEnd" | "current"; club?: EntityRef; from?: EntityRef; fee?: number };
 
 /**
  * Uma linha da tabela «História» de uma pessoa (uma por profissão e período). A interface escolhe as colunas conforme

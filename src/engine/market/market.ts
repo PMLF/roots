@@ -5,7 +5,7 @@
  * à volta do valor de mercado; o clube vendedor aceita se o preço cobrir o que pede (sobe se o jogador é titular, desce se o tem
  * à venda) e o jogador decide (`appeal.ts`): compara clube + cidade com os de onde joga, o ordenado, o lugar no onze e a terra, e o
  * clube só tenta quem tem hipóteses (se preciso, com um ordenado maior). Os clubes põem à venda os excedentes de cada posição e, com
- * aperto financeiro, os mais caros; procuram primeiro a posição mais carenciada e preferem gente da terra ou do distrito. O dinheiro passa pelo livro de cada clube (`transfers`).
+ * aperto financeiro, os mais caros (vendem-nos ou emprestam-nos, nunca os largam para os livres); procuram primeiro a posição mais carenciada e preferem gente da terra ou do distrito. O dinheiro passa pelo livro de cada clube (`transfers`).
  * O clube do gamer fica de fora (sem ecrã de propostas ainda): nem compra nem vende.
  */
 import { Rng, clamp } from "../random/rng";
@@ -13,7 +13,7 @@ import { weekDay } from "../calendar/dates";
 import type { Params, Tier } from "../config/parameters";
 import type { BaseClub, BaseData, ClubId } from "../data/types";
 import { post, monthlyWageBill } from "../club/finances";
-import { clubBudget } from "../club/budget";
+import { clubBudget, defaultBudget } from "../club/budget";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate, PlayerRecord } from "../persistence/types";
 import { currentQuality } from "../world/player";
@@ -27,6 +27,7 @@ import { releaseClause } from "./clauses";
 import { isImportantFee } from "./newsworthy";
 import { agentTraits } from "../agent/assign";
 import { makeAppeal } from "./appeal";
+import { activeLoans, endDueLoans, endLoan, loanEnd, startLoan } from "../loans/loans";
 import type { ContractClauses } from "../persistence/types";
 
 export type MarketWindow = { index: number; last: boolean; id: string };
@@ -52,7 +53,7 @@ export function isMarketDay(date: IsoDate, params: Params): boolean {
   return w.last || weekDay(date) === params.market.roundWeekday || date.slice(5) === `${pad(first[0])}-${pad(first[1])}`;
 }
 
-export type MarketSummary = { transfers: number; freeSignings: number; spent: number; agentFees: number; releases: number; compensation: number };
+export type MarketSummary = { transfers: number; freeSignings: number; spent: number; agentFees: number; releases: number; compensation: number; /** Empréstimos feitos e chamados de volta nesta ronda. */ loans?: number; recalls?: number };
 
 type Entry = { record: PlayerRecord; club?: ClubId; position: Position; quality: number };
 type Budget = { season: number; wageBillMax: number; transfers: number };
@@ -72,6 +73,7 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
   if (!win || repo.peopleTotal() === 0) return summary;
   const mk = params.market;
   const world = params.world;
+  endDueLoans(repo, date, season);
   const seed = repo.meta("seed") ?? "?";
   const rng = new Rng(seed, `market/${date}`);
   const clubs = data.clubs.filter((c) => !isInSecondDistrict(c.league));
@@ -128,6 +130,14 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
     if (!b) {
       b = { ...clubBudget(repo, c, params, season) };
       budgets.set(c.id, b);
+      // janela de inverno: o orçamento renova-se em parte (receitas de bilheteira e patrocínios entretanto, ajuste da direção)
+      if (win.index === 1 && repo.meta(`budget.winter.${c.id}`) !== win.id) {
+        const def = defaultBudget(repo, c, params, season);
+        b.transfers = Math.max(b.transfers, Math.round((def.transfers * mk.winterRefresh) / 1000) * 1000);
+        b.wageBillMax = Math.max(b.wageBillMax, def.wageBillMax);
+        repo.setMeta(`budget.winter.${c.id}`, win.id);
+        repo.setMeta(`budget.${c.id}`, JSON.stringify(b));
+      }
     }
     return b;
   };
@@ -174,6 +184,28 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
     return capped;
   };
 
+  // necessidade: a posição com mais vagas por preencher ou com o titular mais abaixo do que o clube quer
+  type Need = { position: Position; need: number; fill: boolean; floor: number; posFloor: number };
+  const pickNeed = (tier: Tier, squad: readonly Entry[], desired: number, r: Rng): Need | undefined => {
+    let pick: Need | undefined;
+    for (const [pos, slots] of slotsOf(tier)) {
+      const qs = squad.filter((e) => e.position === pos).map((e) => e.quality).sort((a, b) => b - a);
+      const missing = Math.max(0, slots - qs.length);
+      const floorQ = qs[slots - 1] ?? 0;
+      const gap = qs.length >= slots ? desired - floorQ : 0;
+      if (missing === 0 && gap < mk.minUpgrade) continue;
+      const need = (missing * dc.need.missing + Math.max(0, gap) * dc.need.gap) * (0.8 + 0.4 * r.float());
+      if (!pick || need > pick.need) pick = { position: pos, need, fill: missing > 0, floor: missing > 0 ? desired - 2 : floorQ + mk.minUpgrade, posFloor: floorQ };
+    }
+    return pick;
+  };
+  const onLoan = new Set(activeLoans(repo).map((l) => l.person));
+  const desiredOf = (club: BaseClub, tier: Tier): number => {
+    const st = stats.get(tier)!;
+    const repNorm = st.repMax > st.repMin ? (club.reputation - st.repMin) / (st.repMax - st.repMin) : 0.5;
+    return clamp(world.targetQuality[tier].mean + world.qualityByReputation * (repNorm - 0.5), 1, 20);
+  };
+
   const locks = readLocks(repo);
   const order = rng.shuffle(clubs.filter((c) => c.id !== o.gamerClub));
   const factor = mk.windowFactor[win.index] ?? 1;
@@ -187,49 +219,21 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
     if (!st) continue;
     const target = world.squad[tier];
     const squad = byClub.get(club.id) ?? [];
-    // os transferíveis já estão de saída: não contam para o plantel cheio (o reforço entra e um deles sai)
-    const onTheWay = [...listedOf(club)].filter((id) => squad.some((x) => x.record.person === id));
-    const full = squad.length - onTheWay.length >= target + mk.squadSlack;
+    // só contrata quem tem vaga: o excedente sai vendido ou emprestado, nunca largado
+    if (squad.length >= target + mk.squadSlack) continue;
     const repNorm = st.repMax > st.repMin ? (club.reputation - st.repMin) / (st.repMax - st.repMin) : 0.5;
     const desired = clamp(world.targetQuality[tier].mean + world.qualityByReputation * (repNorm - 0.5), 1, 20);
 
-    // necessidade: a posição com mais vagas por preencher ou com o titular mais abaixo do que o clube quer
-    const wanted = slotsOf(tier);
-    let pick: { position: Position; need: number; fill: boolean; floor: number; posFloor: number } | undefined;
-    for (const [pos, slots] of wanted) {
-      const qs = squad.filter((e) => e.position === pos).map((e) => e.quality).sort((a, b) => b - a);
-      const missing = Math.max(0, slots - qs.length);
-      const floorQ = qs[slots - 1] ?? 0;
-      const gap = qs.length >= slots ? desired - floorQ : 0;
-      if (missing === 0 && gap < mk.minUpgrade) continue;
-      const need = (missing * dc.need.missing + Math.max(0, gap) * dc.need.gap) * (0.8 + 0.4 * crng.float());
-      if (!pick || need > pick.need) pick = { position: pos, need, fill: missing > 0, floor: missing > 0 ? desired - 2 : floorQ + mk.minUpgrade, posFloor: floorQ };
-    }
+    const pick = pickNeed(tier, squad, desired, crng);
     if (!pick) continue;
     const { position, floor, posFloor } = pick;
 
     const budget = budgetOf(club);
-    const monthsOf = (id: string) => {
-      const c = repo.contract(id);
-      return c ? Math.max(0, (Date.parse(c.end) - Date.parse(date)) / (30.44 * 86400000)) : 0;
-    };
-    // com o plantel completo, o reforço desloca o suplente mais fraco da posição se o contrato dele estiver a acabar
-    const slotsHere = wanted.get(position) ?? 0;
-    const backups = squad.filter((x) => x.position === position).sort((a, b) => a.quality - b.quality);
-    const expiring = squad.length >= target && backups.length > slotsHere && monthsOf(backups[0]!.record.person) <= 12 ? backups[0] : undefined;
-    // com o plantel cheio sai primeiro um transferível (o mais bem pago), senão o suplente com o contrato a acabar
-    const leaving = squad.length >= target ? squad.filter((x) => onTheWay.includes(x.record.person)).sort((a, b) => (repo.contract(b.record.person)?.monthlyWage ?? 0) - (repo.contract(a.record.person)?.monthlyWage ?? 0))[0] : undefined;
-    // sem transferíveis nem contratos a acabar, o reforço desloca o suplente mais fraco da posição (menos um jovem com futuro): sai para os livres e cai em clubes de baixo
-    const weakestBackup = squad.length >= target && backups.length >= slotsHere ? backups.find((x) => !(ageOf(x.record.person) < 23 && x.record.potential - x.quality >= 3)) : undefined;
-    const displaced = leaving ?? expiring ?? weakestBackup;
-    // plantel cheio só contrata se alguém sair no lugar
-    if (full && !displaced) continue;
-    const displacedWage = displaced ? (repo.contract(displaced.record.person)?.monthlyWage ?? 0) * 12 : 0;
-    const bill = monthlyWageBill(repo, club.id) * 12 - displacedWage;
+    const bill = monthlyWageBill(repo, club.id) * 12;
     const wageScale = clamp((club.finances / st.medianFinances) ** 0.4, 0.4, 2.5);
 
     // candidatos: qualidade acima do piso e não muito acima do que o clube pode querer
-    const pool = (byPos.get(position) ?? []).filter((e) => e.club !== club.id && (o.gamerClub === undefined || e.club !== o.gamerClub) && e.quality >= floor && e.quality <= desired + mk.qualityCeiling && !localBlock(repo, e.record.person, club, date, locks));
+    const pool = (byPos.get(position) ?? []).filter((e) => e.club !== club.id && !onLoan.has(e.record.person) && (o.gamerClub === undefined || e.club !== o.gamerClub) && e.quality >= floor && e.quality <= desired + mk.qualityCeiling && !localBlock(repo, e.record.person, club, date, locks));
     let best: { e: Entry; fee: number; wage: number; commission: number; compensation: number; trainer: BaseClub | undefined; years: number; score: number; will: number } | undefined;
     for (const e of crng.shuffle(pool).slice(0, 80)) {
       const ct = repo.contract(e.record.person);
@@ -321,12 +325,6 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
       });
       summary.freeSignings++;
     }
-    if (displaced) {
-      repo.updatePlayer(displaced.record.person, { club: null, state: "free" });
-      squad.splice(squad.indexOf(displaced), 1);
-      displaced.club = undefined;
-      repo.appendEvent({ type: "CONTRACT_EXPIRED", date, season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: displaced.record.person, roleKind: "player" }, { k: "club", id: club.id }], data: { reason: "released" } });
-    }
     repo.updatePlayer(e.record.person, { club: club.id, state: "active" });
     const newRelease = releaseClause(crng.derive(`release/${e.record.person}`), marketValue({ quality: e.quality, potential: e.record.potential, age: ageOf(e.record.person), monthlyWage: wage, monthsLeft: years * 12 }, params), agentTr?.greed, params);
     const clauses: ContractClauses = { ...(newRelease !== undefined ? { release: newRelease } : {}) };
@@ -349,6 +347,99 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
     }
     saveBudget(club);
     repo.setMeta(signKey(club.id), String(signed(club.id) + 1));
+  }
+
+  // ---------- empréstimos: os clubes com excedentes (ou jovens sem lugar no onze) emprestam-nos a clubes de nível igual ou inferior
+  const lc = mk.loans;
+  const loansIn = new Map<ClubId, number>();
+  for (const l of activeLoans(repo)) loansIn.set(l.to, (loansIn.get(l.to) ?? 0) + 1);
+  const rankedIn = (e: Entry, from: ClubId): number => (byClub.get(from) ?? []).filter((x) => x.position === e.position && x.quality > e.quality).length;
+  for (const club of rng.derive("loans").shuffle(order)) {
+    const lrng = rng.derive(`loan/${club.id}`);
+    if (!lrng.prob(lc.actProbability * factor)) continue;
+    if ((loansIn.get(club.id) ?? 0) >= lc.maxPerClub) continue;
+    const tier = tierOf(club);
+    if (!stats.get(tier)) continue;
+    const squad = byClub.get(club.id) ?? [];
+    if (squad.length >= world.squad[tier] + mk.squadSlack) continue;
+    const desired = desiredOf(club, tier);
+    const pick = pickNeed(tier, squad, desired, lrng);
+    if (!pick) continue;
+    const budget = budgetOf(club);
+    const bill = monthlyWageBill(repo, club.id) * 12;
+    const end = loanEnd(date);
+    type Option = { e: Entry; from: BaseClub; share: number; fee: number; will: number; score: number };
+    let best: Option | undefined;
+    for (const e of lrng.shuffle(byPos.get(pick.position) ?? []).slice(0, 120)) {
+      if (!e.club || e.club === club.id || e.club === o.gamerClub || onLoan.has(e.record.person) || o.locked?.has(e.record.person)) continue;
+      const from = clubById.get(e.club);
+      if (!from || TIER_ORDER.indexOf(tierOf(from)) > TIER_ORDER.indexOf(tier)) continue; // só se empresta para o mesmo escalão ou para baixo
+      if (e.quality < pick.floor || e.quality > desired + mk.qualityCeiling) continue;
+      const age = ageOf(e.record.person);
+      const prospect = age <= lc.prospectAgeMax && e.record.potential - e.quality >= lc.prospectGap && rankedIn(e, from.id) >= (slotsOf(tierOf(from)).get(e.position) ?? 0);
+      const listed = listedOf(from).has(e.record.person);
+      if (!listed && !prospect) continue;
+      const ct = repo.contract(e.record.person);
+      if (!ct || ct.end <= end) continue; // o contrato tem de ir além do empréstimo
+      if ((byClub.get(from.id) ?? []).length - 1 < world.squad[tierOf(from)] - lc.lenderMinSquad) continue;
+      if (localBlock(repo, e.record.person, club, date, locks)) continue;
+      const share = lc.wageShares.find((x) => bill + ct.monthlyWage * x * 12 <= budget.wageBillMax * (1 + mk.wageSlack));
+      if (share === undefined) continue;
+      const value = marketValue({ quality: e.quality, potential: e.record.potential, age, monthlyWage: ct.monthlyWage, monthsLeft: Math.max(0, (Date.parse(ct.end) - Date.parse(date)) / (30.44 * 86400000)) }, params);
+      const fee = listed ? Math.round((value * lc.feeRate) / 1000) * 1000 : 0;
+      if (fee > budget.transfers) continue;
+      const will = appeal.decideLoan({ person: e.record.person, from, to: club, starter: e.quality > pick.posFloor, benchwarmer: rankedIn(e, from.id) >= (slotsOf(tierOf(from)).get(e.position) ?? 0) });
+      if (will < dc.minWillingness) continue;
+      const local = birthCityOf(e.record.person) === club.city ? dc.homeScore : 0;
+      const score = (e.quality - pick.floor) + (prospect ? 0.5 : 0) - share + local + will + lrng.float() * 0.3;
+      if (!best || score > best.score) best = { e, from, share, fee, will, score };
+    }
+    if (!best) continue;
+    const { e, from, share, fee, will } = best;
+    if (!lrng.derive(`consent/${e.record.person}`).prob(will)) continue;
+    startLoan(repo, { person: e.record.person, from: from.id, to: club.id, start: date, end, season, wageShare: share, fee }, date);
+    if (fee > 0) {
+      post(repo, club, "transfers", -fee);
+      post(repo, from, "transfers", fee);
+      budget.transfers -= fee;
+      saveBudget(club);
+      const fb = budgetOf(from);
+      fb.transfers += Math.round(fee * mk.saleToBudget);
+      saveBudget(from);
+    }
+    onLoan.add(e.record.person);
+    loansIn.set(club.id, (loansIn.get(club.id) ?? 0) + 1);
+    const lenders = byClub.get(from.id) ?? [];
+    lenders.splice(lenders.indexOf(e), 1);
+    e.club = club.id;
+    squad.push(e);
+    summary.loans = (summary.loans ?? 0) + 1;
+  }
+
+  // ---------- chamadas de volta: em janeiro o clube dono chama o emprestado se lhe faz falta (vaga no plantel e lugar no onze ou posição por preencher)
+  if (win.index === 1) {
+    for (const l of activeLoans(repo)) {
+      const owner = clubById.get(l.from);
+      if (!owner || owner.id === o.gamerClub || l.to === o.gamerClub) continue;
+      const rrng = rng.derive(`recall/${l.person}`);
+      if (!rrng.prob(lc.recallProbability)) continue;
+      const ownSquad = byClub.get(owner.id) ?? [];
+      const tier = tierOf(owner);
+      if (ownSquad.length >= world.squad[tier] + mk.squadSlack) continue;
+      const borrowerSquad = byClub.get(l.to) ?? [];
+      const entry = borrowerSquad.find((x) => x.record.person === l.person);
+      if (!entry) continue;
+      const slots = slotsOf(tier).get(entry.position) ?? 0;
+      const qs = ownSquad.filter((x) => x.position === entry.position).map((x) => x.quality).sort((a, b) => b - a);
+      const wouldStart = qs.length < slots || entry.quality > (qs[slots - 1] ?? 0);
+      if (!wouldStart) continue;
+      endLoan(repo, l.person, date, season, "recalled");
+      onLoan.delete(l.person);
+      borrowerSquad.splice(borrowerSquad.indexOf(entry), 1);
+      entry.club = owner.id;
+      ownSquad.push(entry);
+      summary.recalls = (summary.recalls ?? 0) + 1;
+    }
   }
   return summary;
 }
