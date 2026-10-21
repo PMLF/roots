@@ -10,6 +10,7 @@ import { EntityLink } from "@/ui/components/Link";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { TeamCard, Meetings, Statistics, HistoryEvents, XgChart, HeaderInfo, HalfTime, OthersMatches, LiveTable } from "@/ui/components/match/MatchPanel";
 import { liveTable } from "@/ui/match/matchView";
+import { pendingInjuries } from "@/ui/match/injury";
 import { alertOf, lineKey, type MatchAlert } from "@/ui/match/alerts";
 import { TacticInMatch } from "@/ui/components/match/LiveTactic";
 import { SubsCounters } from "@/ui/components/match/Substitutions";
@@ -80,11 +81,15 @@ function Content() {
 
   // o relógio: cada tique pede ao motor mais um minuto, com a tática em vigor nesse momento
   const ongoing = !!match?.ongoing;
+  // um lesionado por substituir (e ainda há trocas): o jogo não avança até o substituíres
+  const injury = pendingInjuries(match ?? undefined);
+  const blocked = ongoing && injury.mustReplace;
+  useEffect(() => { if (blocked) setRunning(false); }, [blocked, running]);
   useEffect(() => {
-    if (!match || !ongoing || !running) return;
+    if (!match || !ongoing || !running || blocked) return;
     const timer = window.setTimeout(() => { void step(1); }, (SPEEDS[speed] as { sec: number }).sec * 1000);
     return () => window.clearTimeout(timer);
-  }, [match, ongoing, running, speed, step]);
+  }, [match, ongoing, running, blocked, speed, step]);
 
   // a barra de progresso do rodapé segue o jogo do gamer enquanto decorre
   const matchDuration = match?.duration;
@@ -149,11 +154,11 @@ function Content() {
       if (e.code !== "Space" || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
       if (e.target instanceof Element && e.target.closest("input, textarea, select, button, a, [contenteditable]")) return;
       e.preventDefault();
-      setRunning((v) => !v);
+      if (!blocked) setRunning((v) => !v);
     };
     window.addEventListener("keydown", hotkey);
     return () => window.removeEventListener("keydown", hotkey);
-  }, [ongoing]);
+  }, [ongoing, blocked]);
 
   const openTactic = () => {
     beforeRan.current = running;
@@ -208,7 +213,7 @@ function Content() {
       {ongoing ? (
         <>
           <div className="controlos-fixos" role="group" aria-label={t("match.controls")}>
-            <button type="button" className="primario controlo-principal" onClick={() => setRunning((v) => !v)} disabled={tacticOpen} aria-label={running ? t("match.pause") : minute === 0 ? t("match.start") : t("match.continue")}>
+            <button type="button" className="primario controlo-principal" onClick={() => setRunning((v) => !v)} disabled={tacticOpen || blocked} aria-label={running ? t("match.pause") : minute === 0 ? t("match.start") : t("match.continue")}>
               <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d={running ? "M7 5h3.500v14H7zM13.500 5H17v14h-3.500z" : "M8 5v14l11-7z"} fill="currentColor" /></svg>
               <span>{running ? t("match.pause") : minute === 0 ? t("match.start") : t("match.continue")}</span>
             </button>
@@ -218,7 +223,7 @@ function Content() {
               ))}
             </span>
             {dev && (
-              <button type="button" className="controlo-saltar" title={t("match.skip")} aria-label={t("match.skip")} onClick={() => { setRunning(false); void step(500); }}>
+              <button type="button" className="controlo-saltar" title={t("match.skip")} aria-label={t("match.skip")} disabled={blocked} onClick={() => { setRunning(false); void step(500); }}>
                 <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="M5 5v14l9-7zM16.500 5H19v14h-2.500z" fill="currentColor" /></svg>
               </button>
             )}
@@ -226,6 +231,7 @@ function Content() {
         </>
       ) : null}
       {error && <p className="erro" role="alert">{error}</p>}
+      {blocked && !tacticOpen && <p className="erro aviso-lesao" role="alert">{t("match.subs.injuryForced", { name: injury.names.join(" / ") })} <button type="button" className="primario" onClick={openTactic}>{t("match.subs.replace")}</button></p>}
       {halfTime && ongoing && <HalfTime match={match} onTactic={halfTimeTactic} onContinue={secondHalf} />}
       {tacticOpen && ongoing && match.tactic && <TacticInMatch match={match} tactic={match.tactic} onChange={(x) => void changeTactic(x)} onClose={closeTactic} busy={changing} {...(subsError ? { subsError } : {})} onConfirmSubs={confirmSubs} />}
       <div className="separadores" role="tablist" aria-label={t("match.tabs")}>

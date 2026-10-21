@@ -15,6 +15,7 @@ import { SubsCounters } from "@/ui/components/match/Substitutions";
 import { PitchBoard } from "@/ui/components/PitchBoard";
 import { Stars } from "@/ui/components/Stars";
 import { TacticControls } from "@/ui/components/TacticControls";
+import { pendingInjuries } from "@/ui/match/injury";
 import { EventIcon } from "@/ui/components/EventIcon";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { abbreviationPosition } from "@/ui/i18n/position";
@@ -85,6 +86,7 @@ export function TacticInMatch({ match, tactic, onChange, onClose, busy, subsErro
   const subs = match.subs;
   const remaining = subs ? subs.max - subs.used - pairs.length : 0;
   const hurt = new Set(match.pendingInjury ?? []);
+  const injury = pendingInjuries(match);
   const startOf = new Map(slots.flatMap((id, i) => (id ? [[id, i] as const] : [])));
   const original = new Map(pairs.map((p) => [p.playerIn, p.playerOut] as const));
   const onBench = (id: string) => plan.bench.includes(id);
@@ -156,7 +158,7 @@ export function TacticInMatch({ match, tactic, onChange, onClose, busy, subsErro
       <CloseButton onClose={() => ref.current?.close()} />
       <h2 id="h-tatica-jogo">{t("match.tacticTitle")} <small className="suave">· {tactic.formation}</small></h2>
       <TacticControls tactic={tactic} onChange={onChange} disabled={busy} />
-      {hurt.size > 0 && <p className="mensagem-renovacao erro" role="alert">{t("match.subs.injuryForced")}</p>}
+      {hurt.size > 0 && <p className="mensagem-renovacao erro" role="alert">{injury.mustReplace ? t("match.subs.injuryForced", { name: injury.names.join(" / ") }) : t("match.subs.injuryNoSubs", { name: injury.names.join(" / ") })}</p>}
       <div className="tatica-grelha">
         <Card>
           <PitchBoard formation={tactic.formation} plan={plan} selected={selected} onSelect={(id) => setSelected(selected === id ? undefined : id)} onPlace={place} onRemove={undo} held={held} hints={slotHints} onGrab={setHeld} />
