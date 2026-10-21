@@ -137,3 +137,7 @@ Linhas que mostravam sempre «?»/«—» porque o motor não tem o dado foram r
 ## Mercado: amarelo e preto (RZ-257)
 
 Tudo o que é do mercado de transferências usa `--mercado` (amarelo) com `--mercado-texto` (preto): pills «À venda», «Clubes interessados» e «Ofertas feitas» (`Chip tone="mercado"`) e o destaque da mensagem para onde «Avançar» te leva. «Avançar» não passa o tempo enquanto houver mensagens por ler, propostas recebidas por responder ou negociações abertas: leva-te, uma a uma, ao que falta.
+
+## Cartão colapsável das opções táticas (RZ-259)
+
+No pré-jogo e em Táticas (`TacticEditor`) o cartão das opções começa fechado: cabeçalho-botão com resumo e «Alterar» + setas duplas (rodam ao abrir). O popup do jogo ao vivo mantém as opções sempre visíveis.

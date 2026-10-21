@@ -1387,5 +1387,8 @@
   "interest.low": "A acompanhar",
   "interest.local": "clube da terra",
   "interest.pillWanted": "Clubes interessados",
-  "interest.pillOffers": "Ofertas feitas"
+  "interest.pillOffers": "Ofertas feitas",
+  "tactic.options": "Opções táticas",
+  "tactic.optionsEdit": "Alterar",
+  "tactic.optionsHide": "Fechar"
 }

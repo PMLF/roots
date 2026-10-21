@@ -29,6 +29,8 @@ export function TacticEditor({ withoutNextMatch = false, heading }: { withoutNex
   const engine = useEngine();
   const [plan, setPlan] = useState<ViewPlan | null | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
+  // as opções táticas começam fechadas: o foco é a escolha dos jogadores
+  const [optionsOpen, setOptionsOpen] = useState(false);
   const [selected, setSelected] = useState<string | undefined>(undefined);
   const [held, setHeld] = useState<string | undefined>(undefined);
   // o realce dura enquanto o rato está premido ou o jogador anda a ser arrastado
@@ -164,8 +166,13 @@ export function TacticEditor({ withoutNextMatch = false, heading }: { withoutNex
           )}
         </header>
       )}
-      <Card wide>
-        <TacticControls tactic={plan.tactic} onChange={(next) => commit(board, next)} formations={plan.formations} onFormation={changeFormation} formationHint={t("tactic.formationWarning")} />
+      <Card wide className="tatica-colapso">
+        <button type="button" className="tatica-colapso-topo" aria-expanded={optionsOpen} aria-controls="tatica-opcoes" onClick={() => setOptionsOpen((o) => !o)}>
+          <span className="tatica-colapso-titulo">{t("tactic.options")}</span>
+          <span className="tatica-colapso-resumo suave">{plan.tactic.formation}{(["mentality", "intensity", "directness", "line"] as const).map((k) => ` · ${t(`tactic.opt.${k}.${plan.tactic[k]}` as Key)}`).join("")}</span>
+          <span className="tatica-colapso-acao">{t(optionsOpen ? "tactic.optionsHide" : "tactic.optionsEdit")}<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><path d="M3 3.5 8 8l5-4.5M3 8l5 4.5L13 8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
+        </button>
+        {optionsOpen && <div id="tatica-opcoes" className="tatica-colapso-corpo"><TacticControls tactic={plan.tactic} onChange={(next) => commit(board, next)} formations={plan.formations} onFormation={changeFormation} formationHint={t("tactic.formationWarning")} /></div>}
       </Card>
       <div className="tatica-grelha">
         <Card>
