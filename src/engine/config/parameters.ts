@@ -448,6 +448,8 @@ export type Params = {
     directRed: { matches: number; morePA: number; max: number };
     /** Vermelho por segundo amarelo: jogos de suspensão. */
     secondYellow: { matches: number };
+    /** Competições europeias (UEFA): um jogo de suspensão a cada `yellowEvery` amarelos; os amarelos apagam-se depois dos quartos de final. */
+    europe: { yellowEvery: number };
   };
   /** Táticas (RZ-108; docs/GAME_ENGINE.md §7). Efeitos em pontos da escala 1-20 de força, ou multiplicadores. */
   tactic: {
@@ -706,6 +708,29 @@ export type Params = {
     saleToBudget: number;
     /** Consentimento do jogador: probabilidade base de aceitar subir de escalão e de descer, efeito da ambição e da lealdade (por ponto acima de 10). */
     consent: { up: number; down: number; byAmbition: number; byLoyalty: number; byWageRatio: number };
+    /**
+     * Decisão do jogador (RZ-266): o jogador tem a palavra final. Compara o conjunto clube + cidade do clube que propõe com o de onde joga
+     * (`club`: peso do escalão, da reputação e do estádio; `city`: peso de cada indicador e da população; `cityShare`: parte da cidade no
+     * conjunto, mais para quem é leal), o ordenado (`wage`: por unidade de ln(novo/atual), vezes ganância/10), ser da terra (`home`) ou deixar
+     * a terra (`leavingHome`), ter lugar no onze (`playingTime`, vezes ambição/10) e desemprego (`free`). `scale` = declive da curva (logit);
+     * `byAmbition`/`byLoyalty`: efeito por ponto acima de 10. `minWillingness`: abaixo disto o clube nem tenta; `wagePremiums`: múltiplos do
+     * ordenado normal que o clube pode oferecer para convencer. `listing`: transferíveis (excedentes além das vagas da posição + `surplus`;
+     * com aperto financeiro, os mais caros) e o desconto no pedido do clube; `need`: peso de uma vaga por preencher e de cada ponto de
+     * qualidade em falta; `homeScore`/`regionScore`: bónus de procurar jogadores da terra ou do distrito.
+     */
+    decision: {
+      tier: Record<Tier, number>;
+      club: { tier: number; reputation: number; stadium: number };
+      city: { economy: number; employment: number; tourism: number; pride: number; footballCulture: number; notoriety: number; population: number };
+      cityShare: number; byLoyaltyCity: number;
+      scale: number; bias: number; wage: number; home: number; leavingHome: number; playingTime: number; free: number;
+      byAmbition: number; byLoyalty: number; minWillingness: number; wagePremiums: number[];
+      listing: { surplus: number; discount: number; maxPerClub: number; stressMargin: number };
+      need: { missing: number; gap: number };
+      homeScore: number; regionScore: number;
+      /** Pontos de preferência perdidos por cada escalão a mais (além de 1) que o clube vai buscar abaixo: os clubes olham sobretudo para o seu nível. */
+      stepPenalty: number;
+    };
     /** Agentes (RZ-206): quota de jogadores com agente por escalão do clube; peso de cada cliente já tido (agentes grandes atraem mais); comissão (fração do ordenado anual) e subida da comissão e do ordenado pedido por ponto de ganância acima de 10; efeito da ganância e da lealdade do agente no consentimento do jogador; pivôs = ganância e lealdade médias dos agentes (acima/abaixo disto o efeito é positivo/negativo, para o agente típico não mexer no equilíbrio do mercado). */
     agents: { share: Record<Tier, number>; popularity: number; commissionRate: number; commissionByGreed: number; wageByGreed: number; consentByGreed: number; consentByLoyalty: number; greedPivot: number; loyaltyPivot: number };
     /** Cláusulas (RZ-207): probabilidade de o clube vendedor negociar uma percentagem de revenda (sobe com a ganância do presidente por ponto acima de 10) e intervalo dessa percentagem (fração do valor da venda futura); cláusula de rescisão num contrato novo: probabilidade base, subida por ponto de ganância do agente acima do pivô, e múltiplo do valor de mercado. */
@@ -1000,6 +1025,7 @@ export const DEFAULT_PARAMETERS: Params = {
     yellowThresholds: [5, 9, 12, 14],
     directRed: { matches: 1, morePA: 0.35, max: 4 },
     secondYellow: { matches: 1 },
+    europe: { yellowEvery: 3 },
   },
   tactic: {
     formation: { attack: 0.7, control: 0.5, defence: 0.6 },
@@ -1140,6 +1166,17 @@ export const DEFAULT_PARAMETERS: Params = {
     contractYears: [2, 4],
     saleToBudget: 0.6,
     consent: { up: 0.9, down: 0.35, byAmbition: 0.03, byLoyalty: 0.025, byWageRatio: 0.5 },
+    decision: {
+      tier: { firstLeague: 1, secondLeague: 0.72, thirdLeague: 0.48, cp: 0.25, district: 0.08 },
+      club: { tier: 0.5, reputation: 0.35, stadium: 0.15 },
+      city: { economy: 0.2, employment: 0.12, tourism: 0.12, pride: 0.1, footballCulture: 0.14, notoriety: 0.1, population: 0.22 },
+      cityShare: 0.3, byLoyaltyCity: 0.015,
+      scale: 5, bias: 0.4, wage: 1.6, home: 0.9, leavingHome: 0.4, playingTime: 0.7, free: 0.9,
+      byAmbition: 0.05, byLoyalty: 0.09, minWillingness: 0.15, wagePremiums: [1, 1.35, 1.8, 2.5],
+      listing: { surplus: 1, discount: 0.8, maxPerClub: 3, stressMargin: 0.05 },
+      need: { missing: 3, gap: 1 },
+      homeScore: 1.2, regionScore: 0.5, stepPenalty: 2,
+    },
     agents: { share: { firstLeague: 0.85, secondLeague: 0.55, thirdLeague: 0.3, cp: 0.12, district: 0.04 }, popularity: 0.5, commissionRate: 0.08, commissionByGreed: 0.05, wageByGreed: 0.012, consentByGreed: 0.012, consentByLoyalty: 0.015, greedPivot: 14.4, loyaltyPivot: 7 },
     clauses: { releaseProbability: 0.2, releaseByAgentGreed: 0.02, releaseFactor: [1.2, 2.2] },
     training: { ageMax: 23, byTier: { firstLeague: 1.2, secondLeague: 0.8, thirdLeague: 0.4, cp: 0.08, district: 0 } },
@@ -1277,8 +1314,10 @@ export function validateParameters(p: Params): string[] {
   if (le.severities.length !== 5 || Math.abs(le.severities.reduce((a, g) => a + g.weight, 0) - 1) > 1e-9 || !le.severities.every((g) => g.days[0] >= 1 && g.days[1] >= g.days[0])) errors.push("lesoes.gravidades: 5 níveis, pesos a somar 1 e dias [mín ≥ 1, máx ≥ mín]");
   if (le.risk.opponentPlayFair.length !== 5) errors.push("lesoes.risco.fairPlayAdversario: 5 níveis");
   if (!(le.form.min < le.form.max && le.form.min <= le.form.onReturn && le.form.onReturn <= le.form.max && le.form.base >= le.form.min && le.form.base <= le.form.max)) errors.push("lesoes.forma: min < max e base/aoRegressar dentro dos limites");
+  const dc = p.market.decision;
+  if (!(dc.scale > 0 && dc.minWillingness >= 0 && dc.minWillingness < 1 && dc.wagePremiums.length > 0 && dc.wagePremiums.every((x) => x >= 1) && dc.cityShare >= 0 && dc.cityShare <= 1 && dc.listing.discount > 0 && dc.listing.discount <= 1 && dc.listing.maxPerClub >= 0)) errors.push("market.decision: scale > 0, 0 ≤ minWillingness < 1, wagePremiums ≥ 1, 0 ≤ cityShare ≤ 1, 0 < listing.discount ≤ 1");
   const dis = p.discipline;
-  if (!(dis.yellowThresholds.length > 0 && dis.yellowThresholds.every((n, i) => Number.isInteger(n) && n >= 1 && (i === 0 || n > (dis.yellowThresholds[i - 1] as number))) && dis.directRed.matches >= 1 && dis.directRed.max >= dis.directRed.matches && dis.directRed.morePA >= 0 && dis.directRed.morePA < 1 && dis.secondYellow.matches >= 1)) errors.push("disciplina: limiares de amarelos inteiros, crescentes e ≥ 1, vermelhoDireto.jogos ≥ 1 ≤ max, 0 ≤ pMaisUm < 1, segundoAmarelo.jogos ≥ 1");
+  if (!(dis.yellowThresholds.length > 0 && dis.yellowThresholds.every((n, i) => Number.isInteger(n) && n >= 1 && (i === 0 || n > (dis.yellowThresholds[i - 1] as number))) && dis.directRed.matches >= 1 && dis.directRed.max >= dis.directRed.matches && dis.directRed.morePA >= 0 && dis.directRed.morePA < 1 && dis.secondYellow.matches >= 1 && Number.isInteger(dis.europe.yellowEvery) && dis.europe.yellowEvery >= 1)) errors.push("disciplina: limiares de amarelos inteiros, crescentes e ≥ 1, vermelhoDireto.jogos ≥ 1 ≤ max, 0 ≤ pMaisUm < 1, segundoAmarelo.jogos ≥ 1");
   const t = p.tactic;
   if (!(t.timeWasting.start >= 0 && t.timeWasting.chances >= 0 && t.timeWasting.chances < 1 && t.area.scale > 0 && t.context.min > 0 && t.context.min <= 1 && t.context.max >= 1)) errors.push("tatica: urgencia.inicio ≥ 0, urgencia.oportunidades entre 0 e 1, area.escala > 0, contexto.min entre 0 e 1 e max ≥ 1");
   if (t.fairPlay.cards.length !== 5 || !t.fairPlay.cards.every((x) => x > 0)) errors.push("tatica.fairPlay.cartoes: 5 níveis, multiplicadores > 0");

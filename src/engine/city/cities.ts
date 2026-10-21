@@ -27,6 +27,12 @@ function startState(repo: Repository, base: BaseData, params: Pick<Params, "city
   return c ? initialState(c, base.clubs, rngDoSave(repo).derive(`inicial:${c.id}`), params) : undefined;
 }
 
+/** Estado atual de uma cidade (o do último fecho de época, ou o de arranque na 1.ª época). */
+export function cityStateNow(repo: Repository, base: BaseData, params: Pick<Params, "city">, city: string): CityState | undefined {
+  const last = repo.eventsOf({ k: "city", id: city }, { type: "CITY_SEASON" })[0];
+  return last ? readState(last.data) : startState(repo, base, params, city);
+}
+
 /** Estado em cada época (a 1 é o de arranque), do mais antigo para o mais recente. */
 export function cityHistory(repo: Repository, base: BaseData, params: Pick<Params, "city">, city: string): CityInstant[] {
   const initial = startState(repo, base, params, city);

@@ -1,3 +1,4 @@
+import { makeAppeal } from "../market/appeal";
 import type { Params, Tier } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
@@ -110,6 +111,16 @@ export function renewalInterest(repo: Repository, data: BaseData, params: Params
   const quality = currentQuality(j.attributes as Attributes, pos as Position);
   const tq = params.world.targetQuality[club.tier];
   if (quality > tq.mean + n.level.margin * tq.deviation && ambition >= n.level.ambitionMin && loyalty < n.level.loyaltyStay && !native) return { interested: false, reason: "level" };
+  // quem joga noutro clube compara clube + cidade (RZ-266): se nem com o melhor ordenado o convence, nem negoceia
+  if (j.club && j.club !== club.id) {
+    const from = data.clubs.find((c) => c.id === j.club);
+    const dc = params.market.decision;
+    const current = repo.contract(person)?.monthlyWage ?? 0;
+    if (from && current > 0) {
+      const best = makeAppeal(repo, data, params).decide({ person, from, to: club, currentWage: current, newWage: current * (dc.wagePremiums.at(-1) ?? 1), starter: true });
+      if (best.p < dc.minWillingness) return { interested: false, reason: "level" };
+    }
+  }
   if (n.distance.tiers.includes(club.tier) && !native && loyalty < n.distance.loyaltyStay) {
     const from = p.birthCity ? data.cities.find((c) => c.id === p.birthCity)?.district : undefined;
     if (from !== club.district) return { interested: true, minWage: Math.round((params.world.wage.average[club.tier] * n.distance.wageFactor) / 10) * 10 };
