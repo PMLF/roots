@@ -10,6 +10,7 @@
   --destaque: #14804f; --destaque-texto: #0d6a41; --destaque-fundo: #e5f3ec;
   --aviso: #b3261e; --aviso-fundo: #fdecea;
   --atencao: #a66a00; --atencao-fundo: #fff4d6;
+  --mercado: #f5c400; --mercado-texto: #14110a;
   --r-s: 6px; --r-m: 10px;
   --pad-celula: 8px 12px; --linha-altura: 1.45;
   --fonte: ui-sans-serif, system-ui, -apple-system, "Segoe UI Variable", "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
@@ -236,6 +237,9 @@ legend { padding: 0 6px; color: var(--suave); }
 .chip a { color: inherit; }
 .chip-destaque { background: var(--destaque-fundo); border-color: transparent; color: var(--destaque-texto); font-weight: 600; }
 .chip-suave { color: var(--suave); }
+/* Mercado de transferências = amarelo e preto (à venda, interessados, ofertas). */
+.chip-mercado { background: var(--mercado); border-color: var(--mercado-texto); color: var(--mercado-texto); font-weight: 600; }
+.chip-mercado a { color: inherit; }
 .dados { margin: 0; display: grid; }
 .dados > div { display: flex; justify-content: space-between; gap: 16px; padding: 7px 0; border-bottom: 1px solid var(--linha); align-items: baseline; }
 .dados > div:last-child { border-bottom: 0; }
@@ -792,8 +796,12 @@ button.dev { border-style: dashed; }
 .formulario input:not([type=checkbox]):not([type=radio]) { width: 100%; min-width: 0; }
 
 /* Cidade: par de cartões lado a lado (metade da largura cada) e lista horizontal */
-.cartoes-par { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 900px) { .cartoes-par { grid-template-columns: 1fr; } }
+.cartoes-par { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: stretch; }
+.cartoes-par.tres { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cartoes-par > .cartao { height: 100%; }
+.interesse-lista { max-height: 260px; overflow-y: auto; }
+@media (max-width: 1100px) { .cartoes-par.tres { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 900px) { .cartoes-par, .cartoes-par.tres { grid-template-columns: 1fr; } .interesse-lista { max-height: none; } }
 .lista-horizontal { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px 18px; }
 .lista-horizontal li { display: flex; flex-direction: column; gap: 2px; }
 
@@ -1130,3 +1138,6 @@ body {
   .menu-jogo { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .feed li.feed-alerta { animation: none; background: var(--pisca); color: var(--pisca-texto); } .jogo-a-decorrer .ponto-vivo { animation: none; } }
+
+.mensagem-foco { outline: 2px solid var(--mercado); outline-offset: 3px; border-radius: var(--r-m); animation: foco-msg 1.2s ease-out 1; }
+@keyframes foco-msg { from { outline-color: transparent; } 30% { outline-color: var(--mercado); } }

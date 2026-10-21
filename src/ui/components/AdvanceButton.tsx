@@ -62,6 +62,21 @@ export function AdvanceButton() {
       router.push(time.pause.ongoing ? "/match/" : "/prematch/");
       return;
     }
+    // antes de passar o tempo: ler as mensagens (uma a uma, da mais antiga) e responder a propostas e negociações em aberto
+    if (!disabled && !engine) void advanceTime();
+    else if (!disabled && engine) {
+      void engine.call("attention", null).then(async (a) => {
+        if (a.unread !== undefined) {
+          await engine.call("markMessage", { id: a.unread, isRead: true });
+          window.dispatchEvent(new Event("raizes:caixa"));
+          router.push(`/inbox/?foco=${a.unread}`);
+        } else if (a.offer) router.push(`/inbox/?oferta=${encodeURIComponent(a.offer.person)}`);
+        else if (a.bid) router.push(`/profile/?type=person&id=${encodeURIComponent(a.bid.person)}&negociar=1`);
+        else await advanceTime();
+      }).catch(() => advanceTime());
+    }
+  };
+  const advanceTime = async () => {
     // se o avanço pára num jogo do teu clube, um só clique leva-te ao pré-jogo
     if (!disabled) void time.advance(effective).then((r) => { if (r?.pause) router.push(r.pause.ongoing ? "/match/" : "/prematch/"); });
   };

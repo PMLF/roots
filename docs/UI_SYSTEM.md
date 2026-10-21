@@ -132,3 +132,8 @@ Linhas que mostravam sempre «?»/«—» porque o motor não tem o dado foram r
 - **Opções táticas:** oito opções em duas filas de quatro (uma, duas ou quatro colunas conforme a largura); a formação, quando existe, fica numa linha à parte por cima.
 - **Área a explorar:** mini meio campo com três zonas (ala esquerda, meio, ala direita). Cada toque liga/desliga a zona; nenhuma ligada = a equipa joga em todo o lado (`any`); duas alas = `wings`; o meio exclui as alas e vice-versa. O motor continua a guardar um só valor `Area`.
 - **Jogo ao vivo:** o flash dos lances que param o tempo dura ~3 s (0,45 s × 6, forte); o segundo amarelo é um só lance com o cartão vermelho sobreposto ao amarelo; na janela de táticas arrasta-se ou toca-se para trocar titulares de lugar ou passar para um lugar vazio (de borla); a confirmação envia substituições e posições (`substitutionsInMatch.positions`).
+
+
+## Mercado: amarelo e preto (RZ-257)
+
+Tudo o que é do mercado de transferências usa `--mercado` (amarelo) com `--mercado-texto` (preto): pills «À venda», «Clubes interessados» e «Ofertas feitas» (`Chip tone="mercado"`) e o destaque da mensagem para onde «Avançar» te leva. «Avançar» não passa o tempo enquanto houver mensagens por ler, propostas recebidas por responder ou negociações abertas: leva-te, uma a uma, ao que falta.

@@ -68,6 +68,6 @@ export function Attributes({ groups }: { groups: AttributesGroup[] }) {
   );
 }
 
-export function Chip({ children, tone }: { children: ReactNode; tone?: "destaque" | "suave" | "aviso" }) {
+export function Chip({ children, tone }: { children: ReactNode; tone?: "destaque" | "suave" | "aviso" | "mercado" }) {
   return <span className={`chip${tone ? ` chip-${tone}` : ""}`}>{children}</span>;
 }

@@ -1494,5 +1494,7 @@
   "interest.high": "Very interested",
   "interest.medium": "Interested",
   "interest.low": "Watching",
-  "interest.local": "hometown club"
+  "interest.local": "hometown club",
+  "interest.pillWanted": "Wanted",
+  "interest.pillOffers": "Offers made"
 }

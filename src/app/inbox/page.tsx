@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import type { Message } from "@/engine/news/news";
 import type { OfferView } from "@/engine/api/contracts";
 import { OfferDialog } from "@/ui/components/OfferDialog";
@@ -12,7 +13,14 @@ const BY_PAGE = 25;
 
 /** Caixa de entrada (RZ-118): resultados do teu jogo, lesões do plantel, a tua carreira. Cada mensagem pode marcar-se como lida ou por ler; há um botão para marcar todas. */
 export default function InboxPage() {
+  return <Suspense fallback={null}><Inbox /></Suspense>;
+}
+
+function Inbox() {
   const { t } = useT();
+  const params = useSearchParams();
+  const focus = Number(params.get("foco")) || undefined;
+  const wantedOffer = params.get("oferta");
   const engine = useEngine();
   const [messages, setMessages] = useState<Message[] | undefined>(undefined);
   const [unread, setReadItemsNot] = useState(0);
@@ -25,15 +33,26 @@ export default function InboxPage() {
 
   const load = useCallback(async (beforeOf?: number) => {
     if (!engine) return;
-    const c = await engine.call("inbox", { limit: BY_PAGE, ...(beforeOf !== undefined ? { beforeOf } : {}) });
+    const c = await engine.call("inbox", { limit: focus !== undefined && beforeOf === undefined ? 300 : BY_PAGE, ...(beforeOf !== undefined ? { beforeOf } : {}) });
     setMessages((before) => (beforeOf === undefined ? c.messages : [...(before ?? []), ...c.messages]));
     if (beforeOf === undefined) setReadItemsNot(c.unread);
-    setEnd(c.messages.length < BY_PAGE);
-  }, [engine]);
+    setEnd(c.messages.length < (focus !== undefined && beforeOf === undefined ? 300 : BY_PAGE));
+  }, [engine, focus]);
   useEffect(() => {
     void load().catch(() => setMessages([]));
     engine?.call("offers", null).then((o) => setUnemployed(o.unemployed)).catch(() => undefined);
   }, [load, engine]);
+
+  // «Avançar» leva à mensagem por ler mais antiga: mostra-a e destaca-a; ou abre a proposta que falta responder
+  useEffect(() => {
+    if (focus === undefined || !messages) return;
+    document.getElementById(`msg-${focus}`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [focus, messages]);
+  useEffect(() => {
+    if (!wantedOffer) return;
+    const o = offers.find((x) => x.person === wantedOffer);
+    if (o) setAnswering(o);
+  }, [wantedOffer, offers]);
 
   const score = async () => {
     await engine?.call("markInboxRead", null);
@@ -61,7 +80,7 @@ export default function InboxPage() {
         <div className="noticias">
           {messages.map((m) => {
             const open = m.type === "transfer_offer" ? offers.find((o) => m.links.some((l) => l.k === "person" && l.id === o.person)) : undefined;
-            return <NewsItemView key={m.id} n={m} unread={!m.isRead} onToggleIsRead={() => void toggle(m)} {...(open ? { action: <button type="button" className="primario" onClick={() => setAnswering(open)}>{t("offer.answer")}</button> } : {})} />;
+            return <div key={m.id} id={`msg-${m.id}`} className={m.id === focus ? "mensagem-foco" : undefined}><NewsItemView n={m} unread={!m.isRead} onToggleIsRead={() => void toggle(m)} {...(open ? { action: <button type="button" className="primario" onClick={() => setAnswering(open)}>{t("offer.answer")}</button> } : {})} /></div>;
           })}
           {answering && <OfferDialog offer={answering} onClose={() => { setAnswering(undefined); loadOffers(); }} onAnswered={loadOffers} />}
           {!end && <button type="button" onClick={() => void load(messages.at(-1)!.id)}>{t("inbox.oldest")}</button>}

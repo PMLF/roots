@@ -444,6 +444,8 @@ export type EngineRequests = {
   /** Caixa de entrada do gamer: o que se passa com o clube e com ele. */
   inbox: { input: { limit?: number; beforeOf?: number }; output: { messages: InboxMessage[]; unread: number } };
   markInboxRead: { input: null; output: null };
+  /** O que pede resposta antes de o tempo passar (RZ-257): a mensagem por ler mais antiga, propostas recebidas e negociações abertas. */
+  attention: { input: null; output: { unread?: number; offer?: { person: string }; bid?: { person: string } } };
   /** Começa o jogo do gamer (RZ-170): nada fica no histórico até ao apito final. */
   startMatch: { input: { match: string; /** A interface exige onze completo e disponível. */ strict?: boolean }; output: LiveMatch };
   /** Avança `minutos` minutos do jogo a decorrer; no fim regista-o. */
