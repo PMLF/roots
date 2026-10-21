@@ -53,7 +53,9 @@ export function computeSlots(repo: Repository, data: BaseData, params: Params, s
   const ranking = associationRanking(repo, data, params, season);
   const rank = ranking.findIndex((r) => r.country === PT) + 1;
   const band = params.europe.access.bands.find((b) => rank <= b.maxRank) ?? params.europe.access.bands.at(-1)!;
-  return { rank, championsLeague: band.championsLeague, championsQualifying: band.championsQualifying, europaLeague: band.europaLeague, conferenceLeague: band.conferenceLeague };
+  // 1.ª época: não houve Taça antes do arranque, por isso a vaga da Taça na Liga Europa vai para o clube seguinte da liga
+  // (como se o vencedor da Taça já estivesse apurado pela liga)
+  return { rank, championsLeague: band.championsLeague, championsQualifying: band.championsQualifying, europaLeague: band.europaLeague + (season === 1 ? 1 : 0), conferenceLeague: band.conferenceLeague };
 }
 
 /** As vagas guardadas no início da época; se ainda não foram guardadas, calculam-se (sem escrever). */

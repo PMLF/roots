@@ -33,13 +33,14 @@ import { foreignClubs } from "../world/foreign";
 import { foundBySearch, isVisible, orders, placeOrder, scoutedLevel, scoutsOf, worldPlayers } from "../scouting/scouting";
 import { foreignClubList } from "../squad/foreign";
 import { personHistory } from "./personHistory";
-import { seasonData, pyramidData, currentSeason, divisionsHistory } from "../season/seasonPyramid";
+import { seasonData, pyramidData, currentSeason } from "../season/seasonPyramid";
+import { clubDivisions } from "../history/clubDivisions";
 import { planView } from "../season/planView";
 import { confirmMatch, savePlan } from "../season/gamePlan";
 import { INJURY_EVENT } from "../injuries/state";
 import { cityProfile } from "../city/profile";
 import { competitionPage } from "../competition/profile";
-import { cupView, nationalCups, clubCompetitions } from "../competition/cup";
+import { cupView, nationalCups, districtCups, clubCompetitions } from "../competition/cup";
 import { europeView } from "../europe/view";
 import { EUROPEAN, EUROPE_NAME } from "../europe/europe";
 import { recentMatches } from "../competition/recent";
@@ -213,7 +214,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         levelReputation: reputationLevel(c.reputation, params),
         finances: clubFinances(repository, data, params, c, repository.meta("gamer.club") === c.id || seeAll),
         detailStadium: { ownership: c.stadium.ownership, zone: c.stadium.location.zone, centreDistanceKm: c.stadium.location.centreDistanceKm, transport: c.stadium.location.transport, roadAccess: c.stadium.location.roadAccess, parking: c.stadium.location.parking, expansionTerrain: c.stadium.location.expansionTerrain },
-        divisionsHistory: divisionsHistory(repository, base, c.id).map((h) => ({ ...h, label: seasonName(h.season, params.calendar.initialYear) })),
+        divisionsHistory: clubDivisions(repository, base, params, c.id).map((h) => ({ ...h, label: seasonName(h.season, params.calendar.initialYear) })),
         sponsors: repository.clubSponsorships(c.id, repository.meta("date.today") ?? undefined).flatMap((x) => {
           const company = repository.company(x.company);
           return company ? [{ company: company.id, name: company.name, sector: company.sector, kind: x.kind, ...(repository.meta("gamer.club") === c.id || seeAll ? { annualValue: x.annualValue } : {}) }] : [];
@@ -313,6 +314,10 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     case "nationalCups": {
       const { repository, data, params } = await context(servicos);
       return nationalCups(repository).flatMap((c) => cupView(repository, data, params, c) ?? []);
+    }
+    case "districtCups": {
+      const { repository, data, params } = await context(servicos);
+      return districtCups(repository).flatMap((c) => cupView(repository, data, params, c) ?? []);
     }
     case "competitionHistory": {
       const { repository, data, params } = await context(servicos);

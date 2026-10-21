@@ -291,6 +291,13 @@ export type Params = {
     chancesPerTeam: number;
     /** Vantagem de jogar em casa, em pontos de "controlo" (1-20). */
     homeAdvantage: number;
+    /**
+     * O que o clube leva para o jogo além do plantel (RZ-263): cada ponto de qualidade do treinador acima de 10 vale `coachPoints`
+     * pontos de ataque, controlo e defesa; a vantagem de jogar em casa sobe ou desce até ±`crowdEffect` conforme o ambiente do
+     * estádio (tamanho entre `smallStadium` e `bigStadium` lugares, em escala logarítmica, com peso `capacityWeight`, e cultura
+     * futebolística da cidade no resto).
+     */
+    edge: { coachPoints: number; crowdEffect: number; smallStadium: number; bigStadium: number; capacityWeight: number };
     /** Pontos de diferença de controlo que dão ~73 % das oportunidades ao mais forte. */
     controlScale: number;
     /** Quanto a diferença ataque-defesa (em pontos de atributo) pesa no remate e no xG. */
@@ -416,6 +423,24 @@ export type Params = {
     };
   };
   /** Castigos disciplinares (RZ-106; docs/GAME_ENGINE.md §8). Contam por competição e época. */
+  /**
+   * Pré-história (RZ-265): as épocas anteriores ao arranque, só para o gamer ver de onde vêm os clubes e as cidades. Não há jogos nem
+   * jogadores; tudo se reconstrói da seed.
+   */
+  preHistory: {
+    /** Quantas épocas para trás (épocas 0, −1, …). */
+    seasons: number;
+    club: {
+      /** Probabilidade de, em cada época, o clube ter subido (estava um escalão abaixo) ou descido (estava um acima) para chegar ao escalão seguinte. */
+      promoted: number; relegated: number;
+      /** Desvio (em fração da liga) da posição à volta do que a reputação indica. */
+      positionNoise: number;
+    };
+    city: {
+      /** Desvio anual dos indicadores (0-100), quanto da tendência para o alvo já se tinha feito, e desvio da variação anual da população (%). */
+      indicatorNoise: number; trendShare: number; populationNoisePct: number;
+    };
+  };
   discipline: {
     /** Amarelos acumulados (na competição e época) em que se cumpre um jogo de suspensão: o 5.º, 9.º, 12.º e 14.º, como no regulamento disciplinar das ligas portuguesas. */
     yellowThresholds: number[];
@@ -473,6 +498,8 @@ export type Params = {
     targetQuality: Record<Tier, { mean: number; deviation: number }>;
     /** Quanto a reputação do clube (0-10000) desloca a qualidade-alvo dentro do escalão, em pontos de qualidade para ±metade da amplitude. */
     qualityByReputation: number;
+    /** Peso da reputação (o resto é o dinheiro, em escala logarítmica) na posição de um clube no seu escalão (RZ-263). */
+    standingReputationWeight: number;
     /** Estrelas (RZ-916): qualidade relativa ao escalão onde joga, em meias estrelas. `centre` = estrelas de quem tem a qualidade média do escalão; `pointsPerStar` = pontos de qualidade (1-20) por estrela. */
     stars: { centre: number; pointsPerStar: number; freeAgentTier: Tier };
     /** Variação relativa (±) do % de estrangeiros com a reputação do clube dentro do escalão (0,35 → de −35 % a +35 % da média do escalão). */
@@ -921,13 +948,14 @@ export const DEFAULT_PARAMETERS: Params = {
   locality: { townThreshold: 1500, cityThreshold: 8000, hysteresis: 0.1 },
   match: {
     aptitude: { min: 0.55, unrecorded: 3, gkMin: 0.15, gkUnrecorded: 1 },
-    form: { daysWindow: 7, normalWorkload: 90, lossPer90: 0.03, min: 0.85, ret: { initial: 0.88, gainByDay: 0.01 } },
+    form: { daysWindow: 7, normalWorkload: 90, lossPer90: 0.02, min: 0.9, ret: { initial: 0.88, gainByDay: 0.01 } },
     substitutions: { max: 5, pauses: 3 },
     duration: 90,
     stoppage: { min: 3, max: 8 },
     extraTime: { minutes: 30, stoppage: { min: 1, max: 4 } },
     chancesPerTeam: 24,
     homeAdvantage: 0.9,
+    edge: { coachPoints: 0.12, crowdEffect: 0.6, smallStadium: 2000, bigStadium: 60000, capacityWeight: 0.6 },
     controlScale: 4,
     sensitivity: { shot: 0.3, xg: 0.2 },
     baseShotP: 0.42,
@@ -963,6 +991,11 @@ export const DEFAULT_PARAMETERS: Params = {
     trainingPByDay: 0.0009,
     form: { base: 1, byRecentMatch: 0.025, window: 14, por90: 0.015, recoveryByDay: 0.02, onReturn: 0.8, min: 0.7, max: 1.1 },
   },
+  preHistory: {
+    seasons: 10,
+    club: { promoted: 0.08, relegated: 0.08, positionNoise: 0.28 },
+    city: { indicatorNoise: 2.5, trendShare: 0.5, populationNoisePct: 0.5 },
+  },
   discipline: {
     yellowThresholds: [5, 9, 12, 14],
     directRed: { matches: 1, morePA: 0.35, max: 4 },
@@ -983,7 +1016,7 @@ export const DEFAULT_PARAMETERS: Params = {
     shooting: { shotLogit: 0.25, xg: 0.07, skill: 0.06 },
     timeWasting: { start: 60, chances: 0.3, cards: 0.3, provoke: 0.25, hurry: 0.1 },
     area: { attack: 0.8, scale: 3 },
-    context: { home: 0.2, form: 2, coach: 0.03, min: 0.5, max: 1.5 },
+    context: { home: 0.2, form: 1, coach: 0.03, min: 0.5, max: 1.5 },
     fairPlay: { fouls: [0.7, 0.85, 1, 1.2, 1.45], defence: [-0.6, -0.3, 0, 0.3, 0.6], cards: [0.5, 0.75, 1, 1.35, 1.8] },
     counterAttack: { attackPerPoint: 1.2, defencePerPoint: 0.4, max: 4 },
     /** Jogo direto: por cada nível de linha defensiva que o adversário tem acima de 3 (bolas nas costas), ganha ataque. */
@@ -1002,7 +1035,8 @@ export const DEFAULT_PARAMETERS: Params = {
       cp: { mean: 8, deviation: 1.8 },
       district: { mean: 6.5, deviation: 1.8 },
     },
-    qualityByReputation: 2,
+    qualityByReputation: 5,
+    standingReputationWeight: 0.6,
     stars: { centre: 2.5, pointsPerStar: 1, freeAgentTier: "thirdLeague" },
     variationForeignersReputation: 0.35,
     squad: { firstLeague: 28, secondLeague: 26, thirdLeague: 25, cp: 23, district: 20 },
@@ -1234,6 +1268,10 @@ export function validateParameters(p: Params): string[] {
     errors.push("reputacao.niveis: mundial → obscuro, `min` estritamente decrescente e o último a 0");
   const hi = p.stories;
   if (!(hi.hattrick >= 2 && hi.rout >= 2 && hi.discounts >= 1 && hi.turnaround >= 1 && hi.seriousInjury >= 1 && hi.seriousInjury <= 5)) errors.push("historias: hattrick ≥ 2, goleada ≥ 2, descontos ≥ 1, reviravolta ≥ 1, lesaoGrave entre 1 e 5");
+  const ed = p.match.edge;
+  if (!(ed.coachPoints >= 0 && ed.crowdEffect >= 0 && ed.crowdEffect < 1 && ed.smallStadium > 0 && ed.bigStadium > ed.smallStadium && ed.capacityWeight >= 0 && ed.capacityWeight <= 1)) errors.push("jogo.edge inválido");
+  const ph = p.preHistory;
+  if (!(Number.isInteger(ph.seasons) && ph.seasons >= 0 && ph.club.promoted >= 0 && ph.club.relegated >= 0 && ph.club.promoted + ph.club.relegated < 1 && ph.club.positionNoise >= 0 && ph.city.indicatorNoise >= 0 && ph.city.trendShare >= 0 && ph.city.trendShare <= 1 && ph.city.populationNoisePct >= 0)) errors.push("preHistory inválida");
   const le = p.injuries;
   if (!(le.pPerMatchPlayer >= 0 && le.pPerMatchPlayer <= 1 && le.trainingPByDay >= 0 && le.trainingPByDay <= 1)) errors.push("lesoes: probabilidades entre 0 e 1");
   if (le.severities.length !== 5 || Math.abs(le.severities.reduce((a, g) => a + g.weight, 0) - 1) > 1e-9 || !le.severities.every((g) => g.days[0] >= 1 && g.days[1] >= g.days[0])) errors.push("lesoes.gravidades: 5 níveis, pesos a somar 1 e dias [mín ≥ 1, máx ≥ mín]");

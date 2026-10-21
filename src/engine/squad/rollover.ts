@@ -7,6 +7,7 @@
  * 5. se não houver livre adequado, entra um jovem de emergência.
  * Determinístico: cada jogador e cada clube têm o seu fluxo aleatório; os clubes processam-se por escalão e reputação.
  */
+import { standingIn } from "../world/standing";
 import { Rng, clamp } from "../random/rng";
 import { ageAt } from "../calendar/dates";
 import type { Params, Tier } from "../config/parameters";
@@ -140,10 +141,11 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const t = o.tiers.get(c.id) ?? c.tier;
     byTier.set(t, [...(byTier.get(t) ?? []), c]);
   }
-  const tierStats = new Map<Tier, { repMin: number; repMax: number; medianFinances: number }>();
+  const tierStats = new Map<Tier, { medianFinances: number }>();
+  const standing = new Map<string, number>();
   for (const [t, cs] of byTier) {
-    const reps = cs.map((c) => c.reputation);
-    tierStats.set(t, { repMin: Math.min(...reps), repMax: Math.max(...reps), medianFinances: median(cs.map((c) => c.finances)) });
+    for (const c of cs) standing.set(c.id, standingIn(c, cs, world.standingReputationWeight));
+    tierStats.set(t, { medianFinances: median(cs.map((c) => c.finances)) });
   }
 
   // ---------- 2-5. clubes por escalão e reputação
@@ -167,10 +169,10 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
   const rooms: { club: BaseClub; tier: Tier; target: number; desired: number; wageScale: number; kept: Member[]; counts: Map<Position, number>; missing: () => Position[]; rng: Rng }[] = [];
   for (const club of order) {
     const tier = o.tiers.get(club.id) ?? club.tier;
-    const stats = tierStats.get(tier) as { repMin: number; repMax: number; medianFinances: number };
+    const stats = tierStats.get(tier) as { medianFinances: number };
     const target = world.squad[tier];
     const tq = world.targetQuality[tier];
-    const repNorm = stats.repMax > stats.repMin ? (club.reputation - stats.repMin) / (stats.repMax - stats.repMin) : 0.5;
+    const repNorm = standing.get(club.id) ?? 0.5;
     const desired = clamp(tq.mean + world.qualityByReputation * (repNorm - 0.5), 1, 20);
     const wageScale = clamp((club.finances / stats.medianFinances) ** 0.4, 0.4, 2.5);
     const rng = rngOf(`club/${club.id}`);

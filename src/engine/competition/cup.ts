@@ -92,6 +92,11 @@ export function nationalCups(repo: Repository, season = currentSeason(repo)): st
   return activeCompetitions(repo, season).filter((c) => c === CUP || c === SUPERCUP);
 }
 
+/** Taças e supertaças distritais da época atual (uma por distrito, por isso escondidas por omissão na página de Competições). */
+export function districtCups(repo: Repository, season = currentSeason(repo)): string[] {
+  return activeCompetitions(repo, season).filter((c) => { const k = cupKind(c); return k === "districtCup" || k === "districtSupercup"; }).sort();
+}
+
 type ClubCompetitionStatus = "alive" | "out" | "champion" | "runnerUp" | "waiting";
 export type ClubCompetition = { competition: string; kind: "league" | "cup"; /** Liga: posição e nº de clubes. */ position?: number; of?: number; /** Taça: ronda atual ou em que saiu. */ round?: { key: CupRoundKey; n: number }; status?: ClubCompetitionStatus };
 

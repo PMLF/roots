@@ -11,6 +11,7 @@ import type { IsoDate } from "../persistence/types";
 import { drawLotsIncidents } from "./incidents";
 import { WITHOUT_RESULTS, evolveCity, type ClubsResults } from "./evolution";
 import { cityTargets, sectorEffect, initialState, type CityState } from "./state";
+import { cityPreHistory } from "../history/preHistory";
 
 export type CityInstant = { season: number; state: CityState };
 
@@ -35,6 +36,14 @@ export function cityHistory(repo: Repository, base: BaseData, params: Pick<Param
     .reverse()
     .map((e): CityInstant => ({ season: Number(e.data.valid), state: readState(e.data) }));
   return [{ season: 1, state: initial }, ...after];
+}
+
+/** Como `cityHistory`, mais as épocas anteriores ao arranque (épocas ≤ 0, RZ-265), só para mostrar na ficha. */
+export function cityHistoryWithPast(repo: Repository, base: BaseData, params: Params, city: string): CityInstant[] {
+  const c = base.cities.find((x) => x.id === city);
+  const present = cityHistory(repo, base, params, city);
+  if (!c || present.length === 0) return present;
+  return [...cityPreHistory(repo.meta("seed") ?? "?", c, present[0]!.state, cityTargets(c, base.clubs, params), params), ...present];
 }
 
 /**

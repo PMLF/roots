@@ -5,7 +5,7 @@ import type { BaseData } from "../data/types";
 import { seasonName } from "../calendar/seasonName";
 import type { Repository } from "../persistence/repository";
 import type { View } from "../view/view";
-import { cityHistory } from "./cities";
+import { cityHistoryWithPast } from "./cities";
 import { INDICATORS, levelOf, trendOf } from "./state";
 
 /** Atitude da Câmara perante o desporto (1-10 nos dados) em cinco níveis. */
@@ -20,7 +20,7 @@ const quintile = (value: number, all: readonly number[]): ViewCityLevel => {
 export function cityProfile(repo: Repository, data: BaseData, base: BaseData, params: Params, view: View, id: string): CityProfileData | null {
   const c = base.cities.find((x) => x.id === id);
   if (!c) return null;
-  const history = cityHistory(repo, base, params, id);
+  const history = cityHistoryWithPast(repo, base, params, id);
   const now = history[history.length - 1]!;
   const before = history[history.length - 2];
   const label = (season: number) => seasonName(season, params.calendar.initialYear);
