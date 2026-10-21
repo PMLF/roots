@@ -1175,7 +1175,7 @@
   "person.forSale": "À venda",
   "person.putForSale": "Pôr à venda",
   "person.removeFromSale": "Retirar da venda",
-  "match.subs.injuryForced": "Há um jogador lesionado: escolhe quem entra para o lugar dele. A equipa joga com menos um até fazeres a troca.",
+  "match.subs.injuryForced": "{name} lesionou-se, tens de o substituir.",
   "attributes.best": "Melhores",
   "attributes.worst": "Piores",
   "bid.waitAgent": "{club} aceitou o valor. O agente só atende a partir de {date}: volta então para negociar o contrato.",
@@ -1390,5 +1390,7 @@
   "interest.pillOffers": "Ofertas feitas",
   "tactic.options": "Opções táticas",
   "tactic.optionsEdit": "Alterar",
-  "tactic.optionsHide": "Fechar"
+  "tactic.optionsHide": "Fechar",
+  "match.subs.injuryNoSubs": "{name} lesionou-se e já não tens substituições: a equipa joga com menos um.",
+  "match.subs.replace": "Substituir"
 }

@@ -1175,7 +1175,7 @@
   "person.forSale": "For sale",
   "person.putForSale": "Put up for sale",
   "person.removeFromSale": "Remove from sale",
-  "match.subs.injuryForced": "A player is injured: choose who comes on in his place. The team plays a man short until you make the change.",
+  "match.subs.injuryForced": "{name} is injured, you have to replace him.",
   "attributes.best": "Best",
   "attributes.worst": "Weakest",
   "bid.waitAgent": "{club} accepted the fee. The agent only talks from {date}: come back then to negotiate the contract.",
@@ -1390,5 +1390,7 @@
   "interest.pillOffers": "Offers made",
   "tactic.options": "Tactical options",
   "tactic.optionsEdit": "Edit",
-  "tactic.optionsHide": "Close"
+  "tactic.optionsHide": "Close",
+  "match.subs.injuryNoSubs": "{name} is injured and you have no substitutions left: the team plays a man short.",
+  "match.subs.replace": "Replace"
 }
