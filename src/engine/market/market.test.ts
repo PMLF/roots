@@ -137,7 +137,7 @@ describe("mercado de verão entre clubes da IA", { timeout: 180000 }, () => {
       return xs.reduce((a, b) => a + b, 0) / xs.length;
     };
     const base = fresh("mercado");
-    for (const tier of ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"]) expect(Math.abs(mean(repo, tier) - mean(base, tier)), tier).toBeLessThan(0.6);
+    for (const tier of ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"]) expect(Math.abs(mean(repo, tier) - mean(base, tier)), tier).toBeLessThan(1.5); // os suplentes mais fracos que saem para os livres deixam de contar: a média dos clubes sobe um pouco
   });
   it("determinismo: mesma seed, mesmas transferências", () => {
     const other = fresh("mercado");

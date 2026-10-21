@@ -46,12 +46,14 @@ describe("compensação de formação (RZ-207)", { timeout: 180000 }, () => {
   it("quem contrata um livre jovem formado num clube de topo paga-lhe a compensação", () => {
     const withComp = signed.filter((e) => (e.data as { compensation?: number }).compensation);
     expect(compensation).toBeGreaterThan(0);
+    expect(withComp.some((e) => e.entities.some((x) => x.roleKind === "trainer" && x.id === top))).toBe(true);
     expect(withComp.length).toBeGreaterThan(0);
     for (const e of withComp) {
       const trainer = e.entities.find((x) => x.roleKind === "trainer")!;
-      expect(trainer.id).toBe(top);
+      // paga o clube formador (o de topo do teste ou um dos que formaram jogadores dispensados no mercado), nunca uma distrital
+      expect(P.market.training.byTier[data.clubs.find((c) => c.id === trainer.id)!.tier]).toBeGreaterThan(0);
       const buyer = e.entities.find((x) => x.k === "club" && x.roleKind !== "trainer")!;
-      expect(buyer.id).not.toBe(top);
+      expect(buyer.id).not.toBe(trainer.id);
     }
   });
   it("a custo zero quando o clube formador é de uma distrital", () => {
