@@ -50,6 +50,8 @@ export type MatchTeam = {
   medical?: number;
   /** Qualidade tática do treinador (1-20, por omissão 10): quem sabe tira mais partido das opções arrojadas (RZ-249). */
   coach?: number;
+  /** Ambiente do estádio, 0-1 (0,5 por omissão): sobe ou desce a vantagem de jogar em casa (RZ-263). */
+  crowd?: number;
 };
 
 export type Origin = "openPlay" | "corner" | "free" | "penalty";

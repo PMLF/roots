@@ -1119,3 +1119,10 @@ body {
 .confetti i { position: absolute; top: -12px; width: 7px; height: 12px; border-radius: 1px; opacity: 0; animation: confetti-cai 3s ease-in infinite; }
 @keyframes confetti-cai { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(420px) rotate(540deg); opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .confetti { display: none; } }
+
+/* Competições: pickers lado a lado e cards com altura limitada (RZ-262) */
+.seletores { display: flex; flex-wrap: wrap; gap: 8px; margin: 6px 0 14px; }
+.seletores .seletor-ligas { margin: 0; }
+.ligas-grelha .cartao { max-height: 440px; overflow: auto; }
+.subiu { color: var(--zona-subida); font-weight: 600; }
+.desceu { color: var(--zona-descida); font-weight: 600; }

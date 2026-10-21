@@ -85,7 +85,10 @@ export class MatchSimulator {
   }
 
   private computeStrength(eq: MatchTeam, side: Side): TeamStrength {
-    return teamStrength(eq.lineup, eq.tactic ?? DEFAULT_TACTIC, this.params, this.boldness(eq, side));
+    const base = teamStrength(eq.lineup, eq.tactic ?? DEFAULT_TACTIC, this.params, this.boldness(eq, side));
+    // um treinador melhor (ou pior) que o normal organiza melhor (ou pior) a equipa toda
+    const coach = this.p.edge.coachPoints * ((eq.coach ?? 10) - 10);
+    return coach === 0 ? base : { ...base, attack: base.attack + coach, control: base.control + coach, defence: base.defence + coach };
   }
 
   /**
@@ -260,7 +263,7 @@ export class MatchSimulator {
   // ---------- um minuto
   /** Fração das oportunidades que cabe a `lado`: logística da diferença de controlo (com a vantagem da casa). */
   private quota(side: Side): number {
-    const c = this.effective.home.control + (this.neutral ? 0 : this.p.homeAdvantage) - this.effective.away.control;
+    const c = this.effective.home.control + (this.neutral ? 0 : this.p.homeAdvantage * (1 + this.p.edge.crowdEffect * 2 * ((this.teams.home.crowd ?? 0.5) - 0.5))) - this.effective.away.control;
     const home = sigmoide(c / this.p.controlScale);
     return side === "home" ? home : 1 - home;
   }

@@ -129,15 +129,15 @@ export function startSession(repo: Repository, base: BaseData, params: Params, g
   if (!g || repo.match(g.id) || (g.home !== gamerClub && g.away !== gamerClub)) throw new Error("Este jogo não é para jogar hoje");
   const seed = repo.meta("seed") ?? "?";
   const plan = readPlan(repo, gamerClub);
-  const home = teamForMatch(repo, g.home, g.competition, season, g.round, today, seed, params, g.home === gamerClub ? plan : undefined);
-  const away = teamForMatch(repo, g.away, g.competition, season, g.round, today, seed, params, g.away === gamerClub ? plan : undefined);
+  const home = teamForMatch(repo, g.home, g.competition, season, g.round, today, seed, params, g.home === gamerClub ? plan : undefined, data);
+  const away = teamForMatch(repo, g.away, g.competition, season, g.round, today, seed, params, g.away === gamerClub ? plan : undefined, data);
   const side: Side = g.home === gamerClub ? "home" : "away";
   // os outros jogos da competição, no mesmo dia: já se sabe o que vão dar (não dependem do teu jogo) mas só se mostram ao minuto
   const others: OtherLiveMatch[] = [];
   for (const o of repo.dayMatches(today)) {
     if (o.id === g.id || o.competition !== g.competition || repo.match(o.id)) continue;
-    const ec = teamForMatch(repo, o.home, o.competition, season, o.round, today, seed, params);
-    const ef = teamForMatch(repo, o.away, o.competition, season, o.round, today, seed, params);
+    const ec = teamForMatch(repo, o.home, o.competition, season, o.round, today, seed, params, undefined, data);
+    const ef = teamForMatch(repo, o.away, o.competition, season, o.round, today, seed, params, undefined, data);
     const r = playMatch({ seed, id: o.id, home: ec, away: ef, ...inputFlags(o), ...carryFor(repo, o) }, 1, { id: o.id, competition: o.competition, season, round: o.round, date: today }, params);
     others.push({ id: o.id, home: { id: o.home, name: names.get(o.home) ?? o.home }, away: { id: o.away, name: names.get(o.away) ?? o.away }, duration: r.report.duration, goals: r.report.goals.map((x) => ({ minute: x.minute, side: x.side })), homeGoals: r.report.homeGoals, awayGoals: r.report.awayGoals, ...(r.report.extraTime ? { extraTime: true } : {}), ...(r.report.shootout ? { shootout: { home: r.report.shootout.home, away: r.report.shootout.away } } : {}) });
   }

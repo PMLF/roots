@@ -7,6 +7,7 @@ import type { Params, Tier } from "../config/parameters";
 import { Rng } from "../random/rng";
 import type { BaseClub } from "../data/types";
 import type { Country } from "./countries";
+import { FOREIGN_NAMING } from "./foreignCities";
 
 export type ForeignClub = {
   id: string; name: string; country: string; tier: Tier;
@@ -44,8 +45,11 @@ export function foreignClubs(seed: string, countries: readonly Country[], params
     // qualidade média do país pela tradição: 45 → 10,5 · 70 → 12,5 · 95 → 14,5 (o melhor clube do país sobe, o pior desce `rankSpread`/2)
     const base = 10.5 + ((country.tradition - 45) / 50) * 4;
     for (let i = 0; i < n; i++) {
-      let name = "";
-      for (let k = 0; k < 20 && (name === "" || used.has(name)); k++) {
+      const naming = FOREIGN_NAMING[country.id];
+      const city = naming?.cities[i];
+      // cidade real do país, da mais famosa para a menos (as primeiras têm os melhores clubes); sem lista, nome inventado
+      let name = city && naming ? (naming.forms[(i + rng.integer(0, naming.forms.length - 1)) % naming.forms.length] as string).replace("{c}", city) : "";
+      for (let k = 0; k < 20 && !naming && (name === "" || used.has(name)); k++) {
         const town = `${rng.choose(START)}${rng.choose(MIDDLE)}${rng.choose(END)}`;
         name = `${rng.choose(FORMS)} ${town}`;
       }

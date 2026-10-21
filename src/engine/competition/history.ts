@@ -43,7 +43,7 @@ export type CompetitionHistory = {
 const TOP = 10;
 
 export function competitionHistory(repo: Repository, data: BaseData, params: Params, competition: string): CompetitionHistory {
-  const clubName = (id: string) => data.clubs.find((c) => c.id === id)?.name ?? id;
+  const clubName = (id: string) => data.clubs.find((c) => c.id === id)?.name ?? data.foreignClubs?.find((c) => c.id === id)?.name ?? id;
   const personName = (id: string) => repo.publicPerson(id)?.sportingName ?? id;
   const label = (s: number) => seasonName(s, params.calendar.initialYear);
   const current = currentSeason(repo);

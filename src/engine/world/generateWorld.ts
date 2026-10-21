@@ -3,6 +3,7 @@
  * mesma seed + mesmos dados + mesmos parâmetros → mesmo mundo. Cada clube tem o seu fluxo
  * aleatório (derivado do id), por isso acrescentar um clube não muda os outros.
  */
+import { standingIn } from "./standing";
 import { foreignClubs } from "./foreign";
 import { Rng, clamp } from "../random/rng";
 import { createDate, addDays } from "../calendar/dates";
@@ -220,13 +221,11 @@ export function generateWorld(e: WorldInput): WorldBatch {
   // estatísticas por escalão para normalizar reputação e finanças
   const byTier = new Map<Tier, BaseClub[]>();
   for (const tier of TIERS) byTier.set(tier, data.clubs.filter((cl) => cl.tier === tier));
-  const stats = new Map<Tier, { repMin: number; repMax: number; meanRep: number; medianEnd: number }>();
+  const stats = new Map<Tier, { meanRep: number; medianEnd: number }>();
+  const standing = new Map<string, number>();
   for (const [tier, cls] of byTier) {
-    const reps = cls.map((x) => x.reputation);
-    const repMin = Math.min(...reps);
-    const repMax = Math.max(...reps);
-    const norm = (r: number) => (repMax > repMin ? (r - repMin) / (repMax - repMin) : 0.5);
-    stats.set(tier, { repMin, repMax, meanRep: reps.length ? reps.reduce((a, b) => a + norm(b), 0) / reps.length : 0.5, medianEnd: median(cls.map((x) => x.finances)) });
+    for (const x of cls) standing.set(x.id, standingIn(x, cls, params.world.standingReputationWeight));
+    stats.set(tier, { meanRep: cls.length ? cls.reduce((a, b) => a + (standing.get(b.id) as number), 0) / cls.length : 0.5, medianEnd: median(cls.map((x) => x.finances)) });
   }
 
   // ---------- clubes: plantel, treinador, staff, presidente
@@ -235,8 +234,8 @@ export function generateWorld(e: WorldInput): WorldBatch {
     progress("clubs", i, clubs.length);
     const rng = c.seed.derive(`clube/${cl.id}`);
     const tier = cl.tier;
-    const st = stats.get(tier) as { repMin: number; repMax: number; meanRep: number; medianEnd: number };
-    const repNorm = st.repMax > st.repMin ? (cl.reputation - st.repMin) / (st.repMax - st.repMin) : 0.5;
+    const st = stats.get(tier) as { meanRep: number; medianEnd: number };
+    const repNorm = standing.get(cl.id) as number;
     const target = m.targetQuality[tier];
     const pEstr = clamp(params.foreigners[tier] * (1 + m.variationForeignersReputation * (repNorm - st.meanRep) * 2), 0, 0.95);
     const wageScale = clamp((cl.finances / st.medianEnd) ** 0.4, 0.4, 2.5);

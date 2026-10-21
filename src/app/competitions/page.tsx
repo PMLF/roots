@@ -17,9 +17,10 @@ const GROUPS: { rowKey: Key; tiers: readonly string[]; columns?: true }[] = [
   { rowKey: "tier.district", tiers: ["district"], columns: true },
 ];
 const KEY = "raizes.competitions.selected";
-const HIDDEN_KEY = "raizes.competitions.hiddenCups";
+const CUPS_KEY = "raizes.competitions.cups";
 const DEFAULT = ["Primeira Liga", "Segunda Liga", "Terceira Liga"];
 const MIN = 3;
+const isChoices = (v: unknown): v is Record<string, boolean> => typeof v === "object" && v !== null && !Array.isArray(v) && Object.values(v).every((x) => typeof x === "boolean");
 const isList = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
 
 function Highlights({ p }: { p: CompetitionPage }) {
@@ -41,16 +42,35 @@ function Highlights({ p }: { p: CompetitionPage }) {
   );
 }
 
+/** Botão com painel flutuante (fecha ao clicar fora ou com Escape). */
+function Picker({ label, children }: { label: string; children: React.ReactNode }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!isOpen) return;
+    const away = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setIsOpen(false); };
+    const tier = (e: KeyboardEvent) => { if (e.key === "Escape") setIsOpen(false); };
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", tier);
+    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", tier); };
+  }, [isOpen]);
+  return (
+    <div className="seletor-ligas" ref={ref}>
+      <button type="button" aria-expanded={isOpen} aria-haspopup="true" onClick={() => setIsOpen((v) => !v)}>{label} <span aria-hidden="true">▾</span></button>
+      {isOpen && <div className="seletor-painel" role="group" aria-label={label}>{children}</div>}
+    </div>
+  );
+}
+
 /** Competições (RZ-145): as classificações das ligas escolhidas, cada uma com os seus destaques. */
 export default function CompetitionsPage() {
   const { t } = useT();
   const engine = useEngine();
   const [list, setList] = useState<SummaryCompetition[] | null | undefined>(undefined);
   const [chosen, setChosen] = useState<string[]>(DEFAULT);
-  /** Taças e competições europeias escondidas (por omissão aparecem todas). */
-  const [hidden, setHidden] = useState<string[]>([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const selector = useRef<HTMLDivElement>(null);
+  /** Escolhas do gamer para taças e europeias: nome → mostrar. Sem escolha, mostram-se as nacionais e europeias e escondem-se as distritais. */
+  const [choices, setChoices] = useState<Record<string, boolean>>({});
+  const [districts, setDistricts] = useState<CupView[]>([]);
   const [cups, setCups] = useState<CupView[]>([]);
   const [europe, setEurope] = useState<EuropeView[]>([]);
   const [pages, setPages] = useState<Record<string, CompetitionPage>>({});
@@ -61,16 +81,8 @@ export default function CompetitionsPage() {
   useEffect(() => {
     const saved = read(KEY, isList);
     setChosen(saved && saved.length >= MIN ? saved : DEFAULT);
-    setHidden(read(HIDDEN_KEY, isList) ?? []);
+    setChoices(read(CUPS_KEY, isChoices) ?? {});
   }, []);
-  useEffect(() => {
-    if (!isOpen) return;
-    const away = (e: MouseEvent) => { if (!selector.current?.contains(e.target as Node)) setIsOpen(false); };
-    const tier = (e: KeyboardEvent) => { if (e.key === "Escape") setIsOpen(false); };
-    document.addEventListener("mousedown", away);
-    document.addEventListener("keydown", tier);
-    return () => { document.removeEventListener("mousedown", away); document.removeEventListener("keydown", tier); };
-  }, [isOpen]);
   useEffect(() => {
     if (!engine) return;
     let live = true;
@@ -81,6 +93,7 @@ export default function CompetitionsPage() {
     if (!engine || !list) return;
     let live = true;
     engine.call("nationalCups", null).then((c) => live && setCups(c)).catch(() => undefined);
+    engine.call("districtCups", null).then((c) => live && setDistricts(c)).catch(() => undefined);
     engine.call("europeCups", null).then((c) => live && setEurope(c)).catch(() => undefined);
     return () => { live = false; };
   }, [engine, list]);
@@ -107,12 +120,21 @@ export default function CompetitionsPage() {
       if (chosen.length > MIN) set(chosen.filter((x) => x !== league));
     } else set([...chosen, league]);
   };
+  const defaultShown = (name: string) => !districts.some((d) => d.competition === name);
+  const shown = (name: string) => choices[name] ?? defaultShown(name);
   const toggleCup = (name: string) => {
-    const fresh = hidden.includes(name) ? hidden.filter((x) => x !== name) : [...hidden, name];
-    setHidden(fresh);
-    save(HIDDEN_KEY, fresh);
+    const fresh = { ...choices, [name]: !shown(name) };
+    setChoices(fresh);
+    save(CUPS_KEY, fresh);
   };
-  const cupNames = [...cups.map((c) => c.competition), ...europe.map((c) => c.competition)];
+  const setMany = (names: string[], on: boolean) => {
+    const fresh = { ...choices, ...Object.fromEntries(names.map((n) => [n, on])) };
+    setChoices(fresh);
+    save(CUPS_KEY, fresh);
+  };
+  const nationalNames = cups.map((c) => c.competition);
+  const europeNames = europe.map((c) => c.competition);
+  const districtNames = districts.map((c) => c.competition);
   const seasons = Object.values(pages)[0]?.seasons ?? [];
   const visible = list ? list.filter((c) => chosen.includes(c.league)) : [];
 
@@ -130,57 +152,76 @@ export default function CompetitionsPage() {
               </select>
             </label>
           )}
-          <div className="seletor-ligas" ref={selector}>
-            <button type="button" aria-expanded={isOpen} aria-haspopup="true" onClick={() => setIsOpen((v) => !v)}>
-              {t("competitions.choose")} ({chosen.length}/{list.length}) <span aria-hidden="true">▾</span>
-            </button>
-            {isOpen && (
-              <div className="seletor-painel" role="group" aria-label={t("competitions.choose")}>
+          <div className="seletores">
+            <Picker label={`${t("competitions.choose")} (${chosen.length}/${list.length})`}>
+              <div className="seletor-acoes">
+                <button type="button" onClick={() => set(list.map((c) => c.league))}>{t("competitions.all")}</button>
+                <button type="button" onClick={() => set(DEFAULT)}>{t("competitions.fallback")}</button>
+                <span className="suave">{t("competitions.min", { n: MIN })}</span>
+              </div>
+              {GROUPS.map((g) => {
+                const leagues = list.filter((c) => (g.tiers as readonly string[]).includes(c.tier));
+                return leagues.length === 0 ? null : (
+                  <fieldset key={g.rowKey} className={g.columns ? "seletor-colunas" : undefined}>
+                    <legend>{t(g.rowKey)}</legend>
+                    {leagues.map((c) => {
+                      const scheduled = chosen.includes(c.league);
+                      return (
+                        <label key={c.league}>
+                          <input type="checkbox" checked={scheduled} disabled={scheduled && chosen.length <= MIN} onChange={() => toggle(c.league)} />
+                          <span>{c.league}</span>
+                        </label>
+                      );
+                    })}
+                  </fieldset>
+                );
+              })}
+            </Picker>
+            {europeNames.length > 0 && (
+              <Picker label={`${t("competitions.europe")} (${europeNames.filter(shown).length}/${europeNames.length})`}>
                 <div className="seletor-acoes">
-                  <button type="button" onClick={() => set(list.map((c) => c.league))}>{t("competitions.all")}</button>
-                  <button type="button" onClick={() => set(DEFAULT)}>{t("competitions.fallback")}</button>
-                  <span className="suave">{t("competitions.min", { n: MIN })}</span>
+                  <button type="button" onClick={() => setMany(europeNames, true)}>{t("competitions.all")}</button>
+                  <button type="button" onClick={() => setMany(europeNames, false)}>{t("competitions.none")}</button>
                 </div>
-                {cupNames.length > 0 && (
+                <fieldset>
+                  {europeNames.map((name) => (
+                    <label key={name}><input type="checkbox" checked={shown(name)} onChange={() => toggleCup(name)} /><span>{name}</span></label>
+                  ))}
+                </fieldset>
+              </Picker>
+            )}
+            {nationalNames.length + districtNames.length > 0 && (
+              <Picker label={`${t("competitions.cups")} (${[...nationalNames, ...districtNames].filter(shown).length}/${nationalNames.length + districtNames.length})`}>
+                <div className="seletor-acoes">
+                  <button type="button" onClick={() => setMany(nationalNames, true)}>{t("competitions.nationalCups")}</button>
+                  <button type="button" onClick={() => setMany([...nationalNames, ...districtNames], false)}>{t("competitions.none")}</button>
+                </div>
+                <fieldset>
+                  <legend>{t("competitions.nationalCupsTitle")}</legend>
+                  {nationalNames.map((name) => (
+                    <label key={name}><input type="checkbox" checked={shown(name)} onChange={() => toggleCup(name)} /><span>{name}</span></label>
+                  ))}
+                </fieldset>
+                {districtNames.length > 0 && (
                   <fieldset className="seletor-colunas">
-                    <legend>{t("competitions.cups")}</legend>
-                    {cupNames.map((name) => (
-                      <label key={name}>
-                        <input type="checkbox" checked={!hidden.includes(name)} onChange={() => toggleCup(name)} />
-                        <span>{name}</span>
-                      </label>
+                    <legend>{t("competitions.districtCupsTitle")}</legend>
+                    {districtNames.map((name) => (
+                      <label key={name}><input type="checkbox" checked={shown(name)} onChange={() => toggleCup(name)} /><span>{name}</span></label>
                     ))}
                   </fieldset>
                 )}
-                {GROUPS.map((g) => {
-                  const leagues = list.filter((c) => (g.tiers as readonly string[]).includes(c.tier));
-                  return leagues.length === 0 ? null : (
-                    <fieldset key={g.rowKey} className={g.columns ? "seletor-colunas" : undefined}>
-                      <legend>{t(g.rowKey)}</legend>
-                      {leagues.map((c) => {
-                        const scheduled = chosen.includes(c.league);
-                        return (
-                          <label key={c.league}>
-                            <input type="checkbox" checked={scheduled} disabled={scheduled && chosen.length <= MIN} onChange={() => toggle(c.league)} />
-                            <span>{c.league}</span>
-                          </label>
-                        );
-                      })}
-                    </fieldset>
-                  );
-                })}
-              </div>
+              </Picker>
             )}
           </div>
-          {visible.length === 0 && cupNames.every((n) => hidden.includes(n)) && <p className="vazio">{t("competitions.noSelection")}</p>}
+          {visible.length === 0 && [...nationalNames, ...europeNames, ...districtNames].every((n) => !shown(n)) && <p className="vazio">{t("competitions.noSelection")}</p>}
           <div className="ligas-grelha">
-            {cups.filter((c) => !hidden.includes(c.competition)).map((c) => (
+            {[...cups, ...districts].filter((c) => shown(c.competition)).map((c) => (
               <Card key={c.competition} title={<EntityLink k="competition" id={c.competition}>{c.competition}</EntityLink>}>
                 <p className="suave cartao-sub">{c.done && c.winner ? t("cup.wonBy", { club: c.winner.name }) : c.seasonLabel}</p>
                 <CupRounds cup={c} compact />
               </Card>
             ))}
-            {europe.filter((c) => !hidden.includes(c.competition)).map((c) => (
+            {europe.filter((c) => shown(c.competition)).map((c) => (
               <Card key={c.competition} title={<EntityLink k="competition" id={c.competition}>{c.competition}</EntityLink>}>
                 <p className="suave cartao-sub">{c.done && c.winner ? t("cup.wonBy", { club: c.winner.name }) : c.seasonLabel}</p>
                 {c.rounds.length > 0 ? <CupRounds cup={c as CupView} compact /> : <EuropeTable view={c} compact />}

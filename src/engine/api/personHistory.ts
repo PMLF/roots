@@ -12,7 +12,7 @@ const employeesOf = (c: Pick<CompanyRecord, "capital" | "scale">, params: Pick<P
 
 export function personHistory(repo: Repository, data: BaseData, base: BaseData, params: Params, person: string, season: number): HistoryRow[] {
   const rows: HistoryRow[] = [];
-  const club = (id: string): EntityRef => ({ k: "club", id, name: data.clubs.find((c) => c.id === id)?.name ?? id });
+  const club = (id: string): EntityRef => ({ k: "club", id, name: data.clubs.find((c) => c.id === id)?.name ?? data.foreignClubs?.find((c) => c.id === id)?.name ?? id });
   const pub = repo.publicPerson(person);
   const role = repo.role(person);
 

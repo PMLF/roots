@@ -169,6 +169,8 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
     { id: "season", title: t("column.season"), value: (h) => h.season },
     { id: "league", title: t("stat.competition"), value: (h) => h.league },
     { id: "tier", title: t("column.tier"), value: (h) => t(`tier.${h.tier}` as Key) },
+    { id: "position", title: t("column.position"), value: (h) => h.position ?? 0, numeric: true },
+    { id: "movement", title: t("club.movement"), value: (h) => h.movement ?? "" },
   ];
 
   // plantel em números
@@ -291,7 +293,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
         <DivisionsChart points={d.divisionsHistory} />
       </Card>
             <Card title={t("club.seasons")} wide>
-              <Table id="clube-epocas" columns={seasonsColumns} lines={[...d.divisionsHistory].reverse()} rowKey={(h) => String(h.season)} simple />
+              <Table id="clube-epocas" columns={seasonsColumns} lines={[...d.divisionsHistory].reverse()} rowKey={(h) => String(h.season)} simple cell={{ season: (h) => (h.past ? <span className="suave">{h.label}</span> : h.label), position: (h) => (h.position ? `${h.position} / ${h.of}` : "—"), movement: (h) => (h.movement ? <span className={h.movement === "promoted" ? "subiu" : "desceu"}>{t(h.movement === "promoted" ? "zone.promotion" : "zone.relegation")}</span> : "") }} />
             </Card>
           </>
         ),

@@ -137,7 +137,10 @@ describe("fichas ricas e «ver tudo»", () => {
     const club = (await handle({ id: 61, type: "clubProfile", input: { id: "sc-cascais" } }, s))!;
     expect(club.levelReputation).toBe("continental");
     expect(club.tier).toBe("firstLeague");
-    expect(club.divisionsHistory).toEqual([{ season: 1, label: "2026/27", tier: "firstLeague", league: "Primeira Liga" }]);
+    expect(club.divisionsHistory.filter((h) => h.season >= 1)).toEqual([{ season: 1, label: "2026/27", tier: "firstLeague", league: "Primeira Liga" }]);
+    // pré-história: 10 épocas anteriores ao arranque, só com posições e subidas/descidas
+    expect(club.divisionsHistory.filter((h) => h.past)).toHaveLength(10);
+    expect(club.divisionsHistory.filter((h) => h.past).every((h) => h.season <= 0 && h.position !== undefined)).toBe(true);
     expect(club.truth).toBeUndefined();
     expect(club.detailStadium.transport).toBeGreaterThanOrEqual(0);
     const player = club.squad[0]!;

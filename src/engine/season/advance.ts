@@ -39,6 +39,7 @@ import { SESSION_KEY, xgCurve, matchTeams, saveLiveMatch, matchLines, type LiveM
 import { updateOffers, isUnemployed } from "./coachMarket";
 import { seasonData, currentSeason } from "./seasonPyramid";
 import { clinchTitles } from "./titles";
+import { clubEdge } from "./clubEdge";
 import { promotionGroups, matchesPerPlay, prepareSeason } from "./prepare";
 
 export type DayMatch = {
@@ -86,7 +87,7 @@ export function clubCandidates(repo: Repository, club: string, today: IsoDate, p
   return active.map((j) => ({ person: j.person, positions: j.positions, attributes: j.attributes, heightCm: j.heightCm, form: form.get(j.person) ?? 1 }));
 }
 
-export function teamForMatch(repo: Repository, club: string, competition: string, season: number, round: number, today: IsoDate, seed: string, params: Params, plan?: Plan): MatchTeam {
+export function teamForMatch(repo: Repository, club: string, competition: string, season: number, round: number, today: IsoDate, seed: string, params: Params, plan?: Plan, base?: BaseData): MatchTeam {
   const all = clubCandidates(repo, club, today, params);
   const away = unavailable(repo, club, all.map((c) => c.person), competition, season, round, today, seed, params);
   const tactic = plan?.tactic ?? { ...DEFAULT_TACTIC };
@@ -99,7 +100,8 @@ export function teamForMatch(repo: Repository, club: string, competition: string
   const extra = automaticLineup(rest.length >= BENCH_SIZE ? rest : all.filter((c) => !onPitch.has(c.person) && !chosen.includes(c.person)), undefined, params).slice(0, Math.max(0, BENCH_SIZE - chosen.length));
   const picked = chosen.map((id) => { const c = all.find((x) => x.person === id) as LineupCandidate; return { id: c.person, position: (c.positions[0]?.pos ?? "CM") as Position, attributes: c.attributes as Attributes, heightCm: c.heightCm, form: c.form ?? 1, aptitude: aptitudeIn(c.positions, (c.positions[0]?.pos ?? "CM") as Position, params), positions: c.positions }; });
   const bench = [...picked, ...extra];
-  return { club, lineup, tactic, bench };
+  const edge = base ? clubEdge(repo, base, club, params) : undefined;
+  return { club, lineup, tactic, bench, ...(edge ? { coach: edge.coach, medical: edge.medical, crowd: edge.crowd } : {}) };
 }
 
 /** A tabela de uma competição tal como está agora (antes dos jogos de hoje), com todos os clubes. */
@@ -196,8 +198,8 @@ function advanceDay(repo: Repository, base: BaseData, params: Params, gamerClub?
     for (const g of repo.dayMatches(today)) {
       if (repo.match(g.id)) continue;
       const level = matchLevel(g.home, g.away, gamerClub);
-      const home = teamForMatch(repo, g.home, g.competition, season, g.round, today, seed, params, g.home === gamerClub ? readPlan(repo, g.home) : undefined);
-      const away = teamForMatch(repo, g.away, g.competition, season, g.round, today, seed, params, g.away === gamerClub ? readPlan(repo, g.away) : undefined);
+      const home = teamForMatch(repo, g.home, g.competition, season, g.round, today, seed, params, g.home === gamerClub ? readPlan(repo, g.home) : undefined, data);
+      const away = teamForMatch(repo, g.away, g.competition, season, g.round, today, seed, params, g.away === gamerClub ? readPlan(repo, g.away) : undefined, data);
       const r = playMatch({ seed, id: g.id, home, away, ...inputFlags(g), ...carryFor(repo, g) }, level, { id: g.id, competition: g.competition, season, round: g.round, date: today }, params);
       const rival = gamerClub && level === 0 ? rivalReason(repo, data, params, g.competition, season, gamerClub, g.home === gamerClub ? g.away : g.home) : undefined;
       const ticket = matchTicket(data, params, g.home, g.away, g.competition, g);

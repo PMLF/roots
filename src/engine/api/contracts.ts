@@ -296,7 +296,7 @@ export type ClubProfileData = {
   /** Patrocinadores vigentes (nome e setor são públicos; o valor só o gamer vê no seu clube). */
   sponsors: { company: string; name: string; sector: string; kind: string; annualValue?: number }[];
   /** Divisão em que o clube esteve, por época (a história de subidas e descidas). */
-  divisionsHistory: { season: number; label: string; tier: Tier; league: string }[];
+  divisionsHistory: { season: number; label: string; tier: Tier; league: string; position?: number; of?: number; movement?: "promoted" | "relegated"; /** Antes do arranque do save. */ past?: true }[];
   /** Por jogador do plantel: fim de contrato e nível geral. */
   extraSquad: Record<string, { endContract?: string; level?: EstimatedLevel; rating?: StarRating; injured?: boolean; renewable?: boolean; /** O contrato acaba daqui a menos de um ano. */ endingSoon?: boolean; /** Posto à venda pelo gamer. */ forSale?: boolean; /** Só no clube do gamer (ou em modo developer). */ wage?: number }>;
   /** Estatísticas da época atual (jogadores do plantel e tops do clube). */
@@ -421,6 +421,8 @@ export type EngineRequests = {
   europeCups: { input: null; output: EuropeView[] };
   /** Taças nacionais da época atual. */
   nationalCups: { input: null; output: CupView[] };
+  /** Taças e supertaças dos distritos (RZ-262). */
+  districtCups: { input: null; output: CupView[] };
   /** Histórico de uma liga ou taça. */
   competitionHistory: { input: { competition: string }; output: CompetitionHistory };
   /** Últimos jogos do clube em todas as competições (página inicial). */
