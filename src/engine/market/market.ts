@@ -176,16 +176,20 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
 
   const locks = readLocks(repo);
   const order = rng.shuffle(clubs.filter((c) => c.id !== o.gamerClub));
-  for (const club of order) {
-    const crng = rng.derive(club.id);
-    if (!crng.prob(win.last ? mk.actProbabilityLastDay : mk.actProbability)) continue;
+  const factor = mk.windowFactor[win.index] ?? 1;
+  const passes = Array.from({ length: mk.dealsPerRound }, (_, i) => i);
+  for (const [club, pass] of passes.flatMap((i) => order.map((c) => [c, i] as const))) {
+    const crng = rng.derive(`${club.id}/${pass}`);
+    if (!crng.prob((win.last ? mk.actProbabilityLastDay : mk.actProbability) * factor)) continue;
     if (signed(club.id) >= mk.maxSigningsPerWindow) continue;
     const tier = tierOf(club);
     const st = stats.get(tier);
     if (!st) continue;
     const target = world.squad[tier];
     const squad = byClub.get(club.id) ?? [];
-    if (squad.length >= target + mk.squadSlack) continue;
+    // os transferíveis já estão de saída: não contam para o plantel cheio (o reforço entra e um deles sai)
+    const onTheWay = [...listedOf(club)].filter((id) => squad.some((x) => x.record.person === id));
+    const full = squad.length - onTheWay.length >= target + mk.squadSlack;
     const repNorm = st.repMax > st.repMin ? (club.reputation - st.repMin) / (st.repMax - st.repMin) : 0.5;
     const desired = clamp(world.targetQuality[tier].mean + world.qualityByReputation * (repNorm - 0.5), 1, 20);
 
@@ -212,7 +216,14 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
     // com o plantel completo, o reforço desloca o suplente mais fraco da posição se o contrato dele estiver a acabar
     const slotsHere = wanted.get(position) ?? 0;
     const backups = squad.filter((x) => x.position === position).sort((a, b) => a.quality - b.quality);
-    const displaced = squad.length >= target && backups.length > slotsHere && monthsOf(backups[0]!.record.person) <= 12 ? backups[0] : undefined;
+    const expiring = squad.length >= target && backups.length > slotsHere && monthsOf(backups[0]!.record.person) <= 12 ? backups[0] : undefined;
+    // com o plantel cheio sai primeiro um transferível (o mais bem pago), senão o suplente com o contrato a acabar
+    const leaving = squad.length >= target ? squad.filter((x) => onTheWay.includes(x.record.person)).sort((a, b) => (repo.contract(b.record.person)?.monthlyWage ?? 0) - (repo.contract(a.record.person)?.monthlyWage ?? 0))[0] : undefined;
+    // sem transferíveis nem contratos a acabar, o reforço desloca o suplente mais fraco da posição (menos um jovem com futuro): sai para os livres e cai em clubes de baixo
+    const weakestBackup = squad.length >= target && backups.length >= slotsHere ? backups.find((x) => !(ageOf(x.record.person) < 23 && x.record.potential - x.quality >= 3)) : undefined;
+    const displaced = leaving ?? expiring ?? weakestBackup;
+    // plantel cheio só contrata se alguém sair no lugar
+    if (full && !displaced) continue;
     const displacedWage = displaced ? (repo.contract(displaced.record.person)?.monthlyWage ?? 0) * 12 : 0;
     const bill = monthlyWageBill(repo, club.id) * 12 - displacedWage;
     const wageScale = clamp((club.finances / st.medianFinances) ** 0.4, 0.4, 2.5);
@@ -245,7 +256,8 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
         will = appeal.decide({ person: e.record.person, ...(from ? { from } : {}), to: club, currentWage: ct?.monthlyWage ?? 0, newWage: w, starter: e.quality > posFloor }).p;
         if (will >= 0.55) break;
       }
-      if (!affordable || will < dc.minWillingness) continue;
+      if (!affordable) continue;
+      if (will < dc.minWillingness) continue;
       const commission = ag ? Math.round((wage * 12 * mk.agents.commissionRate * (1 + mk.agents.commissionByGreed * (ag.greed - mk.agents.greedPivot))) / 100) * 100 : 0;
       const compensation = trainer ? Math.round((wage * 12 * mk.training.byTier[tierOf(trainer)]) / 100) * 100 : 0;
       if (fee + commission + compensation > budget.transfers) continue;

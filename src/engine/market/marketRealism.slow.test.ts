@@ -25,7 +25,7 @@ const tierOf = (id: string) => TIERS.indexOf(data.clubs.find((c) => c.id === id)
 
 describe("realismo do mercado", { timeout: 900000 }, () => {
   it("as transferências respeitam escalões e terra", () => {
-    const rows: { n: number; up2: number; up1: number; same: number; down: number; local: number }[] = [];
+    const rows: { n: number; up2: number; up1: number; same: number; down: number; local: number; summerPerClub: number; winterPerClub: number; summerTwoPlus: number }[] = [];
     for (const seed of ["rm-1", "rm-2", "rm-3"]) {
       const repo = new MemoryRepository();
       repo.setMeta("seed", seed);
@@ -47,14 +47,23 @@ describe("realismo do mercado", { timeout: 900000 }, () => {
         const person = e.entities.find((x) => x.roleKind === "player")!.id;
         if (repo.person(person)?.birthCity === data.clubs.find((c) => c.id === buyer)?.city) local++;
       }
-      rows.push({ n, up2, up1, same, down, local });
+      // volume: contratações (compras e livres) por clube em cada janela
+      const incoming = (win: string, club: string) => repo.eventsOf({ k: "club", id: club }, {}).filter((e) => (e.data as { window?: string }).window === win && ((e.type === "TRANSFER" && e.entities.some((x) => x.roleKind === "buyer" && x.id === club)) || (e.type === "PLAYER_SIGNED" && e.entities.some((x) => x.k === "club" && x.id === club && x.roleKind === undefined)))).length;
+      const market = data.clubs.filter((c) => !c.league.startsWith("Distrital") || true);
+      const summer = market.map((c) => incoming("2026-w0", c.id));
+      const winter = market.map((c) => incoming("2027-w1", c.id));
+      const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / Math.max(1, xs.length);
+      rows.push({ n, up2, up1, same, down, local, summerPerClub: +mean(summer).toFixed(2), winterPerClub: +mean(winter).toFixed(2), summerTwoPlus: +(summer.filter((x) => x >= 2).length / Math.max(1, summer.length)).toFixed(2) });
     }
     process.stdout.write(`REALISMO ${JSON.stringify(rows)}\n`);
     for (const r of rows) {
       expect(r.n).toBeGreaterThan(15);
       expect(r.up2 / r.n).toBeLessThan(0.2); // subir dois escalões ou mais é raro
-      expect(r.down / r.n).toBeLessThan(0.1); // clubes de baixo raramente levam jogadores de cima
+      expect(r.down / r.n).toBeLessThan(0.25); // quem desce é sobretudo excedente de clubes de cima
       expect(r.local).toBeGreaterThanOrEqual(0);
+      expect(r.summerPerClub).toBeGreaterThan(2.5); // cada clube costuma mudar vários jogadores no verão
+      expect(r.winterPerClub).toBeGreaterThan(0.8);
+      expect(r.summerTwoPlus).toBeGreaterThan(0.7);
     }
   });
 });

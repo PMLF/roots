@@ -252,7 +252,7 @@ export type Params = {
     /** Receitas, custos e bilheteira por escalão (RZ-114/RZ-115), em euros. */
     model: FinancesModel;
     /** Orçamento anual por defeito (RZ-114): peso da massa salarial nas receitas, meses de reserva e fração da folga para transferências. */
-    budget: { revenueAboutBill: number; monthsReserve: number; transfersBye: number };
+    budget: { revenueAboutBill: number; monthsReserve: number; transfersBye: number; /** Folga da massa salarial por defeito acima da atual: os clubes têm de poder contratar sem ter primeiro de despedir. */ wageHeadroom: number };
   };
   personality: {
     traitMin: number;
@@ -679,6 +679,9 @@ export type Params = {
     /** Probabilidade de um clube agir numa ronda normal e no último dia. */
     actProbability: number;
     actProbabilityLastDay: number;
+    /** Negócios que cada clube pode tentar por ronda e peso de cada janela na probabilidade de agir (verão cheio, inverno mais calmo). */
+    dealsPerRound: number;
+    windowFactor: number[];
     /** Contratações máximas por clube e janela. */
     maxSigningsPerWindow: number;
     /** Um clube só compra se o plantel tiver menos do que alvo + folga. */
@@ -896,7 +899,7 @@ export const DEFAULT_PARAMETERS: Params = {
     bankruptcyDelayWagesMonths: 3,
     wealthPercentiles: [90, 70, 40, 15],
     rivalEstimateErrorProb: 0.25,
-    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35 },
+    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.2 },
     model: {
       refReputation: { firstLeague: 5300, secondLeague: 4650, thirdLeague: 3000, cp: 2590, district: 1295 },
       exponentReputation: 1.2,
@@ -1145,9 +1148,11 @@ export const DEFAULT_PARAMETERS: Params = {
   market: {
     windows: [{ open: [7, 1], close: [9, 1] }, { open: [1, 1], close: [1, 31] }],
     roundWeekday: 1,
-    actProbability: 0.3,
-    actProbabilityLastDay: 0.7,
-    maxSigningsPerWindow: 4,
+    actProbability: 0.45,
+    actProbabilityLastDay: 0.9,
+    dealsPerRound: 2,
+    windowFactor: [1, 0.6],
+    maxSigningsPerWindow: 8,
     squadSlack: 2,
     ageFactor: [[18, 11.9], [22, 11.2], [25, 9.8], [28, 7.7], [31, 4.2], [34, 1.4], [38, 0.35]],
     potentialPremium: 0.22,
@@ -1159,7 +1164,7 @@ export const DEFAULT_PARAMETERS: Params = {
     bidPremium: 0.12,
     bidNoise: 0.12,
     counterTolerance: 0.55,
-    wageSlack: 0.05,
+    wageSlack: 0.12,
     qualityCeiling: 3.5,
     minUpgrade: 0.6,
     wageRaise: 1.1,
