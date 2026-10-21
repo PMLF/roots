@@ -9,6 +9,7 @@ import { OfferDialog } from "@/ui/components/OfferDialog";
 import { ResignButton, ChooseInitialClub } from "@/ui/components/WithClub";
 import { LastMatches, MiniTable } from "@/ui/components/HomeCards";
 import { ResultsFita } from "@/ui/components/ResultsStrip";
+import { applyHomeFocus, onHomeFocus } from "@/ui/focusHome";
 import { NewsItemView } from "@/ui/components/NewsItem";
 import { Stars } from "@/ui/components/Stars";
 import { TallCard } from "@/ui/components/TallCard";
@@ -45,6 +46,8 @@ export default function Start() {
   const [mine] = useOwnClub();
   const time = useTime();
   const inbox = useRecentInbox(200);
+  // «Avançar» pede o foco para a mensagem/decisão seguinte; tenta-se já e quando a lista muda
+  useEffect(() => { applyHomeFocus(); return onHomeFocus(() => { applyHomeFocus(); }); }, [inbox.messages, world]);
 
   useEffect(() => {
     if (!engine) return;
@@ -171,7 +174,7 @@ export default function Start() {
             </div>
           )}
           {pendingBids.map((b) => (
-            <div className="decisao" key={b.person}>
+            <div className="decisao" key={b.person} id={`negoc-${b.person}`}>
               <p><ClubSwatch id={b.sellerId} /><b><WithPlayer text={t("bid.today", { name: "\u0000", date: "" })} id={b.person} name={b.name} /></b></p>
               <p className="acoes"><button type="button" className="primario" onClick={() => setResuming(b)}>{t("bid.continue")}</button></p>
             </div>
@@ -184,10 +187,10 @@ export default function Start() {
           ))}
           {waitingBids.map((b) => <p className="suave" key={b.person}><WithPlayer text={t("bid.waitingItem", { name: "\u0000", date: b.pending?.due ?? "" })} id={b.person} name={b.name} /></p>)}
           {offersIn.map((o) => (
-            <TallCard key={o.id} clubId={o.buyer.id} unread
+            <div key={o.id} id={`oferta-${o.person}`}><TallCard clubId={o.buyer.id} unread
               title={<WithPlayer text={t("offer.decision", { name: "\u0000" })} id={o.person} name={o.name} />}
               details={<>{o.buyer.name} · {namePosition(t, o.position)} · {t("offer.age", { n: o.age })}{o.stars !== undefined && <> · <Stars value={o.stars} /></>}</>}
-              actions={<button type="button" className="primario" onClick={() => setAnswering(o)}>{t("offer.answer")}</button>} />
+              actions={<button type="button" className="primario" onClick={() => setAnswering(o)}>{t("offer.answer")}</button>} /></div>
           ))}
           {answering && <OfferDialog offer={answering} onClose={() => { setAnswering(undefined); loadOffers(); }} onAnswered={loadOffers} />}
           {agreedBids.map((b) => <p className="suave" key={b.person}>{t("bid.todayAgreed", { name: b.name, date: b.moving?.date ?? "" })}</p>)}
@@ -195,7 +198,7 @@ export default function Start() {
           {world && !mine && <ChooseInitialClub />}
           {shownMessages.length === 0 && decisions === 0 && agreedBids.length === 0 && waitingBids.length === 0 ? <p className="vazio">{t("inbox.empty")}</p> : (
             <ul className="lista-compacta">
-              {shownMessages.map((m) => <li key={m.id}><NewsItemView n={m} unread={!m.isRead} compact onToggleIsRead={() => { void engine?.call("markMessage", { id: m.id, isRead: !m.isRead }).then(() => window.dispatchEvent(new Event("raizes:caixa"))); }} /></li>)}
+              {shownMessages.map((m) => <li key={m.id} id={`msg-${m.id}`} tabIndex={-1}><NewsItemView n={m} unread={!m.isRead} compact onToggleIsRead={() => { void engine?.call("markMessage", { id: m.id, isRead: !m.isRead }).then(() => window.dispatchEvent(new Event("raizes:caixa"))); }} /></li>)}
             </ul>
           )}
           </div>
