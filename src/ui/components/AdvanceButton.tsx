@@ -7,6 +7,7 @@ import { save, read } from "@/ui/storage";
 import { useOwnClub } from "@/ui/myClub";
 import { useEngine } from "@/ui/EngineProvider";
 import { useTime } from "@/ui/useTime";
+import { requestHomeFocus } from "@/ui/focusHome";
 
 const MODES = ["day", "week", "nextMatch"] as const;
 type AdvanceMode = (typeof MODES)[number];
@@ -69,12 +70,17 @@ export function AdvanceButton() {
         if (a.unread !== undefined) {
           await engine.call("markMessage", { id: a.unread, isRead: true });
           window.dispatchEvent(new Event("raizes:caixa"));
-          router.push(`/inbox/?foco=${a.unread}`);
-        } else if (a.offer) router.push(`/inbox/?oferta=${encodeURIComponent(a.offer.person)}`);
-        else if (a.bid) router.push(`/profile/?type=person&id=${encodeURIComponent(a.bid.person)}&negociar=1`);
+          toHome(`msg-${a.unread}`);
+        } else if (a.offer) toHome(`oferta-${a.offer.person}`);
+        else if (a.bid) toHome(`negoc-${a.bid.person}`);
         else await advanceTime();
       }).catch(() => advanceTime());
     }
+  };
+  // o foco muda dentro do Início: se já lá estás não há navegação nem scroll desnecessário
+  const toHome = (elementId: string) => {
+    requestHomeFocus(elementId);
+    if (path !== "/") router.push("/");
   };
   const advanceTime = async () => {
     // se o avanço pára num jogo do teu clube, um só clique leva-te ao pré-jogo
