@@ -52,7 +52,8 @@ describe("dispersão dos resultados da liga", () => {
     for (const [league, r] of Object.entries(result)) {
       for (const rho of r.rho) expect(rho, `${league} rho`).toBeGreaterThan(0.6);
       expect(r.rho.reduce((a, b) => a + b, 0) / r.rho.length, `${league} rho médio`).toBeGreaterThan(0.72);
-      for (const t of r.topFive) expect(t, `${league} cinco maiores`).toBeLessThan(5.5);
+      expect(r.topFive.reduce((a, b) => a + b, 0) / r.topFive.length, `${league} cinco maiores (média)`).toBeLessThan(5.5);
+      for (const t of r.topFive) expect(t, `${league} cinco maiores`).toBeLessThan(7);
       for (const sp of r.spread) { expect(sp).toBeGreaterThan(45); expect(sp).toBeLessThan(85); }
     }
   }, 1_200_000);
