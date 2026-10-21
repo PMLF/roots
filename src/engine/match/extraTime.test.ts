@@ -16,6 +16,18 @@ describe("jogos a eliminar: prolongamento e penáltis (RZ-140)", () => {
     }
   });
 
+  it("jogo que não é a eliminar (liga) nunca tem prolongamento nem penáltis, mesmo empatado", () => {
+    let draws = 0;
+    for (let i = 0; i < 120; i++) {
+      const { summary } = simulateMatch(input(`liga${i}`), P);
+      if (summary.home.goals === summary.away.goals) draws++;
+      expect(summary.extraTime).toBe(false);
+      expect(summary.shootout).toBeUndefined();
+      expect(summary.duration).toBe(summary.regularDuration);
+    }
+    expect(draws).toBeGreaterThan(5);
+  });
+
   it("sem empate no fim dos 90' o jogo a eliminar é igual ao normal", () => {
     let compared = 0;
     for (let i = 0; i < 80; i++) {

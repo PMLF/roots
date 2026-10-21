@@ -43,6 +43,8 @@ export const districtSupercupName = (district: string) => `${DISTRICT_SUPERCUP_P
 export type CupKind = "cup" | "supercup" | "districtCup" | "districtSupercup" | "europe";
 export const cupKind = (competition: string): CupKind | undefined =>
   competition === CUP ? "cup" : competition === SUPERCUP ? "supercup" : competition.startsWith(DISTRICT_CUP_PREFIX) ? "districtCup" : competition.startsWith(DISTRICT_SUPERCUP_PREFIX) ? "districtSupercup" : europeKind(competition) ? "europe" : undefined;
+/** Taças a eliminar (nacionais e distritais) não têm tabela; a fase de liga europeia tem. */
+export const hasNoTable = (competition: string): boolean => { const k = cupKind(competition); return k !== undefined && k !== "europe"; };
 const districtOfCup = (competition: string): string => competition.slice((competition.startsWith(DISTRICT_CUP_PREFIX) ? DISTRICT_CUP_PREFIX : DISTRICT_SUPERCUP_PREFIX).length);
 
 /** Número do escalão nos sorteios: 0 = Primeira Liga … 4 = distritais. */

@@ -29,7 +29,7 @@ import { dailyBids, lockedPlayers } from "../market/bids";
 import { dailyOffers } from "../market/offers";
 import { isInSecondDistrict } from "./districts";
 import { CP_FINAL_COMPETITION, generateCpFinal, generateCpFinalSemi } from "./cpFinalPhase";
-import { advanceCompetitions } from "./competitions";
+import { advanceCompetitions, hasNoTable } from "./competitions";
 import { NATIONAL_STADIUM, venueStadium, type Stadium } from "./venues";
 import { isForeignClub } from "../world/foreign";
 import { closeSeason, generatePromotionPhase, type SeasonSummary } from "./closeSeason";
@@ -38,6 +38,7 @@ import { rivalEvent, rivalReason } from "./rivals";
 import { SESSION_KEY, xgCurve, matchTeams, saveLiveMatch, matchLines, type LiveMeeting, type XgCurve, type LiveTeams, type MatchInfo, type LiveTableLine } from "./liveMatch";
 import { updateOffers, isUnemployed } from "./coachMarket";
 import { seasonData, currentSeason } from "./seasonPyramid";
+import { clinchTitles } from "./titles";
 import { promotionGroups, matchesPerPlay, prepareSeason } from "./prepare";
 
 export type DayMatch = {
@@ -187,7 +188,7 @@ function advanceDay(repo: Repository, base: BaseData, params: Params, gamerClub?
     // a tabela de cada competição onde o gamer joga hoje, antes dos jogos (para o ver ao vivo)
     const tables = new Map<string, LiveTableLine[]>();
     for (const g of repo.dayMatches(today)) {
-      if (repo.match(g.id) || g.knockout || matchLevel(g.home, g.away, gamerClub) !== 0 || tables.has(g.competition)) continue;
+      if (repo.match(g.id) || g.knockout || hasNoTable(g.competition) || matchLevel(g.home, g.away, gamerClub) !== 0 || tables.has(g.competition)) continue;
       tables.set(g.competition, beforeTable(repo, g.competition, season, clubName));
     }
     const live: { id: string; competition: string; round: number; home: string; away: string; duration: number; homeGoals: number; awayGoals: number; lines: ReturnType<typeof matchLines>; summary: MatchSummary; teams: LiveTeams; xg: XgCurve }[] = [];
@@ -227,6 +228,7 @@ function advanceDay(repo: Repository, base: BaseData, params: Params, gamerClub?
       }));
       saveLiveMatch(repo, { ...v, ...matchContext(repo, data, params, v.home, v.away, v.competition, v.id, flagsOf(repo.dayMatches(today).find((x) => x.id === v.id) ?? {})), date: today, home: { id: v.home, name: clubName.get(v.home) ?? v.home }, away: { id: v.away, name: clubName.get(v.away) ?? v.away }, table: tables.get(v.competition) ?? [], winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, others, colours: coloursOf(data, [v.home, v.away, ...(tables.get(v.competition) ?? []).map((l) => l.club), ...others.flatMap((o) => [o.home.id, o.away.id])]), tiers: Object.fromEntries([v.home, v.away, ...others.flatMap((o) => [o.home.id, o.away.id])].flatMap((id) => { const c = data.clubs.find((x) => x.id === id); return c ? [[id, c.tier as string]] : []; })), gamerSide: v.home === gamerClub ? "home" : "away", zones: zonesOf(data, params, v.home) });
     }
+    clinchTitles(repo, data, params, season, today);
     const tomorrow = addDays(today, 1);
     repo.setMeta("date.today", tomorrow);
     // fecho mensal das finanças (RZ-114): ao passar para o dia 1 de um mês

@@ -11,6 +11,8 @@ import { useInboxUnread } from "@/ui/useCash";
 import { AdvanceButton } from "@/ui/components/AdvanceButton";
 import { Icon, type IconName } from "@/ui/components/Icon";
 import { Search } from "@/ui/components/Search";
+import { CelebrationDialog } from "@/ui/components/CelebrationDialog";
+import { useEngine } from "@/ui/EngineProvider";
 import { ClubBar } from "@/ui/components/ClubBar";
 import { useTime } from "@/ui/useTime";
 import { ClubSelector, useClubs } from "@/ui/components/WithClub";
@@ -48,10 +50,20 @@ const isDensity = (v: unknown): v is Density => v === "normal" || v === "compact
 export function Shell({ children }: { children: ReactNode }) {
   const { t, locale, setLocale } = useT();
   const time = useTime();
+  const engine = useEngine();
+  // título do clube do gamer por celebrar (RZ-261): verifica-se quando o tempo ou a página mudam
+  const [title, setTitle] = useState<{ competition: string; cup: boolean } | undefined>(undefined);
   const clubs = useClubs();
   const [ownClub, chooseClub] = useOwnClub();
   const path = usePathname() ?? "/";
   const router = useRouter();
+  const today = time.state?.today;
+  useEffect(() => {
+    if (!engine || !ownClub) return;
+    let live = true;
+    engine.call("celebration", null).then((c) => { if (live && c) setTitle((old) => old ?? { competition: c.competition, cup: c.cup }); }).catch(() => undefined);
+    return () => { live = false; };
+  }, [engine, ownClub, today, path]);
   const dev = useDevMode();
   const [seeAll, setSeeAll] = useSeeAll();
   const [density, setDensity] = useState<Density>("normal");
@@ -161,6 +173,7 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
         {children}
       </main>
+      {title && <CelebrationDialog club={clubs?.find((c) => c.id === ownClub)?.name ?? ''} competition={title.competition} cup={title.cup} onClose={() => { setTitle(undefined); void engine?.call("dismissCelebration", null); }} />}
       <footer className={matchInProgress ? "barra barra-jogo" : "barra"}>
         <MatchProgress />
         <ClubBar club={ownClub} time={time} />

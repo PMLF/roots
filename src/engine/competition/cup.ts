@@ -16,6 +16,7 @@ import type { KnockoutState } from "./format/knockout";
 
 /** `final`, `semi`, `quarter`, `round16`, `round32` ou `round` (com `n` = número da ronda). */
 type CupRoundKey = "final" | "playoff" | "semi" | "quarter" | "round16" | "round32" | "round";
+export type RoundTag = { key: CupRoundKey; n: number; leg?: 1 | 2 };
 export type CupMatchView = { id: string; home: string; away: string; homeName: string; awayName: string; homeTier?: string; awayTier?: string; homeGoals?: number; awayGoals?: number; extraTime?: boolean; shootout?: { home: number; away: number } };
 export type CupRoundView = { key: CupRoundKey; n: number; /** Meias-finais a duas mãos: 1.ª ou 2.ª mão. */ leg?: 1 | 2; date: string; matches: CupMatchView[] };
 export type CupView = {
@@ -42,6 +43,14 @@ function roundLabels(competition: string, state: KnockoutState): Map<number, { k
     for (let l = 1; l <= legs; l++) out.set(slot++, { key: keyOf(p.fromEnd), n: r + 1, ...(legs === 2 ? { leg: l as 1 | 2 } : {}) });
   });
   return out;
+}
+
+/** Ronda de uma taça (a eliminar, sem as europeias) a que pertence o jogo da `round`-ésima data do calendário; `undefined` nas ligas. */
+export function cupRoundTag(repo: Repository, competition: string, season: number, round: number): RoundTag | undefined {
+  if (isEuropean(competition) || !cupKind(competition)) return undefined;
+  const run = readRun(repo, season, competition);
+  if (!run || run.state.kind !== "knockout") return undefined;
+  return roundLabels(competition, run.state).get(round);
 }
 
 export function cupView(repo: Repository, data: BaseData, params: Params, competition: string, season = currentSeason(repo)): CupView | undefined {

@@ -1,4 +1,5 @@
 "use client";
+import { useRoundName } from "@/ui/components/competition/CupRounds";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -27,6 +28,7 @@ function Content() {
     return () => { live = false; };
   }, [engine, time.state?.today]);
 
+  const roundName = useRoundName();
   const match = plan?.nextMatch;
   const today = time.state?.today;
   // um jogo já a decorrer: não se prepara outra vez, retoma-se
@@ -46,7 +48,7 @@ function Content() {
           <p className="prematch-confronto">
             {match.atHome ? <>{eu}{ownLink}</> : <>{opp}{linkOpp}</>} <span className="suave">{t("start.vs")}</span> {match.atHome ? <>{opp}{linkOpp}</> : <>{eu}{ownLink}</>}
           </p>
-          <p className="suave"><EntityLink k="competition" id={match.competition}>{match.competition}</EntityLink> · {match.date}</p>
+          <p className="suave"><EntityLink k="competition" id={match.competition}>{match.competition}</EntityLink>{match.cupRound && <> · {roundName(match.cupRound)}</>} · {match.date}</p>
         </div>
       </header>
       <p className="suave">{t("prematch.warning")}</p>

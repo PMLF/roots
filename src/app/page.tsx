@@ -1,4 +1,5 @@
 "use client";
+import { useRoundName } from "@/ui/components/competition/CupRounds";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -39,6 +40,7 @@ function WithPlayer({ text, id, name }: { text: string; id: string; name: string
 
 export default function Start() {
   const { t, locale } = useT();
+  const roundName = useRoundName();
   const engine = useEngine();
   const router = useRouter();
   const dev = useDevMode();
@@ -139,7 +141,7 @@ export default function Start() {
           <>
             <div className="inicio-jogo">
               <p className="inicio-confronto">{next.home ? <><ClubSwatch id={club.profile.id} /><EntityLink k="club" id={club.profile.id} withoutSwatch>{homeAway[0]}</EntityLink></> : <><ClubSwatch id={pj?.opponentId} />{pj?.opponentId ? <EntityLink k="club" id={pj.opponentId} withoutSwatch>{homeAway[0]}</EntityLink> : homeAway[0]}</>} <span className="suave">{t("start.vs")}</span> {next.home ? <><ClubSwatch id={pj?.opponentId} />{pj?.opponentId ? <EntityLink k="club" id={pj.opponentId} withoutSwatch>{homeAway[1]}</EntityLink> : homeAway[1]}</> : <><ClubSwatch id={club.profile.id} /><EntityLink k="club" id={club.profile.id} withoutSwatch>{homeAway[1]}</EntityLink></>}</p>
-              <p className="suave">{t(next.home ? "start.atHome" : "start.away")} · {club.profile.league} {next.round > 0 && <>· {t("start.round", { n: next.round })}</>}</p>
+              <p className="suave">{t(next.home ? "start.atHome" : "start.away")} · {pj?.cupRound ? <>{pj.competition} · {roundName(pj.cupRound)}</> : <>{club.profile.league} {next.round > 0 && <>· {t("start.round", { n: next.round })}</>}</>}</p>
             </div>
             <dl className="inicio-factos">
               <div><dt>{t("start.when")}</dt><dd>{when} <span className="suave">· {longDate(next.date)}</span></dd></div>

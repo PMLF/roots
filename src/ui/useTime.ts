@@ -1,4 +1,5 @@
 "use client";
+import type { RoundTag } from "@/engine/competition/cup";
 import { useCallback, useEffect, useState } from "react";
 import type { TimeState, Mode, AdvanceResult } from "@/engine/season/advance";
 import { useOwnClub } from "@/ui/myClub";
@@ -16,7 +17,7 @@ export function useTime() {
   const [, force] = useState(0);
   const [error, setError] = useState<string | undefined>(undefined);
   const [pause, setPause] = useState<{ match: string; opponent: string; atHome: boolean; ongoing: boolean } | undefined>(undefined);
-  const [nextMatch, setNextMatch] = useState<{ id: string; date: string; competition: string; opponent: string; atHome: boolean; confirmed: boolean; ongoing: boolean; opponentId: string; opponentColours: string } | undefined>(undefined);
+  const [nextMatch, setNextMatch] = useState<{ id: string; date: string; competition: string; cupRound?: RoundTag; opponent: string; atHome: boolean; confirmed: boolean; ongoing: boolean; opponentId: string; opponentColours: string } | undefined>(undefined);
 
   useEffect(() => {
     if (!engine) return;

@@ -115,7 +115,9 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
   const champions = [first, second, third, ...SERIES.map((s) => cp[s])].map((t) => ({ league: leagueName(t[0] as string), club: t[0] as string, name: name.get(t[0] as string) ?? "" }));
   const cpChampion = cpChampionOf(repo, season);
   repo.transaction(() => {
-    for (const c of champions) repo.appendEvent({ type: "CHAMPION", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: c.club, roleKind: "champion" }, { k: "competition", id: c.league }], data: { league: c.league } });
+    // o título já anunciado quando ficou matematicamente decidido não se repete
+    const announced = (league: string) => repo.eventsOf({ k: "competition", id: league }, { type: "CHAMPION", seasonSince: season, untilSeason: season, limit: 1 }).length > 0;
+    for (const c of champions) if (!announced(c.league)) repo.appendEvent({ type: "CHAMPION", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: c.club, roleKind: "champion" }, { k: "competition", id: c.league }], data: { league: c.league } });
     if (cpChampion) repo.appendEvent({ type: "CHAMPION", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: cpChampion, roleKind: "champion" }, { k: "competition", id: "Campeonato de Portugal" }], data: { league: "Campeonato de Portugal" } });
     // prémio por vencer cada competição (RZ-216)
     const factors = districtFactors(data.cities, params);

@@ -1,7 +1,7 @@
 import type { Params } from "../config/parameters";
 import type { SearchResult } from "../search/search";
 import type { CompetitionPage } from "../competition/profile";
-import type { CupView, ClubCompetition } from "../competition/cup";
+import type { CupView, ClubCompetition, RoundTag } from "../competition/cup";
 import type { EuropeView } from "../europe/view";
 import type { CompetitionHistory } from "../competition/history";
 import type { RecentMatch } from "../competition/recent";
@@ -376,7 +376,7 @@ export type ViewPlan = {
   ready: { ok: boolean; reason?: "incomplete" | "unavailable"; names?: string[] };
   /** `forma` (0,85-1): energia; `avgLast5`: nota média dos últimos jogos com nota; `stars`: nível que o gamer conhece. */
   squad: { player: string; name: string; age: number; form: number; positions: { pos: Position; aptitude: number }[]; /** Quanto rende (0-1) em cada posição; serve para realçar onde joga melhor. */ fit: Record<Position, number>; stars?: number; matches: number; goals: number; avgLast5?: number; unavailable?: "injury" | "suspended"; matchesPerMeet?: number }[];
-  nextMatch?: { id: string; date: string; competition: string; opponent: string; atHome: boolean; confirmed: boolean; /** O jogo já começou e está a decorrer. */ ongoing: boolean; opponentId: string; opponentColours: string };
+  nextMatch?: { id: string; date: string; competition: string; /** Taças: a ronda («Meias-finais · 1.ª mão»); nas ligas fica vazio. */ cupRound?: RoundTag; opponent: string; atHome: boolean; confirmed: boolean; /** O jogo já começou e está a decorrer. */ ongoing: boolean; opponentId: string; opponentColours: string };
 };
 
 export type SummaryClub = { id: string; name: string; league: string; colours: string };
@@ -444,6 +444,9 @@ export type EngineRequests = {
   /** Caixa de entrada do gamer: o que se passa com o clube e com ele. */
   inbox: { input: { limit?: number; beforeOf?: number }; output: { messages: InboxMessage[]; unread: number } };
   markInboxRead: { input: null; output: null };
+  /** Título do clube do gamer por celebrar (liga decidida matematicamente, taça ou supertaça ganhas), se houver. */
+  celebration: { input: null; output: { competition: string; season: number; cup: boolean; clinched: boolean } | null };
+  dismissCelebration: { input: null; output: null };
   /** O que pede resposta antes de o tempo passar (RZ-257): a mensagem por ler mais antiga, propostas recebidas e negociações abertas. */
   attention: { input: null; output: { unread?: number; offer?: { person: string }; bid?: { person: string } } };
   /** Começa o jogo do gamer (RZ-170): nada fica no histórico até ao apito final. */

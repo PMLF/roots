@@ -1,6 +1,7 @@
 /** Fase a eliminar: planeia, sorteia ronda a ronda e resolve as eliminatórias (uma ou duas mãos). */
 import { Rng } from "../../random/rng";
 import type { IsoDate } from "../../persistence/types";
+import { addDays } from "../../calendar/dates";
 import { pairUp, pickByes } from "./draw";
 import { planKnockout, type RoundPlan } from "./knockoutPlan";
 import type { ClubId, Entrant, Fixture, KnockoutStage, Played, Results, RunContext, StageEvent, StageOutcome, TieResult } from "./types";
@@ -23,6 +24,17 @@ export type KnockoutState = {
   winner?: ClubId;
   runnerUp?: ClubId;
 };
+
+/**
+ * Data da `i`-ésima mão. Saves antigos guardaram menos datas do que as mãos que hoje se jogam (a segunda mão das meias-finais): a final
+ * usa a última data conhecida e qualquer outra falta continua semana a semana, nunca fica sem data.
+ */
+function dateAt(dates: readonly IsoDate[], i: number, isFinal: boolean): IsoDate {
+  const known = dates[i];
+  if (known !== undefined) return known;
+  const last = dates[dates.length - 1] as IsoDate;
+  return isFinal ? last : addDays(last, 7 * (i - (dates.length - 1)));
+}
 
 const legsOf = (def: KnockoutStage, r: number, rounds: number): 1 | 2 => (r === rounds - 1 ? def.finalLegs ?? def.legs : r === rounds - 2 && rounds >= 3 ? def.semiLegs ?? def.legs : def.legs);
 
@@ -61,13 +73,13 @@ function drawRound(def: KnockoutStage, state: KnockoutState, ctx: RunContext): F
     const venue = neutral ? ctx.neutralVenue?.(p.advantage.club, p.other.club) : undefined;
     const neutralFlags = neutral ? { neutral: true as const, ...(venue ? { venue } : {}) } : {};
     if (legs === 1) {
-      fixtures.push({ id: id1, ...base, round: slot0 + 1, date: state.dates[slot0] as IsoDate, home: p.advantage.club, away: p.other.club, ...neutralFlags });
+      fixtures.push({ id: id1, ...base, round: slot0 + 1, date: dateAt(state.dates, slot0, isFinal), home: p.advantage.club, away: p.other.club, ...neutralFlags });
     } else {
       const id2 = `${ctx.idPrefix}-r${r + 1}-t${k + 1}-2`;
       tie.fixtures.push(id2);
       // 1.ª mão: pode acabar empatada (sem prolongamento nem penáltis); só a 2.ª mão decide
-      fixtures.push({ id: id1, stage: state.stage, knockout: false, round: slot0 + 1, date: state.dates[slot0] as IsoDate, home: p.other.club, away: p.advantage.club });
-      fixtures.push({ id: id2, ...base, round: slot0 + 2, date: state.dates[slot0 + 1] as IsoDate, home: p.advantage.club, away: p.other.club, firstLeg: id1 });
+      fixtures.push({ id: id1, stage: state.stage, knockout: false, round: slot0 + 1, date: dateAt(state.dates, slot0, false), home: p.other.club, away: p.advantage.club });
+      fixtures.push({ id: id2, ...base, round: slot0 + 2, date: dateAt(state.dates, slot0 + 1, isFinal), home: p.advantage.club, away: p.other.club, firstLeg: id1 });
     }
     ties.push(tie);
   });
