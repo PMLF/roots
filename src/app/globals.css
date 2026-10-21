@@ -1109,3 +1109,13 @@ body {
 .tatica-colapso-corpo { padding: 4px 16px 16px; border-top: 1px solid var(--linha); padding-top: 14px; }
 @media (max-width: 600px) { .tatica-colapso-resumo { display: none; } .tatica-colapso-topo { justify-content: space-between; } }
 @media (prefers-reduced-motion: reduce) { .tatica-colapso-acao svg { transition: none; } }
+
+/* Celebração de um título (RZ-261) */
+.popup-celebracao { text-align: center; padding: 28px 26px 22px; overflow: hidden; position: relative; }
+.popup-celebracao .trofeu .icone { width: 44px; height: 44px; color: var(--amarelo, #d4a017); stroke-width: 1.6; }
+.popup-celebracao h2 { font-size: 20px; margin: 4px 0 8px; }
+.popup-celebracao .acoes-popup { justify-content: center; margin-top: 14px; }
+.confetti { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.confetti i { position: absolute; top: -12px; width: 7px; height: 12px; border-radius: 1px; opacity: 0; animation: confetti-cai 3s ease-in infinite; }
+@keyframes confetti-cai { 0% { transform: translateY(0) rotate(0); opacity: 1; } 100% { transform: translateY(420px) rotate(540deg); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .confetti { display: none; } }

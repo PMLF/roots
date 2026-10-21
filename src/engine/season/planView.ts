@@ -1,4 +1,5 @@
 /** O plano do clube do gamer como a página Tática o mostra (RZ-158): onze (escolhido ou proposto), plantel e disponibilidade. */
+import { cupRoundTag } from "../competition/cup";
 import { readSession } from "./matchSession";
 import type { ViewPlan } from "../api/contracts";
 import type { Params } from "../config/parameters";
@@ -68,6 +69,12 @@ export function planView(repo: Repository, data: BaseData, params: Params, club:
         };
       })
       .sort((a, b) => a.name.localeCompare(b.name, "pt")),
-    ...(next && opponent ? { nextMatch: { id: next.id, date: next.date, competition: next.competition, opponent: data.clubs.find((c) => c.id === opponent)?.name ?? data.foreignClubs?.find((c) => c.id === opponent)?.name ?? opponent, atHome: next.home === club, confirmed: confirmedMatch(repo, next.id), ongoing: readSession(repo)?.match === next.id, opponentId: opponent, opponentColours: data.clubs.find((c) => c.id === opponent)?.colours ?? data.foreignClubs?.find((c) => c.id === opponent)?.colours ?? "" } } : {}),
+    ...(next && opponent ? { nextMatch: { id: next.id, date: next.date, competition: next.competition, ...cupRoundField(repo, next.competition, next.season, next.round), opponent: data.clubs.find((c) => c.id === opponent)?.name ?? data.foreignClubs?.find((c) => c.id === opponent)?.name ?? opponent, atHome: next.home === club, confirmed: confirmedMatch(repo, next.id), ongoing: readSession(repo)?.match === next.id, opponentId: opponent, opponentColours: data.clubs.find((c) => c.id === opponent)?.colours ?? data.foreignClubs?.find((c) => c.id === opponent)?.colours ?? "" } } : {}),
   };
 }
+
+/** `cupRound` só nas taças: as ligas continuam a falar em jornadas. */
+const cupRoundField = (repo: Repository, competition: string, season: number, round: number): { cupRound?: NonNullable<ReturnType<typeof cupRoundTag>> } => {
+  const tag = cupRoundTag(repo, competition, season, round);
+  return tag ? { cupRound: tag } : {};
+};

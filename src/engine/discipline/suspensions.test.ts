@@ -15,16 +15,42 @@ describe("castigos disciplinares", () => {
     expect(state([], 10)).toMatchObject({ yellows: 0, suspended: false, matchesPerMeet: 0, forSuspension: 5 });
   });
 
-  it("de 5 em 5 amarelos, um jogo de suspensão que se cumpre no jogo seguinte", () => {
+  it("ao 5.º, 9.º, 12.º e 14.º amarelos, um jogo de suspensão que se cumpre no jogo seguinte", () => {
     const am = [1, 2, 4, 6, 7].map((j) => ca(j));
     expect(state(am.slice(0, 4), 7)).toMatchObject({ yellows: 4, suspended: false, forSuspension: 1 });
     // o 5.º amarelo na jornada 7: suspenso na 8
-    expect(state(am, 7)).toMatchObject({ yellows: 5, suspended: true, matchesPerMeet: 1, reason: "accumulation", forSuspension: 5 });
+    expect(state(am, 7)).toMatchObject({ yellows: 5, suspended: true, matchesPerMeet: 1, reason: "accumulation", forSuspension: 4 });
     // cumprido na 8: já pode jogar na 9
     expect(state(am, 8)).toMatchObject({ suspended: false, matchesPerMeet: 0 });
-    // o 10.º amarelo dá outro
-    const dec = [...am, ...[9, 10, 11, 12, 13].map((j) => ca(j))];
-    expect(state(dec, 13)).toMatchObject({ yellows: 10, suspended: true, matchesPerMeet: 1 });
+    // entre o 5.º e o 9.º não há castigo; o 9.º dá outro
+    const upTo = (n: number) => Array.from({ length: n }, (_, i) => ca(i + 1 + (i >= 5 ? 1 : 0)));  // o 6.º jogo cumpre-se de castigo
+    expect(state(upTo(8), 9)).toMatchObject({ yellows: 8, suspended: false, forSuspension: 1 });
+    expect(state(upTo(9), 10)).toMatchObject({ yellows: 9, suspended: true, matchesPerMeet: 1, forSuspension: 3 });
+  });
+
+  it("o 12.º e o 14.º dão castigo; depois do 14.º já não há mais", () => {
+    // um amarelo por jogo; o jogo seguinte a cada limiar cumpre-se de castigo (sem amarelo)
+    const season = (n: number, thresholds = P.discipline.yellowThresholds) => {
+      const cards: CardRecord[] = [];
+      let round = 1;
+      let last = 0;
+      for (let y = 1; y <= n; y++, round++) {
+        cards.push(ca(round));
+        last = round;
+        if (thresholds.includes(y)) round++;
+      }
+      return { cards, last };
+    };
+    const a12 = season(12);
+    expect(state(a12.cards, a12.last)).toMatchObject({ yellows: 12, suspended: true, matchesPerMeet: 1, forSuspension: 2 });
+    const a13 = season(13);
+    expect(state(a13.cards, a13.last)).toMatchObject({ yellows: 13, suspended: false });
+    const a14 = season(14);
+    expect(state(a14.cards, a14.last)).toMatchObject({ yellows: 14, suspended: true });
+    expect(state(a14.cards, a14.last).forSuspension).toBeUndefined();
+    const a16 = season(16);
+    expect(state(a16.cards, a16.last)).toMatchObject({ yellows: 16, suspended: false });
+    expect(state(a16.cards, a16.last)).not.toHaveProperty("forSuspension");
   });
 
   it("vermelho por segundo amarelo: um jogo; o primeiro amarelo conta para a acumulação", () => {

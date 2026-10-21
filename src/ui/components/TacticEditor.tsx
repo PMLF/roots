@@ -1,4 +1,5 @@
 "use client";
+import { useRoundName } from "@/ui/components/competition/CupRounds";
 import { useCallback, useEffect, useState } from "react";
 import type { ViewPlan } from "@/engine/api/contracts";
 import { BENCH_SIZE, moveToBench, moveToReserve, moveToSlot, remapLineup, swapPlayers, type Board } from "@/engine/match/lineup";
@@ -26,6 +27,7 @@ const energy = (form: number) => Math.max(0, Math.min(100, Math.round(((form - 0
 /** Editor da tática e do onze do clube do gamer (RZ-158, RZ-248): campo em vetor, arrastar e largar, banco e reservas. Usado na página «Tática» e no ecrã pré-jogo (RZ-169). */
 export function TacticEditor({ withoutNextMatch = false, heading }: { withoutNextMatch?: boolean; heading?: string }) {
   const { t } = useT();
+  const roundName = useRoundName();
   const engine = useEngine();
   const [plan, setPlan] = useState<ViewPlan | null | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
@@ -161,7 +163,7 @@ export function TacticEditor({ withoutNextMatch = false, heading }: { withoutNex
           {heading && <h1>{heading}</h1>}
           {!withoutNextMatch && plan.nextMatch && (
             <p className="tatica-proximo">
-              <span className="suave">{t("tactic.nextMatch")}:</span> <b>{plan.nextMatch.atHome ? "" : "@ "}{plan.nextMatch.opponent}</b> <span className="suave">· {plan.nextMatch.date} · {plan.nextMatch.competition}{plan.nextMatch.confirmed && ` · ${t("tactic.confirmed")}`}</span>
+              <span className="suave">{t("tactic.nextMatch")}:</span> <b>{plan.nextMatch.atHome ? "" : "@ "}{plan.nextMatch.opponent}</b> <span className="suave">· {plan.nextMatch.date} · {plan.nextMatch.competition}{plan.nextMatch.cupRound && ` · ${roundName(plan.nextMatch.cupRound)}`}{plan.nextMatch.confirmed && ` · ${t("tactic.confirmed")}`}</span>
             </p>
           )}
         </header>

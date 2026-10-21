@@ -192,6 +192,21 @@ describe("duas mãos", () => {
   });
 });
 
+describe("datas em falta (saves antigos)", () => {
+  it("com menos datas do que mãos, todos os jogos têm data e a final não passa antes das meias", () => {
+    const def: CompetitionDef = { id: "old", stages: [{ kind: "knockout", name: "old", legs: 1, semiLegs: 2, finalLegs: 1, finalNeutral: true, rules: { pairing: "seeded", advantage: "betterSeed" } }] };
+    const full = context();
+    // as meias a duas mãos precisam de mais uma data: o save antigo só trouxe uma por ronda
+    const ctx = context({ allocateDates: (stage, count, info) => full.allocateDates(stage, count - 1, info) });
+    const r = playAll(def, entrants(16), ctx);
+    expect(r.state.done).toBe(true);
+    expect(r.fixtures.every((f) => typeof f.date === "string" && f.date.length === 10)).toBe(true);
+    const final = r.fixtures.at(-1)!;
+    const lastSemi = r.fixtures.filter((f) => f.id !== final.id).map((f) => f.date).sort().pop()!;
+    expect(final.date >= lastSemi).toBe(true);
+  });
+});
+
 describe("fase de grupos", () => {
   // formato antigo da Liga dos Campeões: 32 clubes em 8 grupos, 2 voltas; os dois primeiros passam; 1.º de um grupo contra 2.º de outro
   const old: CompetitionDef = {

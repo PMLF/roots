@@ -1,4 +1,5 @@
 "use client";
+import { useRoundName } from "@/ui/components/competition/CupRounds";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -12,6 +13,7 @@ import { useEngine } from "@/ui/EngineProvider";
 
 function Content() {
   const { t } = useT();
+  const roundName = useRoundName();
   const engine = useEngine();
   const [mine] = useOwnClub();
   const id = useSearchParams().get("id") ?? undefined;
@@ -28,7 +30,7 @@ function Content() {
   const hasTable = match.table.length > 0;
   const own = { id: match.id, home: match.home, away: match.away, a: match.homeGoals, b: match.awayGoals, ...(match.summary?.shootout ? { shootout: { home: match.summary.shootout.home, away: match.summary.shootout.away } } : {}), ...(match.summary?.extraTime ? { extraTime: true } : {}) };
   const rows = [own, ...match.others.map((o) => { const [a, b] = scorerAt(o.goals, o.duration); return { id: o.id, home: o.home, away: o.away, a, b, ...(o.extraTime ? { extraTime: true } : {}), ...(o.shootout ? { shootout: o.shootout } : {}) }; })];
-  const stage = t(hasTable ? "match.round" : "results.cupRound", { n: match.round });
+  const stage = match.cupRound ? roundName(match.cupRound) : t(hasTable ? "match.round" : "results.cupRound", { n: match.round });
   return (
     <section className="pagina-resultados">
       <header className="resultados-topo">

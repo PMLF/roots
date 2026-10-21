@@ -59,7 +59,7 @@ function livePlan(match: LiveMatch, tactic: Tactic, slots: readonly (string | un
  * as opções táticas mudam logo; o onze e o banco só mudam por substituições (um suplente para cima de um titular, ou ao contrário),
  * que se confirmam de uma vez. Quem sai não volta.
  */
-export function TacticInMatch({ match, tactic, onChange, onClose, busy, subsError, onConfirmSubs }: { match: LiveMatch; tactic: Tactic; onChange: (t: Tactic) => void; onClose: () => void; busy: boolean; subsError?: string; onConfirmSubs: (substitutions: Pair[], positions: { player: string; position: Position }[]) => Promise<boolean> }) {
+export function TacticInMatch({ match, tactic, onChange, onClose, onContinue, busy, subsError, onConfirmSubs }: { match: LiveMatch; tactic: Tactic; onChange: (t: Tactic) => void; onClose: () => void; /** Fecha o popup e põe o jogo a andar. */ onContinue: () => void; busy: boolean; subsError?: string; onConfirmSubs: (substitutions: Pair[], positions: { player: string; position: Position }[]) => Promise<boolean> }) {
   const { t } = useT();
   const ref = useRef<HTMLDialogElement>(null);
   const mine = match.teams?.[match.gamerSide ?? "home"] ?? [];
@@ -142,7 +142,7 @@ export function TacticInMatch({ match, tactic, onChange, onClose, busy, subsErro
         onMouseDown={() => setHeld(id)}
         onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
         onDrop={(e) => { e.preventDefault(); setHeld(undefined); const from = e.dataTransfer.getData("text/plain"); if (!from || from === id) return; const to = startOf.get(id); if (startOf.has(from) && to !== undefined) moveTo(from, to); else swap(from, id); }}
-        onClick={() => setSelected(selected === id ? undefined : id)} aria-selected={selected === id} className={`${selected === id ? "escolhido" : ""}${j.injured ? " indisponivel" : ""}`}>
+        onClick={() => setSelected(selected === id ? undefined : id)} aria-selected={selected === id} className={`${selected === id ? "escolhido" : ""}${playerHints.has(id) ? ` dica-${playerHints.get(id)}` : ""}${j.injured ? " indisponivel" : ""}`}>
         <td><EntityLink k="person" id={id}>{j.name}</EntityLink>{original.has(id) && <small className="suave"> · {t("match.subs.in")}</small>}</td>
         <td>{abbreviationPosition(t, slot?.position ?? j.position)}</td>
         <td>{j.stars !== undefined ? <Stars value={j.stars} /> : "?"}</td>
@@ -190,6 +190,7 @@ export function TacticInMatch({ match, tactic, onChange, onClose, busy, subsErro
         </Card>
       </div>
       <p className="suave tatica-aviso">{t("match.tacticWarning")}</p>
+      <div className="acoes-popup"><button type="button" className="primario" disabled={busy || injury.mustReplace} onClick={() => { onContinue(); ref.current?.close(); }}>{t("match.continue")}</button></div>
     </dialog>
   );
 }

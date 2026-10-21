@@ -2,7 +2,8 @@
  * Castigos disciplinares (RZ-106; docs/GAME_ENGINE.md §8). Funções puras: dado o historial de cartões de um jogador numa
  * competição e época e os jogos que o clube já fez, dizem se está suspenso para o próximo.
  *
- * - Amarelos acumulam por competição e época; de `amarelosPorSuspensao` em `amarelosPorSuspensao`, um jogo de suspensão.
+ * - Amarelos acumulam por competição e época; ao 5.º, 9.º, 12.º e 14.º (`yellowThresholds`, como no regulamento das ligas
+ *   portuguesas) cumpre-se um jogo de suspensão. O segundo amarelo do mesmo jogo dá vermelho; o primeiro continua a contar para a acumulação.
  * - Vermelho por segundo amarelo: `segundoAmarelo.jogos`. Vermelho direto: 1 jogo e, com alguma probabilidade, mais
  *   (a duração sai de uma seed por jogo e jogador, por isso é sempre a mesma).
  * - Cumpre-se nos jogos seguintes **do clube na mesma competição**; quem está suspenso não joga nem acumula cartões.
@@ -19,8 +20,8 @@ export type DisciplinaryState = {
   player: string;
   /** Amarelos acumulados nesta competição e época (os que ainda contam para a próxima suspensão incluídos). */
   yellows: number;
-  /** Amarelos que faltam para o próximo jogo de suspensão. */
-  forSuspension: number;
+  /** Amarelos que faltam para o próximo jogo de suspensão (sem valor depois do último limiar). */
+  forSuspension?: number;
   suspended: boolean;
   /** Jogos de castigo por cumprir, contando o próximo (0 se não está suspenso). */
   matchesPerMeet: number;
@@ -64,7 +65,7 @@ export function disciplinaryState(
     for (const c of ownSquad.filter((x) => x.round === round)) {
       if (c.type === "CA") {
         yellows++;
-        if (yellows % p.yellowsPerSuspension === 0) {
+        if (p.yellowThresholds.includes(yellows)) {
           pending++;
           reason = "accumulation";
         }
@@ -77,10 +78,11 @@ export function disciplinaryState(
       }
     }
   }
+  const next = p.yellowThresholds.find((n) => n > yellows);
   return {
     player,
     yellows,
-    forSuspension: p.yellowsPerSuspension - (yellows % p.yellowsPerSuspension),
+    ...(next !== undefined ? { forSuspension: next - yellows } : {}),
     suspended: pending > 0,
     matchesPerMeet: pending,
     ...(pending > 0 && reason ? { reason } : {}),

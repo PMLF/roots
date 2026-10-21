@@ -116,7 +116,7 @@ Cada opção passou a ter **5 níveis** (do extremo da esquerda ao da direita; 3
 **Relatório e registo.** Os cartões entram no `RelatorioJogo` (`cartoes`, amarelos e vermelhos por jogador, minutos até à expulsão, nota, momento-chave «expulsão»). `registoDoJogo` guarda factos `CA` e `CV` (`extra` «2A» no vermelho por segundo amarelo) e os minutos jogados do expulso.
 
 **Castigos** (`src/engine/disciplina/castigos.ts`, `parametros.disciplina`). Derivam dos factos, nada se apaga:
-- amarelos acumulam por competição e época; de 5 em 5, um jogo de suspensão;
+- amarelos acumulam por competição e época; ao 5.º, 9.º, 12.º e 14.º amarelo (regulamento das ligas portuguesas; `discipline.yellowThresholds`), um jogo de suspensão;
 - vermelho por segundo amarelo: 1 jogo; vermelho direto: 1 jogo e, com 35 % de probabilidade, mais um (até 4), sorteado de forma estável por seed, jogo e jogador;
 - cumpre-se nos jogos seguintes **do clube na mesma competição**; quem está suspenso não joga nem acumula cartões; um castigo pendente passa para a época seguinte (`pendenteInicial`).
 

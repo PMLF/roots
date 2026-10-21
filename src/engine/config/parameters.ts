@@ -417,8 +417,8 @@ export type Params = {
   };
   /** Castigos disciplinares (RZ-106; docs/GAME_ENGINE.md §8). Contam por competição e época. */
   discipline: {
-    /** Amarelos acumulados que dão um jogo de suspensão (de 5 em 5). */
-    yellowsPerSuspension: number;
+    /** Amarelos acumulados (na competição e época) em que se cumpre um jogo de suspensão: o 5.º, 9.º, 12.º e 14.º, como no regulamento disciplinar das ligas portuguesas. */
+    yellowThresholds: number[];
     /** Vermelho direto: `jogos` de base; com probabilidade `pMaisUm` mais um jogo, repetido até ao máximo `max`. */
     directRed: { matches: number; morePA: number; max: number };
     /** Vermelho por segundo amarelo: jogos de suspensão. */
@@ -964,7 +964,7 @@ export const DEFAULT_PARAMETERS: Params = {
     form: { base: 1, byRecentMatch: 0.025, window: 14, por90: 0.015, recoveryByDay: 0.02, onReturn: 0.8, min: 0.7, max: 1.1 },
   },
   discipline: {
-    yellowsPerSuspension: 5,
+    yellowThresholds: [5, 9, 12, 14],
     directRed: { matches: 1, morePA: 0.35, max: 4 },
     secondYellow: { matches: 1 },
   },
@@ -1240,7 +1240,7 @@ export function validateParameters(p: Params): string[] {
   if (le.risk.opponentPlayFair.length !== 5) errors.push("lesoes.risco.fairPlayAdversario: 5 níveis");
   if (!(le.form.min < le.form.max && le.form.min <= le.form.onReturn && le.form.onReturn <= le.form.max && le.form.base >= le.form.min && le.form.base <= le.form.max)) errors.push("lesoes.forma: min < max e base/aoRegressar dentro dos limites");
   const dis = p.discipline;
-  if (!(Number.isInteger(dis.yellowsPerSuspension) && dis.yellowsPerSuspension >= 1 && dis.directRed.matches >= 1 && dis.directRed.max >= dis.directRed.matches && dis.directRed.morePA >= 0 && dis.directRed.morePA < 1 && dis.secondYellow.matches >= 1)) errors.push("disciplina: amarelosPorSuspensao inteiro ≥ 1, vermelhoDireto.jogos ≥ 1 ≤ max, 0 ≤ pMaisUm < 1, segundoAmarelo.jogos ≥ 1");
+  if (!(dis.yellowThresholds.length > 0 && dis.yellowThresholds.every((n, i) => Number.isInteger(n) && n >= 1 && (i === 0 || n > (dis.yellowThresholds[i - 1] as number))) && dis.directRed.matches >= 1 && dis.directRed.max >= dis.directRed.matches && dis.directRed.morePA >= 0 && dis.directRed.morePA < 1 && dis.secondYellow.matches >= 1)) errors.push("disciplina: limiares de amarelos inteiros, crescentes e ≥ 1, vermelhoDireto.jogos ≥ 1 ≤ max, 0 ≤ pMaisUm < 1, segundoAmarelo.jogos ≥ 1");
   const t = p.tactic;
   if (!(t.timeWasting.start >= 0 && t.timeWasting.chances >= 0 && t.timeWasting.chances < 1 && t.area.scale > 0 && t.context.min > 0 && t.context.min <= 1 && t.context.max >= 1)) errors.push("tatica: urgencia.inicio ≥ 0, urgencia.oportunidades entre 0 e 1, area.escala > 0, contexto.min entre 0 e 1 e max ≥ 1");
   if (t.fairPlay.cards.length !== 5 || !t.fairPlay.cards.every((x) => x > 0)) errors.push("tatica.fairPlay.cartoes: 5 níveis, multiplicadores > 0");

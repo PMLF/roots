@@ -1,4 +1,5 @@
 "use client";
+import { useRoundName } from "@/ui/components/competition/CupRounds";
 import type { Position } from "@/engine/world/types";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -30,6 +31,7 @@ const isSpeed = (v: unknown): v is number => Number.isInteger(v) && (v as number
 
 function Content() {
   const { t } = useT();
+  const roundName = useRoundName();
   const engine = useEngine();
   const dev = useDevMode();
   const [mine] = useOwnClub();
@@ -193,7 +195,7 @@ function Content() {
   const gf = last?.awayGoals ?? 0;
   return (
     <section className="pagina-jogo">
-      <p className="suave jogo-contexto"><EntityLink k="competition" id={match.competition}>{match.competition}</EntityLink> · {t("match.round", { n: match.round })} · {match.date}</p>
+      <p className="suave jogo-contexto"><EntityLink k="competition" id={match.competition}>{match.competition}</EntityLink> · {match.cupRound ? roundName(match.cupRound) : t("match.round", { n: match.round })} · {match.date}</p>
       <HeaderInfo match={match} />
       <div className="placar" aria-live="polite">
         <span className="placar-equipa placar-casa"><ClubSwatch colours={match.colours?.[match.home.id]} /><EntityLink k="club" id={match.home.id} withoutSwatch>{match.home.name}</EntityLink></span>
@@ -233,7 +235,7 @@ function Content() {
       {error && <p className="erro" role="alert">{error}</p>}
       {blocked && !tacticOpen && <p className="erro aviso-lesao" role="alert">{t("match.subs.injuryForced", { name: injury.names.join(" / ") })} <button type="button" className="primario" onClick={openTactic}>{t("match.subs.replace")}</button></p>}
       {halfTime && ongoing && <HalfTime match={match} onTactic={halfTimeTactic} onContinue={secondHalf} />}
-      {tacticOpen && ongoing && match.tactic && <TacticInMatch match={match} tactic={match.tactic} onChange={(x) => void changeTactic(x)} onClose={closeTactic} busy={changing} {...(subsError ? { subsError } : {})} onConfirmSubs={confirmSubs} />}
+      {tacticOpen && ongoing && match.tactic && <TacticInMatch match={match} tactic={match.tactic} onChange={(x) => void changeTactic(x)} onClose={closeTactic} onContinue={() => { beforeRan.current = true; }} busy={changing} {...(subsError ? { subsError } : {})} onConfirmSubs={confirmSubs} />}
       <div className="separadores" role="tablist" aria-label={t("match.tabs")}>
         {TABS.map((x) => (
           <button key={x} type="button" role="tab" id={`sep-${x}`} aria-selected={tab === x} aria-controls={`pn-${x}`} onClick={() => { setTab(x); save("raizes.matchTab", x); }}>{t(`match.tab.${x}` as Key)}</button>

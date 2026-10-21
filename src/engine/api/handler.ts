@@ -1,3 +1,4 @@
+import { cupRoundTag } from "../competition/cup";
 import { interestedClubs } from "../market/interest";
 import { setBudget, clubBudget } from "../club/budget";
 import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
@@ -19,9 +20,10 @@ import { generateWorld } from "../world/generateWorld";
 import { importCountries, type Country } from "../world/countries";
 import { validateWorld } from "../world/validate";
 import { worldCompetitions, labMatch, labLeague } from "../lab/lab";
+import { dismissCelebration, pendingCelebration } from "../season/titles";
 import { inbox, markInboxRead, markMessage, news } from "../news/news";
 import { clubSeason } from "../competition/clubSeason";
-import { readLiveMatch, type LivePlayer } from "../season/liveMatch";
+import { readLiveMatch, type LiveMatch, type LivePlayer } from "../season/liveMatch";
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
 import { acceptOffer, resign, isUnemployed, gamerOffers } from "../season/coachMarket";
@@ -343,7 +345,8 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       // um jogo a decorrer tem prioridade (sem id, ou com o id desse jogo)
       const ongoing = currentSession(repository, data, params);
       const live = ongoing && (!m.input.id || m.input.id === ongoing.id) ? ongoing : readLiveMatch(repository, m.input.id);
-      return live ? withStars(repository, data, params, live) : live;
+      if (!live) return live;
+      return decorateLive(repository, data, params, live);
     }
     case "news": {
       const { repository, data } = await context(servicos);
@@ -364,6 +367,16 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const bid = bids(repository).map((b) => bidViewOf(repository, data, params, b)).find((v) => (v.stage === "club" || v.stage === "agent") && !v.pending && !v.closed);
       if (bid) out.bid = { person: bid.person };
       return out;
+    }
+    case "celebration": {
+      const { repository } = await context(servicos);
+      const c = pendingCelebration(repository);
+      return c ? { competition: c.competition, season: c.season, cup: c.cup, clinched: c.clinched } : null;
+    }
+    case "dismissCelebration": {
+      const { repository } = await context(servicos);
+      dismissCelebration(repository);
+      return null;
     }
     case "markInboxRead": {
       const { repository } = await context(servicos);
@@ -481,11 +494,11 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const club = repository.meta("gamer.club");
       if (!club) throw new Error("Escolhe um clube primeiro");
       if (m.input.strict) requireReadyLineup(repository, data, params, club);
-      return startSession(repository, data, params, club, m.input.match);
+      return decorateLive(repository, data, params, startSession(repository, data, params, club, m.input.match));
     }
     case "matchStep": {
       const { repository, data, params } = await context(servicos);
-      return sessionStep(repository, data, params, m.input.minutes);
+      return decorateLive(repository, data, params, sessionStep(repository, data, params, m.input.minutes));
     }
     case "setBudget": {
       const { repository, data, params } = await context(servicos);
@@ -497,11 +510,11 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     }
     case "tacticInMatch": {
       const { repository, data, params } = await context(servicos);
-      return changeSessionTactic(repository, data, params, m.input.tactic);
+      return decorateLive(repository, data, params, changeSessionTactic(repository, data, params, m.input.tactic));
     }
     case "substitutionsInMatch": {
       const { repository, data, params } = await context(servicos);
-      return substituteSession(repository, data, params, m.input.substitutions, m.input.positions ?? []);
+      return decorateLive(repository, data, params, substituteSession(repository, data, params, m.input.substitutions, m.input.positions ?? []));
     }
     case "timeState": {
       const { repository, data, params } = await context(servicos);
@@ -806,6 +819,12 @@ function ownProfile(r: Repository, view: View, id: string): PersonProfile | unde
   const attributes = { ...fresh, observations: 1, labels: [], fields: Object.fromEntries(Object.entries(player.attributes).map(([k, v]) => [k, estimate(v as number, 0)])) };
   const potential = { ...fresh, observations: 1, labels: [], fields: { potential: estimate(player.potential, 1) } };
   return { ...base, attributes, potential };
+}
+
+/** O jogo ao vivo tal como a interface o vê: com a ronda da taça e o nível (estrelas) dos teus jogadores. */
+function decorateLive(r: Repository, data: BaseData, params: Params, live: LiveMatch): LiveMatch {
+  const tag = cupRoundTag(r, live.competition, currentSeason(r), live.round);
+  return withStars(r, data, params, tag ? { ...live, cupRound: tag } : live);
 }
 
 /** Estrelas de nível dos jogadores do clube do gamer no jogo (ajudam a decidir substituições). */

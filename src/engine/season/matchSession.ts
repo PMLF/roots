@@ -21,6 +21,8 @@ import { seasonData } from "./seasonPyramid";
 import { rivalEvent, rivalReason } from "./rivals";
 import { readPlan, validateTactic } from "./gamePlan";
 import { prepareSeason } from "./prepare";
+import { clinchTitles } from "./titles";
+import { hasNoTable } from "./competitions";
 
 type Change = { minute: number; tactic: Tactic };
 /** Uma substituição do gamer. `pausa`: número da paragem que a trouxe (0 = intervalo, que não gasta pausas). */
@@ -139,7 +141,8 @@ export function startSession(repo: Repository, base: BaseData, params: Params, g
     const r = playMatch({ seed, id: o.id, home: ec, away: ef, ...inputFlags(o), ...carryFor(repo, o) }, 1, { id: o.id, competition: o.competition, season, round: o.round, date: today }, params);
     others.push({ id: o.id, home: { id: o.home, name: names.get(o.home) ?? o.home }, away: { id: o.away, name: names.get(o.away) ?? o.away }, duration: r.report.duration, goals: r.report.goals.map((x) => ({ minute: x.minute, side: x.side })), homeGoals: r.report.homeGoals, awayGoals: r.report.awayGoals, ...(r.report.extraTime ? { extraTime: true } : {}), ...(r.report.shootout ? { shootout: { home: r.report.shootout.home, away: r.report.shootout.away } } : {}) });
   }
-  const table = g.knockout ? [] : beforeTable(repo, g.competition, season, names);
+  // as taças não têm tabela (a 1.ª mão das meias-finais não é «knockout» mas também não tem classificação)
+  const table = g.knockout || hasNoTable(g.competition) ? [] : beforeTable(repo, g.competition, season, names);
   const shown = [g.home, g.away, ...table.map((l) => l.club), ...others.flatMap((o) => [o.home.id, o.away.id])];
   const flags = flagsOf(g);
   const s: SavedSession = {
@@ -262,6 +265,7 @@ function finish(repo: Repository, data: BaseData, params: Params, s: SavedSessio
       colours: s.colours, ...(s.tiers ? { tiers: s.tiers } : {}), ...(s.zones ? { zones: s.zones } : {}), summary, teams: matchTeams(s.input, r.events, r.report, personName), xg: xgCurve(r.events, r.report.duration), ...(s.meetings ? { meetings: s.meetings } : {}), ...(s.info ? { info: s.info } : {}), gamerSide: s.side,
     };
     saveLiveMatch(repo, match);
+    clinchTitles(repo, data, params, s.season, s.date);
     repo.setMeta(SESSION_KEY, "");
     return match;
   });

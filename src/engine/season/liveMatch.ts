@@ -183,6 +183,8 @@ export type LiveMatch = {
   info?: MatchInfo;
   /** Quantos sobem e descem nesta competição (para as zonas da tabela). */
   zones?: { promoted: number; relegated: number; europe?: { rank: number; championsLeague: number; championsQualifying: number; europaLeague: number; conferenceLeague: number } };
+  /** Taças: a ronda do jogo («Final», «Meias-finais · 1.ª mão»…); as ligas usam a jornada. */
+  cupRound?: { key: string; n: number; leg?: 1 | 2 };
   /** De que lado joga o clube do gamer. */
   gamerSide?: Side;
   /** Só ao vivo (RZ-170): o jogo está a decorrer, no minuto indicado, com esta tática do lado do gamer. */
