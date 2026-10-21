@@ -133,9 +133,11 @@ describe("avançar no tempo (época inteira)", () => {
     const first = (await handle({ id: 20, type: "clubs", input: null }, s))[0]!;
     const fc = (await handle({ id: 21, type: "clubProfile", input: { id: first.id } }, s))!;
     const city = (await handle({ id: 22, type: "cityProfile", input: { id: fc.city.id } }, s))!;
-    expect(city.historyPopulation.map((p) => p.label)).toEqual(["2026/27", "2027/28"]);
+    // 10 épocas de pré-história + as 2 jogadas
+    expect(city.historyPopulation.map((p) => p.label).slice(-2)).toEqual(["2026/27", "2027/28"]);
+    expect(city.historyPopulation).toHaveLength(12);
     expect(city.indicators).toHaveLength(6);
-    for (const i of city.indicators) { expect(i.level).toBeGreaterThanOrEqual(1); expect(i.level).toBeLessThanOrEqual(5); expect(i.history).toHaveLength(2); }
+    for (const i of city.indicators) { expect(i.level).toBeGreaterThanOrEqual(1); expect(i.level).toBeLessThanOrEqual(5); expect(i.history).toHaveLength(12); }
     expect(city.clubs.some((c) => c.ref.id === first.id)).toBe(true);
     expect(repo.count("CITY_SEASON")).toBe(276);
     const world = await handle({ id: 23, type: "news", input: { scope: "world", limit: 300 } }, s);
