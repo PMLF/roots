@@ -14,7 +14,7 @@ import { currentSeason, savePyramid, initialPyramid } from "./seasonPyramid";
 
 export const promotionGroupName = (series: string) => `Fase de Promoção ${series}`;
 
-export const worldLeagues = (data: BaseData): LeagueDefinition[] => {
+const worldLeagues = (data: BaseData): LeagueDefinition[] => {
   const m = new Map<string, LeagueDefinition>();
   for (const c of data.clubs) if (!isInSecondDistrict(c.league)) (m.get(c.league) ?? m.set(c.league, { competition: c.league, tier: c.tier as Tier, clubs: [] }).get(c.league)!).clubs.push(c.id);
   return [...m.values()];

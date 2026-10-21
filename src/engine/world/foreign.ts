@@ -16,7 +16,7 @@ export type ForeignClub = {
   /** Capacidade do estádio. */ capacity: number;
 };
 
-export const FOREIGN_PREFIX = "x-";
+const FOREIGN_PREFIX = "x-";
 export const isForeignClub = (id: string | undefined): boolean => id !== undefined && id.startsWith(FOREIGN_PREFIX);
 
 const FORMS = ["FC", "Atlético", "Sporting", "Real", "Dínamo", "Unión", "Racing", "Olímpico"];
@@ -25,11 +25,11 @@ const MIDDLE = ["a", "e", "i", "o", "u", "an", "el", "or", "en"];
 const END = ["mara", "vento", "burgo", "lia", "nova", "dena", "ria", "stad", "gora", "sena", "pol", "mont"];
 
 /** Países com clubes estrangeiros: os que a configuração lista e existem nos dados (sem Portugal). */
-export const foreignCountries = (countries: readonly Country[], params: Params): Country[] =>
+const foreignCountries = (countries: readonly Country[], params: Params): Country[] =>
   countries.filter((c) => c.id !== "pt" && params.world.foreignLeagues.clubs[c.id] !== undefined).sort((a, b) => b.tradition - a.tradition || (a.id < b.id ? -1 : 1));
 
 /** Escalão dos plantéis de um país conforme a tradição. */
-export const foreignTier = (country: Country): Tier => (country.tradition >= 85 ? "firstLeague" : country.tradition >= 65 ? "secondLeague" : "thirdLeague");
+const foreignTier = (country: Country): Tier => (country.tradition >= 85 ? "firstLeague" : country.tradition >= 65 ? "secondLeague" : "thirdLeague");
 
 const PALETTE = ["Vermelho", "Azul", "Verde", "Amarelo", "Preto", "Laranja", "Roxo", "Azul-marinho", "Castanho", "Branco", "Dourado", "Grená"];
 

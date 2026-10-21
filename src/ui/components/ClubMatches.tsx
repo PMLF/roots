@@ -1,30 +1,21 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
-import type { CompetitionPage } from "@/engine/api/contracts";
+import { useMemo } from "react";
 import { Card } from "@/ui/components/Card";
 import { EntityLink } from "@/ui/components/Link";
 import { Table } from "@/ui/components/Table";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useEngine } from "@/ui/EngineProvider";
+import { useEngineLoad } from "@/ui/useEngineLoad";
 import { clubMatches, type MatchLine as Line } from "@/ui/clubMatches";
 import type { Column } from "@/ui/table/logic";
 
 /** Calendário e resultados de um clube na sua liga; usado na página Jogos e no separador Jogos da ficha do clube. */
 export function ClubMatches({ club, league }: { club: string; league?: string }) {
-  const engine = useEngine();
   const { t } = useT();
-  const [page, setPage] = useState<CompetitionPage | null | undefined>(undefined);
-  useEffect(() => {
-    if (!engine) return;
-    let live = true;
-    (async () => {
-      const name = league ?? (await engine.call("clubProfile", { id: club }))?.league;
-      const p = name ? await engine.call("competitionPage", { league: name }) : null;
-      if (live) setPage(p);
-    })().catch(() => live && setPage(null));
-    return () => { live = false; };
-  }, [engine, club, league]);
+  const page = useEngineLoad(async (engine) => {
+    const name = league ?? (await engine.call("clubProfile", { id: club }))?.league;
+    return name ? engine.call("competitionPage", { league: name }) : null;
+  }, [club, league]);
   const lines = useMemo(() => (page ? clubMatches(page, club) : []), [page, club]);
   const columns: Column<Line>[] = [
     { id: "round", title: t("matches.round"), value: (l) => l.round, numeric: true },

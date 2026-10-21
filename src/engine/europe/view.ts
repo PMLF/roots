@@ -12,8 +12,8 @@ import { foreignClubList } from "../squad/foreign";
 import { europeKind } from "./europe";
 import type { CupMatchView, CupRoundView } from "../competition/cup";
 
-export type EuropeZone = "direct" | "playoff" | "out";
-export type EuropeRow = { club: string; name: string; country?: string; played: number; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number; points: number; zone: EuropeZone };
+type EuropeZone = "direct" | "playoff" | "out";
+type EuropeRow = { club: string; name: string; country?: string; played: number; won: number; drawn: number; lost: number; goalsFor: number; goalsAgainst: number; points: number; zone: EuropeZone };
 export type EuropeView = {
   competition: string;
   season: number;

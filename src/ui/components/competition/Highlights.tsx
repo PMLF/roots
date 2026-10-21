@@ -25,45 +25,6 @@ const player = (p: Player | undefined, fmt?: (v: number) => string) =>
   p ? <><EntityLink k="person" id={p.player}>{p.name}</EntityLink> <b>{fmt ? fmt(p.value) : p.value}</b></> : <span className="suave">—</span>;
 const team = (c: Team | undefined) => (c ? <><EntityLink k="club" id={c.club}>{c.name}</EntityLink> <b>{c.value}</b></> : <span className="suave">—</span>);
 
-export function PlayersList({ title, items, fmt }: { title: string; items: Player[]; fmt?: (v: number) => string }) {
-  const { t } = useT();
-  return (
-    <section className="bloco-lista">
-      <h3>{title}</h3>
-      {items.length === 0 ? (
-        <p className="vazio">{t("highlights.noData")}</p>
-      ) : (
-        <ol className="destaque-lista">
-          {items.map((p) => (
-            <li key={p.player}>
-              <span><EntityLink k="person" id={p.player}>{p.name}</EntityLink> <span className="suave">· <EntityLink k="club" id={p.club}>{p.clubName}</EntityLink></span></span>
-              <b>{fmt ? fmt(p.value) : p.value}</b>
-            </li>
-          ))}
-        </ol>
-      )}
-    </section>
-  );
-}
-
-export function TeamsList({ title, items }: { title: string; items: Team[] }) {
-  const { t } = useT();
-  return (
-    <section className="bloco-lista">
-      <h3>{title}</h3>
-      {items.length === 0 ? (
-        <p className="vazio">{t("highlights.noData")}</p>
-      ) : (
-        <ol className="destaque-lista">
-          {items.map((c) => (
-            <li key={c.club}><span><EntityLink k="club" id={c.club}>{c.name}</EntityLink></span><b>{c.value}</b></li>
-          ))}
-        </ol>
-      )}
-    </section>
-  );
-}
-
 /**
  * Cartão horizontal e baixo, sem título, com o primeiro de cada estatística. Carregar nele (ou em «Ver mais») leva ao
  * separador Estatísticas da mesma página, onde há espaço para as listas completas.

@@ -4,7 +4,7 @@
  *  - estimado:    ≈ 14-16   (intervalo da Vista, arredondado às unidades)
  *  - desatualizado: ≈ 14-16 · visto há 2 épocas
  */
-export type State = "exact" | "estimated" | "outdated";
+type State = "exact" | "estimated" | "outdated";
 
 export type ShownValue = { state: State; text: string; sinceSeasons?: number };
 

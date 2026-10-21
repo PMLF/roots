@@ -16,7 +16,7 @@ export type NewsItemType =
   | "outcome" | "injury" | "resignation" | "sacked" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer" | "bid_agreed" | "bid_rejected" | "bid_progress" | "youth_intake" | "local_talent" | "market_open" | "market_close"
   | "europe_qualified" | "europe_draw" | "europe_phase" | "europe_qualifier";
 
-export type NewsItemLink = { k: "club" | "person" | "locality" | "competition" | "city"; id: string; name: string };
+type NewsItemLink = { k: "club" | "person" | "locality" | "competition" | "city"; id: string; name: string };
 
 export type NewsItem = {
   /** Id do evento que a originou. */
@@ -65,7 +65,7 @@ type Context = {
 const LOCAL_TIER: Record<string, string> = { first: "firstLeague", second: "secondLeague", third: "thirdLeague" };
 
 /** Nome da divisão a partir do código de `movimentos.ts` (primeira, cp-A, district-Braga). */
-export function localName(local: string, data: BaseData): string {
+function localName(local: string, data: BaseData): string {
   if (local.startsWith("cp-")) return `CP Série ${local.slice(3)}`;
   if (local.startsWith("district-")) {
     const d = local.slice(10);

@@ -7,10 +7,9 @@ import type { Rng } from "../random/rng";
 import { clamp } from "../random/rng";
 import type { Params } from "../config/parameters";
 
-export const INJURY_TYPES = ["knock", "muscular", "sprain", "tendon", "ligaments", "fracture"] as const;
-export type InjuryType = (typeof INJURY_TYPES)[number];
+export type InjuryType = "knock" | "muscular" | "sprain" | "tendon" | "ligaments" | "fracture";
 /** 1 ligeira · 2 moderada · 3 grave · 4 muito grave · 5 gravíssima. */
-export type Severity = 1 | 2 | 3 | 4 | 5;
+type Severity = 1 | 2 | 3 | 4 | 5;
 
 export type Injury = { type: InjuryType; severity: Severity; /** Dias de paragem. */ days: number; relapse: boolean };
 

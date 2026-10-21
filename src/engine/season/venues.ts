@@ -9,7 +9,7 @@ export const NATIONAL_STADIUM = "national";
 
 export type Stadium = { name: string; locality: string; capacity: number };
 
-export const nationalStadium = (params: Params): Stadium => params.cups.nationalStadium;
+const nationalStadium = (params: Params): Stadium => params.cups.nationalStadium;
 
 /** O estádio de um local de jogo neutro: o nacional ou o de um clube. */
 export function venueStadium(data: BaseData, params: Params, venue: string): Stadium | undefined {

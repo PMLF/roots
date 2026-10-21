@@ -29,7 +29,7 @@ export type FinalStandings = {
   promotionPhasePromoted: { club: ClubId; series: CpSeries }[];
 };
 
-export type Local = "first" | "second" | "third" | `cp-${CpSeries}` | `district-${DistrictId}`;
+type Local = "first" | "second" | "third" | `cp-${CpSeries}` | `district-${DistrictId}`;
 
 export type Movement = { club: ClubId; from: Local; to: Local; reason: "rise" | "relegation" | "promotion" };
 

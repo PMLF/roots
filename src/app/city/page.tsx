@@ -1,25 +1,16 @@
 "use client";
-import { Suspense, useEffect, useState } from "react";
-import type { CityProfileData } from "@/engine/api/contracts";
+import { Suspense } from "react";
 import { WithClub } from "@/ui/components/WithClub";
 import { CityProfile } from "@/ui/components/profiles/CityProfile";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { useEngine } from "@/ui/EngineProvider";
+import { useEngineLoad } from "@/ui/useEngineLoad";
 
 function Content({ club }: { club: string }) {
-  const engine = useEngine();
   const { t } = useT();
-  const [d, setD] = useState<CityProfileData | null | undefined>(undefined);
-  useEffect(() => {
-    if (!engine) return;
-    let live = true;
-    (async () => {
-      const c = await engine.call("clubProfile", { id: club });
-      const city = c ? await engine.call("cityProfile", { id: c.city.id }) : null;
-      if (live) setD(city);
-    })().catch(() => live && setD(null));
-    return () => { live = false; };
-  }, [engine, club]);
+  const d = useEngineLoad(async (engine) => {
+    const c = await engine.call("clubProfile", { id: club });
+    return c ? engine.call("cityProfile", { id: c.city.id }) : null;
+  }, [club]);
   if (d === undefined) return <p>{t("profile.loading")}</p>;
   if (d === null) return <p className="erro">{t("profile.notFound")}</p>;
   return <CityProfile d={d} />;

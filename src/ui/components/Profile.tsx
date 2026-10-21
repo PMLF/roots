@@ -5,8 +5,8 @@ import { useT } from "@/ui/i18n/LocaleProvider";
 import type { Key } from "@/ui/i18n";
 import { TABS, TAB_URL, urlTab, type ProfileEntityType } from "@/ui/links";
 
-export type NumberValue = { label: string; value: ReactNode };
-export type Tabs = Partial<Record<string, ReactNode>>;
+type NumberValue = { label: string; value: ReactNode };
+type Tabs = Partial<Record<string, ReactNode>>;
 
 type Props = {
   type: ProfileEntityType;

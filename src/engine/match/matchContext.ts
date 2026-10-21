@@ -7,7 +7,7 @@ import { Rng } from "../random/rng";
 import type { Tier } from "../config/parameters";
 import { generateName } from "../world/names";
 
-export type BroadcastMiddle = "tv" | "streaming" | "radio";
+type BroadcastMiddle = "tv" | "streaming" | "radio";
 export type BroadcastChannel = { name: string; middle: BroadcastMiddle };
 
 /** O árbitro do jogo: sempre o mesmo para o mesmo save e jogo. */

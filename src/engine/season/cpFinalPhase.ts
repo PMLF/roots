@@ -13,10 +13,10 @@ import { matchWinner, type IsoDate, type ScheduledMatch } from "../persistence/t
 import { SERIES } from "./movements";
 import { NATIONAL_STADIUM } from "./venues";
 
-export const CP_FINAL_SEMI_COMPETITION = "CP Meias-Finais";
+const CP_FINAL_SEMI_COMPETITION = "CP Meias-Finais";
 export const CP_FINAL_COMPETITION = "CP Final";
 export const CP_FINAL_PHASE_COMPETITIONS = [CP_FINAL_SEMI_COMPETITION, CP_FINAL_COMPETITION] as const;
-export const finalPhaseMatchId = (season: number, round: "semi1" | "semi2" | "final") => `e${season}-cp-fase-final-${round}`;
+const finalPhaseMatchId = (season: number, round: "semi1" | "semi2" | "final") => `e${season}-cp-fase-final-${round}`;
 
 export type SeriesChampion = { series: CpSeries; club: ClubId; matches: number; points: number; difference: number; scoredGoals: number; reputation: number };
 

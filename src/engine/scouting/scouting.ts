@@ -17,7 +17,7 @@ import { currentQuality } from "../world/player";
 import { isForeignClub } from "../world/foreign";
 import type { Attributes, Position } from "../world/types";
 
-export type OrderKind = "week" | "month" | "search";
+type OrderKind = "week" | "month" | "search";
 export type ScoutOrder = {
   id: number;
   kind: OrderKind;
@@ -81,7 +81,7 @@ export function isVisible(seed: string, season: number, club: string, count: num
   return unit(seed, `scouting/${club}/${season}/${j.person}`) < p;
 }
 
-export const orderCost = (repo: Repository, params: Params, o: OrderInput): number => {
+const orderCost = (repo: Repository, params: Params, o: OrderInput): number => {
   const c = params.scouting.cost;
   if (o.kind === "search") return c.search;
   const foreign = o.person ? isForeignClub(repo.player(o.person)?.club) : false;

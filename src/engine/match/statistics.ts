@@ -9,7 +9,7 @@ import type { Position } from "../world/types";
 import type { Injury } from "../injuries/injury";
 import { otherSide, type MatchInput, type MatchTeam, type MatchEvent, type SideStat, type Side, type Origin, type MatchSummary, type Shootout } from "./types";
 
-export type PlayerStat = {
+type PlayerStat = {
   id: string;
   side: Side;
   club: string;
@@ -37,7 +37,7 @@ export type PlayerStat = {
 export type MatchGoal = { minute: number; side: Side; player: string; assistant?: string; origin: Origin; homeGoals: number; awayGoals: number };
 
 /** O que o golo mudou no marcador, do ponto de vista de quem marcou. «Reviravolta» = passa para a frente depois de ter estado a perder. */
-export type GoalContext = "opening" | "draw" | "turnaround" | "lead" | "reduction" | "extended";
+type GoalContext = "opening" | "draw" | "turnaround" | "lead" | "reduction" | "extended";
 
 export type MomentKey =
   | { type: "goal"; minute: number; side: Side; player: string; assistant?: string; origin: Origin; context: GoalContext; homeGoals: number; awayGoals: number }

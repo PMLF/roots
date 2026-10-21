@@ -35,25 +35,23 @@ import { europeDates, europeDef, europeEntrants, europeKind, isEuropean, EUROPE_
 
 export const CUP = "Taça de Portugal";
 export const SUPERCUP = "Supertaça";
-export const DISTRICT_CUP_PREFIX = "Taça Distrital ";
-export const DISTRICT_SUPERCUP_PREFIX = "Supertaça Distrital ";
+const DISTRICT_CUP_PREFIX = "Taça Distrital ";
+const DISTRICT_SUPERCUP_PREFIX = "Supertaça Distrital ";
 export const districtCupName = (district: string) => `${DISTRICT_CUP_PREFIX}${district}`;
 export const districtSupercupName = (district: string) => `${DISTRICT_SUPERCUP_PREFIX}${district}`;
 
 export type CupKind = "cup" | "supercup" | "districtCup" | "districtSupercup" | "europe";
 export const cupKind = (competition: string): CupKind | undefined =>
   competition === CUP ? "cup" : competition === SUPERCUP ? "supercup" : competition.startsWith(DISTRICT_CUP_PREFIX) ? "districtCup" : competition.startsWith(DISTRICT_SUPERCUP_PREFIX) ? "districtSupercup" : europeKind(competition) ? "europe" : undefined;
-/** É uma competição a eliminar gerida aqui (sem tabela). */
-export const isCup = (competition: string): boolean => cupKind(competition) !== undefined;
 const districtOfCup = (competition: string): string => competition.slice((competition.startsWith(DISTRICT_CUP_PREFIX) ? DISTRICT_CUP_PREFIX : DISTRICT_SUPERCUP_PREFIX).length);
 
 /** Número do escalão nos sorteios: 0 = Primeira Liga … 4 = distritais. */
-export const TIER_NUMBER: Record<Tier, number> = { firstLeague: 0, secondLeague: 1, thirdLeague: 2, cp: 3, district: 4 };
+const TIER_NUMBER: Record<Tier, number> = { firstLeague: 0, secondLeague: 1, thirdLeague: 2, cp: 3, district: 4 };
 
 const DRAW: DrawRules = { pairing: "random", advantage: "lowerTier" };
 
 /** A definição de cada tipo de taça: uma só fase a eliminar, a jogo único, com final em campo neutro. */
-export function cupDef(competition: string, lateWaves?: Entrant[][], params?: Params): CompetitionDef {
+function cupDef(competition: string, lateWaves?: Entrant[][], params?: Params): CompetitionDef {
   const eu = europeKind(competition);
   if (eu) {
     if (!params) throw new Error(`${competition}: parameters needed`);
@@ -85,14 +83,14 @@ export function readRun(repo: Repository, season: number, competition: string): 
 const saveRun = (repo: Repository, run: RunState) => repo.setMeta(runKey(run.season, run.id), JSON.stringify(run));
 
 /** Vencedor e finalista de uma taça da época, se já acabou. */
-export function cupResult(repo: Repository, season: number, competition: string): { winner?: string; runnerUp?: string; done: boolean } {
+function cupResult(repo: Repository, season: number, competition: string): { winner?: string; runnerUp?: string; done: boolean } {
   const run = readRun(repo, season, competition);
   if (!run) return { done: false };
   return { done: run.done, ...(run.winner ? { winner: run.winner } : {}), ...(run.runnerUp ? { runnerUp: run.runnerUp } : {}) };
 }
 
 /** Os dois clubes da Supertaça de uma época, fixados no fecho da anterior. */
-export function supercupEntrants(repo: Repository, season: number): [string, string] | undefined {
+function supercupEntrants(repo: Repository, season: number): [string, string] | undefined {
   const raw = repo.meta(supercupKey(season));
   return raw ? (JSON.parse(raw) as [string, string]) : undefined;
 }
@@ -177,7 +175,7 @@ function districtQualifiers(repo: Repository, data: BaseData, params: Params, se
 }
 
 /** Entradas da Taça de Portugal, por vaga (as vagas vazias saem). */
-export function nationalEntrants(repo: Repository, data: BaseData, params: Params, season: number): Entrant[][] {
+function nationalEntrants(repo: Repository, data: BaseData, params: Params, season: number): Entrant[][] {
   const qualifiers = districtQualifiers(repo, data, params, season);
   const clubs = data.clubs.filter((c) => !isInSecondDistrict(c.league) && (c.tier !== "district" || qualifiers.has(c.id)));
   const all = rankedEntrants(clubs);
@@ -202,7 +200,7 @@ export type CupPlan = {
   districtSupercup: IsoDate;
 };
 
-export function readCupPlan(repo: Repository, season: number): CupPlan | undefined {
+function readCupPlan(repo: Repository, season: number): CupPlan | undefined {
   const raw = repo.meta(planKey(season));
   return raw ? (JSON.parse(raw) as CupPlan) : undefined;
 }

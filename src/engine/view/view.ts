@@ -23,7 +23,7 @@ export type ViewContext = {
   season: number;
 };
 
-export const participantKey = (e: Pick<RefEntity, "k" | "id">): string => `${e.k}:${e.id}`;
+const participantKey = (e: Pick<RefEntity, "k" | "id">): string => `${e.k}:${e.id}`;
 
 export class View {
   constructor(

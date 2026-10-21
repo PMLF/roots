@@ -80,7 +80,7 @@ export function labMatch(
   };
 }
 
-export type LeagueLine = {
+type LeagueLine = {
   position: number;
   club: string;
   name: string;

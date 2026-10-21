@@ -3,7 +3,7 @@
  * Só serve para impedir que o gerador as produza por acaso; nunca aparece no jogo.
  * Comparação sem acentos, maiúsculas nem hífenes. Cresce com o conteúdo.
  */
-export const normaliseName = (s: string): string =>
+const normaliseName = (s: string): string =>
   s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[-'’.]/g, " ").replace(/\s+/g, " ").trim();
 
 const BLOCKED = [

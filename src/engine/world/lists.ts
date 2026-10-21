@@ -3,7 +3,7 @@
  * frequente (o gerador favorece o início). Sem dados do FM nem de pessoas reais.
  * `estilo` diz como se monta o nome completo (ver `nomes.ts`).
  */
-export type StyleName = "pt" | "es" | "simple" | "western";
+type StyleName = "pt" | "es" | "simple" | "western";
 export type ListNames = { style: StyleName; own: readonly string[]; surnames: readonly string[] };
 
 const l = (s: string) => s.trim().split(/\s+/);

@@ -5,7 +5,7 @@
 import { compare } from "../calendar/dates";
 import type { IsoDate, ScheduledMatch } from "../persistence/types";
 
-export type RoundState = {
+type RoundState = {
   round: number;
   /** Data prevista (a do primeiro jogo). */
   date: IsoDate;

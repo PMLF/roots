@@ -7,7 +7,7 @@
  */
 import type { Rng } from "../random/rng";
 
-export type Duel = { home: string; away: string };
+type Duel = { home: string; away: string };
 export type Round = { matches: Duel[]; bye?: string };
 
 export function allAgainstAll(clubs: readonly string[], legs: 1 | 2, rng: Rng): Round[] {

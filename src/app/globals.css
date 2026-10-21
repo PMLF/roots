@@ -111,7 +111,7 @@ legend { padding: 0 6px; color: var(--suave); }
 .grafico-xg-caixa .grafico-xg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .intervalo-xg .xg-legenda { justify-content: center; }
 .intervalo-jogo .acoes { justify-content: center; gap: 12px; margin: 0; }
-.intervalo-jogo .acoes button, .subs-jogo .acoes button, .controlos-jogo button { display: inline-flex; align-items: center; gap: 6px; }
+.intervalo-jogo .acoes button, .controlos-jogo button { display: inline-flex; align-items: center; gap: 6px; }
 .ind .ev-icone { width: 15px; height: 15px; }
 .ind-assist { font-size: 11px; border: 1px solid currentColor; border-radius: 3px; padding: 0 3px; line-height: 1.3; }
 .barra b { color: var(--texto); font-weight: 600; }
@@ -122,8 +122,6 @@ legend { padding: 0 6px; color: var(--suave); }
 /* ---- Cartões e página «Hoje» ---- */
 .painel { background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); padding: 16px 18px; }
 .painel > h2:first-child, .painel > h3:first-child { margin-top: 0; }
-.hoje-grelha { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; margin-top: 16px; }
-.hoje-grelha .painel h2 { font-size: 15px; margin: 0 0 8px; }
 
 /* ---- Tabelas ---- */
 .tabela { border-collapse: separate; border-spacing: 0; min-width: 420px; background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); overflow: hidden; font-variant-numeric: tabular-nums; }
@@ -144,7 +142,7 @@ legend { padding: 0 6px; color: var(--suave); }
 .cabecalho:hover:not(:disabled) { background: none; color: var(--texto); }
 
 /* ---- Valores: exato, estimado, desatualizado ---- */
-.valor-exato { font-variant-numeric: tabular-nums; }
+
 .valor-estimado { font-style: italic; color: var(--suave); border-bottom: 1px dotted var(--suave); }
 .valor-desatualizado { font-style: italic; color: var(--suave); opacity: .75; border-bottom: 1px dashed var(--aviso); }
 .valor-nota { color: var(--aviso); font-style: normal; }
@@ -225,8 +223,6 @@ legend { padding: 0 6px; color: var(--suave); }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
-.sr-so { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-
 /* ---- Fichas ricas (RZ-146): topo com cartão de identidade, cartões, atributos, gráfico ---- */
 .ficha-topo { display: grid; gap: 12px; margin: 0 0 18px; }
 .ficha-topo-nome { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; min-width: 0; }
@@ -300,7 +296,7 @@ legend { padding: 0 6px; color: var(--suave); }
 .ficha-topo-cartao .dados > div, .ficha-topo-cartao .dados > div:last-child { border-bottom: 0; padding: 5px 0; }
 .cartao { display: flex; flex-direction: column; }
 .cores { display: inline-flex; align-items: center; gap: 8px; }
-.cores-amostra { width: 28px; height: 14px; border-radius: 3px; border: 1px solid var(--linha-forte); flex: none; }
+
 .menu li.menu-interruptor button { display: flex; align-items: center; gap: 10px; width: 100%; padding: 7px 10px; border: 0; background: none; color: var(--suave); border-radius: var(--r-s); text-align: left; }
 .menu li.menu-interruptor button:hover { background: var(--painel-2); color: var(--texto); }
 .interruptor { margin-left: auto; width: 28px; height: 16px; border-radius: 999px; background: var(--linha-forte); position: relative; flex: none; transition: background .15s; }
@@ -336,11 +332,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .zona-amostra { display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: var(--zona-cor); vertical-align: -1px; }
 .liga-pagina { display: grid; gap: 14px; }
 .liga-pagina > .aviso-previa { margin: 0; }
-.destaque-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; counter-reset: pos; }
-.destaque-lista li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; counter-increment: pos; }
-.destaque-lista li::before { content: counter(pos); color: var(--suave); width: 1.2em; font-variant-numeric: tabular-nums; }
-.destaque-lista li > span { flex: 1; min-width: 0; }
-.destaque-lista b { font-variant-numeric: tabular-nums; }
+
 .jornadas-barra { display: flex; align-items: center; gap: 10px; margin: 6px 0 10px; }
 .jornadas-barra h2 { margin: 0; font-size: 18px; }
 .jornadas-barra .espaco { margin-left: auto; }
@@ -359,7 +351,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .destaque-mosaico { display: flex; flex-direction: column; font-size: 13px; min-width: 0; }
 .destaque-mosaico > .suave { font-size: 12px; }
 .destaque-valor { font-variant-numeric: tabular-nums; overflow: hidden; text-overflow: ellipsis; }
-.bloco-lista h3 { font-size: 13px; margin: 0 0 6px; }
+
 .seletor-ligas { position: relative; display: inline-block; margin: 6px 0 14px; }
 .seletor-ligas > button { border-radius: 999px; padding: 5px 14px; background: var(--painel); }
 .seletor-painel { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; width: min(520px, 90vw); max-height: 65vh; overflow: auto; background: var(--painel); border: 1px solid var(--linha-forte); border-radius: var(--r-m); box-shadow: 0 8px 24px rgba(0, 0, 0, .18); padding: 12px 14px; display: grid; gap: 10px; }
@@ -387,9 +379,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .cartao-destaques-mais { border: 0; background: none; color: var(--destaque-texto); padding: 2px 6px; white-space: nowrap; font-weight: 600; }
 .cartao-destaques-mais:hover { background: none; text-decoration: underline; }
 .estatisticas { display: grid; gap: 14px; }
-.estatisticas-tops { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; align-items: stretch; }
-.estatisticas .destaque-lista li { font-size: 14px; }
-.destaque-lista .detalhe { color: var(--suave); font-size: 12px; margin-left: 6px; }
+
 .cartao-destaques:hover { background: var(--painel-2); border-color: var(--suave); }
 .cartao-destaques:focus-within { border-color: var(--suave); }
 .seletor-lista { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 45vh; overflow: auto; }
@@ -421,7 +411,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 
 .jogo-grelha { display: grid; gap: 1rem; align-items: start; }
 @media (min-width: 900px) { .jogo-grelha { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); } }
-.jogo-lateral { display: grid; gap: 1rem; }
+
 .feed li.feed-outro { opacity: 0.8; font-style: italic; }
 .tabela-viva { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 .tabela-viva th, .tabela-viva td { text-align: left; padding: 0.15rem 0.35rem; }
@@ -557,7 +547,7 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .estat-barra i { display: block; height: 100%; background: color-mix(in srgb, currentColor 55%, transparent); }
 .popup.tatica-jogo { width: min(96vw, 1180px); max-height: 96vh; overflow: auto; padding: 16px 20px; }
 .popup.tatica-jogo h2 { margin-bottom: 8px; }
-.popup.tatica-jogo .subs-listas { margin-bottom: 8px; }
+
 .popup.tatica-jogo .opcoes-tatica-grelha { gap: 8px 16px; }
 /* o campo na janela do jogo é mais baixo: os controlos ocupam o topo */
 .popup.tatica-jogo .tatica-grelha { margin-top: 12px; }
@@ -663,8 +653,7 @@ button.dev { border-style: dashed; }
 .barra-ocupacao i { display: block; height: 100%; background: var(--destaque); }
 .equipa-vivo h4 { font-size: 12px; margin: 8px 0 2px; font-weight: 600; opacity: 0.7; }
 .equipa-vivo ul { list-style: none; margin: 0; padding: 0; }
-.banco-vivo { margin-top: 8px; font-size: 12px; }
-.banco-vivo summary { cursor: pointer; opacity: 0.7; }
+
 .jogador-vivo { display: grid; grid-template-columns: 2.2rem 2.2rem minmax(0, 1fr) auto; gap: 6px; align-items: center; padding: 2px 0; border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent); font-size: 13px; }
 .jogador-vivo .pos { font-size: 11px; opacity: 0.65; }
 .jv-nome { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -689,23 +678,10 @@ button.dev { border-style: dashed; }
 .contador-barras i { display: block; width: 16px; height: 6px; border-radius: 2px; }
 .contador-barras .free { background: var(--destaque); }
 .contador-barras .gasta { background: var(--linha-forte); }
-.subs-jogo { min-width: 0; }
-.subs-jogo h3 { margin: 0 0 6px; font-size: 13px; color: var(--suave); font-weight: 600; }
-.subs-dica { text-align: center; max-width: none; margin: 0 0 8px; font-size: 13px; }
-.subs-listas { display: grid; gap: 18px; margin-bottom: 12px; }
-@media (min-width: 640px) { .subs-listas { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
-.subs-listas ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 34vh; overflow-y: auto; }
-.subs-jogador { display: grid; grid-template-columns: auto 2.4rem minmax(0, 1fr) auto; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 5px 10px; font-size: 13px; }
-.subs-listas section:nth-child(2) .subs-jogador { grid-template-columns: 2.4rem minmax(0, 1fr) auto; }
-.subs-jogador.escolhido { border-color: var(--destaque); background: var(--destaque-fundo); }
-.subs-nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.subs-apt { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--suave); }
-.subs-apt.fraca { color: #d32f2f; }
-.nota-pequena { font-variant-numeric: tabular-nums; font-size: 12px; min-width: 2rem; }
+
 .subs-pares { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; font-size: 13px; }
 .subs-pares li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 4px 10px; border-radius: var(--r-s); background: linear-gradient(135deg, color-mix(in srgb, #1a7f37 18%, transparent), color-mix(in srgb, #d32f2f 18%, transparent)); }
 .subs-pares .ligacao-botao { margin-left: auto; }
-.subs-jogo .acoes { justify-content: flex-end; gap: 12px; }
 
 /* Controlos do jogo fixos no canto de cima à direita */
 .controlos-fixos { position: fixed; top: 14px; right: 24px; z-index: 6; display: flex; align-items: center; gap: 6px; padding: 5px; background: color-mix(in srgb, var(--painel) 92%, transparent); backdrop-filter: blur(6px); border: 1px solid var(--linha-forte); border-radius: 999px; box-shadow: 0 6px 20px rgba(0, 0, 0, .22); }
@@ -723,17 +699,6 @@ button.dev { border-style: dashed; }
 .popup-fechar { position: absolute; top: 10px; right: 10px; display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: 999px; background: none; color: var(--suave); }
 .popup-fechar:hover:not(:disabled) { background: var(--painel-2); color: var(--texto); }
 
-/* Semáforo das substituições */
-.semaforo { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--suave); }
-.apt-good .semaforo { background: #1a9f4a; }
-.apt-average .semaforo { background: #e0b100; }
-.apt-bad .semaforo { background: #d32f2f; }
-.subs-jogador.apt-good { border-color: color-mix(in srgb, #1a9f4a 70%, transparent); background: color-mix(in srgb, #1a9f4a 14%, transparent); }
-.subs-jogador.apt-average { border-color: color-mix(in srgb, #e0b100 70%, transparent); background: color-mix(in srgb, #e0b100 14%, transparent); }
-.subs-jogador.apt-bad { border-color: color-mix(in srgb, #d32f2f 60%, transparent); background: color-mix(in srgb, #d32f2f 12%, transparent); }
-.subs-jogador[draggable="true"] { cursor: grab; }
-.subs-listas section:nth-child(2) .subs-jogador { grid-template-columns: 2.4rem minmax(0, 1fr) auto; }
-
 /* Durante o jogo o rodapé reduz-se ao fio de progresso */
 .barra-jogo { padding: 0; min-height: 0; height: 4px; border-top: 0; }
 .barra-jogo > :not(.progresso-jogo) { display: none; }
@@ -747,7 +712,6 @@ button.dev { border-style: dashed; }
 .alterna-banco[aria-checked="true"] .alterna-pista { background: var(--destaque); }
 .alterna-banco[aria-checked="true"] .alterna-pista::after { transform: translateX(12px); }
 @media (prefers-reduced-motion: reduce) { .alterna-pista, .alterna-pista::after { transition: none; } }
-
 
 /* Topo do jogo: competição, estádio, árbitro, resultado, minuto, contadores, botões */
 .pagina-jogo .jogo-contexto { margin: 8px 0 2px; }
@@ -765,9 +729,7 @@ button.dev { border-style: dashed; }
 .estrela-full { color: var(--destaque); }
 .estrela-half { background: linear-gradient(90deg, var(--destaque) 50%, var(--linha, #c9ced6) 50%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
 .estrela-maybe { color: var(--destaque); opacity: .38; }
-.estrelas-intervalo { margin-left: .4em; color: var(--suave); font-size: .85em; }
 
-/* Renovações (RZ-165) */
 /* Plantel: lesionados com a linha avermelhada e uma cruz vermelha ao lado do nome; bandeiras */
 .tabela tr.lesionado td { background: color-mix(in srgb, #d33 11%, transparent); }
 .lesao { color: #d12b2b; font-weight: 700; }
@@ -811,8 +773,7 @@ button.dev { border-style: dashed; }
 .renovacao-form label { display: grid; gap: 4px; }
 .renovacao-form label > span { font-size: 13px; color: var(--suave); }
 .renovacao-form input[type="number"], .renovacao-form select { width: 100%; }
-.renovacao-form .caixa-marcar { display: flex; align-items: center; gap: 8px; }
-.renovacao-form .caixa-marcar > span { font-size: 14px; color: var(--texto); }
+
 .renovacao-form label.alterado input, .renovacao-form label.alterado select { border-color: var(--atencao); background: var(--atencao-fundo); }
 .renovacao-form label.alterado > span { color: var(--atencao); font-weight: 600; }
 .alterado-nota { color: var(--atencao); }
@@ -847,11 +808,8 @@ select:disabled { cursor: default; }
 .tabela[style*="table-layout"] td { overflow: hidden; text-overflow: ellipsis; }
 
 /* Scouting (RZ-230): pedido de pesquisa numa só linha e opções de observação */
-.formulario.linha-filtros { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 8px 0; }
-.linha-filtros label { display: grid; gap: 4px; }
-.linha-filtros label.caixa { display: flex; align-items: center; gap: 6px; padding-bottom: 8px; }
-.linha-filtros input[type="number"] { width: 6.5rem; }
-.linha-filtros input[type="checkbox"], .tabela-barra input[type="checkbox"] { width: auto; height: auto; margin: 0; }
+
+.tabela-barra input[type="checkbox"] { width: auto; height: auto; margin: 0; }
 .opcao-linha { display: flex !important; gap: 10px; align-items: flex-start; padding: 8px 0; }
 .opcao-linha input { width: auto; margin-top: 4px; }
 .formulario .acoes-popup { justify-content: flex-end; } .formulario .acoes-popup button { width: auto; }
@@ -1034,10 +992,6 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .tabela-onze td:first-child { white-space: nowrap; }
 .tabela-onze tr.escolhido td { background: color-mix(in srgb, var(--cor-destaque, #1a7f37) 16%, transparent); }
 .tabela-onze tr.indisponivel td:first-child { text-decoration: line-through; }
-.halo-amostra { display: inline-block; width: 10px; height: 10px; border-radius: 50%; vertical-align: -1px; }
-.halo-amostra.verde { background: #34d058; }
-.halo-amostra.amarelo { background: #ffd33d; }
-.halo-amostra.vermelho { background: #ff4d4f; }
 
 /* Cartão pequeno que o rato arrasta ao mover um jogador (RZ-249); fica fora do ecrã só para o browser o fotografar */
 .arrasto-cartao { position: fixed; top: 0; left: -9999px; width: 78px; border: 1px solid rgb(0 0 0 / 0.45); border-radius: 6px; overflow: hidden; background: #fff; color: #111; font: 11px/1.15 system-ui, sans-serif; box-shadow: 0 4px 10px rgb(0 0 0 / 0.35); }

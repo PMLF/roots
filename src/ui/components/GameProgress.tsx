@@ -23,11 +23,6 @@ export function useMatchProgress(): Progress {
   return p;
 }
 
-/** O jogo do gamer está a decorrer (mesmo que o gamer esteja noutra página). */
-export function useOngoingMatch(): boolean {
-  return useMatchProgress() !== null;
-}
-
 /** Fio de 2 px por cima do rodapé com o progresso do jogo do gamer. Só existe enquanto o jogo decorre. */
 export function MatchProgress() {
   const { t } = useT();

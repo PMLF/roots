@@ -60,7 +60,7 @@ export function europeDates(params: Params, season: number, kind: EuropeKind): E
 }
 
 /** Força de um plantel: o valor médio do melhor onze (escala 1-20). */
-export function squadStrength(repo: Repository, club: string, params: Params): number {
+function squadStrength(repo: Repository, club: string, params: Params): number {
   const candidates = repo.clubPlayers(club).filter((j) => j.state === "active").map((j) => ({ person: j.person, positions: j.positions, attributes: j.attributes, heightCm: j.heightCm }));
   return candidates.length < 11 ? 0 : lineupWithValue(candidates, DEFAULT_FORMATION, params).value;
 }

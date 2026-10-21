@@ -11,7 +11,7 @@ import type { Repository } from "../persistence/repository";
 import { pyramidData, readPyramid, pyramidLeagues } from "../season/seasonPyramid";
 import { worldCompetitions } from "./lab";
 
-export type Tier = "firstLeague" | "secondLeague" | "thirdLeague" | "cp" | "district";
+type Tier = "firstLeague" | "secondLeague" | "thirdLeague" | "cp" | "district";
 const TIERS: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
 
 export type SeasonReport = {
@@ -42,7 +42,7 @@ export type SeasonReport = {
 export type CalibrationReport = { seed: string; seasons: SeasonReport[]; ms: number };
 
 /** Plausible ranges (mean over all seasons). Adjust here, not in tests. */
-export const CALIBRATION_LIMITS = {
+const CALIBRATION_LIMITS = {
   goalsPerGame: [2.0, 3.4],
   homeWinRate: [0.38, 0.55],
   drawRate: [0.18, 0.32],

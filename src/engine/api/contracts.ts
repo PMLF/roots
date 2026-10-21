@@ -84,7 +84,7 @@ export type RenewalLine = {
   /** Valores sugeridos para os dropdowns da proposta. */
   suggestions: { wages: number[]; releases: number[] };
 };
-export type RenewalTermsView = { wage: number; years: number; release: number | null };
+type RenewalTermsView = { wage: number; years: number; release: number | null };
 export type NegotiationResult =
   | { status: "accepted"; terms: RenewalTermsView }
   | { status: "counter"; terms: RenewalTermsView; round: number; roundsLeft: number; reason?: "distance" }
@@ -162,7 +162,7 @@ export type OfferView = {
   /** Valores para contrapropor. */
   suggestions: number[];
 };
-export type OfferAction = { id: number; action: "accept" | "reject" } | { id: number; action: "counter"; fee: number };
+type OfferAction = { id: number; action: "accept" | "reject" } | { id: number; action: "counter"; fee: number };
 export type OfferAnswer = { ok: true; status: "done" | "counter" | "refused" | "withdrawn" | "rejected" | "expired"; offer?: OfferView } | { ok: false };
 export type RenewalsData = { season: number; nextSeasonStart: string; lines: RenewalLine[] };
 

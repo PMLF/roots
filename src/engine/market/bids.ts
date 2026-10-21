@@ -16,7 +16,7 @@ import { Rng, clamp } from "../random/rng";
 import { scoutedLevel } from "../scouting/scouting";
 import { agentTraits } from "../agent/assign";
 import { contractDates } from "../squad/youth";
-import { acceptFloor, negotiateRenewal, negotiationOf, renewalAsk, renewalSuggestions, type NegotiationReply, type RenewalTerms } from "../squad/renewals";
+import { negotiateRenewal, negotiationOf, renewalAsk, renewalSuggestions, type NegotiationReply, type RenewalTerms } from "../squad/renewals";
 import { currentQuality } from "../world/player";
 import { isForeignClub } from "../world/foreign";
 import type { Attributes, Position } from "../world/types";
@@ -26,8 +26,8 @@ import { marketValue } from "./value";
 import { windowAt } from "./market";
 import { isImportantFee } from "./newsworthy";
 
-export type BidStage = "club" | "agent" | "agreed" | "closed" | "done";
-export type BidClosed = "refused" | "squad" | "level" | "distance" | "cash" | "gone";
+type BidStage = "club" | "agent" | "agreed" | "closed" | "done";
+type BidClosed = "refused" | "squad" | "level" | "distance" | "cash" | "gone";
 export type Bid = {
   id: number;
   person: string;
@@ -70,10 +70,10 @@ export const bids = (repo: Repository): Bid[] => {
 };
 const save = (repo: Repository, list: Bid[]) => repo.setMeta(KEY, JSON.stringify(list));
 const update = (repo: Repository, bid: Bid) => save(repo, bids(repo).map((b) => (b.id === bid.id ? bid : b)));
-export const bidFor = (repo: Repository, person: string): Bid | undefined => bids(repo).filter((b) => b.person === person && b.stage !== "done").pop();
+const bidFor = (repo: Repository, person: string): Bid | undefined => bids(repo).filter((b) => b.person === person && b.stage !== "done").pop();
 /** Jogadores com um acordo fechado: o mercado da IA não lhes toca. */
 export const lockedPlayers = (repo: Repository): Set<string> => new Set(bids(repo).filter((b) => b.stage === "agreed").map((b) => b.person));
-export const bidKey = (b: Bid): string => `bid.${b.id}`;
+const bidKey = (b: Bid): string => `bid.${b.id}`;
 
 const TIER_ORDER: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
 
@@ -99,7 +99,7 @@ const presidentGreed = (repo: Repository, club: string): number => {
 };
 
 /** Preço pedido pelo clube vendedor: valor × (base + ganância do presidente); mais 25 % se for dos titulares. */
-export function sellerAsk(repo: Repository, data: BaseData, params: Params, bid: Bid, today: IsoDate): number {
+function sellerAsk(repo: Repository, data: BaseData, params: Params, bid: Bid, today: IsoDate): number {
   if (!bid.seller) return 0;
   const mk = params.market;
   const value = valueOf(repo, params, bid.person, today);
@@ -162,13 +162,13 @@ export function feeSuggestions(repo: Repository, data: BaseData, params: Params,
   return [...new Set([0.7, 0.85, 1, 1.15, 1.3].map((m) => nice(ask * (1 + shift) * m)))].filter((v) => v > 0).sort((a, b) => a - b);
 }
 
-export type ClubReply =
+type ClubReply =
   | { status: "accepted"; fee: number }
   | { status: "counter"; fee: number; round: number; roundsLeft: number }
   | { status: "closed"; reason: BidClosed; reopens?: IsoDate };
 
 /** Uma ronda com o clube vendedor sobre o valor. */
-export function clubOffer(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, bid: Bid, fee: number): ClubReply {
+function clubOffer(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, bid: Bid, fee: number): ClubReply {
   const b = params.market.bids;
   const close = (reason: BidClosed): ClubReply => {
     const reopens = addDays(today, b.waitDays);
@@ -205,7 +205,7 @@ export function clubOffer(repo: Repository, data: BaseData, params: Params, club
 }
 
 /** Descer de escalão: o jogador só vem por mais dinheiro (fim de carreira e jogadores da terra do clube são exceção). */
-export function stepBackWage(repo: Repository, data: BaseData, params: Params, club: BaseClub, person: string): number | undefined {
+function stepBackWage(repo: Repository, data: BaseData, params: Params, club: BaseClub, person: string): number | undefined {
   const j = repo.player(person);
   const p = repo.person(person);
   const ct = repo.contract(person);
@@ -218,10 +218,10 @@ export function stepBackWage(repo: Repository, data: BaseData, params: Params, c
   return Math.round((ct.monthlyWage * params.market.bids.stepBackWage) / 10) * 10;
 }
 
-export type AgentReply = NegotiationReply | { status: "blocked"; reason: "cash" | "wageBudget" };
+type AgentReply = NegotiationReply | { status: "blocked"; reason: "cash" | "wageBudget" };
 
 /** Uma ronda com o agente sobre o contrato. */
-export function agentOffer(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid, offer: RenewalTerms): AgentReply | undefined {
+function agentOffer(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid, offer: RenewalTerms): AgentReply | undefined {
   const reply = negotiateRenewal(repo, data, params, club, bidKey(bid), bid.person, offer, { ...(stepBackWage(repo, data, params, club, bid.person) ? { minWage: stepBackWage(repo, data, params, club, bid.person) as number } : {}) });
   if (!reply) return undefined;
   if (reply.status === "closed") {
@@ -259,7 +259,7 @@ export function termSuggestions(repo: Repository, data: BaseData, params: Params
 }
 
 /** Primeiro dia em que a janela volta a abrir. */
-export function nextWindowOpen(params: Params, today: IsoDate): IsoDate {
+function nextWindowOpen(params: Params, today: IsoDate): IsoDate {
   for (let i = 0; i < 400; i++) {
     const d = addDays(today, i);
     if (windowAt(d, params)) return d;
@@ -270,7 +270,7 @@ export function nextWindowOpen(params: Params, today: IsoDate): IsoDate {
 export type Finalized = { moved: true } | { moved: false; date: IsoDate } | { moved: false; failed: BidClosed };
 
 /** Com acordo: muda já se a janela está aberta, senão marca a data. */
-export function finalizeBid(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid): Finalized {
+function finalizeBid(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid): Finalized {
   if (windowAt(today, params)) {
     const r = executeBid(repo, data, params, club, today, season, bid);
     return r === true ? { moved: true } : { moved: false, failed: r };
@@ -281,7 +281,7 @@ export function finalizeBid(repo: Repository, data: BaseData, params: Params, cl
 }
 
 /** Passa o jogador para o clube do gamer: dinheiro, contrato e eventos (como o mercado da IA). */
-export function executeBid(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid): true | BidClosed {
+function executeBid(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid): true | BidClosed {
   const j = repo.player(bid.person);
   const terms = bid.terms;
   if (!j || !terms || j.state === "retired" || j.club !== bid.seller) {
@@ -333,10 +333,10 @@ export type SubmitInput = { kind: "fee"; fee: number } | { kind: "terms"; terms:
 export type Resolved = { status: "accepted" | "counter" | "closed" | "blocked"; reason?: string; terms?: RenewalTerms };
 
 /** As rondas da negociação respondem no mesmo dia: a espera é só entre fases (clube → agente → confirmação). */
-export const replyDelay = (): number => 0;
+const replyDelay = (): number => 0;
 
 /** Primeiro dia em que a fase seguinte avança: amanhã, ou hoje no último dia da janela (deadline day). */
-export const nextPhaseDay = (params: Params, today: IsoDate): IsoDate => (windowAt(today, params)?.last ? today : addDays(today, 1));
+const nextPhaseDay = (params: Params, today: IsoDate): IsoDate => (windowAt(today, params)?.last ? today : addDays(today, 1));
 
 /** Envia uma proposta: responde logo no último dia da janela, senão fica pendente. Devolve a resposta se já chegou. */
 export function submitBid(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid, input: SubmitInput): Resolved | "pending" {
@@ -350,7 +350,7 @@ export function submitBid(repo: Repository, data: BaseData, params: Params, club
 }
 
 /** Dá a resposta de uma proposta pendente: guarda-a, assinala-a na caixa de entrada e segue a negociação. */
-export function resolvePending(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid): Resolved | undefined {
+function resolvePending(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, bid: Bid): Resolved | undefined {
   const pend = bid.pending;
   if (!pend) return undefined;
   const cleared: Bid = { ...bid };
@@ -411,6 +411,3 @@ export function dailyBids(repo: Repository, data: BaseData, params: Params, club
   }
   return done;
 }
-
-export const acceptFloorOf = acceptFloor;
-export const negotiationStateOf = (repo: Repository, bid: Bid) => negotiationOf(repo, bidKey(bid), bid.person);

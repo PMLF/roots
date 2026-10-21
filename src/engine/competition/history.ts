@@ -11,9 +11,9 @@ import { readRun } from "../season/competitions";
 import { seasonName } from "../season/saveYear";
 import { currentSeason } from "../season/seasonPyramid";
 
-export type HistoryClub = { club: string; name: string };
-export type HistoryPlayer = { player: string; name: string; club: string; clubName: string; value: number };
-export type HistorySeasonRecord<T> = T & { season: number; label: string; value: number };
+type HistoryClub = { club: string; name: string };
+type HistoryPlayer = { player: string; name: string; club: string; clubName: string; value: number };
+type HistorySeasonRecord<T> = T & { season: number; label: string; value: number };
 
 export type CompetitionHistory = {
   competition: string;

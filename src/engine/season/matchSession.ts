@@ -24,9 +24,9 @@ import { prepareSeason } from "./prepare";
 
 type Change = { minute: number; tactic: Tactic };
 /** Uma substituição do gamer. `pausa`: número da paragem que a trouxe (0 = intervalo, que não gasta pausas). */
-export type MadeSubstitution = { minute: number; playerOut: string; playerIn: string; pause: number };
+type MadeSubstitution = { minute: number; playerOut: string; playerIn: string; pause: number };
 /** Uma reorganização do gamer: quem em campo passa a jogar em que posição (RZ-255). */
-export type Repositioning = { minute: number; moves: { player: string; position: Position }[] };
+type Repositioning = { minute: number; moves: { player: string; position: Position }[] };
 export type SavedSession = {
   match: string;
   competition: string;
@@ -79,7 +79,7 @@ function replay(s: SavedSession, params: Params, until: number = s.minute): { si
 }
 
 /** O minuto do intervalo: as substituições feitas aqui não gastam pausas. */
-export const halfTimeMinute = (params: Params): number => Math.round(params.match.duration / 2);
+const halfTimeMinute = (params: Params): number => Math.round(params.match.duration / 2);
 
 /** A vista do jogo no minuto atual: o mesmo formato do jogo guardado, só com o que já aconteceu. */
 function view(repo: Repository, s: SavedSession, params: Params, names: ReadonlyMap<string, string>): LiveMatch {
