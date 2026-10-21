@@ -14,6 +14,7 @@ import { isMarketDay, marketRound, windowAt, type MarketSummary } from "./market
 import { Rng } from "../random/rng";
 import { marketValue } from "./value";
 import { assignAgents } from "../agent/assign";
+import { loanOf } from "../loans/loans";
 
 const read = (f: string) => readFileSync(`data/${f}`, "utf8");
 const d = importData({ clubs: read("clubs.csv"), cities: read("cities.csv"), localities: read("localities.csv"), rivalries: read("rivalries.csv"), districts: read("districts.csv") });
@@ -104,7 +105,8 @@ describe("mercado de verão entre clubes da IA", { timeout: 180000 }, () => {
       for (const j of squad) {
         expect(seen.has(j.person)).toBe(false);
         seen.add(j.person);
-        expect(repo.contract(j.person)?.club).toBe(c.id);
+        // quem está emprestado joga aqui mas o contrato fica com o dono (RZ-268)
+        expect(repo.contract(j.person)?.club).toBe(loanOf(repo, j.person)?.from ?? c.id);
       }
     }
   });
