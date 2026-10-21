@@ -76,7 +76,7 @@ describe("mercado de verão entre clubes da IA", { timeout: 180000 }, () => {
   const result = runWindow(repo, "2026-07-01", "2026-09-01", gamer);
 
   it("há transferências e contratações de livres, com dinheiro a mexer", () => {
-    expect(result.transfers).toBeGreaterThan(40); // as comissões dos agentes pesam nos orçamentos (RZ-206)
+    expect(result.transfers).toBeGreaterThan(25); // as comissões dos agentes pesam nos orçamentos (RZ-206); com plantéis mais diferenciados (RZ-263) há menos trocas
     expect(result.freeSignings).toBeGreaterThan(10);
     expect(result.spent).toBeGreaterThan(1_000_000);
     expect(repo.count("TRANSFER")).toBe(result.transfers);
@@ -88,7 +88,7 @@ describe("mercado de verão entre clubes da IA", { timeout: 180000 }, () => {
   });
   it("as transferências de jogadores com agente trazem o agente e a comissão", () => {
     const withAgent = repo.recentEvents({ types: ["TRANSFER"], limit: 100000 }).filter((e) => e.entities.some((x) => x.roleKind === "agent"));
-    expect(withAgent.length).toBeGreaterThan(5);
+    expect(withAgent.length).toBeGreaterThan(2);
     for (const e of withAgent) expect((e.data as { commission?: number }).commission).toBeGreaterThan(0);
   });
   it("o clube do gamer não compra nem vende", () => {

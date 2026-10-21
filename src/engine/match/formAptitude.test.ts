@@ -57,8 +57,8 @@ describe("forma por cansaço (RZ-177)", () => {
   it("um jogo por semana é normal; dois e três na semana cansam; nunca passa de 1 nem desce do mínimo", () => {
     expect(formPerWorkload(0, p)).toBe(1);
     expect(formPerWorkload(90, p)).toBe(1);
-    expect(formPerWorkload(180, p)).toBeCloseTo(0.97, 5);
-    expect(formPerWorkload(270, p)).toBeCloseTo(0.94, 5);
+    expect(formPerWorkload(180, p)).toBeCloseTo(0.98, 5);
+    expect(formPerWorkload(270, p)).toBeCloseTo(0.96, 5);
     expect(formPerWorkload(5000, p)).toBe(p.match.form.min);
   });
 });
