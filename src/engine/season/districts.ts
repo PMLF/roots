@@ -8,15 +8,15 @@
 import type { Params } from "../config/parameters";
 import type { ClubId, DistrictId } from "../data/types";
 
-export const SECOND_PREFIX = "Segunda Distrital ";
+const SECOND_PREFIX = "Segunda Distrital ";
 export const secondDistrictLeague = (district: DistrictId) => `${SECOND_PREFIX}${district}`;
 export const isInSecondDistrict = (league: string) => league.startsWith(SECOND_PREFIX);
 
 /** Um clube na segunda distrital e a época em que lá chegou. */
-export type SecondDistrictInput = { club: ClubId; since: number };
+type SecondDistrictInput = { club: ClubId; since: number };
 export type SecondDistrict = Record<DistrictId, SecondDistrictInput[]>;
 
-export type DistrictAdjustment = { club: ClubId; district: DistrictId; type: "relegation" | "ret" };
+type DistrictAdjustment = { club: ClubId; district: DistrictId; type: "relegation" | "ret" };
 
 export type DistrictsResult = { districtLeagues: Record<DistrictId, ClubId[]>; second: SecondDistrict; adjustments: DistrictAdjustment[]; warnings: string[] };
 

@@ -16,7 +16,7 @@ const PT = "pt";
 const slotsKey = (season: number) => `europe.slots.${season}`;
 
 /** Coeficiente de cada país: soma, nas últimas épocas, dos pontos por clube (vitória 2, empate 1); épocas sem história valem um valor de partida. */
-export function associationRanking(repo: Repository, data: BaseData, params: Params, season: number): { country: string; coefficient: number }[] {
+function associationRanking(repo: Repository, data: BaseData, params: Params, season: number): { country: string; coefficient: number }[] {
   const a = params.europe.access;
   const foreign = foreignClubList(repo);
   const countryOf = new Map<string, string>([...data.clubs.map((c) => [c.id, PT] as const), ...foreign.map((c) => [c.id, c.country] as const)]);

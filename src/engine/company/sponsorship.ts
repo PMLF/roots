@@ -22,7 +22,7 @@ export type SponsorContext = {
 const TIER_ORDER: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
 
 /** Valor anual de referência de um tipo de patrocínio num clube (sem ruído). */
-export function referenceValue(club: BaseClub, tier: Tier, kind: SponsorSlot, params: Params): number {
+function referenceValue(club: BaseClub, tier: Tier, kind: SponsorSlot, params: Params): number {
   const s = params.companies.sponsorship;
   const total = annualFixedRevenues({ ...club, tier }, params).sponsorships;
   const shareSum = s.slots[tier].reduce((t, k) => t + s.kindShare[k], 0);
@@ -38,7 +38,7 @@ type Pool = {
   committed: Map<string, number>;
 };
 
-export function makePool(repo: Repository, data: BaseData, params: Params, on: IsoDate): Pool {
+function makePool(repo: Repository, data: BaseData, params: Params, on: IsoDate): Pool {
   const committed = new Map<string, number>();
   for (const s of repo.activeSponsorships(on)) if (s.kind !== "broadcast") committed.set(s.company, (committed.get(s.company) ?? 0) + s.annualValue);
   return { repo, data, params, districtOfCity: new Map(data.cities.map((c) => [c.id, c.district] as const)), companies: repo.companies({ state: "active" }), committed };

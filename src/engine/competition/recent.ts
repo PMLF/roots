@@ -9,7 +9,7 @@ import { europeKind } from "../europe/europe";
 import { currentSeason, pyramidData } from "../season/seasonPyramid";
 
 /** Chave do nome curto da competição: um escalão ou um tipo de taça/fase (a UI traduz: 1L, 2L, 3L, CP, Dist., TP, TD, ST, SD, FP). */
-export type CompetitionShort = "firstLeague" | "secondLeague" | "thirdLeague" | "cp" | "district" | "cup" | "districtCup" | "supercup" | "districtSupercup" | "promotion" | "championsLeague" | "europaLeague" | "conferenceLeague";
+type CompetitionShort = "firstLeague" | "secondLeague" | "thirdLeague" | "cp" | "district" | "cup" | "districtCup" | "supercup" | "districtSupercup" | "promotion" | "championsLeague" | "europaLeague" | "conferenceLeague";
 
 export type RecentMatch = {
   id: string;

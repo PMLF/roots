@@ -7,7 +7,7 @@ import type { CompanyRecord } from "../persistence/types";
 import type { EntityRef, HistoryRow } from "./contracts";
 
 /** Empregados estimados: volume de negócio a dividir pelo volume típico por empregado da escala (pelo menos 1). */
-export const employeesOf = (c: Pick<CompanyRecord, "capital" | "scale">, params: Pick<Params, "companies">): number =>
+const employeesOf = (c: Pick<CompanyRecord, "capital" | "scale">, params: Pick<Params, "companies">): number =>
   Math.max(1, Math.round(c.capital / params.companies.capitalPerEmployee[c.scale]));
 
 export function personHistory(repo: Repository, data: BaseData, base: BaseData, params: Params, person: string, season: number): HistoryRow[] {

@@ -1,9 +1,9 @@
 /** Ligações entre entidades (docs/TONE_AND_UX.md §3.3): toda a entidade tem uma ficha em /profile/?type=…&id=…&tab=…. O URL é em inglês; os tipos e separadores internos migram no RZ-143. */
 export type ProfileEntityType = "club" | "city" | "locality" | "person" | "competition";
-export const PROFILE_TYPES: readonly ProfileEntityType[] = ["club", "city", "locality", "person", "competition"];
+const PROFILE_TYPES: readonly ProfileEntityType[] = ["club", "city", "locality", "person", "competition"];
 
 /** Tipo de entidade e separadores como aparecem no URL (inglês). */
-export const TYPE_URL: Record<ProfileEntityType, string> = { club: "club", city: "city", locality: "locality", person: "person", competition: "competition" };
+const TYPE_URL: Record<ProfileEntityType, string> = { club: "club", city: "city", locality: "locality", person: "person", competition: "competition" };
 export const TAB_URL: Record<string, string> = {
   summary: "summary", squad: "squad", staff: "staff", matches: "matches", story: "history", career: "career",
   clubs: "clubs", mayor: "mayor", standings: "table", knowledge: "knowledge", statistics: "stats", contract: "contract",

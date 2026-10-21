@@ -3,8 +3,8 @@
  * Só serve para desenhar o indicador (`components/Cores.tsx`): o nome fica sempre ao lado.
  * Padrões: uma cor = lisa; várias = divididas ao meio (ou por `%`); «riscas»/«vertical»/«horizontal» = riscas.
  */
-export type DefaultColours = "plain" | "split" | "vertical-stripes" | "horizontal-stripes";
-export type Segment = { colour: string; weight: number };
+type DefaultColours = "plain" | "split" | "vertical-stripes" | "horizontal-stripes";
+type Segment = { colour: string; weight: number };
 export type ClubColours = { fallback: DefaultColours; segments: Segment[] };
 
 const BASE: Record<string, string> = {

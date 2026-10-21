@@ -8,7 +8,7 @@ export type IsoDate = string;
 
 export type Visibility = "exposed" | "private" | "secret";
 export type EntityType = "club" | "person" | "city" | "locality" | "competition" | "match" | "company";
-export type Origin = "match" | "generated";
+type Origin = "match" | "generated";
 
 export type RefEntity = { k: EntityType; id: string; roleKind?: string };
 
@@ -37,7 +37,7 @@ export type HistoryEvent = Required<Omit<NewEvent, "round" | "cause" | "fixes">>
 };
 
 /** Códigos de `jogo_facto`: G golo, A assistência, CA amarelo, CV vermelho, L lesão, S substituição, P penálti falhado. */
-export type FactType = "G" | "A" | "CA" | "CV" | "L" | "S" | "P";
+type FactType = "G" | "A" | "CA" | "CV" | "L" | "S" | "P";
 
 export type FactMatch = {
   minute: number;
@@ -210,7 +210,7 @@ export type ContractClauses = { /** Valor (euros) que qualquer clube pode pagar 
 export type ContractRecord = { person: string; club: string; monthlyWage: number; start: IsoDate; end: IsoDate; clauses?: ContractClauses };
 export type RoleRecord = { person: string; fn: string; club?: string; city?: string; quality?: Record<string, number> };
 // ---------- localidades (RZ-136)
-export type LocalityStatus = "village" | "town" | "city";
+type LocalityStatus = "village" | "town" | "city";
 /** Estado atual de uma localidade. `desde` = data em que passou a ter o estatuto atual. */
 export type LocalityRecord = { id: string; name: string; city: string; population: number; status: LocalityStatus; since: IsoDate };
 /** Mudança de população/estatuto. Se o estatuto mudar, regista-se o evento público LOCALIDADE_ESTATUTO. */

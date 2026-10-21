@@ -57,14 +57,14 @@ export type DayMatch = {
   matchMan?: { player: string; name: string; rating: number };
 };
 
-export type SummaryDay = { date: IsoDate; matches: DayMatch[] };
+type SummaryDay = { date: IsoDate; matches: DayMatch[] };
 
 export type TimeState = { today: IsoDate; season: number; /** Jogos por disputar nesta época. */ byPlay: number; /** Próximo dia com jogos. */ matchesNextDay?: IsoDate };
 
 export type Mode = "day" | "week" | "nextMatch";
 
 /** O avanço parou antes do jogo do clube do gamer: falta confirmar onze e tática. */
-export type Pause = { /** Já começou (há um jogo a decorrer): continuar em vez de preparar. */ ongoing: boolean; match: string; date: IsoDate; competition: string; round: number; home: string; away: string; homeName: string; awayName: string };
+type Pause = { /** Já começou (há um jogo a decorrer): continuar em vez de preparar. */ ongoing: boolean; match: string; date: IsoDate; competition: string; round: number; home: string; away: string; homeName: string; awayName: string };
 
 export type AdvanceResult = { from: IsoDate; until: IsoDate; days: SummaryDay[]; seasonEnd: boolean; /** Preenchido quando a época fechou durante este avanço. */ seasonSummary?: SeasonSummary; state: TimeState; pause?: Pause };
 
@@ -175,7 +175,7 @@ export function matchContext(repo: Repository, data: BaseData, params: Params, h
 }
 
 /** Joga os jogos de `hoje` e passa ao dia seguinte. Tudo numa transação. */
-export function advanceDay(repo: Repository, base: BaseData, params: Params, gamerClub?: string): SummaryDay {
+function advanceDay(repo: Repository, base: BaseData, params: Params, gamerClub?: string): SummaryDay {
   const data = seasonData(repo, base);
   const { today, season } = prepareSeason(repo, data, params);
   const seed = repo.meta("seed") ?? "?";

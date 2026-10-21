@@ -2,7 +2,7 @@
 import { useCountries } from "@/ui/useCountries";
 
 /** Bandeira (emoji) a partir do id do país (código ISO de duas letras); o nome fica no tooltip. */
-export function flagEmoji(id: string): string {
+function flagEmoji(id: string): string {
   return /^[a-z]{2}$/i.test(id) ? String.fromCodePoint(...[...id.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65)) : "";
 }
 

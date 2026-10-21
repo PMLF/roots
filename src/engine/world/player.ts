@@ -2,7 +2,7 @@
 import type { Rng } from "../random/rng";
 import { clamp } from "../random/rng";
 import type { Params } from "../config/parameters";
-import { ATTRIBUTES, GK_ATTRIBUTES, TECHNICAL_ATTRIBUTES, POSITIONS, type Attribute, type Attributes, type Position } from "./types";
+import { ATTRIBUTES, GK_ATTRIBUTES, TECHNICAL_ATTRIBUTES, type Attribute, type Attributes, type Position } from "./types";
 
 /** Atributos-chave por posição: a qualidade atual do jogador é a média destes. */
 export const KEY: Record<Position, readonly Attribute[]> = {
@@ -92,5 +92,3 @@ export function generateBody(rng: Rng, pos: Position): { heightCm: number; weigh
   const foot = r < 0.7 ? "R" : r < 0.95 ? "L" : "B";
   return { heightCm, weightKg, foot };
 }
-
-export { POSITIONS };

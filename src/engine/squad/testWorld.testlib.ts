@@ -11,7 +11,7 @@ import { rolloverSquads } from "./rollover";
 
 const read = (f: string) => readFileSync(`data/${f}`, "utf8");
 const d = importData({ clubs: read("clubs.csv"), cities: read("cities.csv"), localities: read("localities.csv"), rivalries: read("rivalries.csv"), districts: read("districts.csv") });
-export const pr = importCountries(read("countries.csv"));
+const pr = importCountries(read("countries.csv"));
 if (!d.ok || !pr.ok) throw new Error("invalid data");
 export const data = d.data;
 export const tiers = new Map(data.clubs.map((c) => [c.id, c.tier] as const));

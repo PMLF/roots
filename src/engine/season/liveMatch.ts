@@ -9,7 +9,7 @@ import type { Position } from "../world/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 
-export type LiveLineType = "start" | "goal" | "shot" | "corner" | "penalty" | "card" | "injury" | "substitution" | "halfTime" | "end";
+type LiveLineType = "start" | "goal" | "shot" | "corner" | "penalty" | "card" | "injury" | "substitution" | "halfTime" | "end";
 
 export type LiveLine = {
   minute: number;

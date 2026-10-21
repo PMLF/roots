@@ -51,10 +51,10 @@ const CITY_BIAS: Record<string, Partial<Record<CompanySector, number>>> = {
 };
 
 /** Setores que emitem jogos: disputam direitos de transmissão (RZ-218). */
-export const BROADCAST_SECTORS: readonly CompanySector[] = ["television", "radio", "streaming"];
+const BROADCAST_SECTORS: readonly CompanySector[] = ["television", "radio", "streaming"];
 export const isBroadcaster = (sector: string): boolean => (BROADCAST_SECTORS as readonly string[]).includes(sector);
 
-export function sectorWeights(citySector: string, citySector2: string): Record<CompanySector, number> {
+function sectorWeights(citySector: string, citySector2: string): Record<CompanySector, number> {
   const out = {} as Record<CompanySector, number>;
   for (const s of COMPANY_SECTORS) out[s] = SECTOR_INFO[s].base * (CITY_BIAS[citySector]?.[s] ?? 1) * Math.sqrt(CITY_BIAS[citySector2]?.[s] ?? 1);
   return out;

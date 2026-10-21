@@ -15,7 +15,7 @@ import type { Attributes, Position } from "../world/types";
 import { isInSecondDistrict } from "../season/districts";
 import { localBlock, readLocks } from "../squad/localPriority";
 
-export type InterestLevel = "high" | "medium" | "low";
+type InterestLevel = "high" | "medium" | "low";
 export type ClubInterest = { club: string; level: InterestLevel; local: boolean };
 
 const MAX = 6;

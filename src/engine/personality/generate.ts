@@ -2,15 +2,15 @@
 import type { Rng } from "../random/rng";
 import { clamp } from "../random/rng";
 
-export const TRAITS = ["ambition", "loyalty", "vanity", "patience", "integrity", "greed", "temperament", "professionalism"] as const;
-export type Trait = (typeof TRAITS)[number];
+const TRAITS = ["ambition", "loyalty", "vanity", "patience", "integrity", "greed", "temperament", "professionalism"] as const;
+type Trait = (typeof TRAITS)[number];
 export type Personality = Record<Trait, number>;
 
 export type PersonRole = "player" | "coach" | "staff" | "president" | "mayor" | "businessperson" | "agent" | "referee" | "fan" | "journalist";
 
-export type Archetype = { name: string; traits: Partial<Personality> };
+type Archetype = { name: string; traits: Partial<Personality> };
 
-export const ARCHETYPES: Record<string, Archetype> = {
+const ARCHETYPES: Record<string, Archetype> = {
   common: { name: "Comum", traits: {} },
   leader: { name: "Líder de balneário", traits: { loyalty: 15, professionalism: 16, temperament: 8 } },
   star: { name: "Estrela caprichosa", traits: { vanity: 17, greed: 15, loyalty: 6 } },

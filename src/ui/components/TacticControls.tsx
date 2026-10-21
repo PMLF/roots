@@ -6,7 +6,7 @@ import { useT } from "@/ui/i18n/LocaleProvider";
 
 type Scale = "intensity" | "mentality" | "fairPlay" | "timeWasting" | "directness" | "shooting" | "line";
 /** Pela ordem em que aparecem: o primeiro nível é o extremo da esquerda, o quinto o da direita. */
-export const SCALES: readonly Scale[] = ["mentality", "intensity", "directness", "line", "shooting", "timeWasting", "fairPlay"];
+const SCALES: readonly Scale[] = ["mentality", "intensity", "directness", "line", "shooting", "timeWasting", "fairPlay"];
 const LEVELS: readonly Level[] = [1, 2, 3, 4, 5];
 
 type Props = {
@@ -59,7 +59,7 @@ const ZONES: readonly Zone[] = ["left", "centre", "right"];
 const zonesOf = (a: Area): ReadonlySet<Zone> => new Set<Zone>(a === "wings" ? ["left", "right"] : a === "left" ? ["left"] : a === "right" ? ["right"] : a === "centre" ? ["centre"] : []);
 const areaOf = (z: ReadonlySet<Zone>): Area => (z.size === 0 ? "any" : z.has("centre") ? "centre" : z.has("left") && z.has("right") ? "wings" : z.has("left") ? "left" : "right");
 /** Clicar numa zona liga-a/desliga-a; sem nenhuma a equipa joga em todo o lado; o meio e as alas excluem-se. */
-export function toggleZone(area: Area, zone: Zone): Area {
+function toggleZone(area: Area, zone: Zone): Area {
   const z = new Set(zonesOf(area));
   if (z.has(zone)) z.delete(zone);
   else if (zone === "centre") { z.clear(); z.add("centre"); }

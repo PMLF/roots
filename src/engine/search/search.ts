@@ -1,6 +1,6 @@
 /** Pesquisa global (RZ-009): por nome, sem acentos nem maiúsculas, com prefixos primeiro. Pura. */
 
-export type ResultType = "club" | "city" | "locality" | "person";
+type ResultType = "club" | "city" | "locality" | "person";
 export type InputIndex = { k: ResultType; id: string; title: string; subtitle: string; extra?: string };
 export type SearchResult = InputIndex;
 

@@ -6,8 +6,8 @@
 
 export type Criterion = "points" | "headToHead" | "difference" | "scoredGoals" | "wins" | "smallerReputation" | "lottery";
 export type LevelReputation = "worldClass" | "continental" | "national" | "regional" | "local" | "obscure";
-export const LEVELS_REPUTATION: readonly LevelReputation[] = ["worldClass", "continental", "national", "regional", "local", "obscure"];
-export const CRITERIA: readonly Criterion[] = ["points", "headToHead", "difference", "scoredGoals", "wins", "smallerReputation", "lottery"];
+const LEVELS_REPUTATION: readonly LevelReputation[] = ["worldClass", "continental", "national", "regional", "local", "obscure"];
+const CRITERIA: readonly Criterion[] = ["points", "headToHead", "difference", "scoredGoals", "wins", "smallerReputation", "lottery"];
 
 export type Tier = "firstLeague" | "secondLeague" | "thirdLeague" | "cp" | "district";
 
@@ -28,7 +28,7 @@ export type CfgCityEvent = {
   weight: Record<string, number>;
   effects: CityEffects;
 };
-export type CityParameters = {
+type CityParameters = {
   yearsMunicipalElections: number;
   /** Ano das últimas autárquicas antes do arranque: o mandato em curso conta a partir daqui. */
   sinceTerm: number;
@@ -63,7 +63,7 @@ export type CityParameters = {
 };
 
 /** Valores por escalão do livro de finanças do clube (RZ-114) e da assistência simples (RZ-115). */
-export type FinancesModel = {
+type FinancesModel = {
   /** Reputação de referência de cada escalão: acima dela o clube vale mais (patrocínio, comercial, ocupação). */
   refReputation: Record<Tier, number>;
   /** Expoente da razão reputação / referência nas receitas. */

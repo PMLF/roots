@@ -82,7 +82,7 @@ export function monthlyBroadcast(repo: Repository, club: BaseClub, date: IsoDate
  * Fecha o mês que acabou: salários, staff, estádio e fixos saem; patrocínios e comercial entram (1/12 do ano).
  * Grava `FECHO_FINANCEIRO` por clube. Os clubes fora da pirâmide (segunda distrital) não têm movimentos.
  */
-export function closeMonth(repo: Repository, data: BaseData, params: Params, date: IsoDate, season: number, active: (club: BaseClub) => boolean): void {
+function closeMonth(repo: Repository, data: BaseData, params: Params, date: IsoDate, season: number, active: (club: BaseClub) => boolean): void {
   for (const c of data.clubs) {
     if (!active(c)) continue;
     const costs = monthlyCosts(repo, c, params);
@@ -106,8 +106,8 @@ export function closeMonth(repo: Repository, data: BaseData, params: Params, dat
 
 // --- estado descritivo público (HISTORICO_EVENTOS §5.1) ---
 
-export type Health = "nearBankruptcy" | "atRisk" | "tight";
-export type Wealth = "powerful" | "veryRich" | "rich" | "comfortable" | "wellOff" | "stable" | "modest" | "poor";
+type Health = "nearBankruptcy" | "atRisk" | "tight";
+type Wealth = "powerful" | "veryRich" | "rich" | "comfortable" | "wellOff" | "stable" | "modest" | "poor";
 export type FinancialState = { state: Health | Wealth; /** O gamer vê exato: sem erro de estimativa. */ exact: boolean };
 
 const BANDS: Record<Tier, [Wealth, Wealth, Wealth, Wealth, Wealth]> = {

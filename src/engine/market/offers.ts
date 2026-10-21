@@ -22,7 +22,7 @@ import { valueOf } from "./bids";
 import { windowAt } from "./market";
 import { isImportantFee } from "./newsworthy";
 
-export type OfferStatus = "pending" | "done" | "rejected" | "expired" | "withdrawn" | "refused" | "gone";
+type OfferStatus = "pending" | "done" | "rejected" | "expired" | "withdrawn" | "refused" | "gone";
 export type Offer = {
   id: number;
   person: string;
@@ -72,7 +72,7 @@ export function setForSale(repo: Repository, person: string, on: boolean): void 
 }
 
 /** Teto do comprador: o valor de mercado vezes `maxMult`, limitado pelo que pode gastar. */
-export function buyerCeiling(repo: Repository, data: BaseData, params: Params, today: IsoDate, season: number, o: Offer): number {
+function buyerCeiling(repo: Repository, data: BaseData, params: Params, today: IsoDate, season: number, o: Offer): number {
   const buyer = data.clubs.find((c) => c.id === o.buyer);
   if (!buyer) return 0;
   const spend = Math.min(clubBalance(repo, buyer), clubBudget(repo, buyer, params, season).transfers);

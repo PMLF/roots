@@ -33,7 +33,7 @@ export function liveTable(match: LiveMatch, minute: number): TableLine[] {
   return sort([...lines.values()]).map((l, i) => ({ ...l, pos: i + 1, before: before.get(l.club) ?? i + 1 }));
 }
 
-export type StatisticKey = "xg" | "possession" | "chances" | "shots" | "onTarget" | "away" | "blocked" | "accuracy" | "saves" | "corners" | "fouls" | "yellows" | "reds" | "injuries";
+type StatisticKey = "xg" | "possession" | "chances" | "shots" | "onTarget" | "away" | "blocked" | "accuracy" | "saves" | "corners" | "fouls" | "yellows" | "reds" | "injuries";
 export type StatisticLine = { rowKey: StatisticKey; home: number; away: number; /** Como mostrar os valores. */ format: "integer" | "decimal" | "percentagem" };
 
 /** As estatísticas do jogo, lado a lado (14 linhas), a partir do resumo do motor. A ordem é a de leitura: o que mais interessa primeiro. */

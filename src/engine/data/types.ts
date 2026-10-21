@@ -7,14 +7,14 @@ import type { Tier } from "../config/parameters";
 import type { Status } from "../locality/status";
 
 export type ClubId = string;
-export type CityId = string;
-export type LocalityId = string;
+type CityId = string;
+type LocalityId = string;
 export type DistrictId = string;
 export type CpSeries = "A" | "B" | "C" | "D";
 export type Zone = "centre" | "near" | "outskirts" | "away";
 export type Ownership = "club" | "municipal" | "shared";
 
-export type StadiumLocation = {
+type StadiumLocation = {
   zone: Zone;
   centreDistanceKm: number;
   /** 0-100 */
@@ -26,7 +26,7 @@ export type StadiumLocation = {
   expansionTerrain: number;
 };
 
-export type BaseStadium = {
+type BaseStadium = {
   name: string;
   ownership: Ownership;
   capacity: number;
@@ -59,7 +59,7 @@ export type BaseClub = {
   origin: "existing" | "new";
 };
 
-export type BaseMayor = {
+type BaseMayor = {
   name: string;
   /** Traços na escala 1-20 (valores do CSV, 1-10, ×2; PERSONALIDADE §2). */
   traits: { ambition: number; vanity: number; patience: number; integrity: number };

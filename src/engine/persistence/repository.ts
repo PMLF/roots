@@ -206,4 +206,3 @@ export interface Repository {
   observations(observer: string, target: Pick<RefEntity, "k" | "id">, group?: string): Observation[];
 }
 
-export type { IsoDate };

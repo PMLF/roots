@@ -21,7 +21,7 @@ const readState = (d: Record<string, unknown>): CityState => Object.fromEntries(
 const rngDoSave = (repo: Repository) => new Rng(repo.meta("seed") ?? "?", "city");
 
 /** Estado de arranque (época 1) de uma cidade, reconstruído da seed. */
-export function startState(repo: Repository, base: BaseData, params: Pick<Params, "city">, city: string): CityState | undefined {
+function startState(repo: Repository, base: BaseData, params: Pick<Params, "city">, city: string): CityState | undefined {
   const c = base.cities.find((x) => x.id === city);
   return c ? initialState(c, base.clubs, rngDoSave(repo).derive(`inicial:${c.id}`), params) : undefined;
 }

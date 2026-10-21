@@ -8,7 +8,7 @@ import { knockoutOutcome, startKnockout, stepKnockout, type KnockoutState } from
 import { leaguePhaseDone, leaguePhaseOutcome, startLeaguePhase, type LeaguePhaseState } from "./leaguePhase";
 import type { ClubId, CompetitionDef, Entrant, Fixture, Results, RunContext, StageEvent, StageOutcome } from "./types";
 
-export type StageState = KnockoutState | GroupsState | LeaguePhaseState;
+type StageState = KnockoutState | GroupsState | LeaguePhaseState;
 export type RunState = {
   v: 1;
   id: string;

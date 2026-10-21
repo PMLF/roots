@@ -19,7 +19,7 @@ export type RenewalAsk = RenewalTerms & { releaseCeiling: number };
 export type RenewalDecision = ({ kind: "renew" } & RenewalTerms) | { kind: "release" };
 /** Estado da negociação com o agente: rondas feitas e, se acabou sem acordo, porquê. */
 export type NegotiationState = { round: number; closed?: NegotiationClosed; /** Dia em que o agente voltou a falar (fecho = 1 mês depois). */ reopens?: IsoDate; accepted?: boolean; /** Última contraproposta do agente: aceitá-la fecha o negócio. */ counter?: RenewalTerms };
-export type NegotiationClosed = "refused" | "level" | "distance";
+type NegotiationClosed = "refused" | "level" | "distance";
 export type NegotiationReply =
   | { status: "accepted"; terms: RenewalTerms }
   | { status: "counter"; terms: RenewalTerms; round: number; roundsLeft: number; reason?: "distance" }

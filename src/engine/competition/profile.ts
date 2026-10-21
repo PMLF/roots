@@ -17,9 +17,9 @@ import { europeSlots } from "../europe/access";
 import { europeZone, type EuropeSlots } from "../europe/zones";
 import { competitionTable } from "./table";
 
-export type Zone = "champion" | "promotion" | "relegation" | "cl" | "clq" | "el" | "ecl";
+type Zone = "champion" | "promotion" | "relegation" | "cl" | "clq" | "el" | "ecl";
 
-export type TableRow = {
+type TableRow = {
   position: number;
   club: string;
   name: string;
@@ -35,19 +35,19 @@ export type TableRow = {
   zone?: Zone;
 };
 
-export type Round = {
+type Round = {
   number: number;
   date: string;
   matches: { id: string; home: string; away: string; homeName: string; awayName: string; homeGoals?: number; awayGoals?: number }[];
   bye?: string;
 };
 
-export type PlayerStat = { player: string; name: string; club: string; clubName: string; value: number; games: number };
+type PlayerStat = { player: string; name: string; club: string; clubName: string; value: number; games: number };
 /** Linha completa de um jogador na competição (separador Estatísticas). */
-export type PlayerRow = { player: string; name: string; club: string; clubName: string; position: string; age: number; games: number; minutes: number; goals: number; assists: number; yellow: number; red: number; rating?: number };
-export type ClubStat = { club: string; name: string; value: number };
+type PlayerRow = { player: string; name: string; club: string; clubName: string; position: string; age: number; games: number; minutes: number; goals: number; assists: number; yellow: number; red: number; rating?: number };
+type ClubStat = { club: string; name: string; value: number };
 
-export type Highlights = {
+type Highlights = {
   topScorers: PlayerStat[];
   topAssists: PlayerStat[];
   bestRated: PlayerStat[];
@@ -96,7 +96,7 @@ export function zoneSizes(tier: Tier, params: Params): { promoted: number; releg
   }
 }
 
-export function zoneOf(position: number, total: number, tier: Tier, params: Params, europe?: EuropeSlots): Zone | undefined {
+function zoneOf(position: number, total: number, tier: Tier, params: Params, europe?: EuropeSlots): Zone | undefined {
   const { promoted, relegated } = zoneSizes(tier, params);
   if (position === 1) return "champion";
   if (tier === "firstLeague" && europe) { const z = europeZone(position, europe); if (z) return z; }

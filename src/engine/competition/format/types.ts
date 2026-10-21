@@ -80,7 +80,7 @@ export type LeaguePhaseStage = {
   /** Adversários de cada clube em cada pote (inclusive o seu), metade em casa e metade fora: par, ou 1 (Liga Conferência). */
   perPot: number;
 };
-export type StageDef = KnockoutStage | GroupsStage | LeaguePhaseStage;
+type StageDef = KnockoutStage | GroupsStage | LeaguePhaseStage;
 
 /** O que uma fase deixa para a seguinte e para o fim da competição. */
 export type StageOutcome = {

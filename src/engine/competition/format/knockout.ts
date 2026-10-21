@@ -76,7 +76,7 @@ function drawRound(def: KnockoutStage, state: KnockoutState, ctx: RunContext): F
 }
 
 /** Quem passa numa eliminatória: o agregado (golos, prolongamento incluído) e, se continua empatado, os penáltis da última mão. */
-export function tieWinner(a: ClubId, b: ClubId, played: readonly Played[]): { winner: ClubId; penalties: boolean; aggregate: { a: number; b: number } } | undefined {
+function tieWinner(a: ClubId, b: ClubId, played: readonly Played[]): { winner: ClubId; penalties: boolean; aggregate: { a: number; b: number } } | undefined {
   let ga = 0;
   let gb = 0;
   for (const p of played) {

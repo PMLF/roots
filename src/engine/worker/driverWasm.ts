@@ -10,13 +10,13 @@ import type { DriverSql, SqlLine, SqlValue } from "../persistence/driver";
 // O Next substitui process.env.NEXT_PUBLIC_* no build; o worker não tem os tipos do Node.
 declare const process: { env: { NEXT_PUBLIC_BASE_PATH?: string } };
 
-export type DbBackend = "opfs" | "memory";
+type DbBackend = "opfs" | "memory";
 export type IsOpenDb = { driver: DriverSql; backend: DbBackend; sqliteVersion: string; memoryReason?: string };
 
 let module: Promise<Sqlite3Static> | undefined;
 
 /** URL de public/sqlite/index.mjs, respeitando o basePath (tools/copy-sqlite-wasm.mjs copia-o para lá). */
-export function urlSqlite(): string {
+function urlSqlite(): string {
   return publicUrl("sqlite/index.mjs");
 }
 

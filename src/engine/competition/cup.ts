@@ -15,7 +15,7 @@ import { currentSeason, pyramidData } from "../season/seasonPyramid";
 import type { KnockoutState } from "./format/knockout";
 
 /** `final`, `semi`, `quarter`, `round16`, `round32` ou `round` (com `n` = número da ronda). */
-export type CupRoundKey = "final" | "playoff" | "semi" | "quarter" | "round16" | "round32" | "round";
+type CupRoundKey = "final" | "playoff" | "semi" | "quarter" | "round16" | "round32" | "round";
 export type CupMatchView = { id: string; home: string; away: string; homeName: string; awayName: string; homeTier?: string; awayTier?: string; homeGoals?: number; awayGoals?: number; extraTime?: boolean; shootout?: { home: number; away: number } };
 export type CupRoundView = { key: CupRoundKey; n: number; /** Meias-finais a duas mãos: 1.ª ou 2.ª mão. */ leg?: 1 | 2; date: string; matches: CupMatchView[] };
 export type CupView = {
@@ -83,7 +83,7 @@ export function nationalCups(repo: Repository, season = currentSeason(repo)): st
   return activeCompetitions(repo, season).filter((c) => c === CUP || c === SUPERCUP);
 }
 
-export type ClubCompetitionStatus = "alive" | "out" | "champion" | "runnerUp" | "waiting";
+type ClubCompetitionStatus = "alive" | "out" | "champion" | "runnerUp" | "waiting";
 export type ClubCompetition = { competition: string; kind: "league" | "cup"; /** Liga: posição e nº de clubes. */ position?: number; of?: number; /** Taça: ronda atual ou em que saiu. */ round?: { key: CupRoundKey; n: number }; status?: ClubCompetitionStatus };
 
 /** Onde o clube compete esta época: a liga (posição) e as taças em que entrou (fase e estado). */
@@ -140,16 +140,4 @@ function knockoutStatus(repo: Repository, rounds: CupRoundView[], club: string, 
     status = (g !== a ? g > a : matchWinner(lastLeg) === club) ? "alive" : "out";
   }
   return { status, round: { key: last.key, n: last.n } };
-}
-
-/** Vencedores da taça por época (épocas já decididas), da mais recente para a mais antiga. */
-export function cupWinners(repo: Repository, data: BaseData, params: Params, competition: string): { season: number; label: string; winner?: { club: string; name: string }; runnerUp?: { club: string; name: string } }[] {
-  const out = [];
-  for (let s = currentSeason(repo); s >= 1; s--) {
-    const run = readRun(repo, s, competition);
-    if (!run?.done) continue;
-    const name = (id: string) => data.clubs.find((c) => c.id === id)?.name ?? id;
-    out.push({ season: s, label: seasonName(s, params.calendar.initialYear), ...(run.winner ? { winner: { club: run.winner, name: name(run.winner) } } : {}), ...(run.runnerUp ? { runnerUp: { club: run.runnerUp, name: name(run.runnerUp) } } : {}) });
-  }
-  return out;
 }

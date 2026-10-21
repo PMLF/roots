@@ -11,7 +11,7 @@ import { drawSector, companyName, isBroadcaster } from "./sectors";
 const SCALES: CompanyScale[] = ["local", "regional", "national", "international"];
 const BASE_DECADE = Math.log10(15000);
 
-export const decadesOf = (population: number): number => Math.log10(Math.max(population, 1)) - BASE_DECADE;
+const decadesOf = (population: number): number => Math.log10(Math.max(population, 1)) - BASE_DECADE;
 
 /** Número de empresas que uma cidade sustenta. */
 export function targetCompanies(city: Pick<BaseCity, "population">, params: Params): number {
@@ -19,12 +19,12 @@ export function targetCompanies(city: Pick<BaseCity, "population">, params: Para
   return Math.max(k.min, Math.round(k.base + k.perDecade * decadesOf(city.population)));
 }
 
-export function drawScale(rng: Rng, population: number, params: Params): CompanyScale {
+function drawScale(rng: Rng, population: number, params: Params): CompanyScale {
   const d = decadesOf(population);
   return rng.weighted(SCALES, (s) => Math.max(0, params.companies.scaleWeight[s].base + params.companies.scaleWeight[s].perDecade * d));
 }
 
-export function drawCapital(rng: Rng, scale: CompanyScale, params: Params): number {
+function drawCapital(rng: Rng, scale: CompanyScale, params: Params): number {
   const c = params.companies.capital;
   return Math.max(5000, Math.round(c.median[scale] * Math.exp(rng.gauss(0, c.sigma)) / 1000) * 1000);
 }

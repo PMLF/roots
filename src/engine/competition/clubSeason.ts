@@ -8,8 +8,8 @@ import { seasonName } from "../season/saveYear";
 import { currentSeason } from "../season/seasonPyramid";
 import type { Repository } from "../persistence/repository";
 
-export type SeasonPlayerStat = { games: number; minutes: number; goals: number; assists: number; yellow: number; red: number; rating?: number };
-export type ClubTop = { player: string; name: string; value: number };
+type SeasonPlayerStat = { games: number; minutes: number; goals: number; assists: number; yellow: number; red: number; rating?: number };
+type ClubTop = { player: string; name: string; value: number };
 
 export type ClubSeason = {
   season: number;

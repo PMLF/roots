@@ -10,7 +10,7 @@ import { tailProb, type Country } from "./countries";
 
 type T = Params["world"]["talent"];
 
-export const mu = (country: Country, t: T): number => t.muIndex0 + (t.muIndex100 - t.muIndex0) * clamp(country.index / 100, 0, 1);
+const mu = (country: Country, t: T): number => t.muIndex0 + (t.muIndex100 - t.muIndex0) * clamp(country.index / 100, 0, 1);
 
 /** Qualidade (1-20, contínua) de um jogador nascido no país. */
 export function sampleQuality(rng: Rng, country: Country, t: T): number {

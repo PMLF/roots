@@ -19,7 +19,7 @@ export type RightsDeal = { company: string; total: number; tier: Tier };
 
 const TIER_ORDER: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
 
-export const rightsKey = (season: number, scope: string): string => `rights.${season}.${scope}`;
+const rightsKey = (season: number, scope: string): string => `rights.${season}.${scope}`;
 
 /** Pacote em vigor numa época: `tier` ou `district:<distrito>` ou `cup` / `supercup`. */
 export function readRights(repo: Repository, season: number, scope: string): RightsDeal | undefined {

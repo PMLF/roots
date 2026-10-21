@@ -10,7 +10,7 @@ import type { IsoDate, NewEvent } from "../persistence/types";
 
 export type RivalReason = "geografico" | "table";
 
-export function geographicRival(data: BaseData, a: string, b: string): boolean {
+function geographicRival(data: BaseData, a: string, b: string): boolean {
   const ca = data.clubs.find((c) => c.id === a);
   const cb = data.clubs.find((c) => c.id === b);
   if (ca?.rival === b || cb?.rival === a) return true;

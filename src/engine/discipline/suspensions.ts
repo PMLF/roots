@@ -13,7 +13,7 @@ import type { Params } from "../config/parameters";
 import type { Repository } from "../persistence/repository";
 import type { CardRecord } from "../persistence/types";
 
-export type SuspensionReason = "accumulation" | "second-yellow" | "red";
+type SuspensionReason = "accumulation" | "second-yellow" | "red";
 
 export type DisciplinaryState = {
   player: string;

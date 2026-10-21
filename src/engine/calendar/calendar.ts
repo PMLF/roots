@@ -7,11 +7,11 @@
 import type { Rng } from "../random/rng";
 import type { Tier, Params } from "../config/parameters";
 import type { IsoDate, ScheduledBye, ScheduledMatch } from "../persistence/types";
-import { compare, createDate, weekDay, nextWeekday, addDays } from "./dates";
+import { compare, createDate, nextWeekday, addDays } from "./dates";
 import { allAgainstAll } from "./roundRobin";
 
 export type { ScheduledMatch };
-export type Round = { number: number; date: IsoDate; matches: ScheduledMatch[]; bye?: string };
+type Round = { number: number; date: IsoDate; matches: ScheduledMatch[]; bye?: string };
 export type LeagueCalendar = { competition: string; season: number; tier: Tier; legs: 1 | 2; clubs: string[]; rounds: Round[] };
 
 export type LeagueDefinition = { competition: string; tier: Tier; clubs: string[]; legs?: 1 | 2 };
@@ -46,7 +46,7 @@ function split(total: number, m: number): number[] {
 }
 
 /** As `rondas` datas-base de uma liga: fins de semana espaçados e, se faltarem, quartas-feiras antes de um fim de semana. */
-export function leagueSlots(pairings: number, season: number, c: Schedule, tier?: Tier): Slot[] {
+function leagueSlots(pairings: number, season: number, c: Schedule, tier?: Tier): Slot[] {
   const W = seasonWeekends(season, c, tier);
   if (pairings <= W.length) return split(W.length, pairings).map((i) => ({ date: W[i] as IsoDate, weekend: true }));
   const pauses = c.pauses.map((p) => ({ from: seasonDate(season, p.from, c), until: seasonDate(season, p.until, c) }));
@@ -135,8 +135,6 @@ export function validateCalendar(cal: LeagueCalendar): string[] {
       }
   return errors;
 }
-
-export { weekDay };
 
 /** Linhas a guardar no repositório para um calendário de liga. */
 export function forRepository(cal: LeagueCalendar): { matches: ScheduledMatch[]; byes: ScheduledBye[] } {

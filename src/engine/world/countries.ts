@@ -56,7 +56,7 @@ export function importCountries(csv: string): { ok: true; countries: Country[] }
 export const birthWeight = (p: Country): number => Math.sqrt(p.population) * (0.3 + p.index / 100);
 
 /** Qualidade necessária (0-1) de um escalão: cresce com o nível. */
-export const necessaryQuality = (tier: Tier): number => ({ firstLeague: 1, secondLeague: 0.75, thirdLeague: 0.5, cp: 0.3, district: 0.1 })[tier];
+const necessaryQuality = (tier: Tier): number => ({ firstLeague: 1, secondLeague: 0.75, thirdLeague: 0.5, cp: 0.3, district: 0.1 })[tier];
 
 /** w(país → Portugal) = peso de nascimento × afinidade × (0,5 + qualidade necessária). */
 export const weightForPortugal = (p: Country, tier: Tier): number => birthWeight(p) * p.portugalAffinity * (0.5 + necessaryQuality(tier));

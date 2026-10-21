@@ -1,5 +1,4 @@
 /** Formas das pessoas geradas (RZ-103). Todas de "verdade": a UI só as vê através da `Vista`. */
-import type { Tier } from "../config/parameters";
 import type { PersonRole, Personality } from "../personality/generate";
 import type { IsoDate } from "../persistence/types";
 
@@ -55,5 +54,3 @@ export type WorldBatch = {
   contracts: NewContract[];
   roles: NewRole[];
 };
-
-export type ClubTier = Tier;

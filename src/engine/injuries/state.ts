@@ -11,7 +11,7 @@ import type { Injury, InjuryType } from "./injury";
 
 export const INJURY_EVENT = "INJURY";
 
-export type RecordedInjury = Injury & { until: IsoDate; date: IsoDate; match?: string };
+type RecordedInjury = Injury & { until: IsoDate; date: IsoDate; match?: string };
 
 export type PhysicalState = {
   player: string;

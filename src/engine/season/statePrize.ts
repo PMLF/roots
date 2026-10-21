@@ -22,7 +22,7 @@ export type RankedClub = {
 const TIER_ORDER: Record<Tier, number> = { firstLeague: 0, secondLeague: 1, thirdLeague: 2, cp: 3, district: 4 };
 
 /** Negativo se `a` é melhor classificado que `b`: escalão, posição, pontos por jogo, diferença, golos marcados, menor reputação. */
-export function compareForPrize(a: RankedClub, b: RankedClub): number {
+function compareForPrize(a: RankedClub, b: RankedClub): number {
   const ppg = (c: RankedClub) => (c.matches > 0 ? c.points / c.matches : 0);
   return (
     TIER_ORDER[a.tier] - TIER_ORDER[b.tier] ||
