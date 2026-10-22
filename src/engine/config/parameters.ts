@@ -283,6 +283,8 @@ export type Params = {
     minRestDays: number;
   };
   saves: { daysAutosave: number; rotatingAutosaves: number; saveAtSeasonStart: boolean; /** Quantos saves de início de época se guardam. */ keepSeasonSaves: number };
+  /** Vida fora do futebol (RZ-318): quem ganha menos que `fullTimeWage` por mês no futebol tem outra profissão (ou estuda, se for novo). */
+  occupation: { fullTimeWage: number; studentUntilAge: number; studentShare: number; codes: Record<string, { weight: number; sectors?: Record<string, number> }> };
   /** Assistente de nova save (RZ-138): limites de população do concelho para a bacia de adeptos pequena/média/grande. */
   onboarding: { basinThresholds: [number, number] };
   fairPlay: { levels: number; fallback: number };
@@ -979,6 +981,33 @@ export const DEFAULT_PARAMETERS: Params = {
   },
   saves: { daysAutosave: 7, rotatingAutosaves: 3, saveAtSeasonStart: true, keepSeasonSaves: 5 },
   onboarding: { basinThresholds: [15_000, 60_000] },
+  occupation: {
+    fullTimeWage: 1800,
+    studentUntilAge: 21,
+    studentShare: 0.85,
+    // peso base e multiplicadores por setor da cidade (AGR agrícola, IND industrial, TUR turismo, MAR mar, SER serviços, LOG logística, DOR Douro, UNI universitária…)
+    codes: {
+      shop_assistant: { weight: 4 },
+      builder: { weight: 4, sectors: { IND: 1.2, TUR: 1.3 } },
+      electrician: { weight: 3 },
+      mechanic: { weight: 3, sectors: { IND: 2, LOG: 1.5 } },
+      driver: { weight: 3, sectors: { LOG: 4 } },
+      waiter: { weight: 3, sectors: { TUR: 3, MAR: 1.5 } },
+      cook: { weight: 2, sectors: { TUR: 2 } },
+      administrative: { weight: 3, sectors: { SER: 2, UNI: 2 } },
+      teacher: { weight: 2, sectors: { SER: 1.5, UNI: 2.5, INT: 1.5 } },
+      nurse: { weight: 1.5, sectors: { UNI: 1.5 } },
+      factory_worker: { weight: 2, sectors: { IND: 6 } },
+      delivery: { weight: 2, sectors: { LOG: 2 } },
+      security_guard: { weight: 1.5 },
+      hairdresser: { weight: 0.7 },
+      gardener: { weight: 1, sectors: { AGR: 1.5, TUR: 1.5 } },
+      hotel_receptionist: { weight: 1, sectors: { TUR: 4 } },
+      farmer: { weight: 1, sectors: { AGR: 9, INT: 3, DOR: 3, FRO: 3 } },
+      winemaker: { weight: 0.2, sectors: { DOR: 20 } },
+      fisher: { weight: 0.2, sectors: { MAR: 25 } },
+    },
+  },
   fairPlay: { levels: 5, fallback: 3 },
   knockoutRounds: { penalties: { initial: 5, goalProb: 0.76, takerSkill: 0.012, keeperSkill: 0.008 } },
   coach: { offers: 3, surprises: 1, surpriseMargin: 600 },

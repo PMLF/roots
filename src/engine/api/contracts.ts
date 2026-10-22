@@ -270,6 +270,8 @@ export type PersonProfileData = {
   wage?: number;
   /** Agente do jogador (público). */
   agent?: EntityRef;
+  /** Profissão fora do futebol (RZ-318): código (`occupation.<código>`); só em jogadores que o futebol não paga para viver. */
+  occupation?: string;
   /** Cláusulas do contrato: só no teu clube (ou em modo developer). */
   clauses?: { release?: number };
   level?: EstimatedLevel;

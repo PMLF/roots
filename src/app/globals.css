@@ -1174,3 +1174,5 @@ body {
 .saves-guardar input[type=text], .saves-guardar input:not([type]) { width: 100%; }
 .lembrete-backup { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--atencao-fundo); color: var(--texto); }
 .lembrete-backup button { margin-left: auto; }
+/* Vida fora do futebol (RZ-318): fundo branco, letras pretas, também no escuro (tal como o amarelo do mercado). */
+.chip-vida { background: #fff; border-color: #cfd6d2; color: #000; font-weight: 500; }

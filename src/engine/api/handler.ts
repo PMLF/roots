@@ -53,6 +53,7 @@ import { recentMatches } from "../competition/recent";
 import { competitionHistory } from "../competition/history";
 import { reputationLevel } from "../club/reputation";
 import { buildCatalog } from "./catalog";
+import { hasOutsideLife, occupationOf } from "../world/occupation";
 import { autosaveIfDue, createSave, listSaves, readSaveFile, type Codec, type SaveContext, type SaveStore } from "../saves/saves";
 import { generalLevel } from "../world/level";
 import { KEY } from "../world/player";
@@ -171,6 +172,11 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (agentId && agentName) output.agent = { k: "person", id: agentId, name: agentName };
       const gamerBase = gamerClubOf(repository, data);
       const asPlayer = repository.player(m.input.id);
+      const person = repository.person(m.input.id);
+      if (person && asPlayer && asPlayer.state !== "retired" && hasOutsideLife(contract?.monthlyWage, params)) {
+        const sector = data.cities.find((c) => c.id === person.birthCity)?.sector;
+        output.occupation = occupationOf(repository.meta("seed") ?? "", person.id, person.birth, repository.meta("date.today") ?? `${params.calendar.initialYear}-07-01`, sector, params);
+      }
       if (gamerBase && asPlayer && asPlayer.state !== "retired" && asPlayer.club !== gamerBase.id) {
         output.biddable = true;
         const open = bids(repository).find((b) => b.person === m.input.id && (b.stage === "club" || b.stage === "agent" || b.stage === "agreed"));
