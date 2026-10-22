@@ -127,7 +127,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
       {observing && <ObservePlayer person={observing.id} name={observing.sportingName} onClose={() => setObserving(undefined)} />}
       {bidding && <BidDialog person={bidding.id} name={bidding.sportingName} onClose={() => setBidding(undefined)} />}
       {renewing && <RenewalDialog person={renewing.id} name={renewing.sportingName} onClose={() => setRenewing(undefined)} onAgreed={() => setAgreed((a) => ({ ...a, [renewing.id]: true }))} />}
-      <Table key={view} id={`plantel-${view}`} toolbar={viewSelect} columns={viewColumns} lines={d.squad} rowKey={(p) => p.id} cell={seasonCell} lineClass={(p) => (d.extraSquad[p.id]?.injured ? "lesionado" : undefined)} initialOrder={view === "profile" ? { column: "pos", direction: "asc" } : { column: view === "season" ? "ga" : "minutes", direction: "desc" }} />
+      <Table key={view} id={`plantel-${view}`} phoneColumns={view === "season" ? ["name", "pos", "games", "goals", "assists", "rating"] : view === "discipline" ? ["name", "pos", "games", "yellow", "red"] : ["name", "pos", "age", "stars"]} toolbar={viewSelect} columns={viewColumns} lines={d.squad} rowKey={(p) => p.id} cell={seasonCell} lineClass={(p) => (d.extraSquad[p.id]?.injured ? "lesionado" : undefined)} initialOrder={view === "profile" ? { column: "pos", direction: "asc" } : { column: view === "season" ? "ga" : "minutes", direction: "desc" }} />
     </>
   );
   const tp = d.season?.tops;

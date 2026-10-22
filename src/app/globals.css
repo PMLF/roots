@@ -1176,3 +1176,21 @@ body {
 .lembrete-backup button { margin-left: auto; }
 /* Vida fora do futebol (RZ-318): fundo branco, letras pretas, também no escuro (tal como o amarelo do mercado). */
 .chip-vida { background: #fff; border-color: #cfd6d2; color: #000; font-weight: 500; }
+
+/* ---- Telemóvel, 2.ª passagem (RZ-226) ---- */
+@media (max-width: 700px) {
+  .separadores { overflow-x: auto; scrollbar-width: none; }
+  .separadores::-webkit-scrollbar { display: none; }
+  .separadores button { flex: none; white-space: nowrap; }
+  .tabela th, .tabela td { padding: 6px 8px; }
+  .tabela thead th { font-size: 12px; }
+  .saves-tabela { min-width: 0; border: 0; }
+  .saves-tabela thead { display: none; }
+  .saves-tabela, .saves-tabela tbody, .saves-tabela tr, .saves-tabela td { display: block; width: 100%; }
+  .saves-tabela tr { padding: 10px 12px; border-bottom: 1px solid var(--linha); }
+  .saves-tabela td { display: flex; justify-content: space-between; gap: 12px; padding: 2px 0; border: 0; text-align: right; }
+  .saves-tabela td::before { content: attr(data-label); color: var(--suave); text-align: left; }
+  .saves-tabela td.acoes { justify-content: flex-start; flex-wrap: wrap; gap: 8px; padding-top: 8px; }
+  .saves-tabela td.acoes::before { content: none; }
+}
+@media (max-width: 700px) { .saves-tabela .chip { white-space: nowrap; flex: none; } }

@@ -16,6 +16,8 @@ type Props<L> = {
   /** Controlos extra no início da barra (por exemplo a escolha de vista). */
   toolbar?: ReactNode;
   initialOrder?: Order;
+  /** Colunas que se mostram por omissão num telemóvel (≤700 px), enquanto o gamer não escolher outras. */
+  phoneColumns?: readonly string[];
   /** Sem filtro, escolha de colunas nem exportação (tabelas pequenas em cartões). */
   simple?: boolean;
   /** Classe CSS por linha (ex.: zonas da classificação). */
@@ -31,7 +33,7 @@ const isWidths = (v: unknown): v is Record<string, number> => typeof v === "obje
 const isTextList = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
 
 /** A tabela única do jogo (TOM_E_UX §3.6): ordenar, filtrar, escolher colunas, exportar, setas e Enter. */
-export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initialOrder = null, simple = false, lineClass }: Props<L>) {
+export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initialOrder = null, simple = false, lineClass, phoneColumns }: Props<L>) {
   const { t } = useT();
   const params = useSearchParams();
   // A ordenação escolhida fica no URL (`sort=coluna:asc|desc`, sem nova entrada no histórico) para sobreviver a «Voltar».
@@ -96,7 +98,8 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initi
   };
 
   useEffect(() => {
-    setVisible(read(`raizes.columns.${id}`, isTextList));
+    const phone = typeof window !== "undefined" && window.matchMedia("(max-width: 700px)").matches;
+    setVisible(read(`raizes.columns.${id}`, isTextList) ?? (phone && phoneColumns ? [...phoneColumns] : undefined));
   }, [id]);
 
   const visibleColumns = useMemo(() => presetColumns(columns, visible ? { name: "saved", columns: visible } : undefined), [columns, visible]);
