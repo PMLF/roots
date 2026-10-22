@@ -50,7 +50,6 @@ export function CampaignDialog({ campaign, onClose, onAnswered }: { campaign: Ca
             <Data lines={[
               { label: t("campaign.most"), value: areas(c.most) },
               { label: t("campaign.least"), value: areas(c.least) },
-              { label: t("campaign.promises"), value: areas(c.promises) },
               ...(c.kept ? [{ label: t("campaign.kept"), value: t("campaign.keptOf", { kept: c.kept.kept, total: c.kept.total }) }] : []),
               ...(c.relation ? [{ label: t("campaign.relation"), value: <span className="nivel-linha"><BarLevel level={c.relation.level} /><b>{t(`city.level.${c.relation.level}` as Key)}</b><span aria-hidden="true">{SERVICE_ARROW[c.relation.trend]}</span></span> }] : []),
             ]} />
