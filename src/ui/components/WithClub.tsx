@@ -157,7 +157,7 @@ export function WithClub({ title, children }: { title: string; children: (club: 
   const { t } = useT();
   const clubs = useClubs();
   const [mine, , ready] = useOwnClub();
-  if (clubs === null) return <p className="vazio" data-testid="sem-mundo">{t("today.noWorld")} <Link href="/world/">{t("today.createWorld")}</Link></p>;
+  if (clubs === null) return <p className="vazio" data-testid="sem-mundo">{t("today.noWorld")} <Link href="/new/">{t("today.createWorld")}</Link></p>;
   if (clubs === undefined || !ready) return <p>{t("profile.loading")}</p>;
   if (!mine || !clubs.some((c) => c.id === mine)) return <ChooseInitialClub />;
   return (

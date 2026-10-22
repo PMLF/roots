@@ -52,6 +52,7 @@ import { EUROPEAN, EUROPE_NAME } from "../europe/europe";
 import { recentMatches } from "../competition/recent";
 import { competitionHistory } from "../competition/history";
 import { reputationLevel } from "../club/reputation";
+import { buildCatalog } from "./catalog";
 import { generalLevel } from "../world/level";
 import { KEY } from "../world/player";
 import type { Attribute, Position } from "../world/types";
@@ -113,6 +114,10 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     case "clubs": {
       const { data } = await context(servicos);
       return data.clubs.map((c): SummaryClub => ({ id: c.id, name: c.name, league: c.league, colours: c.colours }));
+    }
+    case "clubCatalog": {
+      const { data, params } = await context(servicos);
+      return buildCatalog(data, params);
     }
     case "clubColours": {
       const { data } = await context(servicos);

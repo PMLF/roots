@@ -283,6 +283,8 @@ export type Params = {
     minRestDays: number;
   };
   saves: { daysAutosave: number; rotatingAutosaves: number; saveAtSeasonStart: boolean };
+  /** Assistente de nova save (RZ-138): limites de população do concelho para a bacia de adeptos pequena/média/grande. */
+  onboarding: { basinThresholds: [number, number] };
   fairPlay: { levels: number; fallback: number };
   /** Jogos a eliminar: se acabam empatados, decide-se nos penáltis (série inicial de `iniciais` cobranças por equipa, depois morte súbita). */
   knockoutRounds: { penalties: { initial: number; goalProb: number; /** Probabilidade a mais por ponto de «penalties» do marcador acima de 10. */ takerSkill: number; /** Probabilidade a menos por ponto médio (reflexos, mãos) do guarda-redes acima de 10. */ keeperSkill: number } };
@@ -976,6 +978,7 @@ export const DEFAULT_PARAMETERS: Params = {
     minRestDays: 3,
   },
   saves: { daysAutosave: 7, rotatingAutosaves: 3, saveAtSeasonStart: true },
+  onboarding: { basinThresholds: [15_000, 60_000] },
   fairPlay: { levels: 5, fallback: 3 },
   knockoutRounds: { penalties: { initial: 5, goalProb: 0.76, takerSkill: 0.012, keeperSkill: 0.008 } },
   coach: { offers: 3, surprises: 1, surpriseMargin: 600 },

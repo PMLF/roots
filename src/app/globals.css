@@ -1126,3 +1126,44 @@ body {
 .ligas-grelha .cartao { max-height: 440px; overflow: auto; }
 .subiu { color: var(--zona-subida); font-weight: 600; }
 .desceu { color: var(--zona-descida); font-weight: 600; }
+
+/* ---- Assistente de nova save (RZ-138) ---- */
+.novo-jogo { max-width: 1080px; margin: 0 auto; padding: 24px 16px 40px; }
+.novo-topo { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+.novo-passos { display: flex; gap: 6px; list-style: none; padding: 0; margin: 0; }
+.novo-passos li { padding: 3px 12px; border-radius: 999px; border: 1px solid var(--linha-forte); color: var(--suave); font-size: 13px; }
+.novo-passos li[aria-current="step"] { background: var(--destaque-fundo); border-color: transparent; color: var(--destaque-texto); font-weight: 600; }
+.novo-passos li.feito { color: var(--texto); }
+.novo-cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; list-style: none; padding: 0; margin: 12px 0 0; }
+.novo-cartoes .cartao .icone { width: 28px; height: 28px; stroke: var(--destaque); fill: none; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 8px; }
+.novo-cartoes .cartao h3 { margin: 0 0 4px; }
+.novo-cartoes .cartao p { margin: 0; color: var(--suave); }
+.piramide { list-style: none; padding: 0; margin: 16px auto 8px; display: grid; gap: 6px; justify-items: center; max-width: 640px; }
+.piramide li { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; padding: 10px 16px; background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-s); min-width: 220px; max-width: 100%; }
+.piramide li:first-child { background: var(--destaque); border-color: var(--destaque); color: #fff; }
+.piramide li:first-child .suave { color: inherit; opacity: .85; }
+.piramide-setas { text-align: center; }
+.novo-escolha { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; align-items: start; }
+.novo-filtros { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px 10px; margin-bottom: 8px; }
+.novo-filtros label { display: grid; gap: 2px; font-size: 12px; color: var(--suave); }
+.novo-filtros .novo-pesquisa { grid-column: 1 / -1; }
+.novo-filtros input[type=search], .novo-filtros select { width: 100%; }
+.novo-filtros .novo-check { display: flex; align-items: center; gap: 6px; align-self: end; font-size: 13px; color: var(--texto); }
+.novo-lista { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; max-height: 56vh; overflow: auto; }
+.novo-lista button { width: 100%; display: flex; align-items: center; gap: 8px; text-align: left; flex-wrap: wrap; }
+.novo-lista button.ativo { border-color: var(--destaque); background: var(--destaque-fundo); }
+.novo-lista .chip { margin-left: auto; font-size: 12px; }
+.novo-dif-underdog { background: var(--atencao-fundo); border-color: transparent; color: var(--atencao); }
+.novo-dif-balanced { background: var(--painel-2); }
+.novo-dif-big { background: var(--destaque-fundo); border-color: transparent; color: var(--destaque-texto); }
+.novo-ficha { position: sticky; top: 12px; }
+.novo-dados { margin: 8px 0 0; display: grid; gap: 6px; }
+.novo-dados > div { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--linha); padding-top: 6px; }
+.novo-dados dt { color: var(--suave); } .novo-dados dd { margin: 0; text-align: right; }
+.novo-rodape { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+@media (max-width: 800px) {
+  .novo-escolha { grid-template-columns: 1fr; }
+  .novo-ficha { position: static; order: -1; }
+  .novo-lista { max-height: 48vh; }
+}
+.novo-centro { grid-area: auto; height: 100vh; overflow: auto; padding: 0; }

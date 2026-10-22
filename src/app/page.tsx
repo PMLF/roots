@@ -52,6 +52,7 @@ export default function Start() {
   // «Avançar» pede o foco para a mensagem/decisão seguinte; tenta-se já e quando a lista muda
   useEffect(() => { applyHomeFocus(); return onHomeFocus(() => { applyHomeFocus(); }); }, [inbox.messages, world]);
 
+  useEffect(() => { if (world === null) router.replace("/new/"); }, [world, router]);
   useEffect(() => {
     if (!engine) return;
     let live = true;
@@ -120,7 +121,7 @@ export default function Start() {
     return (
       <section className="inicio">
         <h1>{t("today.title")}</h1>
-        <p data-testid="hoje-sem-mundo">{t("today.noWorld")} <Link href="/world/">{t("today.createWorld")}</Link></p>
+        <p data-testid="hoje-sem-mundo">{t("today.noWorld")} <Link href="/new/">{t("today.createWorld")}</Link></p>
       </section>
     );
   }
