@@ -16,6 +16,8 @@ import type { Position } from "../world/types";
 import type { Tier, LevelReputation } from "../config/parameters";
 import type { PlayerStatLine } from "../persistence/types";
 import type { PersonProfile, ViewPerson } from "../view/types";
+import type { CatalogClub } from "./catalog";
+export type { CatalogClub, Difficulty } from "./catalog";
 
 /** Resultado do autodiagnóstico da base de dados (RZ-128): escreve um evento e lê-o de volta. */
 export type DbDiagnostics = {
@@ -462,6 +464,8 @@ export type EngineRequests = {
   /** O mundo do save, se já foi criado (não gera nada). */
   worldState: { input: null; output: CreatedWorldSummary | null };
   clubs: { input: null; output: SummaryClub[] };
+  /** Os clubes jogáveis com o que interessa para escolher (RZ-138); não precisa de mundo. */
+  clubCatalog: { input: null; output: CatalogClub[] };
   /** Pesquisa de jogadores com o alcance dos olheiros (RZ-230). */
   scouting: { input: null; output: ScoutingData };
   localTalent: { input: { city: string }; output: LocalTalentData | null };

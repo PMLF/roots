@@ -48,7 +48,7 @@ O que se guarda está em **inglês** (posições GK, RB, CB, LB, DM, CM, AM, RW,
 
 ## 3c. Modo developer
 
-**Laboratório** e **Mundo** são ferramentas, não jogo: só aparecem no menu no modo developer (`src/ui/dev.ts`: `pnpm dev`, ou build com `NEXT_PUBLIC_RAIZES_DEV=1`, ou `localStorage.setItem("raizes.dev", "true")` no browser). O Laboratório não mostra nada fora desse modo. A rota `/mundo/` continua alcançável pela ligação de «Hoje» enquanto não há mundo, só porque ainda é por onde se cria; o RZ-138 (nova save) passa essa função para o jogo e a página fica só para developers.
+**Laboratório** e **Mundo** são ferramentas, não jogo: só aparecem no menu no modo developer (`src/ui/dev.ts`: `pnpm dev`, ou build com `NEXT_PUBLIC_RAIZES_DEV=1`, ou `localStorage.setItem("raizes.dev", "true")` no browser). O Laboratório não mostra nada fora desse modo. A rota `/mundo/` continua alcançável pela ligação de «Hoje» enquanto não há mundo, só porque ainda é por onde se cria; o RZ-138 (nova save) passou essa função para o jogo: `/new/` (assistente em ecrã inteiro, sem menu) é onde se cria a save; `/world/` fica só para developers.
 
 ## 3d. Fichas ricas e «Ver tudo»
 - **Pessoa:** nome + chips (posição, clube) e, ao lado, um cartão de identidade (nascimento, país, corpo, pé, clube, contrato, estado). Corpo em cartões: atributos 1–20 por grupo (bandas de cor), nível e condição, contrato e mercado, personalidade, estatísticas. Atributo desconhecido = «?» ou intervalo (`NivelEstimado`). Outros papéis: cartões Cargo, Qualidades e Personalidade.

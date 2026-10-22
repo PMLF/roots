@@ -118,6 +118,8 @@ export function Shell({ children }: { children: ReactNode }) {
   const items = MENU.filter((m) => (!m.devOnly || dev) && !m.hidden);
   // «Mais» fica ativa quando a página atual só se chega pela gaveta
   const onlyInMore = !MENU.filter((m) => TABS.includes(m.rowKey)).some((m) => m.whenActive(path));
+  // o assistente de nova save (RZ-138) ocupa o ecrã todo, sem menu nem barras
+  if (path.startsWith("/new")) return <main className="centro novo-centro">{children}</main>;
   return (
     <div className="shell">
       <nav className={`menu${drawer ? " aberto" : ""}`} aria-label="Menu" id="menu-principal">
