@@ -140,6 +140,9 @@ export function openBid(repo: Repository, data: BaseData, params: Params, club: 
   return { ok: true, bid };
 }
 
+/** Apaga a proposta (por exemplo quando se acaba em empréstimo). */
+export const dropBid = (repo: Repository, bid: Bid): void => save(repo, bids(repo).filter((x) => x.id !== bid.id));
+
 /** Desistir: sem rondas feitas apaga a proposta; com rondas, a porta fecha um mês. */
 export function cancelBid(repo: Repository, params: Params, today: IsoDate, bid: Bid): void {
   if (bid.stage === "done" || (bid.stage === "agreed" && bid.moving)) return;
