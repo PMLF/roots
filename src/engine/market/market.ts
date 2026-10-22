@@ -134,7 +134,6 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
       if (win.index === 1 && repo.meta(`budget.winter.${c.id}`) !== win.id) {
         const def = defaultBudget(repo, c, params, season);
         b.transfers = Math.max(b.transfers, Math.round((def.transfers * mk.winterRefresh) / 1000) * 1000);
-        b.wageBillMax = Math.max(b.wageBillMax, def.wageBillMax);
         repo.setMeta(`budget.winter.${c.id}`, win.id);
         repo.setMeta(`budget.${c.id}`, JSON.stringify(b));
       }

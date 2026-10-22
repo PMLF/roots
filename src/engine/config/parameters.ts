@@ -908,7 +908,7 @@ export const DEFAULT_PARAMETERS: Params = {
     bankruptcyDelayWagesMonths: 3,
     wealthPercentiles: [90, 70, 40, 15],
     rivalEstimateErrorProb: 0.25,
-    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.05 },
+    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.03 },
     model: {
       refReputation: { firstLeague: 5300, secondLeague: 4650, thirdLeague: 3000, cp: 2590, district: 1295 },
       exponentReputation: 1.2,
@@ -1163,7 +1163,7 @@ export const DEFAULT_PARAMETERS: Params = {
     windowFactor: [1, 0.6],
     winterRefresh: 0.5,
     maxSigningsPerWindow: 8,
-    squadSlack: 6,
+    squadSlack: 4,
     ageFactor: [[18, 11.9], [22, 11.2], [25, 9.8], [28, 7.7], [31, 4.2], [34, 1.4], [38, 0.35]],
     potentialPremium: 0.22,
     potentialPremiumAgeMax: 24,
