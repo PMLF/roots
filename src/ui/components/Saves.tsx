@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { SaveMeta } from "@/engine/api/contracts";
+import { markExported } from "@/ui/backupReminder";
 import { useEngine } from "@/ui/EngineProvider";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import type { Key } from "@/ui/i18n";
@@ -43,7 +44,7 @@ export function Saves() {
   });
   const exportOne = (id?: string) => run(async () => {
     const r = await engine?.call("exportSave", id ? { id } : {});
-    if (r) download(r.filename, r.bytes);
+    if (r) { download(r.filename, r.bytes); markExported(); }
   });
   const loadOne = (id: string) => run(async () => {
     await engine?.call("loadSave", { id });

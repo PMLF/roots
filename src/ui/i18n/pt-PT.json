@@ -1756,5 +1756,8 @@
   "saves.confirmDelete": "Apagar este save?",
   "saves.open": "Abrir",
   "new.backupName": "Antes de recomeçar",
-  "new.existing.saves": "Gerir saves"
+  "new.existing.saves": "Gerir saves",
+  "backup.reminder": "Os saves ficam só neste browser e podem perder-se se os dados forem apagados.",
+  "backup.export": "Exportar uma cópia",
+  "backup.later": "Mais tarde"
 }

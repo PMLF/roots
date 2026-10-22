@@ -1172,3 +1172,5 @@ body {
 .cartao.saves-guardar { flex-direction: row; gap: 10px; align-items: end; flex-wrap: wrap; margin: 12px 0; }
 .saves-guardar label { display: grid; gap: 4px; font-size: 13px; color: var(--suave); flex: 1 1 240px; }
 .saves-guardar input[type=text], .saves-guardar input:not([type]) { width: 100%; }
+.lembrete-backup { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--atencao-fundo); color: var(--texto); }
+.lembrete-backup button { margin-left: auto; }

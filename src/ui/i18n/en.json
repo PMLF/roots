@@ -1756,5 +1756,8 @@
   "saves.confirmDelete": "Delete this save?",
   "saves.open": "Open",
   "new.backupName": "Before starting over",
-  "new.existing.saves": "Manage saves"
+  "new.existing.saves": "Manage saves",
+  "backup.reminder": "Saves live only in this browser and can be lost if its data is cleared.",
+  "backup.export": "Export a copy",
+  "backup.later": "Later"
 }
