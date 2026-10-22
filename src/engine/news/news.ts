@@ -13,7 +13,7 @@ import type { IsoDate } from "../persistence/types";
 export type NewsItemType =
   | "hattrick" | "red" | "two_yellows" | "rout" | "comeback_goal" | "stoppage_goal" | "serious_injury"
   | "champion" | "title_clinched" | "cup_upset" | "state_prize" | "promotion" | "relegation" | "second_district" | "district_return" | "locality" | "city_event"
-  | "outcome" | "injury" | "resignation" | "sacked" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer" | "loan_offer" | "youth_offer" | "council_reply" | "bid_agreed" | "bid_rejected" | "bid_progress" | "youth_intake" | "local_talent" | "market_open" | "market_close"
+  | "outcome" | "injury" | "resignation" | "sacked" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer" | "loan_offer" | "youth_offer" | "council_reply" | "election_campaign" | "election_result" | "bid_agreed" | "bid_rejected" | "bid_progress" | "youth_intake" | "local_talent" | "market_open" | "market_close"
   | "europe_qualified" | "europe_draw" | "europe_phase" | "europe_qualifier";
 
 type NewsItemLink = { k: "club" | "person" | "locality" | "competition" | "city"; id: string; name: string };
@@ -37,13 +37,13 @@ export type Message = NewsItem & { isRead: boolean };
 /** Quantas variantes de texto existem por tipo (a interface tem as frases `noticia.<tipo>.<n>.titulo|corpo`). */
 export const VARIANTS: Record<NewsItemType, number> = {
   hattrick: 2, red: 2, two_yellows: 2, rout: 2, comeback_goal: 2, stoppage_goal: 2, serious_injury: 2,
-  champion: 2, title_clinched: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1, loan_offer: 1, youth_offer: 1, council_reply: 1, bid_agreed: 1, bid_rejected: 1, bid_progress: 1, youth_intake: 1, local_talent: 1, market_open: 1, market_close: 1, europe_qualified: 1, europe_draw: 1, europe_phase: 1, europe_qualifier: 1,
+  champion: 2, title_clinched: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1, loan_offer: 1, youth_offer: 1, council_reply: 1, election_campaign: 1, election_result: 1, bid_agreed: 1, bid_rejected: 1, bid_progress: 1, youth_intake: 1, local_talent: 1, market_open: 1, market_close: 1, europe_qualified: 1, europe_draw: 1, europe_phase: 1, europe_qualifier: 1,
 };
 
 /** Tipos de evento que dão notícia para toda a gente. */
 const NEWS_ITEM_EVENTS = ["HATTRICK", "RED_CARD", "ROUT", "NOTABLE_GOAL", "INJURY", "CHAMPION", "CUP_UPSET", "STATE_PRIZE", "SECOND_DISTRICT_RELEGATION", "DISTRICT_RETURN", "PROMOTION", "RELEGATION", "LOCALITY_STATUS", "CITY_EVENT", "TRANSFER", "PLAYER_SIGNED", "EUROPE_QUALIFIED", "EUROPE_DRAW", "EUROPE_LEAGUE_PHASE", "EUROPE_QUALIFIER"] as const;
 /** A caixa de entrada junta o que é pessoal: o resultado do teu jogo, qualquer lesão do teu plantel, a tua carreira. */
-const INBOX_EVENTS = [...NEWS_ITEM_EVENTS, "MATCH_PLAYED", "GAMER_RESIGNATION", "GAMER_HIRED", "SCOUT_REPORT", "SCOUT_SEARCH", "TRANSFER_OFFER", "COUNCIL_REPLY", "BID_REPLY", "YOUTH_INTAKE", "TALENT_APPEARED", "MARKET_WINDOW"] as const;
+const INBOX_EVENTS = [...NEWS_ITEM_EVENTS, "MATCH_PLAYED", "GAMER_RESIGNATION", "GAMER_HIRED", "SCOUT_REPORT", "SCOUT_SEARCH", "TRANSFER_OFFER", "COUNCIL_REPLY", "ELECTION_CAMPAIGN", "ELECTION_RESULT", "BID_REPLY", "YOUTH_INTAKE", "TALENT_APPEARED", "MARKET_WINDOW"] as const;
 /** Lesões a partir desta gravidade são notícia no mundo; no teu plantel, todas. */
 const NEWS_ITEM_SEVERITY = 4;
 
@@ -190,6 +190,16 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
       const city = e.entities.find((x) => x.k === "city");
       const mayor = e.entities.find((x) => x.k === "person" && x.roleKind === "mayor");
       return inboxOnly && our && city && mayor ? base("council_reply", { mayor: c.personName(mayor.id), kind: String(d.kind ?? ""), outcome: d.approved ? "yes" : "no", reason: String(d.reason ?? ""), tone: String(d.tone ?? "plain"), amount: within(d.amount) }, [lp(mayor.id), { k: "city", id: city.id, name: c.data.cities.find((x) => x.id === city.id)?.name ?? city.id }]) : undefined;
+    }
+    case "ELECTION_CAMPAIGN": {
+      const city = e.entities.find((x) => x.k === "city");
+      return inboxOnly && our && city ? base("election_campaign", { city: c.data.cities.find((x) => x.id === city.id)?.name ?? city.id, date: String(d.date ?? "") }, [{ k: "city", id: city.id, name: c.data.cities.find((x) => x.id === city.id)?.name ?? city.id }]) : undefined;
+    }
+    case "ELECTION_RESULT": {
+      const city = e.entities.find((x) => x.k === "city");
+      const mayor = e.entities.find((x) => x.k === "person" && x.roleKind === "mayor");
+      const cityName = city ? c.data.cities.find((x) => x.id === city.id)?.name ?? city.id : "";
+      return inboxOnly && our && city && mayor ? base("election_result", { mayor: c.personName(mayor.id), city: cityName, reelected: within(d.reelected), backed: String(d.backed ?? "neutral") }, [lp(mayor.id), { k: "city", id: city.id, name: cityName }]) : undefined;
     }
     case "BID_REPLY": {
       if (!inboxOnly || !our || !person) return undefined;

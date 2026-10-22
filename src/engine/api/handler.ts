@@ -5,6 +5,8 @@ import { setBudget, clubBudget } from "../club/budget";
 import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
 import { ageAt, createDate } from "../calendar/dates";
 import type { IsoDate, PlayerRecord } from "../persistence/types";
+import { campaignView } from "../city/campaign";
+import { campaignPending, supportCandidate } from "../council/elections";
 import { pendingOffers, respondOffer, type Offer } from "../market/offers";
 import { valueOf } from "../market/bids";
 import { addDays } from "../calendar/dates";
@@ -386,12 +388,14 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     }
     case "attention": {
       const { repository, data, params } = await context(servicos);
-      const out: { unread?: number; offer?: { person: string }; bid?: { person: string } } = {};
+      const out: { unread?: number; offer?: { person: string }; bid?: { person: string }; campaign?: { city: string } } = {};
       const all = inbox(repository, data, { limit: 500 });
       const oldest = all.messages.filter((x) => !x.isRead).map((x) => x.id).sort((a, b) => a - b)[0];
       if (oldest !== undefined) out.unread = oldest;
       const offer = pendingOffers(repository)[0];
       if (offer) out.offer = { person: offer.person };
+      const camp = campaignPending(repository, gamerClubOf(repository, data));
+      if (camp) { const g = gamerClubOf(repository, data); if (g) out.campaign = { city: g.city }; }
       const bid = bids(repository).map((b) => bidViewOf(repository, data, params, b)).find((v) => (v.stage === "club" || v.stage === "agent") && !v.pending && !v.closed);
       if (bid) out.bid = { person: bid.person };
       return out;
@@ -452,6 +456,14 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const again = r.status === "counter" ? pendingOffers(repository).find((o) => o.id === m.input.id) : undefined;
       const view = again ? offerViewOf(repository, data, params, again) : undefined;
       return { ok: true, status: r.status, ...(view ? { offer: view } : {}) };
+    }
+    case "campaign": {
+      const { repository, data, params } = await context(servicos);
+      return campaignView(repository, data, params);
+    }
+    case "campaignSupport": {
+      const { repository, data } = await context(servicos);
+      return supportCandidate(repository, data, gamerClubOf(repository, data), m.input.candidate);
     }
     case "councilRequest": {
       const { repository, data, params } = await context(servicos);

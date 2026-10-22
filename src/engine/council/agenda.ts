@@ -28,7 +28,7 @@ export function mayorOf(repo: Repository, data: BaseData, cityId: string): Mayor
   if (!city) return undefined;
   const stored = repo.meta(KEY(cityId));
   const override = stored ? (JSON.parse(stored) as { person: string; sportSupport: number }) : undefined;
-  const person = override?.person ?? repo.publicRoles({ city: cityId }).find((p) => p.fn === "mayor")?.id;
+  const person = override?.person ?? repo.publicRoles({ city: cityId }).filter((p) => p.fn === "mayor").map((p) => p.id).sort()[0];
   if (!person) return undefined;
   const pers = repo.person(person)?.personality;
   const t = city.mayor.traits;

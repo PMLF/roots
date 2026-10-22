@@ -30,6 +30,11 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n
     const money = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
     values.speech = councilSpeech(t, { approved: values.outcome === "yes", reason: String(values.reason), tone: String(values.tone), kind: String(values.kind), amount: Number(values.amount) }, money);
   }
+  if (n.type === "election_result") {
+    values.reelected = t(`newsItem.election_result.reelected.${values.reelected}` as Key);
+    values.backed = t(`newsItem.election_result.backed.${values.backed}` as Key);
+  }
+  if (n.type === "election_campaign") values.date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${values.date}T00:00:00Z`));
   const toSquad = n.type === "youth_intake";
   const toScouting = n.type === "scout_search" || n.type === "scout_report";
   const base = `newsItem.${type}.${n.variant}`;

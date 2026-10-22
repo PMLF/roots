@@ -59,6 +59,18 @@ type CouncilParameters = {
     replyDays: [number, number]; cooldownDays: number; cofunds: number[];
     decision: { bias: number; relation: number; priority: number; sport: number; vanity: number; cost: number; cofund: number };
   };
+  /** Eleições autárquicas (RZ-236B): campanha, candidatos, voto e consequências do apoio do gamer. */
+  election: {
+    month: number; day: number; campaignDays: number;
+    /** [população mínima, nº de candidatos]: o último escalão cujo mínimo se atinge. */
+    candidatesBySize: [number, number][];
+    pIncumbentRuns: number; pExMayorRuns: number; pRetiredPlayer: number; retiredMinAge: number;
+    /** Peso no voto: bónus de quem está no cargo, humor da cidade, promessas cumpridas/falhadas, simpatia de ex-autarca e de ex-futebolista, ruído. */
+    vote: { incumbent: number; mood: number; promises: number; exMayor: number; retired: number; noise: number };
+    /** Peso do apoio do gamer: orgulho, notoriedade, resultados e segurança no cargo (somam 1); `maxShift` é o máximo que o apoio soma ao voto. */
+    gamer: { pride: number; notoriety: number; results: number; security: number; maxShift: number };
+    relation: { backed: number; backedRival: number; neutralLost: number; promiseKept: number; promiseBroken: number };
+  };
 };
 type CityParameters = {
   council: CouncilParameters;
@@ -1016,6 +1028,14 @@ export const DEFAULT_PARAMETERS: Params = {
         replyDays: [7, 21], cooldownDays: 120, cofunds: [0, 0.25, 0.5],
         decision: { bias: 0.2, relation: 1.6, priority: 1.4, sport: 0.9, vanity: 0.3, cost: 1.8, cofund: 1.2 },
       },
+      election: {
+        month: 10, day: 11, campaignDays: 28,
+        candidatesBySize: [[0, 2], [20000, 3], [80000, 4]],
+        pIncumbentRuns: 0.8, pExMayorRuns: 0.35, pRetiredPlayer: 0.3, retiredMinAge: 35,
+        vote: { incumbent: 0.3, mood: 1.2, promises: 0.8, exMayor: 0.15, retired: 0.25, noise: 0.5 },
+        gamer: { pride: 0.35, notoriety: 0.25, results: 0.25, security: 0.15, maxShift: 0.6 },
+        relation: { backed: 8, backedRival: -6, neutralLost: -4, promiseKept: 5, promiseBroken: -5 },
+      },
     },
     yearsMunicipalElections: 4,
     sinceTerm: 2025,
@@ -1491,6 +1511,8 @@ export function validateParameters(p: Params): string[] {
   if (!(sv.effects.attendance.warmMonths.every((x) => Number.isInteger(x) && x >= 1 && x <= 12) && sv.effects.health.recoveryPerPoint >= 0 && sv.effects.health.recoveryPerPoint * 50 < 0.5)) errors.push("city.services.effects inválido (meses 1-12; recoveryPerPoint × 50 < 0,5)");
   const cn = ci.council;
   if (!(cn.levelCuts.length === 4 && cn.levelCuts.every((x, i, a) => i === 0 || x > (a[i - 1] as number)) && cn.jitter >= 0 && cn.discretionary >= 0 && cn.discretionary < 1 && cn.requests.replyDays[0] >= 1 && cn.requests.replyDays[1] >= cn.requests.replyDays[0] && cn.requests.cooldownDays >= 0 && cn.requests.cofunds[0] === 0 && cn.requests.cofunds.every((x) => x >= 0 && x <= 1) && Object.values(cn.requests.cost).every((x) => x >= 0))) errors.push("city.council inválido (cortes crescentes, prazos, cofinanciamentos entre 0 e 1, custos ≥ 0)");
+  const el = cn.election;
+  if (!(el.month >= 1 && el.month <= 12 && el.day >= 1 && el.day <= 28 && el.campaignDays >= 1 && el.candidatesBySize.length > 0 && el.candidatesBySize.every(([, n]) => n >= 2) && [el.pIncumbentRuns, el.pExMayorRuns, el.pRetiredPlayer].every((x) => x >= 0 && x <= 1) && Math.abs(el.gamer.pride + el.gamer.notoriety + el.gamer.results + el.gamer.security - 1) < 1e-9 && el.gamer.maxShift >= 0 && el.vote.noise >= 0)) errors.push("city.council.election inválido (mês/dia, campanha ≥ 1, ≥ 2 candidatos, probabilidades 0-1, pesos do gamer somam 1)");
   const prosp = p.squadCycle.youth.prospects;
   if (!(prosp.perCityMean >= 0 && prosp.ageMin >= 14 && prosp.ageMax >= prosp.ageMin && prosp.ageMax <= 18 && prosp.popExponent > 0 && prosp.potentialShift >= 0 && Number.isInteger(prosp.localLockDays) && prosp.localLockDays >= 0)) errors.push("squadCycle.youth.prospects inválido (idades 14-18, expoente > 0)");
   const m = p.world;
