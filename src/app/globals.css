@@ -435,8 +435,8 @@ th[aria-sort="ascending"] .seta, th[aria-sort="descending"] .seta, .cabecalho:ho
 .nivel-barra > span { width: 10px; height: 8px; border-radius: 2px; background: var(--linha); }
 .nivel-barra > span.cheio, .nivel-barra > span.full { background: var(--destaque); }
 .tendencia { font-variant-numeric: tabular-nums; color: var(--suave); }
-.tendencia-sobe { color: var(--destaque-texto); }
-.tendencia-desce { color: var(--aviso); }
+.tendencia-sobe, .tendencia-rises { color: var(--destaque-texto); }
+.tendencia-desce, .tendencia-drops { color: var(--aviso); }
 .so-leitor { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .lista-simples { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 

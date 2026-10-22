@@ -7,6 +7,7 @@
  * 5. se não houver livre adequado, entra um jovem de emergência.
  * Determinístico: cada jogador e cada clube têm o seu fluxo aleatório; os clubes processam-se por escalão e reputação.
  */
+import { cityStateNow } from "../city/cities";
 import { endDueLoans } from "../loans/loans";
 import { standingIn } from "../world/standing";
 import { Rng, clamp } from "../random/rng";
@@ -333,7 +334,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
   // quem ninguém quis sai do futebol; nasce a geração seguinte
   for (const m of prospects) repo.updatePlayer(m.record.person, { state: "retired" });
   pruneLocks(repo, o.seasonStart);
-  const cohort = newProspects(data, params, { season: o.season, seasonStart: o.seasonStart, seed, nextId: newId });
+  const cohort = newProspects(data, params, { season: o.season, seasonStart: o.seasonStart, seed, nextId: newId, education: (city) => cityStateNow(repo, data, params, city)?.education });
   batch.people.push(...cohort.people);
   batch.players.push(...cohort.players);
   // a caixa de entrada do gamer avisa dos jovens livres que apareceram na cidade do clube

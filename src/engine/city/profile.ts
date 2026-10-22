@@ -6,7 +6,8 @@ import { seasonName } from "../calendar/seasonName";
 import type { Repository } from "../persistence/repository";
 import type { View } from "../view/view";
 import { cityHistoryWithPast } from "./cities";
-import { INDICATORS, levelOf, trendOf } from "./state";
+import { CITY_SERVICES, type CityEventType } from "../config/parameters";
+import { INDICATORS, levelOf, serviceTrendOf, trendOf } from "./state";
 
 /** Atitude da Câmara perante o desporto (1-10 nos dados) em cinco níveis. */
 const supportLevel = (v: number): ViewCityLevel => (v <= 2 ? 1 : v <= 4 ? 2 : v <= 6 ? 3 : v <= 8 ? 4 : 5);
@@ -34,6 +35,9 @@ export function cityProfile(repo: Repository, data: BaseData, base: BaseData, pa
   // mandato fixo no MVP: as eleições autárquicas (RZ-308) ainda não mudam o autarca
   const since = params.city.sinceTerm;
 
+  const recent = repo
+    .eventsOf({ k: "city", id }, { type: "CITY_EVENT", publicOnly: true, limit: 10 })
+    .map((e) => ({ type: String(e.data.event) as CityEventType, season: e.season }));
   return {
     id: c.id, name: c.name, district: c.district, hub: c.hub, island: c.island, sector: c.sector, secondarySector: c.tag2,
     population: now.state.population,
@@ -44,6 +48,17 @@ export function cityProfile(repo: Repository, data: BaseData, base: BaseData, pa
       trend: trendOf(before?.state[i], now.state[i], params),
       history: history.map((h) => ({ season: h.season, label: label(h.season), level: levelOf(h.state[i], params) })),
     })),
+    services: CITY_SERVICES.map((id) => {
+      // causa: o acontecimento mais recente (últimas duas épocas) que mexeu neste serviço
+      const cause = recent.find((a) => (params.city.events.types[a.type]?.effects[id] ?? 0) !== 0 && a.season >= now.season - 2);
+      return {
+        id,
+        level: levelOf(now.state[id], params),
+        trend: serviceTrendOf(before?.state[id], now.state[id], params),
+        history: history.map((h) => ({ season: h.season, label: label(h.season), level: levelOf(h.state[id], params) })),
+        ...(cause ? { cause: { type: cause.type, label: label(cause.season) } } : {}),
+      };
+    }),
     budget: quintile(perCapita({ municipalBudget: c.municipalBudget, population: now.state.population }), base.cities.map(perCapita)),
     ...(mayor
       ? { mayor: { person: { k: "person" as const, id: mayor.id, name: mayor.sportingName }, sinceTerm: since, untilTerm: since + params.city.yearsMunicipalElections, sportSupport: supportLevel(c.mayor.sportSupport), profile } }

@@ -1,3 +1,4 @@
+import { cityStateNow } from "../city/cities";
 import { cupRoundTag } from "../competition/cup";
 import { interestedClubs } from "../market/interest";
 import { setBudget, clubBudget } from "../club/budget";
@@ -941,7 +942,7 @@ async function createWorld(seed: string, servicos: Servicos, onProgress: (p: Wor
     assignAgents(repository, new Rng(seed, "agents/start"), params, (club) => data.clubs.find((c) => c.id === club)?.tier);
     // primeira geração de jovens da terra (RZ-234), para o separador «Talento local» não começar vazio
     let nextId = repository.peopleTotal();
-    repository.addPeople(newProspects(data, params, { season: 1, seasonStart: createDate(year, params.calendar.seasonStartMonth, 1), seed, nextId: () => `p${String(++nextId).padStart(6, "0")}` }));
+    repository.addPeople(newProspects(data, params, { season: 1, seasonStart: createDate(year, params.calendar.seasonStartMonth, 1), seed, nextId: () => `p${String(++nextId).padStart(6, "0")}`, education: (city) => cityStateNow(repository, data, params, city)?.education }));
   });
   return { seed, clubs: data.clubs.length, people: repository.peopleTotal(), players: batch.players.length, ms: Date.now() - t0, warnings: v.warnings, alreadyExisted: false };
 }

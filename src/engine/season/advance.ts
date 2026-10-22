@@ -21,6 +21,8 @@ import type { MatchTeam, MatchSummary } from "../match/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { matchAttendance } from "../club/attendance";
+import { cityStateNow } from "../city/cities";
+import { adjustInjury, attendanceFactor, clubCityState, nightlifeFormLoss } from "../city/effects";
 import { ensureBudgets } from "../club/budget";
 import { closeUntilMonths, post } from "../club/finances";
 import { postBroadcast } from "../broadcast/featured";
@@ -88,7 +90,10 @@ export function clubCandidates(repo: Repository, club: string, today: IsoDate, p
 }
 
 export function teamForMatch(repo: Repository, club: string, competition: string, season: number, round: number, today: IsoDate, seed: string, params: Params, plan?: Plan, base?: BaseData): MatchTeam {
-  const all = clubCandidates(repo, club, today, params);
+  const rawCandidates = clubCandidates(repo, club, today, params);
+  // vida noturna: nas cidades com muito entretenimento, quem se cuida pouco aparece mais cansado
+  const night = base ? clubCityState(repo, base, params, club) : undefined;
+  const all = night ? rawCandidates.map((c) => ({ ...c, form: (c.form ?? 1) * (1 - nightlifeFormLoss(night, repo.person(c.person)?.personality.professionalism ?? 10, params)) })) : rawCandidates;
   const away = unavailable(repo, club, all.map((c) => c.person), competition, season, round, today, seed, params);
   const tactic = plan?.tactic ?? { ...DEFAULT_TACTIC };
   const lineup = planLineup(plan ?? { tactic }, all, new Set(away.keys()), params);
@@ -144,7 +149,7 @@ export const inputFlags = (g: MatchFlags): { knockout?: true; neutral?: true } =
  * Assistência e bilheteira do jogo (RZ-114/115). A receita fica com o clube da casa; em campo neutro joga-se no estádio do
  * clube `venue` e a receita reparte-se pelos dois clubes (`shared`).
  */
-export function matchTicket(data: BaseData, params: Params, home: string, away: string, competition: string, flags: MatchFlags = {}): { attendance: number; revenue: number; club: BaseClub; /** O estádio onde se joga. */ stadium: Stadium; shared?: [BaseClub, BaseClub] } | undefined {
+export function matchTicket(data: BaseData, params: Params, home: string, away: string, competition: string, flags: MatchFlags = {}, live?: { repo: Repository; date: IsoDate }): { attendance: number; revenue: number; club: BaseClub; /** O estádio onde se joga. */ stadium: Stadium; shared?: [BaseClub, BaseClub] } | undefined {
   const club = (id: string) => data.clubs.find((x) => x.id === id) ?? data.foreignClubs?.find((x) => x.id === id);
   const cc = club(home);
   const cf = club(away);
@@ -152,7 +157,7 @@ export function matchTicket(data: BaseData, params: Params, home: string, away: 
   const neutral = flags.neutral && flags.venue ? venueStadium(data, params, flags.venue) : undefined;
   const stadium: Stadium = neutral ?? { name: cc.stadium.name, locality: cc.locality || cc.name, capacity: cc.stadium.capacity };
   const hostCity = flags.neutral && flags.venue && flags.venue !== NATIONAL_STADIUM ? data.clubs.find((x) => x.id === flags.venue)?.city : cc.city;
-  const b = matchAttendance({ home: neutral ? { ...cc, stadium: { ...cc.stadium, name: neutral.name, capacity: neutral.capacity } } : cc, away: cf, footballCulture: data.cities.find((x) => x.id === hostCity)?.footballCulture ?? 50, final: competition === CP_FINAL_COMPETITION || !!flags.neutral }, params);
+  const b = matchAttendance({ home: neutral ? { ...cc, stadium: { ...cc.stadium, name: neutral.name, capacity: neutral.capacity } } : cc, away: cf, footballCulture: data.cities.find((x) => x.id === hostCity)?.footballCulture ?? 50, ...(live && hostCity ? { cityFactor: attendanceFactor(cityStateNow(live.repo, data, params, hostCity), Number(live.date.slice(5, 7)), params) } : {}), final: competition === CP_FINAL_COMPETITION || !!flags.neutral }, params);
   return { ...b, club: cc, stadium, ...(flags.neutral ? { shared: [cc, cf] as [BaseClub, BaseClub] } : {}) };
 }
 
@@ -170,7 +175,7 @@ export function postTicketing(repo: Repository, ticket: NonNullable<ReturnType<t
 export function matchContext(repo: Repository, data: BaseData, params: Params, home: string, away: string, competition: string, except: string, flags: MatchFlags = {}): { info?: MatchInfo; meetings: LiveMeeting[] } {
   const meetings = repo.meetings(home, away, 6).filter((j) => j.id !== except).slice(0, 5)
     .map((j) => ({ id: j.id, date: j.date, competition: j.competition, season: j.season, home: j.home, away: j.away, homeGoals: j.homeGoals, awayGoals: j.awayGoals }));
-  const b = matchTicket(data, params, home, away, competition, flags);
+  const b = matchTicket(data, params, home, away, competition, flags, { repo, date: (repo.meta("date.today") ?? "2000-01-01") as IsoDate });
   if (!b) return { meetings };
   const e = b.stadium;
   const seed = repo.meta("seed") ?? "?";
@@ -202,12 +207,12 @@ function advanceDay(repo: Repository, base: BaseData, params: Params, gamerClub?
       const away = teamForMatch(repo, g.away, g.competition, season, g.round, today, seed, params, g.away === gamerClub ? readPlan(repo, g.away) : undefined, data);
       const r = playMatch({ seed, id: g.id, home, away, ...inputFlags(g), ...carryFor(repo, g) }, level, { id: g.id, competition: g.competition, season, round: g.round, date: today }, params);
       const rival = gamerClub && level === 0 ? rivalReason(repo, data, params, g.competition, season, gamerClub, g.home === gamerClub ? g.away : g.home) : undefined;
-      const ticket = matchTicket(data, params, g.home, g.away, g.competition, g);
+      const ticket = matchTicket(data, params, g.home, g.away, g.competition, g, { repo, date: today });
       const { event } = repo.recordMatch({ ...r.record.match, referee: matchReferee(seed, g.id), ...(ticket ? { attendance: ticket.attendance, revenue: ticket.revenue } : {}) }, r.record.facts, r.record.appearances);
       if (ticket) postTicketing(repo, ticket);
       postBroadcast(repo, data, params, season, g);
       if (rival) repo.appendEvent(rivalEvent(g.id, g.home, g.away, today, season, g.round, event, rival));
-      for (const l of r.record.injuries) repo.appendEvent({ ...l, cause: event });
+      for (const l of r.record.injuries) repo.appendEvent({ ...adjustInjury(repo, data, params, l), cause: event });
       for (const h of r.stories) repo.appendEvent({ ...h, cause: event });
       const report = r.report;
       durations.set(g.id, report.duration);

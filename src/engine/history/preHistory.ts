@@ -6,6 +6,7 @@
 import type { Params, Tier } from "../config/parameters";
 import type { BaseCity, BaseClub, BaseData } from "../data/types";
 import { clamp, Rng } from "../random/rng";
+import { CITY_SERVICES } from "../config/parameters";
 import { sectorEffect, type CityState, type CityTargets } from "../city/state";
 
 export type PastSeason = {
@@ -107,7 +108,9 @@ export function cityPreHistory(seed: string, city: BaseCity, initial: CityState,
   for (let k = 0; k < h.seasons; k++) {
     const growth = clamp(drift + rng.gauss(0, h.city.populationNoisePct), -3, 3);
     const back = (now: number, target: number) => pct(now - (target - now) * h.city.trendShare * 0.2 + rng.gauss(0, h.city.indicatorNoise));
+    const services = Object.fromEntries(CITY_SERVICES.map((id) => [id, back(next[id], targets.services[id])])) as Pick<CityState, (typeof CITY_SERVICES)[number]>;
     const state: CityState = {
+      ...services,
       population: Math.max(50, Math.round(next.population / (1 + growth / 100))),
       employment: back(next.employment, targets.employment),
       economy: back(next.economy, targets.economy),

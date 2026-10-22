@@ -23,6 +23,7 @@ import { readPlan, validateTactic } from "./gamePlan";
 import { prepareSeason } from "./prepare";
 import { clinchTitles } from "./titles";
 import { hasNoTable } from "./competitions";
+import { adjustInjury } from "../city/effects";
 
 type Change = { minute: number; tactic: Tactic };
 /** Uma substituição do gamer. `pausa`: número da paragem que a trouxe (0 = intervalo, que não gasta pausas). */
@@ -250,11 +251,11 @@ function finish(repo: Repository, data: BaseData, params: Params, s: SavedSessio
   return repo.transaction(() => {
     const gamer = repo.meta("gamer.club");
     const rival = gamer ? rivalReason(repo, data, params, s.competition, s.season, gamer, s.input.home.club === gamer ? s.input.away.club : s.input.home.club) : undefined;
-    const ticket = matchTicket(data, params, s.input.home.club, s.input.away.club, s.competition, s.flags ?? {});
+    const ticket = matchTicket(data, params, s.input.home.club, s.input.away.club, s.competition, s.flags ?? {}, { repo, date: s.date });
     const { event } = repo.recordMatch({ ...r.record.match, referee: matchReferee(s.input.seed, s.match), ...(ticket ? { attendance: ticket.attendance, revenue: ticket.revenue } : {}) }, r.record.facts, r.record.appearances);
     if (ticket) postTicketing(repo, ticket);
     if (rival) repo.appendEvent(rivalEvent(s.match, s.input.home.club, s.input.away.club, s.date, s.season, s.round, event, rival));
-    for (const l of r.record.injuries) repo.appendEvent({ ...l, cause: event });
+    for (const l of r.record.injuries) repo.appendEvent({ ...adjustInjury(repo, data, params, l), cause: event });
     for (const h of r.stories) repo.appendEvent({ ...h, cause: event });
     const match: LiveMatch = {
       id: s.match, competition: s.competition, round: s.round, date: s.date,

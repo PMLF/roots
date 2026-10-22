@@ -15,12 +15,17 @@ export type Tier = "firstLeague" | "secondLeague" | "thirdLeague" | "cp" | "dist
 /** Acontecimentos que mexem com uma cidade (ou com todas as de um polo) ao fim de cada época. */
 export type CityEventType =
   | "factory_closes" | "factory_opens" | "european_funds" | "motorway" | "festival"
-  | "bad_farming_year" | "regional_crisis" | "fire" | "university" | "new_hotel";
+  | "bad_farming_year" | "regional_crisis" | "fire" | "university" | "new_hotel"
+  | "new_hospital" | "hospital_cuts" | "crime_wave" | "new_school" | "transport_works" | "new_venue" | "rent_surge" | "affordable_housing";
 export const CITY_EVENT_TYPES: readonly CityEventType[] = [
   "factory_closes", "factory_opens", "european_funds", "motorway", "festival",
   "bad_farming_year", "regional_crisis", "fire", "university", "new_hotel",
+  "new_hospital", "hospital_cuts", "crime_wave", "new_school", "transport_works", "new_venue", "rent_surge", "affordable_housing",
 ];
-export type CityEffects = { employment?: number; economy?: number; tourism?: number; pride?: number; notoriety?: number; populationPct?: number };
+/** Serviços da cidade (RZ-233), todos 0-100 com «mais alto = melhor» (a habitação é a acessibilidade: alto = barata). */
+export const CITY_SERVICES = ["health", "education", "mobility", "housing", "safety", "entertainment"] as const;
+export type CityService = (typeof CITY_SERVICES)[number];
+export type CityEffects = { employment?: number; economy?: number; tourism?: number; pride?: number; notoriety?: number; populationPct?: number } & Partial<Record<CityService, number>>;
 export type CfgCityEvent = {
   /** Atinge todos os concelhos do polo (e não só um). */
   regional: boolean;
@@ -46,6 +51,26 @@ type CityParameters = {
     notoriety: { base: number; byReputation: number; byDecade: number; noise: number };
     /** Reputação máxima da escala dos clubes (para normalizar). */
     reputationMax: number;
+  };
+  /**
+   * Serviços da cidade (RZ-233). `initial`: valor-base, desvio por cada dez vezes mais população (acima de 15 000), pontos a mais ou a
+   * menos pelo orçamento municipal por habitante (de −1 a +1 entre as cidades) e a ligação ao turismo; os setores (`sectors`) somam o seu desvio.
+   * `links`: pontos do alvo por cada ponto de economia, emprego e turismo acima de 50. `regression`/`noise`: evolução anual. `strongTrend`: variação
+   * (pontos) a partir da qual a seta é forte. `population`: pontos de crescimento por cada ponto médio de serviços acima de 50 e de emprego.
+   */
+  services: {
+    initial: { base: Record<CityService, number>; byDecade: Record<CityService, number>; byBudget: number; noise: number };
+    links: Record<CityService, { economy: number; employment: number; tourism: number }>;
+    regression: number; noise: number; strongTrend: number;
+    population: { byServices: number; byEmployment: number };
+    /** Efeitos no jogo: lesões (`health`), vida noturna (`nightlife`), assistência (`attendance`), ordenados (`wages`) e talento local (`prospects`). */
+    effects: {
+      health: { recoveryPerPoint: number };
+      nightlife: { formLoss: number; recoveryExtra: number };
+      attendance: { mobility: number; tourismWarm: number; warmMonths: number[] };
+      wages: { housing: number };
+      prospects: { education: number; population: number };
+    };
   };
   evolution: {
     /** Fração do desvio ao alvo que se corrige em cada época. */
@@ -733,7 +758,7 @@ export type Params = {
     decision: {
       tier: Record<Tier, number>;
       club: { tier: number; reputation: number; stadium: number };
-      city: { economy: number; employment: number; tourism: number; pride: number; footballCulture: number; notoriety: number; population: number };
+      city: { economy: number; employment: number; tourism: number; pride: number; footballCulture: number; notoriety: number; population: number; safety: number; entertainment: number; health: number; mobility: number; housing: number };
       cityShare: number; byLoyaltyCity: number;
       scale: number; bias: number; wage: number; home: number; leavingHome: number; playingTime: number; free: number;
       byAmbition: number; byLoyalty: number; minWillingness: number; wagePremiums: number[];
@@ -935,28 +960,52 @@ export const DEFAULT_PARAMETERS: Params = {
     levels: [20, 40, 60, 80],
     trendThreshold: 4,
     sectors: {
-      TUR: { employment: 4, economy: 6, tourism: 30, populationPct: 0.2 },
-      MAR: { tourism: 12, populationPct: -0.2 },
-      IND: { employment: 8, economy: 8, tourism: -8, populationPct: 0.2 },
-      AGR: { employment: -4, economy: -6, tourism: -6, populationPct: -0.4 },
-      UNI: { employment: 5, economy: 6, tourism: 4, populationPct: 0.6 },
-      LOG: { employment: 6, economy: 6, populationPct: 0.3 },
-      PAT: { tourism: 20 },
-      INT: { employment: -8, economy: -10, tourism: -4, populationPct: -0.8 },
-      FRO: { employment: -2, economy: -2, populationPct: -0.3 },
-      TER: { tourism: 14 },
-      EMI: { employment: -2, economy: 2, tourism: 4, populationPct: -0.3 },
-      DOR: { employment: 2, tourism: -10, populationPct: 0.9 },
+      TUR: { employment: 4, economy: 6, tourism: 30, populationPct: 0.2, entertainment: 10, housing: -8, mobility: 4 },
+      MAR: { tourism: 12, populationPct: -0.2, housing: -3 },
+      IND: { employment: 8, economy: 8, tourism: -8, populationPct: 0.2, safety: -2, mobility: 4 },
+      AGR: { employment: -4, economy: -6, tourism: -6, populationPct: -0.4, mobility: -8, health: -4, education: -3, entertainment: -8, housing: 10 },
+      UNI: { employment: 5, economy: 6, tourism: 4, populationPct: 0.6, education: 12, entertainment: 10, health: 4, housing: -4 },
+      LOG: { employment: 6, economy: 6, populationPct: 0.3, mobility: 10 },
+      PAT: { tourism: 20, entertainment: 4 },
+      INT: { employment: -8, economy: -10, tourism: -4, populationPct: -0.8, mobility: -10, health: -6, education: -4, entertainment: -10, housing: 12 },
+      FRO: { employment: -2, economy: -2, populationPct: -0.3, mobility: -6, health: -3, housing: 8 },
+      TER: { tourism: 14, mobility: -2, housing: 4 },
+      EMI: { employment: -2, economy: 2, tourism: 4, populationPct: -0.3, housing: 2 },
+      DOR: { employment: 2, tourism: -10, populationPct: 0.9, mobility: 6, safety: -4, entertainment: -3, housing: -4 },
       ENE: { employment: 4, economy: 14, populationPct: 0.2 },
-      SER: { employment: 8, economy: 10, tourism: 2, populationPct: 0.4 },
-      MUL: { populationPct: 0.8 },
-      ILH: { employment: -2, economy: -2, tourism: 10 },
+      SER: { employment: 8, economy: 10, tourism: 2, populationPct: 0.4, health: 4, education: 4, mobility: 6, entertainment: 4, housing: -6 },
+      MUL: { populationPct: 0.8, entertainment: 2, safety: -2 },
+      ILH: { employment: -2, economy: -2, tourism: 10, mobility: -4, health: -3, housing: -2 },
     },
     initial: {
       base: 50, noise: 6, byEconomyDecade: 8, byEmploymentDecade: 3,
       pride: { base: 35, byReputation: 40, noise: 5 },
       notoriety: { base: 15, byReputation: 55, byDecade: 8, noise: 4 },
       reputationMax: 10000,
+    },
+    services: {
+      initial: {
+        base: { health: 50, education: 50, mobility: 50, housing: 56, safety: 62, entertainment: 40 },
+        byDecade: { health: 6, education: 5, mobility: 6, housing: -6, safety: -3, entertainment: 8 },
+        byBudget: 10, noise: 5,
+      },
+      links: {
+        health: { economy: 0.1, employment: 0, tourism: 0 },
+        education: { economy: 0.05, employment: 0, tourism: 0 },
+        mobility: { economy: 0.1, employment: 0, tourism: 0.05 },
+        housing: { economy: -0.15, employment: 0, tourism: -0.1 },
+        safety: { economy: 0.05, employment: 0.2, tourism: 0 },
+        entertainment: { economy: 0.1, employment: 0, tourism: 0.25 },
+      },
+      regression: 0.15, noise: 2, strongTrend: 8,
+      population: { byServices: 0.006, byEmployment: 0.006 },
+      effects: {
+        health: { recoveryPerPoint: 0.004 },
+        nightlife: { formLoss: 0.06, recoveryExtra: 0.4 },
+        attendance: { mobility: 0.1, tourismWarm: 0.12, warmMonths: [5, 6, 7, 8, 9] },
+        wages: { housing: 0.1 },
+        prospects: { education: 0.4, population: 0.15 },
+      },
     },
     evolution: {
       regression: 0.2, noise: 3,
@@ -969,16 +1018,24 @@ export const DEFAULT_PARAMETERS: Params = {
       cityProb: 0.12,
       hubProb: 0.1,
       types: {
-        factory_closes: { regional: false, weight: { "*": 0.4, IND: 3, LOG: 1, MAR: 1 }, effects: { employment: -12, economy: -8, pride: -3, populationPct: -1.2 } },
+        factory_closes: { regional: false, weight: { "*": 0.4, IND: 3, LOG: 1, MAR: 1 }, effects: { employment: -12, economy: -8, pride: -3, populationPct: -1.2, safety: -2 } },
         factory_opens: { regional: false, weight: { "*": 0.4, IND: 2, LOG: 2, ENE: 2, SER: 1.5, UNI: 1 }, effects: { employment: 10, economy: 7, populationPct: 1 } },
-        european_funds: { regional: true, weight: { "*": 1, INT: 2, AGR: 1.5, FRO: 1.5 }, effects: { employment: 3, economy: 6, tourism: 3 } },
-        motorway: { regional: true, weight: { "*": 0.5, INT: 2, FRO: 1.5 }, effects: { economy: 4, tourism: 5, populationPct: 0.5 } },
-        festival: { regional: false, weight: { "*": 0.3, TUR: 2, PAT: 2, MAR: 1.5, EMI: 1 }, effects: { tourism: 8, notoriety: 4, pride: 2 } },
+        european_funds: { regional: true, weight: { "*": 1, INT: 2, AGR: 1.5, FRO: 1.5 }, effects: { employment: 3, economy: 6, tourism: 3, mobility: 3, health: 2, education: 2 } },
+        motorway: { regional: true, weight: { "*": 0.5, INT: 2, FRO: 1.5 }, effects: { economy: 4, tourism: 5, populationPct: 0.5, mobility: 8 } },
+        festival: { regional: false, weight: { "*": 0.3, TUR: 2, PAT: 2, MAR: 1.5, EMI: 1 }, effects: { tourism: 8, notoriety: 4, pride: 2, entertainment: 5 } },
         bad_farming_year: { regional: false, weight: { "*": 0, AGR: 3, TER: 1 }, effects: { economy: -7, employment: -4 } },
-        regional_crisis: { regional: true, weight: { "*": 1 }, effects: { economy: -6, employment: -5 } },
+        regional_crisis: { regional: true, weight: { "*": 1 }, effects: { economy: -6, employment: -5, health: -2, education: -1, safety: -2 } },
         fire: { regional: false, weight: { "*": 0.1, INT: 2, AGR: 1.5, FRO: 1 }, effects: { tourism: -6, economy: -4, pride: -2, populationPct: -0.5 } },
-        university: { regional: false, weight: { "*": 0, UNI: 3 }, effects: { economy: 4, populationPct: 1.5, notoriety: 2 } },
-        new_hotel: { regional: false, weight: { "*": 0.2, TUR: 3, PAT: 1.5, TER: 1.5, MAR: 1 }, effects: { tourism: 6, employment: 3 } },
+        university: { regional: false, weight: { "*": 0, UNI: 3 }, effects: { economy: 4, populationPct: 1.5, notoriety: 2, education: 8, entertainment: 4, housing: -4 } },
+        new_hotel: { regional: false, weight: { "*": 0.2, TUR: 3, PAT: 1.5, TER: 1.5, MAR: 1 }, effects: { tourism: 6, employment: 3, housing: -3, entertainment: 2 } },
+        new_hospital: { regional: false, weight: { "*": 0.15, UNI: 1.5, SER: 1, TUR: 0.5 }, effects: { health: 12, populationPct: 0.3, pride: 1 } },
+        hospital_cuts: { regional: false, weight: { "*": 0.2, INT: 2, FRO: 1.5, AGR: 1.5 }, effects: { health: -10, populationPct: -0.3, pride: -2 } },
+        crime_wave: { regional: false, weight: { "*": 0.2, DOR: 2, TUR: 1.5, SER: 1, MUL: 1 }, effects: { safety: -10, tourism: -3, pride: -2 } },
+        new_school: { regional: false, weight: { "*": 0.2, UNI: 1, SER: 1, DOR: 1 }, effects: { education: 10, populationPct: 0.2 } },
+        transport_works: { regional: false, weight: { "*": 0.2, SER: 1.5, DOR: 1.5, LOG: 1.5, TUR: 1 }, effects: { mobility: 10, economy: 2 } },
+        new_venue: { regional: false, weight: { "*": 0.2, TUR: 2, UNI: 2, SER: 1 }, effects: { entertainment: 10, tourism: 2 } },
+        rent_surge: { regional: false, weight: { "*": 0.1, TUR: 3, PAT: 1.5, DOR: 1, UNI: 1 }, effects: { housing: -10, tourism: 2 } },
+        affordable_housing: { regional: false, weight: { "*": 0.15, DOR: 1.5, SER: 1, UNI: 1 }, effects: { housing: 10, populationPct: 0.3 } },
       },
     },
   },
@@ -1185,7 +1242,7 @@ export const DEFAULT_PARAMETERS: Params = {
     decision: {
       tier: { firstLeague: 1, secondLeague: 0.72, thirdLeague: 0.48, cp: 0.25, district: 0.08 },
       club: { tier: 0.5, reputation: 0.35, stadium: 0.15 },
-      city: { economy: 0.2, employment: 0.12, tourism: 0.12, pride: 0.1, footballCulture: 0.14, notoriety: 0.1, population: 0.22 },
+      city: { economy: 0.2, employment: 0.12, tourism: 0.12, pride: 0.1, footballCulture: 0.14, notoriety: 0.1, population: 0.22, safety: 0.12, entertainment: 0.08, health: 0.05, mobility: 0.04, housing: 0.06 },
       cityShare: 0.3, byLoyaltyCity: 0.015,
       scale: 5, bias: 0.4, wage: 1.6, home: 0.9, leavingHome: 0.4, playingTime: 0.7, free: 0.9,
       byAmbition: 0.05, byLoyalty: 0.09, minWillingness: 0.15, wagePremiums: [1, 1.3, 1.65, 2],
@@ -1364,6 +1421,9 @@ export function validateParameters(p: Params): string[] {
   if (!(ci.events.cityProb >= 0 && ci.events.cityProb <= 1 && ci.events.hubProb >= 0 && ci.events.hubProb <= 1)) errors.push("cidade.eventos: probabilidades entre 0 e 1");
   for (const t of CITY_EVENT_TYPES) if (!ci.events.types[t]) errors.push(`city.events.types.${t} em falta`);
   for (const [t, e] of Object.entries(ci.events.types)) if (Object.values(e.weight).some((x) => x < 0)) errors.push(`city.events.types.${t}: pesos ≥ 0`);
+  const sv = ci.services;
+  if (!(sv.regression > 0 && sv.regression <= 1 && sv.strongTrend > ci.trendThreshold && sv.initial.byBudget >= 0)) errors.push("city.services: regression entre 0 e 1, strongTrend > trendThreshold, byBudget ≥ 0");
+  if (!(sv.effects.attendance.warmMonths.every((x) => Number.isInteger(x) && x >= 1 && x <= 12) && sv.effects.health.recoveryPerPoint >= 0 && sv.effects.health.recoveryPerPoint * 50 < 0.5)) errors.push("city.services.effects inválido (meses 1-12; recoveryPerPoint × 50 < 0,5)");
   const prosp = p.squadCycle.youth.prospects;
   if (!(prosp.perCityMean >= 0 && prosp.ageMin >= 14 && prosp.ageMax >= prosp.ageMin && prosp.ageMax <= 18 && prosp.popExponent > 0 && prosp.potentialShift >= 0 && Number.isInteger(prosp.localLockDays) && prosp.localLockDays >= 0)) errors.push("squadCycle.youth.prospects inválido (idades 14-18, expoente > 0)");
   const m = p.world;
