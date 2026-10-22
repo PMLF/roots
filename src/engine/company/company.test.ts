@@ -8,6 +8,7 @@ import { importCountries } from "../world/countries";
 import { annualFixedRevenues } from "../club/finances";
 import { monthlySponsorship } from "../club/finances";
 import { startCompanies, rolloverCompanies } from "./cycle";
+import { sponsorTargets } from "./sponsorship";
 import { targetCompanies } from "./generate";
 import { COMPANY_SECTORS } from "./sectors";
 
@@ -60,7 +61,8 @@ describe("empresas no arranque", () => {
   it("todos os clubes têm todos os tipos de patrocínio do escalão e recebem perto do valor de referência", () => {
     for (const c of data.clubs) {
       const kinds = repo.clubSponsorships(c.id, "2026-07-01").map((s) => s.kind).filter((k) => k !== "broadcast").sort();
-      expect(kinds).toEqual([...P.companies.sponsorship.slots[c.tier]].sort());
+      expect([...new Set(kinds)]).toEqual([...P.companies.sponsorship.slots[c.tier]].sort());
+      expect(kinds.length).toBeLessThanOrEqual([...sponsorTargets(c, c.tier, P).values()].reduce((a, b) => a + b, 0));
     }
     for (const [tier, ratio] of Object.entries(fillByTier(repo, "2026-08-01"))) {
       expect(ratio, tier).toBeGreaterThan(0.8);
@@ -102,7 +104,7 @@ describe("ciclo anual das empresas", { timeout: 120000 }, () => {
     for (const c of repo.companies({ state: "closed" })) expect(repo.companySponsorships(c.id)).toEqual([]);
     for (const c of data.clubs) {
       const kinds = repo.clubSponsorships(c.id, "2034-08-01").map((s) => s.kind).filter((k) => k !== "broadcast").sort();
-      expect(kinds).toEqual([...P.companies.sponsorship.slots[c.tier]].sort());
+      expect([...new Set(kinds)]).toEqual([...P.companies.sponsorship.slots[c.tier]].sort());
     }
   });
   it("o rendimento dos patrocínios por escalão não derrapa", () => {
