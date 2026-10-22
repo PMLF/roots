@@ -118,11 +118,34 @@ export function CityProfile({ d }: { d: CityProfileData }) {
         { label: t("city.sector"), value: sectors.map(sectorName).join(" · ") },
         { label: t("city.district"), value: d.district },
         ...(d.hub ? [{ label: t("city.region"), value: d.hub }] : []),
+        ...(d.mayor ? [{ label: t("city.mayor"), value: <EntityLink k="person" id={d.mayor.person.id}>{d.mayor.person.name}</EntityLink> }] : []),
       ]}
     />
   );
 
   const summary = (
+    <div className="cartoes">
+      <Card title={t("card.cityEconomy")}>
+        <Data lines={[line("economy"), line("employment"), line("tourism")]} />
+      </Card>
+      <Card title={t("card.cityFootball")}>
+        <Data lines={[line("pride"), line("notoriety"), line("footballCulture")]} />
+      </Card>
+      <div className="cartoes-par">
+        <Card title={t("card.synergies")}>
+          <ul className="lista-horizontal">
+            {sectors.map((s) => <li key={s}><b>{sectorName(s)}</b> <span className="suave">{t(`synergy.${s}` as Key)}</span></li>)}
+            {d.island && <li><b>{sectorName("ILH")}</b> <span className="suave">{t("synergy.ILH")}</span></li>}
+          </ul>
+        </Card>
+        <Card title={t("card.incidents")}>
+          {d.incidents.length > 0 ? <ul className="lista-simples">{d.incidents.map(incident)}</ul> : <p className="vazio">{t("city.noIncidents")}</p>}
+        </Card>
+      </div>
+    </div>
+  );
+
+  const councilTab = (
     <div className="cartoes">
       <Card title={t("card.council")}>
         {d.mayor ? (
@@ -142,26 +165,23 @@ export function CityProfile({ d }: { d: CityProfileData }) {
           </>
         )}
       </Card>
-      <Card title={t("card.cityEconomy")}>
-        <Data lines={[line("economy"), line("employment"), line("tourism")]} />
-      </Card>
-      <Card title={t("card.cityServices")}>
+    </div>
+  );
+  const serviceColumns: Column<CityProfileData["historyPopulation"][number]>[] = [
+    { id: "season", title: t("column.season"), value: (p) => p.season, sortValue: (p) => p.season },
+    ...d.services.map((x): Column<CityProfileData["historyPopulation"][number]> => ({ id: x.id, title: t(`city.service.${x.id}` as Key), value: (p) => x.history.find((h) => h.season === p.season)?.level ?? 0 })),
+  ];
+  const servicesTab = (
+    <div className="cartoes">
+      <Card title={t("card.cityServices")} wide>
         <Data lines={d.services.map(serviceLine)} />
       </Card>
-      <Card title={t("card.cityFootball")}>
-        <Data lines={[line("pride"), line("notoriety"), line("footballCulture")]} />
+      <Card title={t("city.servicesHistory")} wide>
+        <Table
+          id="cidade-servicos" simple columns={serviceColumns} lines={[...d.historyPopulation].reverse()} rowKey={(p) => String(p.season)}
+          cell={{ season: (p) => p.label, ...Object.fromEntries(d.services.map((x) => [x.id, (p: (typeof d.historyPopulation)[number]) => { const l = x.history.find((h) => h.season === p.season)?.level ?? 1; return <LevelCell level={l} word={level(l)} />; }])) }}
+        />
       </Card>
-      <div className="cartoes-par">
-        <Card title={t("card.synergies")}>
-          <ul className="lista-horizontal">
-            {sectors.map((s) => <li key={s}><b>{sectorName(s)}</b> <span className="suave">{t(`synergy.${s}` as Key)}</span></li>)}
-            {d.island && <li><b>{sectorName("ILH")}</b> <span className="suave">{t("synergy.ILH")}</span></li>}
-          </ul>
-        </Card>
-        <Card title={t("card.incidents")}>
-          {d.incidents.length > 0 ? <ul className="lista-simples">{d.incidents.map(incident)}</ul> : <p className="vazio">{t("city.noIncidents")}</p>}
-        </Card>
-      </div>
     </div>
   );
 
@@ -216,5 +236,5 @@ export function CityProfile({ d }: { d: CityProfileData }) {
     </div>
   );
 
-  return <Profile type="city" title={d.name} top={<Top title={d.name} labels={labels} card={identity} />} tabs={{ summary, clubs, talent: <LocalTalent city={d.id} />, story }} />;
+  return <Profile type="city" title={d.name} top={<Top title={d.name} labels={labels} card={identity} />} tabs={{ summary, clubs, services: servicesTab, council: councilTab, talent: <LocalTalent city={d.id} />, story }} />;
 }

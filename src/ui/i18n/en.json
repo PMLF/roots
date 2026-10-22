@@ -1504,5 +1504,6 @@
   "newsItem.youth_offer.1.body": "{club} offer {fee} for {player}, who came through your academy. Sell (training compensation included) or hold on to him. Answer it under “Needs a decision”.",
   "offer.youth.title": "Offer for {name}, an academy graduate",
   "offer.youth.compensation": "Training compensation included",
-  "offer.youth.none": "—"
+  "offer.youth.none": "—",
+  "city.servicesHistory": "Services over the seasons"
 }

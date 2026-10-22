@@ -1504,5 +1504,6 @@
   "newsItem.youth_offer.1.body": "{club} propõe {fee} por {player}, formado no teu clube. Podes vender (com compensação de formação) ou segurá-lo. Responde em «Exige decisão».",
   "offer.youth.title": "Proposta por {name}, formado no clube",
   "offer.youth.compensation": "Compensação de formação incluída",
-  "offer.youth.none": "—"
+  "offer.youth.none": "—",
+  "city.servicesHistory": "Serviços ao longo das épocas"
 }
