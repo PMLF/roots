@@ -29,6 +29,24 @@ function referenceValue(club: BaseClub, tier: Tier, kind: SponsorSlot, params: P
   return (total * s.kindShare[kind]) / shareSum;
 }
 
+/**
+ * Quantos contratos de cada tipo o clube comporta: um por tipo do escalão, mais "extras" quanto mais a reputação
+ * ultrapassa a normal do escalão (clubes maiores e com mais ambição têm mais patrocinadores). Os extras repartem-se
+ * pelos tipos por ordem (camisola, estádio, formação…).
+ */
+export function sponsorTargets(club: BaseClub, tier: Tier, params: Params): Map<SponsorSlot, number> {
+  const s = params.companies.sponsorship;
+  const kinds = s.slots[tier];
+  const targets = new Map<SponsorSlot, number>(kinds.map((k) => [k, 1] as const));
+  const ratio = club.reputation / params.finances.model.refReputation[tier];
+  const extra = Math.min(s.extra.max[tier], Math.max(0, Math.floor((ratio - s.extra.startRatio) / s.extra.perRatio) + (ratio >= s.extra.startRatio ? 1 : 0)));
+  for (let i = 0; i < extra; i++) {
+    const k = kinds[i % kinds.length]!;
+    targets.set(k, (targets.get(k) ?? 0) + 1);
+  }
+  return targets;
+}
+
 type Pool = {
   repo: Repository;
   data: BaseData;
@@ -58,9 +76,9 @@ function weightOf(pool: Pool, company: CompanyRecord, club: BaseClub, tier: Tier
 
 const roundValue = (x: number) => Math.max(500, Math.round(x / 100) * 100);
 
-function sign(pool: Pool, rng: Rng, club: BaseClub, tier: Tier, kind: SponsorSlot, ctx: SponsorContext, already: Set<string>, keep?: CompanyRecord): SponsorshipRecord | undefined {
+function sign(pool: Pool, rng: Rng, club: BaseClub, tier: Tier, kind: SponsorSlot, ctx: SponsorContext, already: Set<string>, keep?: CompanyRecord, isExtra = false, kindCount = 1): SponsorshipRecord | undefined {
   const s = pool.params.companies.sponsorship;
-  const desired = referenceValue(club, tier, kind, pool.params) * Math.exp(rng.gauss(0, s.valueSigma));
+  const desired = (referenceValue(club, tier, kind, pool.params) / (1 + (kindCount - 1) * s.extra.valueShare)) * (isExtra ? s.extra.valueShare : 1) * Math.exp(rng.gauss(0, s.valueSigma));
   const company = keep ?? (pool.companies.length === 0 ? undefined : rng.weighted(pool.companies, (c) => weightOf(pool, c, club, tier, desired, already)));
   if (!company || already.has(company.id)) return undefined;
   const room = Math.max(0, company.capital * s.maxShareOfCapital - (pool.committed.get(company.id) ?? 0));
@@ -87,12 +105,15 @@ export function fillSponsorships(repo: Repository, data: BaseData, params: Param
   for (const club of order) {
     const tier = ctx.tiers.get(club.id) ?? club.tier;
     const current = repo.clubSponsorships(club.id, ctx.start).filter((x) => x.kind !== "broadcast");
-    const have = new Set(current.map((x) => x.kind));
     const already = new Set(current.map((x) => x.company));
     const rng = new Rng(seed, `sponsorship/${ctx.season}/${club.id}`);
-    for (const kind of params.companies.sponsorship.slots[tier]) {
-      if (have.has(kind)) continue;
-      if (sign(pool, rng, club, tier, kind, ctx, already)) signed++;
+    for (const [kind, target] of sponsorTargets(club, tier, params)) {
+      let n = current.filter((x) => x.kind === kind).length;
+      while (n < target) {
+        if (!sign(pool, rng, club, tier, kind, ctx, already, undefined, n >= 1, target)) break;
+        n++;
+        signed++;
+      }
     }
   }
   return signed;
@@ -121,10 +142,11 @@ export function renewSponsorships(repo: Repository, data: BaseData, params: Para
     const change = TIER_ORDER.indexOf(ctx.previousTiers.get(club.id) ?? tier) - TIER_ORDER.indexOf(tier);
     const p = clamp(s.renewBase + (change > 0 ? s.renewPromoted : change < 0 ? s.renewRelegated : 0), 0.02, 0.98);
     const rng = new Rng(seed, `sponsorship/renew/${ctx.season}/${old.id}`);
-    const offered = s.slots[tier].includes(old.kind);
     const current = repo.clubSponsorships(club.id, ctx.start).filter((x) => x.kind !== "broadcast");
+    const sameKind = current.filter((x) => x.kind === old.kind).length;
+    const offered = sameKind < (sponsorTargets(club, tier, params).get(old.kind) ?? 0);
     const already = new Set(current.filter((x) => x.kind !== old.kind || x.company !== old.company).map((x) => x.company));
-    if (company.state === "active" && offered && rng.prob(p) && sign(pool, rng, club, tier, old.kind, ctx, already, company)) {
+    if (company.state === "active" && offered && rng.prob(p) && sign(pool, rng, club, tier, old.kind, ctx, already, company, sameKind >= 1, sponsorTargets(club, tier, params).get(old.kind) ?? 1)) {
       renewed++;
     } else {
       lapsed++;

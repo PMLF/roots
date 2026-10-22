@@ -715,6 +715,7 @@ export type Params = {
       kindShare: Record<"shirt" | "stadium" | "youth", number>;
       /** Desvio do logaritmo do valor negociado. */
       valueSigma: number;
+      extra: { startRatio: number; perRatio: number; max: Record<Tier, number>; valueShare: number };
       /** Fração máxima da capacidade da empresa que pode estar comprometida em patrocínios por ano. */
       maxShareOfCapital: number;
       yearsMin: number;
@@ -1263,6 +1264,8 @@ export const DEFAULT_PARAMETERS: Params = {
       slots: { firstLeague: ["shirt", "stadium", "youth"], secondLeague: ["shirt", "stadium", "youth"], thirdLeague: ["shirt", "stadium"], cp: ["shirt", "stadium"], district: ["shirt"] },
       kindShare: { shirt: 0.6, stadium: 0.25, youth: 0.15 },
       valueSigma: 0.15,
+      /** Contratos extra por reputação acima da normal do escalão (RZ-311): um a partir de `startRatio`, mais um por cada `perRatio`; cada extra vale `valueShare` do valor de referência do tipo. */
+      extra: { startRatio: 1, perRatio: 0.45, max: { firstLeague: 4, secondLeague: 3, thirdLeague: 2, cp: 2, district: 1 }, valueShare: 0.4 },
       maxShareOfCapital: 0.08,
       yearsMin: 1,
       yearsMax: 3,

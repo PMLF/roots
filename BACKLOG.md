@@ -77,6 +77,12 @@ Estimativa de custo (plano Claude + nada mais; ver conversa): MVP ~40-200 $; vis
 
 ## 6. F1 — MVP jogável
 
+### Caminho mais curto para o MVP (decidido com o Pedro a 22-10-2026)
+
+Prioridade para lançar depressa uma versão para amigos. Ordem de trabalho: **RZ-138** (assistente de nova save) → **RZ-134** (saves) → **RZ-501** (versão para amigos) → **RZ-318** (profissão fora do futebol) → **RZ-226** (mobile) → **RZ-145** (páginas em branco: ligar ou remover) e **RZ-151** (verificar) → **RZ-161** (negociação) → **RZ-215** (verificar o que falta). Tudo o resto fica depois do MVP, salvo bloqueios. Os RZ-238 e RZ-237 (cidade) esperam.
+
+**Patrocínios (RZ-311, 22-10-2026):** todos os clubes têm patrocínio; quanto maior a reputação face ao escalão, mais contratos (até 4 na 1.ª Liga, `companies.sponsorship.extra`) e maior o valor total, sem mexer na calibração financeira. Falta: propostas de empresas interessadas ao gamer (RZ-164).
+
 **Meta:** jogar 5 épocas seguidas num distrito, com Avançar, jogos com estatísticas completas, subidas e descidas, prémio do Estado e distritais a mudar de tamanho.
 
 ### Interface — prioridade alta (pedido do Pedro, 15-10-2026: fazer **antes** de continuar o motor)
