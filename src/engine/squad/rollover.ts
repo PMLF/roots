@@ -29,6 +29,7 @@ import { newProspects } from "./prospects";
 import { lockLocalSigning, pruneLocks } from "./localPriority";
 import { rolloverForeign } from "./foreign";
 import { TIER_BONUS, youthFocus } from "./youthFocus";
+import { updateYouthLevels, yieldOf, youthLevelOf } from "./youthLevel";
 
 export type RolloverSummary = { retired: number; developed: number; expired: number; renewed: number; released: number; signedFree: number; youth: number; emergencyYouth: number; /** Jovens da terra que acabaram noutra cidade (2.ª fase). */ prospectsAway: number };
 
@@ -181,6 +182,10 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const rng = rngOf(`club/${club.id}`);
     const members = squads.get(club.id) ?? [];
     const focus = youthFocus(repo, club, tier, params);
+    // aproveitamento da formação do clube e orgulho da terra: mais ou menos jovens a entrar e potencial extra para quem sai de uma boa formação
+    const yld = yieldOf(youthLevelOf(repo, data, params, club).value, params);
+    const pride = cityStateNow(repo, data, params, club.city)?.pride ?? 50;
+    const dev = sc.youth.development;
 
     // contratos que terminaram
     const expired = (m: Member) => (repo.contract(m.record.person)?.end ?? "9999-12-31") < o.seasonStart;
@@ -241,7 +246,8 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
       const [m] = prospects.splice(best, 1) as [Member];
       const y = years(rng);
       const contract: ContractRecord = { person: m.record.person, club: club.id, monthlyWage: wageFor(params, tier, clamp(m.quality, 1, 20), wageScale), ...contractDates(o.seasonStart, y) };
-      repo.updatePlayer(m.record.person, { club: club.id, trainedAt: club.id, state: "active" });
+      const potential = Math.round(clamp(m.record.potential + dev.potentialByYield * 10 * (yld - dev.yieldPivot), 1, 20) * 10) / 10;
+      repo.updatePlayer(m.record.person, { club: club.id, trainedAt: club.id, state: "active", potential });
       repo.saveContract(contract);
       event("PLAYER_SIGNED", m.record.person, club.id, { from: "local", wage: contract.monthlyWage, years: y });
       lockLocalSigning(repo, params, m.record.person, o.seasonStart);
@@ -270,7 +276,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     };
 
     // formação até ao alvo mais a folga
-    const intake = Math.min(Math.round(sc.youth.perClub[tier] * focus), Math.max(0, target + sc.squad.slack - kept.length));
+    const intake = Math.min(Math.round(sc.youth.perClub[tier] * focus * (yld / dev.yieldPivot) * (1 + (dev.prideLocal * (pride - 50)) / 50)), Math.max(0, target + sc.squad.slack - kept.length));
     for (let i = 0; i < intake; i++) {
       const need = missing();
       addYouth(need.length > 0 ? rng.choose(need) : rng.weighted([...new Set(wanted)], (p) => world.placesByPosition[p]), false);
@@ -334,6 +340,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
   // quem ninguém quis sai do futebol; nasce a geração seguinte
   for (const m of prospects) repo.updatePlayer(m.record.person, { state: "retired" });
   pruneLocks(repo, o.seasonStart);
+  updateYouthLevels(repo, data, params);
   const cohort = newProspects(data, params, { season: o.season, seasonStart: o.seasonStart, seed, nextId: newId, education: (city) => cityStateNow(repo, data, params, city)?.education });
   batch.people.push(...cohort.people);
   batch.players.push(...cohort.players);

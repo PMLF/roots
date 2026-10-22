@@ -13,7 +13,7 @@ import type { IsoDate } from "../persistence/types";
 export type NewsItemType =
   | "hattrick" | "red" | "two_yellows" | "rout" | "comeback_goal" | "stoppage_goal" | "serious_injury"
   | "champion" | "title_clinched" | "cup_upset" | "state_prize" | "promotion" | "relegation" | "second_district" | "district_return" | "locality" | "city_event"
-  | "outcome" | "injury" | "resignation" | "sacked" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer" | "loan_offer" | "bid_agreed" | "bid_rejected" | "bid_progress" | "youth_intake" | "local_talent" | "market_open" | "market_close"
+  | "outcome" | "injury" | "resignation" | "sacked" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer" | "loan_offer" | "youth_offer" | "bid_agreed" | "bid_rejected" | "bid_progress" | "youth_intake" | "local_talent" | "market_open" | "market_close"
   | "europe_qualified" | "europe_draw" | "europe_phase" | "europe_qualifier";
 
 type NewsItemLink = { k: "club" | "person" | "locality" | "competition" | "city"; id: string; name: string };
@@ -37,7 +37,7 @@ export type Message = NewsItem & { isRead: boolean };
 /** Quantas variantes de texto existem por tipo (a interface tem as frases `noticia.<tipo>.<n>.titulo|corpo`). */
 export const VARIANTS: Record<NewsItemType, number> = {
   hattrick: 2, red: 2, two_yellows: 2, rout: 2, comeback_goal: 2, stoppage_goal: 2, serious_injury: 2,
-  champion: 2, title_clinched: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1, loan_offer: 1, bid_agreed: 1, bid_rejected: 1, bid_progress: 1, youth_intake: 1, local_talent: 1, market_open: 1, market_close: 1, europe_qualified: 1, europe_draw: 1, europe_phase: 1, europe_qualifier: 1,
+  champion: 2, title_clinched: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1, loan_offer: 1, youth_offer: 1, bid_agreed: 1, bid_rejected: 1, bid_progress: 1, youth_intake: 1, local_talent: 1, market_open: 1, market_close: 1, europe_qualified: 1, europe_draw: 1, europe_phase: 1, europe_qualifier: 1,
 };
 
 /** Tipos de evento que dão notícia para toda a gente. */
@@ -184,7 +184,7 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
       return our && person && club ? base("transfer_free", { player: c.personName(person.id), club: c.clubName(club.id) }, [lp(person.id), lc(club.id)]) : undefined;
     case "TRANSFER_OFFER": {
       const buyer = e.entities.find((x) => x.k === "club" && x.roleKind === "buyer");
-      return inboxOnly && our && person && buyer ? base(d.loan ? "loan_offer" : "transfer_offer", { player: c.personName(person.id), club: c.clubName(buyer.id), fee: within(d.fee) }, [lp(person.id), lc(buyer.id)]) : undefined;
+      return inboxOnly && our && person && buyer ? base(d.loan ? "loan_offer" : d.youth ? "youth_offer" : "transfer_offer", { player: c.personName(person.id), club: c.clubName(buyer.id), fee: within(d.fee) }, [lp(person.id), lc(buyer.id)]) : undefined;
     }
     case "BID_REPLY": {
       if (!inboxOnly || !our || !person) return undefined;

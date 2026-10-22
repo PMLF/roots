@@ -624,6 +624,14 @@ export type Params = {
       nameFamily: string;
       /** Aposta do clube nos jovens (1 = média): desvio sorteado, efeito da paciência e da ambição do presidente, limites. */
       focus: { spread: number; byPatience: number; byAmbition: number; min: number; max: number };
+      /**
+       * Formação do clube (RZ-234): nível 0-100 que tende para `base` + `byFocus` por cada unidade de aposta nos jovens acima de 1 + `byCoach` por cada ponto
+       * do treinador acima de 10 + `byFinances` por cada duplicação das finanças contra a mediana do escalão + `byEducation` por cada ponto de educação da
+       * cidade acima de 50. Move-se `regression` do desvio por ano, no máximo `maxStep` pontos. O aproveitamento vai de `yieldMin` a `yieldMax`;
+       * `potentialByYield` = potencial extra dos jovens por cada 0,1 de aproveitamento acima de `yieldPivot` (e a entrada de jovens escala com yield/yieldPivot);
+       * `prideLocal` = variação da entrada de jovens da terra por orgulho acima de 50 (fração, a ±50).
+       */
+      development: { base: number; byFocus: number; byCoach: number; byFinances: number; byEducation: number; regression: number; maxStep: number; yieldMin: number; yieldMax: number; yieldPivot: number; potentialByYield: number; prideLocal: number };
       /** Penalização na escolha de livres por ano acima de 26, para um clube com aposta 1 (escala com a aposta). */
       agePenalty: number;
       /** Efeito da aposta (por unidade acima de 1) na qualidade e no potencial de quem sai da formação. */
@@ -765,6 +773,8 @@ export type Params = {
       listing: { surplus: number; discount: number; maxPerClub: number; stressMargin: number };
       need: { missing: number; gap: number };
       homeScore: number; regionScore: number;
+      /** Orgulho da cidade (RZ-234): o apelo de jogar na terra natal varia `prideHome` por cada 50 pontos de orgulho acima ou abaixo de 50; veteranos (idade ≥ `returnHome.age`) a regressar à terra ganham `returnHome.bonus` (z) a mais. */
+      prideHome: number; returnHome: { age: number; bonus: number };
       /** Pontos de preferência perdidos por cada escalão a mais (além de 1) que o clube vai buscar abaixo: os clubes olham sobretudo para o seu nível. */
       stepPenalty: number;
     };
@@ -776,7 +786,9 @@ export type Params = {
     training: { ageMax: number; byTier: Record<Tier, number> };
     /** Propostas do gamer (RZ-231): o vendedor fecha a porta abaixo de `walkAway` × pedido; cede `concession`^ronda da distância; `maxRounds` rondas; um mês de espera depois de fechar. */
     /** Propostas da IA por jogadores do gamer (RZ-232): chance diária por jogador com a janela aberta, validade, folga máxima sobre o valor, rondas e cedência do comprador. */
-    offers: { /** Jogador à venda: vezes mais propostas e o valor pedido fica a esta fração. */ forSaleChance: number; forSaleFee: number; dailyChance: number; validDays: number; feeSpread: [number, number]; maxMult: number; maxRounds: number; concession: number; minAge: number; sameWindowDays: number };
+    offers: { /** Jogador à venda: vezes mais propostas e o valor pedido fica a esta fração. */ forSaleChance: number; forSaleFee: number; dailyChance: number; validDays: number; feeSpread: [number, number]; maxMult: number; maxRounds: number; concession: number; minAge: number; sameWindowDays: number;
+      /** Jovens formados pelo clube do gamer: clubes de escalão acima propõem (chance diária por jovem, idade máxima, potencial mínimo 1–20) e pagam a compensação de formação por cima do valor. */
+      youth: { dailyChance: number; ageMax: number; minPotential: number } };
     /** Valor (€) a partir do qual uma transferência entre outros clubes é notícia. */
     news: { minFee: number };
     bids: {
@@ -1155,7 +1167,7 @@ export const DEFAULT_PARAMETERS: Params = {
     retirement: { fromAge: 33, baseProbability: 0.06, perYear: 0.14, goalkeeperExtraYears: 3, maxAge: 40, freeMultiplier: 1.6 },
     contracts: { yearsMin: 1, yearsMax: 3, renewBase: 0.7, renewPerQualityPoint: 0.1, renewPerOldYear: 0.08, oldAge: 31, renewMin: 0.05, renewMax: 0.95, renewalWageFactor: 1, negotiation: { acceptFloor: 0.92, floorByLoyalty: 0.01, floorNative: 0.04, floorMin: 0.6, askYears: 2, maxRounds: 4, walkAway: 0.5, concession: 0.7, maxYears: 5, clauseWage: 0.08, noClauseRatio: 2.5, clauseCeiling: 2, level: { margin: 1.2, ambitionMin: 12, loyaltyStay: 14 }, distance: { tiers: ["cp", "district"], wageFactor: 1.5, loyaltyStay: 14 } } },
     squad: { slack: 2, freeAgentTolerance: 2.5 },
-    youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal", focus: { spread: 0.4, byPatience: 0.05, byAmbition: 0.03, min: 0.25, max: 1.9 }, agePenalty: 0.25, qualityByFocus: 0.6, potentialByFocus: 1.0, renewalYouthEffect: 0.2, renewalVeteranEffect: 0.12, prospects: { perCityMean: 5, ageMin: 15, ageMax: 17, popExponent: 0.6, potentialShift: 1, localLockDays: 150 } },
+    youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal", focus: { spread: 0.4, byPatience: 0.05, byAmbition: 0.03, min: 0.25, max: 1.9 }, agePenalty: 0.25, qualityByFocus: 0.6, potentialByFocus: 1.0, renewalYouthEffect: 0.2, renewalVeteranEffect: 0.12, development: { base: 45, byFocus: 25, byCoach: 1.5, byFinances: 8, byEducation: 0.15, regression: 0.2, maxStep: 1.5, yieldMin: 0.4, yieldMax: 1.0, yieldPivot: 0.7, potentialByYield: 0.15, prideLocal: 0.2 }, prospects: { perCityMean: 5, ageMin: 15, ageMax: 17, popExponent: 0.6, potentialShift: 1, localLockDays: 150 } },
   },
   companies: {
     perCity: { base: 3, perDecade: 4, min: 2 },
@@ -1248,12 +1260,12 @@ export const DEFAULT_PARAMETERS: Params = {
       byAmbition: 0.05, byLoyalty: 0.09, minWillingness: 0.15, wagePremiums: [1, 1.3, 1.65, 2],
       listing: { surplus: 1, discount: 0.8, maxPerClub: 3, stressMargin: 0.05 },
       need: { missing: 3, gap: 1 },
-      homeScore: 1.2, regionScore: 0.5, stepPenalty: 2,
+      homeScore: 1.2, regionScore: 0.5, prideHome: 0.4, returnHome: { age: 29, bonus: 0.6 }, stepPenalty: 2,
     },
     agents: { share: { firstLeague: 0.85, secondLeague: 0.55, thirdLeague: 0.3, cp: 0.12, district: 0.04 }, popularity: 0.5, commissionRate: 0.08, commissionByGreed: 0.05, wageByGreed: 0.012, consentByGreed: 0.012, consentByLoyalty: 0.015, greedPivot: 14.4, loyaltyPivot: 7 },
     clauses: { releaseProbability: 0.2, releaseByAgentGreed: 0.02, releaseFactor: [1.2, 2.2] },
     training: { ageMax: 23, byTier: { firstLeague: 1.2, secondLeague: 0.8, thirdLeague: 0.4, cp: 0.08, district: 0 } },
-    offers: { forSaleChance: 5, forSaleFee: 0.93, dailyChance: 0.012, validDays: 10, feeSpread: [0.85, 1.15], maxMult: 1.3, maxRounds: 3, concession: 0.5, minAge: 16, sameWindowDays: 45 },
+    offers: { forSaleChance: 5, forSaleFee: 0.93, dailyChance: 0.012, validDays: 10, feeSpread: [0.85, 1.15], maxMult: 1.3, maxRounds: 3, concession: 0.5, minAge: 16, sameWindowDays: 45, youth: { dailyChance: 0.02, ageMax: 21, minPotential: 14 } },
     news: { minFee: 1500000 },
     bids: { walkAway: 0.6, concession: 0.55, maxRounds: 4, waitDays: 30, suggestionNoise: 0.3, stepBackWage: 1.4, endOfCareerAge: 33, confirmDays: 7, importance: [[0, 1.6], [2, 1.4], [5, 1.2]], qualityPremium: 0.15, closeBonus: 0.85 },
   },
@@ -1391,6 +1403,9 @@ export function validateParameters(p: Params): string[] {
   if (!(ln.actProbability >= 0 && ln.actProbability <= 1 && ln.maxPerClub >= 0 && ln.wageShares.length > 0 && ln.wageShares.every((x) => x > 0 && x <= 1) && ln.proposalShares.length > 0 && ln.proposalShares.every((x) => x > 0 && x <= 1) && ln.offerChance >= 0 && ln.offerChance <= 1 && ln.feeRate >= 0 && ln.recallProbability >= 0 && ln.recallProbability <= 1)) errors.push("market.loans: probabilidades entre 0 e 1, wageShares entre 0 e 1 (sem zero), feeRate ≥ 0");
   const dc = p.market.decision;
   if (!(dc.scale > 0 && dc.minWillingness >= 0 && dc.minWillingness < 1 && dc.wagePremiums.length > 0 && dc.wagePremiums.every((x) => x >= 1) && dc.cityShare >= 0 && dc.cityShare <= 1 && dc.listing.discount > 0 && dc.listing.discount <= 1 && dc.listing.maxPerClub >= 0)) errors.push("market.decision: scale > 0, 0 ≤ minWillingness < 1, wagePremiums ≥ 1, 0 ≤ cityShare ≤ 1, 0 < listing.discount ≤ 1");
+  if (!(dc.prideHome >= 0 && dc.prideHome < 1 && dc.returnHome.age > 20 && dc.returnHome.bonus >= 0)) errors.push("market.decision: 0 ≤ prideHome < 1, returnHome.age > 20, returnHome.bonus ≥ 0");
+  const yd = p.squadCycle.youth.development;
+  if (!(yd.yieldMin > 0 && yd.yieldMin < yd.yieldMax && yd.yieldPivot > 0 && yd.regression > 0 && yd.regression <= 1 && yd.maxStep > 0 && yd.prideLocal >= 0 && yd.prideLocal < 1)) errors.push("squadCycle.youth.development: 0 < yieldMin < yieldMax, yieldPivot > 0, 0 < regression ≤ 1, maxStep > 0, 0 ≤ prideLocal < 1");
   const dis = p.discipline;
   if (!(dis.yellowThresholds.length > 0 && dis.yellowThresholds.every((n, i) => Number.isInteger(n) && n >= 1 && (i === 0 || n > (dis.yellowThresholds[i - 1] as number))) && dis.directRed.matches >= 1 && dis.directRed.max >= dis.directRed.matches && dis.directRed.morePA >= 0 && dis.directRed.morePA < 1 && dis.secondYellow.matches >= 1 && Number.isInteger(dis.europe.yellowEvery) && dis.europe.yellowEvery >= 1)) errors.push("disciplina: limiares de amarelos inteiros, crescentes e ≥ 1, vermelhoDireto.jogos ≥ 1 ≤ max, 0 ≤ pMaisUm < 1, segundoAmarelo.jogos ≥ 1");
   const t = p.tactic;

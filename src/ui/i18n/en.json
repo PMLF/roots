@@ -1492,5 +1492,17 @@
   "newsItem.city.rent_surge.1.title": "Rents soar in {city}",
   "newsItem.city.rent_surge.1.body": "Living in the city gets dearer for residents and newcomers alike.",
   "newsItem.city.affordable_housing.1.title": "Affordable housing in {city}",
-  "newsItem.city.affordable_housing.1.body": "A new programme promises homes at controlled prices."
+  "newsItem.city.affordable_housing.1.body": "A new programme promises homes at controlled prices.",
+  "card.youth": "Youth development",
+  "youth.level": "Youth yield",
+  "youth.cause.patience": "President patient with youth",
+  "youth.cause.coach": "Youth coaches",
+  "youth.cause.finances": "Club finances",
+  "youth.cause.education": "City education",
+  "youth.help": "How much local talent the club turns into first-team players. Takes years to change.",
+  "newsItem.youth_offer.1.title": "{club} want young {player}",
+  "newsItem.youth_offer.1.body": "{club} offer {fee} for {player}, who came through your academy. Sell (training compensation included) or hold on to him. Answer it under “Needs a decision”.",
+  "offer.youth.title": "Offer for {name}, an academy graduate",
+  "offer.youth.compensation": "Training compensation included",
+  "offer.youth.none": "—"
 }

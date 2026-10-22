@@ -79,7 +79,7 @@ function Inbox() {
       {messages === undefined ? <p>{t("profile.loading")}</p> : messages.length === 0 ? <p className="vazio">{t("inbox.empty")}</p> : (
         <div className="noticias">
           {messages.map((m) => {
-            const open = m.type === "transfer_offer" || m.type === "loan_offer" ? offers.find((o) => m.links.some((l) => l.k === "person" && l.id === o.person)) : undefined;
+            const open = m.type === "transfer_offer" || m.type === "loan_offer" || m.type === "youth_offer" ? offers.find((o) => m.links.some((l) => l.k === "person" && l.id === o.person)) : undefined;
             return <div key={m.id} id={`msg-${m.id}`} className={m.id === focus ? "mensagem-foco" : undefined}><NewsItemView n={m} unread={!m.isRead} onToggleIsRead={() => void toggle(m)} {...(open ? { action: <button type="button" className="primario" onClick={() => setAnswering(open)}>{t("offer.answer")}</button> } : {})} /></div>;
           })}
           {answering && <OfferDialog offer={answering} onClose={() => { setAnswering(undefined); loadOffers(); }} onAnswered={loadOffers} />}

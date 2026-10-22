@@ -1492,5 +1492,17 @@
   "newsItem.city.rent_surge.1.title": "Rendas disparam em {city}",
   "newsItem.city.rent_surge.1.body": "Viver na cidade fica mais caro para quem lá mora e para quem chega.",
   "newsItem.city.affordable_housing.1.title": "Habitação acessível em {city}",
-  "newsItem.city.affordable_housing.1.body": "Um novo programa promete casas a preços controlados."
+  "newsItem.city.affordable_housing.1.body": "Um novo programa promete casas a preços controlados.",
+  "card.youth": "Formação",
+  "youth.level": "Aproveitamento dos jovens",
+  "youth.cause.patience": "Presidente paciente com a formação",
+  "youth.cause.coach": "Treinadores de formação",
+  "youth.cause.finances": "Finanças do clube",
+  "youth.cause.education": "Educação na cidade",
+  "youth.help": "Quanto talento da terra o clube consegue levar ao plantel. Demora anos a mudar.",
+  "newsItem.youth_offer.1.title": "{club} quer o jovem {player}",
+  "newsItem.youth_offer.1.body": "{club} propõe {fee} por {player}, formado no teu clube. Podes vender (com compensação de formação) ou segurá-lo. Responde em «Exige decisão».",
+  "offer.youth.title": "Proposta por {name}, formado no clube",
+  "offer.youth.compensation": "Compensação de formação incluída",
+  "offer.youth.none": "—"
 }

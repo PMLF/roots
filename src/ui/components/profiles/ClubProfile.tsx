@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import { BarLevel, SERVICE_ARROW } from "@/ui/components/profiles/CityProfile";
 import type { ClubProfileData } from "@/engine/api/contracts";
 import type { ViewPerson } from "@/engine/view/types";
 import { Chip } from "@/ui/components/Attributes";
@@ -230,6 +231,26 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
       {clubSeason}
       <ClubCompetitions club={d.id} />
       {clubTops}
+      {d.youth && (
+        <Card title={t("card.youth")}>
+          <Data
+            lines={[{
+              label: t("youth.level"),
+              value: (
+                <span className="nivel-linha" title={t("youth.help")}>
+                  <BarLevel level={d.youth.level} />
+                  <b>{t(`city.level.${d.youth.level}` as Key)}</b>
+                  <span className={`tendencia tendencia-${d.youth.trend.startsWith("up") ? "rises" : d.youth.trend.startsWith("down") ? "drops" : "stable"}`} title={t(`city.serviceTrend.${d.youth.trend}` as Key)}>
+                    <span aria-hidden="true">{SERVICE_ARROW[d.youth.trend]}</span>
+                    <span className="so-leitor">{t(`city.serviceTrend.${d.youth.trend}` as Key)}</span>
+                  </span>
+                  {d.youth.cause && <span className="suave">{t(`youth.cause.${d.youth.cause}` as Key)}</span>}
+                </span>
+              ),
+            }]}
+          />
+        </Card>
+      )}
       <Card title={t("card.squadNumbers")}>
         <Data
           lines={[
