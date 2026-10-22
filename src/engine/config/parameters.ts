@@ -25,6 +25,12 @@ export const CITY_EVENT_TYPES: readonly CityEventType[] = [
 /** Serviços da cidade (RZ-233), todos 0-100 com «mais alto = melhor» (a habitação é a acessibilidade: alto = barata). */
 export const CITY_SERVICES = ["health", "education", "mobility", "housing", "safety", "entertainment"] as const;
 export type CityService = (typeof CITY_SERVICES)[number];
+/** Áreas do orçamento da Câmara (RZ-236): o desporto e as seis dos serviços (o lazer financia o entretenimento). */
+export const COUNCIL_AREAS = ["sport", "health", "education", "mobility", "housing", "safety", "leisure"] as const;
+export type CouncilArea = (typeof COUNCIL_AREAS)[number];
+export const COUNCIL_REQUESTS = ["youth", "matchday", "subsidy"] as const;
+export type CouncilRequestKind = (typeof COUNCIL_REQUESTS)[number];
+type Traits4 = { ambition: number; vanity: number; patience: number; integrity: number };
 export type CityEffects = { employment?: number; economy?: number; tourism?: number; pride?: number; notoriety?: number; populationPct?: number } & Partial<Record<CityService, number>>;
 export type CfgCityEvent = {
   /** Atinge todos os concelhos do polo (e não só um). */
@@ -33,7 +39,29 @@ export type CfgCityEvent = {
   weight: Record<string, number>;
   effects: CityEffects;
 };
+/**
+ * Orçamento e pedidos à Câmara (RZ-236, docs/CITY.md §12.6). Prioridade de cada área = peso do autarca (1 + traços × `loadings` + apoio ao desporto +
+ * necessidade (serviço pior pesa mais) + ruído da pessoa) normalizado; `levelCuts` separam os cinco níveis (quociente face à fatia neutra 1/7).
+ * `serviceByShare`: pontos de alvo de um serviço por cada 100 % acima (ou abaixo) da fatia neutra. `discretionary`: fração do orçamento de cada área
+ * que o autarca gere a seu gosto (de onde saem os pedidos). `requests`: custo (fração do orçamento municipal), área e efeito de cada tipo; o subsídio
+ * paga `subsidyRate` × orçamento × fator do escalão. Decisão: z = bias + ... (sigmoide); `cooldownDays` depois de uma recusa; `cofunds` frações pagas pelo clube.
+ */
+type CouncilParameters = {
+  loadings: Record<CouncilArea, Traits4>;
+  sportSupport: number; moodWeight: number; jitter: number; levelCuts: [number, number, number, number];
+  serviceByShare: number; discretionary: number; /** Variação mínima da fatia (em quocientes) para a seta fraca e para a forte. */ shareTrend: [number, number];
+  relation: { start: number; approved: number; refused: number; prideDrift: number; trend: number; strongTrend: number };
+  requests: {
+    areas: Record<CouncilRequestKind, CouncilArea>;
+    cost: Record<CouncilRequestKind, number>;
+    subsidyRate: number; subsidyTier: Record<Tier, number>;
+    youthBonus: number; matchdayBoost: number;
+    replyDays: [number, number]; cooldownDays: number; cofunds: number[];
+    decision: { bias: number; relation: number; priority: number; sport: number; vanity: number; cost: number; cofund: number };
+  };
+};
 type CityParameters = {
+  council: CouncilParameters;
   yearsMunicipalElections: number;
   /** Ano das últimas autárquicas antes do arranque: o mandato em curso conta a partir daqui. */
   sinceTerm: number;
@@ -967,6 +995,28 @@ export const DEFAULT_PARAMETERS: Params = {
   },
   inbox: { pointsRival: 3, placesRival: 3, matchesMinRival: 3 },
   city: {
+    council: {
+      loadings: {
+        sport: { ambition: 0.3, vanity: 0.5, patience: 0, integrity: 0 },
+        health: { ambition: 0, vanity: -0.1, patience: 0.4, integrity: 0.3 },
+        education: { ambition: 0, vanity: -0.1, patience: 0.5, integrity: 0.2 },
+        mobility: { ambition: 0.5, vanity: 0.2, patience: -0.1, integrity: 0 },
+        housing: { ambition: 0, vanity: -0.2, patience: 0.2, integrity: 0.3 },
+        safety: { ambition: 0.1, vanity: 0, patience: 0, integrity: 0.3 },
+        leisure: { ambition: 0.1, vanity: 0.5, patience: -0.3, integrity: -0.1 },
+      },
+      sportSupport: 0.6, moodWeight: 0.5, jitter: 0.25, levelCuts: [0.6, 0.85, 1.15, 1.5],
+      serviceByShare: 8, discretionary: 0.05, shareTrend: [0.05, 0.15],
+      relation: { start: 50, approved: 6, refused: -2, prideDrift: 0.1, trend: 3, strongTrend: 8 },
+      requests: {
+        areas: { youth: "sport", matchday: "mobility", subsidy: "sport" },
+        cost: { youth: 0.0008, matchday: 0.001, subsidy: 0 },
+        subsidyRate: 0.0005, subsidyTier: { firstLeague: 0.15, secondLeague: 0.3, thirdLeague: 0.5, cp: 0.8, district: 1 },
+        youthBonus: 12, matchdayBoost: 0.06,
+        replyDays: [7, 21], cooldownDays: 120, cofunds: [0, 0.25, 0.5],
+        decision: { bias: 0.2, relation: 1.6, priority: 1.4, sport: 0.9, vanity: 0.3, cost: 1.8, cofund: 1.2 },
+      },
+    },
     yearsMunicipalElections: 4,
     sinceTerm: 2025,
     levels: [20, 40, 60, 80],
@@ -1439,6 +1489,8 @@ export function validateParameters(p: Params): string[] {
   const sv = ci.services;
   if (!(sv.regression > 0 && sv.regression <= 1 && sv.strongTrend > ci.trendThreshold && sv.initial.byBudget >= 0)) errors.push("city.services: regression entre 0 e 1, strongTrend > trendThreshold, byBudget ≥ 0");
   if (!(sv.effects.attendance.warmMonths.every((x) => Number.isInteger(x) && x >= 1 && x <= 12) && sv.effects.health.recoveryPerPoint >= 0 && sv.effects.health.recoveryPerPoint * 50 < 0.5)) errors.push("city.services.effects inválido (meses 1-12; recoveryPerPoint × 50 < 0,5)");
+  const cn = ci.council;
+  if (!(cn.levelCuts.length === 4 && cn.levelCuts.every((x, i, a) => i === 0 || x > (a[i - 1] as number)) && cn.jitter >= 0 && cn.discretionary >= 0 && cn.discretionary < 1 && cn.requests.replyDays[0] >= 1 && cn.requests.replyDays[1] >= cn.requests.replyDays[0] && cn.requests.cooldownDays >= 0 && cn.requests.cofunds[0] === 0 && cn.requests.cofunds.every((x) => x >= 0 && x <= 1) && Object.values(cn.requests.cost).every((x) => x >= 0))) errors.push("city.council inválido (cortes crescentes, prazos, cofinanciamentos entre 0 e 1, custos ≥ 0)");
   const prosp = p.squadCycle.youth.prospects;
   if (!(prosp.perCityMean >= 0 && prosp.ageMin >= 14 && prosp.ageMax >= prosp.ageMin && prosp.ageMax <= 18 && prosp.popExponent > 0 && prosp.potentialShift >= 0 && Number.isInteger(prosp.localLockDays) && prosp.localLockDays >= 0)) errors.push("squadCycle.youth.prospects inválido (idades 14-18, expoente > 0)");
   const m = p.world;

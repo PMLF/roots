@@ -7,7 +7,9 @@
 import { createDate } from "../calendar/dates";
 import type { Params } from "../config/parameters";
 import type { BaseData, CpSeries } from "../data/types";
-import { evolveCities } from "../city/cities";
+import { cityStateNow, evolveCities } from "../city/cities";
+import { mayorOf } from "../council/agenda";
+import { closeRelation } from "../council/relation";
 import type { ClubsResults } from "../city/evolution";
 import { competitionTable } from "../competition/table";
 import type { Repository } from "../persistence/repository";
@@ -163,6 +165,10 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
     for (const c of champions) add(c.club, "champions");
     for (const m of r.movements) add(m.club, m.reason === "relegation" ? "relegations" : "promotions");
     evolveCities(repo, data, params, season, today, results);
+    // a relação do gamer com o autarca: o clube que dá orgulho à cidade agrada-lhe (RZ-236)
+    const ownClub = data.clubs.find((c) => c.id === repo.meta("gamer.club"));
+    const ownMayor = ownClub ? mayorOf(repo, data, ownClub.city) : undefined;
+    if (ownClub && ownMayor) closeRelation(repo, params, ownMayor.person, cityStateNow(repo, data, params, ownClub.city)?.pride ?? 50);
     // plantéis: envelhecer, reformas, contratos, livres e formação para a nova época (RZ-117)
     const newSeasonStart = createDate(params.calendar.initialYear + season, params.calendar.seasonStartMonth, 1);
     const nextTiers = new Map([...pyramidLeagues(r.pyramid, data)].map(([club, l]) => [club, l.tier] as const));

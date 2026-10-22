@@ -9,6 +9,7 @@ import type { BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { drawLotsIncidents } from "./incidents";
+import { agendaOf, councilServiceOffsets, mayorOf } from "../council/agenda";
 import { WITHOUT_RESULTS, evolveCity, type ClubsResults } from "./evolution";
 import { CITY_SERVICES, budgetIndexes, cityTargets, sectorEffect, initialState, type CityState } from "./state";
 import { cityPreHistory } from "../history/preHistory";
@@ -86,6 +87,7 @@ export function evolveCities(repo: Repository, base: BaseData, params: Pick<Para
     const history = cityHistory(repo, base, params, c.id);
     const before = history[history.length - 1]!.state;
     const ownSquad = byCity.get(c.id) ?? [];
+    const mayor = mayorOf(repo, base, c.id);
     const fresh = evolveCity(
       before,
       {
@@ -93,6 +95,7 @@ export function evolveCities(repo: Repository, base: BaseData, params: Pick<Para
         driftPopulationPct: sectorEffect(c, "populationPct", params),
         results: results.get(c.id) ?? WITHOUT_RESULTS,
         effects: ownSquad.map((a) => params.city.events.types[a.type].effects),
+        ...(mayor ? { council: councilServiceOffsets(agendaOf(repo.meta("seed") ?? "?", mayor, before, params as Params), params as Params) } : {}),
       },
       rng.derive(`cidade:${c.id}`),
       params,

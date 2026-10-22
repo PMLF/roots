@@ -29,6 +29,7 @@ import { postBroadcast } from "../broadcast/featured";
 import { isMarketDay, marketRound, windowAt } from "../market/market";
 import { dailyBids, lockedPlayers } from "../market/bids";
 import { dailyOffers } from "../market/offers";
+import { dailyCouncil, councilMatchdayBoost } from "../council/requests";
 import { isInSecondDistrict } from "./districts";
 import { CP_FINAL_COMPETITION, generateCpFinal, generateCpFinalSemi } from "./cpFinalPhase";
 import { advanceCompetitions, hasNoTable } from "./competitions";
@@ -157,7 +158,7 @@ export function matchTicket(data: BaseData, params: Params, home: string, away: 
   const neutral = flags.neutral && flags.venue ? venueStadium(data, params, flags.venue) : undefined;
   const stadium: Stadium = neutral ?? { name: cc.stadium.name, locality: cc.locality || cc.name, capacity: cc.stadium.capacity };
   const hostCity = flags.neutral && flags.venue && flags.venue !== NATIONAL_STADIUM ? data.clubs.find((x) => x.id === flags.venue)?.city : cc.city;
-  const b = matchAttendance({ home: neutral ? { ...cc, stadium: { ...cc.stadium, name: neutral.name, capacity: neutral.capacity } } : cc, away: cf, footballCulture: data.cities.find((x) => x.id === hostCity)?.footballCulture ?? 50, ...(live && hostCity ? { cityFactor: attendanceFactor(cityStateNow(live.repo, data, params, hostCity), Number(live.date.slice(5, 7)), params) } : {}), final: competition === CP_FINAL_COMPETITION || !!flags.neutral }, params);
+  const b = matchAttendance({ home: neutral ? { ...cc, stadium: { ...cc.stadium, name: neutral.name, capacity: neutral.capacity } } : cc, away: cf, footballCulture: data.cities.find((x) => x.id === hostCity)?.footballCulture ?? 50, ...(live && hostCity ? { cityFactor: attendanceFactor(cityStateNow(live.repo, data, params, hostCity), Number(live.date.slice(5, 7)), params) * (1 + councilMatchdayBoost(live.repo, params, home, Number(live.repo.meta("season") ?? 1))) } : {}), final: competition === CP_FINAL_COMPETITION || !!flags.neutral }, params);
   return { ...b, club: cc, stadium, ...(flags.neutral ? { shared: [cc, cf] as [BaseClub, BaseClub] } : {}) };
 }
 
@@ -251,7 +252,7 @@ function advanceDay(repo: Repository, base: BaseData, params: Params, gamerClub?
         repo.appendEvent({ type: "MARKET_WINDOW", date: tomorrow, season, visibility: "exposed", origin: "generated", entities: [{ k: "club", id: gamerBase.id }], data: { state: will ? "open" : "close", name: (will ?? was)!.index === 0 ? "summer" : "winter" } });
       }
     }
-    if (gamerBase) { dailyBids(repo, data, params, gamerBase, tomorrow, season); dailyOffers(repo, data, params, gamerBase, tomorrow, season); }
+    if (gamerBase) { dailyBids(repo, data, params, gamerBase, tomorrow, season); dailyOffers(repo, data, params, gamerBase, tomorrow, season); dailyCouncil(repo, data, params, gamerBase, tomorrow, season); }
     // olheiros do gamer: fecham as observações e pesquisas que chegaram ao fim (RZ-230)
     if (gamerClub) {
       for (const o of completeOrders(repo, data, params, gamerClub, tomorrow, season)) {

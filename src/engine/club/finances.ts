@@ -17,7 +17,7 @@ import type { IsoDate } from "../persistence/types";
  * entra e o que sai no mesmo mês somam-se. Os patrocínios passam a vir de contratos de patrocínio reais (RZ-311/RZ-219); até lá
  * vêm da fórmula por escalão e reputação.
  */
-export type FinancialCategory = "ticketing" | "sponsorships" | "commercial" | "broadcasting" | "prizes" | "transfers" | "compensations" | "wages" | "staff" | "stadium" | "fixed";
+export type FinancialCategory = "ticketing" | "sponsorships" | "commercial" | "broadcasting" | "prizes" | "subsidies" | "transfers" | "compensations" | "wages" | "staff" | "stadium" | "fixed";
 export type Month = Partial<Record<FinancialCategory, number>>;
 
 

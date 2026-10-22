@@ -14,6 +14,8 @@ export type EvolutionInput = {
   results: ClubsResults;
   /** Efeitos dos acontecimentos desta época (já escolhidos). */
   effects: readonly CityEffects[];
+  /** Pontos que o orçamento da Câmara soma ao alvo de cada serviço (RZ-236). */
+  council?: Partial<Record<CityService, number>>;
 };
 
 const clampPct = (x: number) => clamp(x, 0, 100);
@@ -34,7 +36,7 @@ export function evolveCity(before: CityState, e: EvolutionInput, rng: Rng, param
   // serviços: regridem para um alvo que depende do tamanho, setor, orçamento e da economia, emprego e turismo de agora
   const sv = params.city.services;
   const now = { economy, employment, tourism };
-  const services = Object.fromEntries(CITY_SERVICES.map((id) => [id, clampPct(before[id] + (serviceTarget(id, e.targets.services[id], now, params) - before[id]) * sv.regression + rng.derive(`service:${id}`).gauss(0, sv.noise) + sum(id))])) as Record<CityService, number>;
+  const services = Object.fromEntries(CITY_SERVICES.map((id) => [id, clampPct(before[id] + (serviceTarget(id, e.targets.services[id] + (e.council?.[id] ?? 0), now, params) - before[id]) * sv.regression + rng.derive(`service:${id}`).gauss(0, sv.noise) + sum(id))])) as Record<CityService, number>;
   const meanServices = CITY_SERVICES.reduce((a, id) => a + services[id], 0) / CITY_SERVICES.length;
 
   const pct = clamp(

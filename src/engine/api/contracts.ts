@@ -315,7 +315,7 @@ export type ClubProfileData = {
   /** Por membro da equipa técnica: desde quando está no clube (contrato). */
   truth?: { reputation: number; finances: number; staffQuality: Record<string, Record<string, number>>; squadLevel: number };
   /** Formação (RZ-234): quanto talento da terra o clube aproveita; só no clube do gamer. Nível em palavras, tendência e a causa principal. */
-  youth?: { level: ViewCityLevel; trend: "up2" | "up1" | "stable" | "down1" | "down2"; cause?: "patience" | "coach" | "finances" | "education" };
+  youth?: { level: ViewCityLevel; trend: "up2" | "up1" | "stable" | "down1" | "down2"; cause?: "patience" | "coach" | "finances" | "education" | "council" };
 };
 
 export type LocalityStatus = "village" | "town" | "city";
@@ -337,6 +337,20 @@ export type LocalityProfileData = {
 
 /** Ficha de uma cidade (concelho; RZ-133): só o que qualquer pessoa pode saber. Os números verdadeiros ficam no motor; aqui vão níveis em palavras e tendências. */
 export type ViewCityLevel = 1 | 2 | 3 | 4 | 5;
+type CouncilTrend = "up2" | "up1" | "stable" | "down1" | "down2";
+export type CouncilAreaId = "sport" | "health" | "education" | "mobility" | "housing" | "safety" | "leisure";
+export type CouncilKindId = "youth" | "matchday" | "subsidy";
+export type CouncilReplyView = { approved: boolean; reason: "priority" | "relation" | "visibility" | "generic" | "noBudget" | "notPriority" | "poorRelation" | "expensive"; tone: "vain" | "ambitious" | "humble" | "plain"; amount: number };
+export type ViewCouncil = {
+  areas: { id: CouncilAreaId; priority: ViewCityLevel; trend: CouncilTrend; cause?: "need" | "newMayor" }[];
+  /** Relação do gamer com o autarca. */
+  relation?: { level: ViewCityLevel; trend: CouncilTrend; cause?: "approved" | "refused" | "pride" | "backed" | "backedRival" | "neutralLost" | "promiseKept" | "promiseBroken" };
+  /** Só na cidade do clube do gamer: o que se pode pedir e os pedidos feitos (do mais recente). */
+  own?: {
+    kinds: { kind: CouncilKindId; area: CouncilAreaId; status: "available" | "open" | "cooldown"; until?: string; cost: number; cofunds: number[] }[];
+    requests: { id: number; kind: CouncilKindId; created: string; due: string; status: "pending" | "approved" | "refused"; cofund: number; reply?: CouncilReplyView }[];
+  };
+};
 export type CityProfileData = {
   id: string;
   name: string;
@@ -372,6 +386,8 @@ export type CityProfileData = {
     /** Reputação pública: só o que se diz dele na cidade. */
     profile: ("vain" | "lowProfile" | "ambitious")[];
   };
+  /** Orçamento da Câmara por áreas e pedidos do gamer (RZ-236): prioridades em palavras com seta; euros nunca. */
+  council?: ViewCouncil;
   localities: { ref: EntityRef; status: LocalityStatus; population: number }[];
   clubs: { ref: EntityRef; league: string; tier: string; stadium: { name: string; capacity: number; ownership: "club" | "municipal" | "shared" } }[];
   /** Acontecimentos que marcaram a cidade, do mais recente para o mais antigo. */
@@ -494,6 +510,8 @@ export type EngineRequests = {
   setForSale: { input: { person: string; forSale: boolean }; output: null };
   /** Chama de volta um jogador do gamer emprestado (só na janela de janeiro). */
   recallLoan: { input: { person: string }; output: { ok: boolean } };
+  /** Pedido ao autarca (RZ-236): tipo e índice do cofinanciamento (0 = nada). */
+  councilRequest: { input: { kind: CouncilKindId; cofund: number }; output: { ok: true } | { ok: false; reason: "noMayor" | "open" | "cooldown" | "cash" | "invalid" | "noClub" } };
   bids: { input: null; output: BidView[] };
   transferOffers: { input: null; output: OfferView[] };
   offerReply: { input: OfferAction; output: OfferAnswer };

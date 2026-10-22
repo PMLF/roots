@@ -239,9 +239,24 @@ Papéis (cada um com ligação a RZ já existente):
 
 ### 12.6 O autarca e o orçamento
 
-- **Orçamento municipal** (já existe, relativo em palavras): receita por habitante + transferências do Estado + prémio do Estado (RZ-112/307).
-- **Repartição por áreas** (desporto, saúde, educação, mobilidade, habitação, segurança, cultura): o autarca reparte-o pela sua **função de utilidade** (§3: custo, visibilidade, paciência, integridade, retorno eleitoral) e pelo **humor da cidade** (o que está pior pesa mais). O gamer só **influencia** (propõe projetos, cofinancia, promete); os projetos competem pelo mesmo orçamento.
-- **Eleições** (RZ-308, 4 em 4 anos): reeleição = f(orgulho, emprego, serviços, escândalos, obras prometidas e cumpridas). Autarca novo ⇒ **novas prioridades** (e novas relações com empresas). Promessas falhadas custam confiança.
+Desenho decidido com o Pedro a 22-10-2026 (RZ-236, em duas fatias: **A** orçamento, relação e pedidos; **B** eleições).
+
+**Orçamento por áreas.** A verba municipal (receita por habitante + transferências do Estado + prémio do Estado; já existe, relativa em palavras) reparte-se por sete áreas: **desporto, saúde, educação, mobilidade, habitação, segurança e lazer/cultura** (as seis dos serviços, §12.2, mais o desporto). Cada autarca tem **prioridades próprias** (as áreas que mais e menos valoriza) vindas da sua personalidade e do **humor da cidade** (o serviço que está pior pesa mais). O gamer vê, no separador **Câmara**, o **nível de prioridade de cada área em palavras, com seta e causa**, nunca euros. A verba de cada área empurra o alvo do respetivo serviço (área sem verba deixa o serviço descer; é a «habitação cara», a «saúde esquecida»).
+
+**Relação do gamer com o autarca.** Nível em palavras com seta e causa («Boa ↗ · apoiaste o projeto X»). Sobe com pedidos aprovados, promessas cumpridas e apoio nas eleições; desce com promessas falhadas, apoiar o rival ou escândalos. Decide se os pedidos passam.
+
+**Pedidos do gamer** (três tipos nesta fatia; os projetos competem pela verba da área **desporto** e das outras que tocam):
+- **Escolinhas/formação**: sobe o aproveitamento da formação e o talento local (RZ-234).
+- **Transporte e segurança em dias de jogo**: mais assistência (mobilidade) e menos incidentes.
+- **Subsídio anual ao clube**: dinheiro direto para a caixa.
+Um pedido aberto por área; resposta em 1 a 3 semanas na **caixa de entrada**; depois de uma recusa há um intervalo para voltar a pedir (maior se a relação piorar). A resposta do autarca é **um pequeno discurso humano**, como uma conversa, com o motivo claro («este ano não temos verba para o desporto», «não é a minha prioridade», «a nossa relação não ajuda», «é caro para o retorno»). Cofinanciar com dinheiro do clube convence o autarca.
+
+**Eleições (fatia B), de 4 em 4 anos.**
+- **2 a 4 candidatos** conforme o tamanho da cidade, **sem partidos nem eixo ideológico**: pessoas novas, cada uma com personalidade e **prioridades por área** (as que mais e menos valoriza) que partilha na campanha. Se o autarca atual não concorrer, são todos novos; **ex-autarcas podem voltar** e **futebolistas reformados da região** podem candidatar-se (a carreira dá-lhes simpatia).
+- **Campanha**: o gamer recebe na caixa de entrada uma decisão **obrigatória** (pode escolher **ficar neutro**): que candidato apoiar. Vê, de cada um, as áreas que valoriza mais e menos, a **relação** que já tem com ele e se é ou já foi autarca. Apoiar o vencedor reforça a relação; apoiar o derrotado custa relação com o vencedor; ficar neutro pode estragar a relação com um candidato amigo que perca.
+- **Peso do apoio** = f(orgulho e notoriedade do clube, **segurança do treinador** (confiança), resultados). Sem obra feita ou com maus resultados, ou a um passo do despedimento, o gamer pesa pouco. O resultado depende sobretudo do humor da cidade, dos serviços, do emprego e dos escândalos.
+- **Promessas** de campanha ligadas às prioridades; quem ganha tem de as cumprir com o orçamento e as falhadas custam votos na reeleição.
+- Autarca novo ⇒ **novas prioridades** (e novas relações com empresas).
 
 ### 12.7 Custos do sucesso (anti-bola-de-neve)
 

@@ -5,6 +5,7 @@ import { Card, Data, Top } from "@/ui/components/Card";
 import { Table } from "@/ui/components/Table";
 import type { Column } from "@/ui/table/logic";
 import { Profile } from "@/ui/components/Profile";
+import { CouncilBudget } from "@/ui/components/profiles/CouncilBudget";
 import { LocalTalent } from "@/ui/components/profiles/LocalTalent";
 import { EntityLink } from "@/ui/components/Link";
 import type { Key } from "@/ui/i18n";
@@ -165,6 +166,7 @@ export function CityProfile({ d }: { d: CityProfileData }) {
           </>
         )}
       </Card>
+      {d.council && <CouncilBudget c={d.council} />}
     </div>
   );
   const serviceColumns: Column<CityProfileData["historyPopulation"][number]>[] = [

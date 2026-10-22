@@ -9,6 +9,7 @@ import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { TallCard } from "@/ui/components/TallCard";
 import { useOwnClub } from "@/ui/myClub";
 import { useT } from "@/ui/i18n/LocaleProvider";
+import { councilSpeech } from "@/ui/councilSpeech";
 import { profileHref, TAB_URL } from "@/ui/links";
 
 /** Uma notícia ou mensagem: título, frase de apoio e ligações para as fichas. O texto vem das chaves `newsItem.<type>.<n>.*`. */
@@ -25,6 +26,10 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n
   const tone = n.type === "bid_agreed" ? "ok" : n.type === "bid_rejected" ? "erro" : undefined;
   if (n.type === "europe_phase") values.zoneText = t(`newsItem.europe_phase.zone.${values.zone}` as Key);
   if (n.type === "europe_qualifier") values.outcomeText = t(values.won === 1 ? "newsItem.europe_qualifier.won" : "newsItem.europe_qualifier.lost", { opponent: String(values.opponent) });
+  if (n.type === "council_reply") {
+    const money = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+    values.speech = councilSpeech(t, { approved: values.outcome === "yes", reason: String(values.reason), tone: String(values.tone), kind: String(values.kind), amount: Number(values.amount) }, money);
+  }
   const toSquad = n.type === "youth_intake";
   const toScouting = n.type === "scout_search" || n.type === "scout_report";
   const base = `newsItem.${type}.${n.variant}`;
