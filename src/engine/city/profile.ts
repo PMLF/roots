@@ -1,5 +1,5 @@
 /** Ficha pública de uma cidade (RZ-133): converte o estado verdadeiro em níveis em palavras e tendências. */
-import type { CityProfileData, ViewCityLevel } from "../api/contracts";
+import type { CityProfileData, ViewCityLevel, ViewCouncil } from "../api/contracts";
 import type { Params } from "../config/parameters";
 import type { BaseData } from "../data/types";
 import { seasonName } from "../calendar/seasonName";
@@ -8,6 +8,11 @@ import type { View } from "../view/view";
 import { cityHistoryWithPast } from "./cities";
 import { CITY_SERVICES, type CityEventType } from "../config/parameters";
 import { INDICATORS, levelOf, serviceTrendOf } from "./state";
+import { agendaOf, mayorOf, priorityLevel } from "../council/agenda";
+import { costOf, kindStatus, requestsOf } from "../council/requests";
+import { relationOf } from "../council/relation";
+import { COUNCIL_AREAS, COUNCIL_REQUESTS } from "../config/parameters";
+import type { IsoDate } from "../persistence/types";
 
 /** Atitude da Câmara perante o desporto (1-10 nos dados) em cinco níveis. */
 const supportLevel = (v: number): ViewCityLevel => (v <= 2 ? 1 : v <= 4 ? 2 : v <= 6 ? 3 : v <= 8 ? 4 : 5);
@@ -38,6 +43,7 @@ export function cityProfile(repo: Repository, data: BaseData, base: BaseData, pa
   const recent = repo
     .eventsOf({ k: "city", id }, { type: "CITY_EVENT", publicOnly: true, limit: 10 })
     .map((e) => ({ type: String(e.data.event) as CityEventType, season: e.season }));
+  const council = councilView(repo, base, params, id, now.state, before?.state);
   return {
     id: c.id, name: c.name, district: c.district, hub: c.hub, island: c.island, sector: c.sector, secondarySector: c.tag2,
     population: now.state.population,
@@ -63,6 +69,7 @@ export function cityProfile(repo: Repository, data: BaseData, base: BaseData, pa
     ...(mayor
       ? { mayor: { person: { k: "person" as const, id: mayor.id, name: mayor.sportingName }, sinceTerm: since, untilTerm: since + params.city.yearsMunicipalElections, sportSupport: supportLevel(c.mayor.sportSupport), profile } }
       : {}),
+    ...(council ? { council } : {}),
     localities: base.localities
       .filter((l) => l.city === id)
       .map((l) => {
@@ -75,5 +82,37 @@ export function cityProfile(repo: Repository, data: BaseData, base: BaseData, pa
     incidents: repo
       .eventsOf({ k: "city", id }, { type: "CITY_EVENT", publicOnly: true, limit: 10 })
       .map((e) => ({ date: e.date, season: e.season, label: label(e.season), type: String(e.data.event), regional: e.data.regional === true, ...(typeof e.data.hub === "string" ? { hub: e.data.hub } : {}) })),
+  };
+}
+
+/** Orçamento da Câmara em palavras (RZ-236) e, na cidade do clube do gamer, relação e pedidos. */
+function councilView(repo: Repository, base: BaseData, params: Params, city: string, now: Parameters<typeof agendaOf>[2], before: Parameters<typeof agendaOf>[2]): ViewCouncil | undefined {
+  const mayor = mayorOf(repo, base, city);
+  if (!mayor) return undefined;
+  const seed = repo.meta("seed") ?? "?";
+  const a = agendaOf(seed, mayor, now, params);
+  const b = before ? agendaOf(seed, mayor, before, params) : undefined;
+  const [weak, strong] = params.city.council.shareTrend;
+  const areas = COUNCIL_AREAS.map((id) => {
+    const d = b ? a.ratio[id] - b.ratio[id] : 0;
+    const trend = d >= strong ? "up2" : d >= weak ? "up1" : d <= -strong ? "down2" : d <= -weak ? "down1" : "stable";
+    return { id, priority: priorityLevel(a.ratio[id], params) as ViewCityLevel, trend: trend as ViewCouncil["areas"][number]["trend"], ...(trend !== "stable" ? { cause: "need" as const } : {}) };
+  });
+  const club = base.clubs.find((x) => x.id === repo.meta("gamer.club"));
+  if (!club || club.city !== city) return { areas };
+  const rel = relationOf(repo, params, mayor.person);
+  const today = (repo.meta("date.today") ?? "") as IsoDate;
+  const cfg = params.city.council.requests;
+  const requests = requestsOf(repo).filter((r) => r.club === club.id).sort((x, y) => y.id - x.id).slice(0, 8);
+  return {
+    areas,
+    relation: { level: rel.level as ViewCityLevel, trend: rel.trend, ...(rel.cause ? { cause: rel.cause } : {}) },
+    own: {
+      kinds: COUNCIL_REQUESTS.map((kind) => {
+        const st = kindStatus(repo, params, club, kind, today);
+        return { kind, area: cfg.areas[kind], status: st.status, ...(st.until ? { until: st.until } : {}), cost: costOf(base, params, club, kind), cofunds: kind === "subsidy" ? [0] : cfg.cofunds };
+      }),
+      requests: requests.map((r) => ({ id: r.id, kind: r.kind, created: r.created, due: r.due, status: r.status, cofund: r.cofund, ...(r.outcome ? { reply: { approved: r.status === "approved", reason: r.outcome.reason, tone: r.outcome.tone, amount: r.outcome.amount } } : {}) })),
+    },
   };
 }

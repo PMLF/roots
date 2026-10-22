@@ -60,6 +60,7 @@ import { startCompanies } from "../company/cycle";
 import { assignAgents } from "../agent/assign";
 import { newProspects } from "../squad/prospects";
 import { youthLevelOf } from "../squad/youthLevel";
+import { makeRequest } from "../council/requests";
 import { levelOf } from "../city/state";
 import { potentialRange, referenceTier, starsOf } from "../world/stars";
 import type { LocalTalentData, ViewPlan, OfferView, BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
@@ -451,6 +452,14 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const again = r.status === "counter" ? pendingOffers(repository).find((o) => o.id === m.input.id) : undefined;
       const view = again ? offerViewOf(repository, data, params, again) : undefined;
       return { ok: true, status: r.status, ...(view ? { offer: view } : {}) };
+    }
+    case "councilRequest": {
+      const { repository, data, params } = await context(servicos);
+      const club = gamerClubOf(repository, data);
+      if (!club) return { ok: false, reason: "noClub" };
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      const r = makeRequest(repository, data, params, club, today, Number(repository.meta("season") ?? 1), m.input.kind, m.input.cofund);
+      return r.ok ? { ok: true } : { ok: false, reason: r.reason };
     }
     case "recallLoan": {
       const { repository, data, params } = await context(servicos);

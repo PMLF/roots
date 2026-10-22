@@ -10,8 +10,9 @@ import type { Params } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import { youthFocus } from "./youthFocus";
+import { consumeCouncilYouth, councilYouthBonus } from "../council/requests";
 
-export type YouthDriver = "patience" | "coach" | "finances" | "education";
+export type YouthDriver = "patience" | "coach" | "finances" | "education" | "council";
 type Stored = { v: number; prev: number; cause?: YouthDriver };
 
 const key = (club: string) => `youth.level.${club}`;
@@ -35,8 +36,9 @@ export function youthTarget(repo: Repository, data: BaseData, params: Params, cl
     coach: d.byCoach * (coach - 10),
     finances: d.byFinances * clamp(money, -2, 2),
     education: d.byEducation * (education - 50),
+    council: councilYouthBonus(repo, params, club.id),
   };
-  return { target: clamp(d.base + terms.patience + terms.coach + terms.finances + terms.education, 5, 95), terms };
+  return { target: clamp(d.base + terms.patience + terms.coach + terms.finances + terms.education + terms.council, 5, 95), terms };
 }
 
 const read = (repo: Repository, club: string): Stored | undefined => {
@@ -69,5 +71,6 @@ export function updateYouthLevels(repo: Repository, data: BaseData, params: Para
     const sign = Math.sign(v - now);
     const cause = sign === 0 ? undefined : (Object.entries(terms) as [YouthDriver, number][]).filter(([, t]) => Math.sign(t) === sign).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))[0]?.[0];
     repo.setMeta(key(club.id), JSON.stringify({ v, prev: now, ...(cause ? { cause } : {}) } satisfies Stored));
+    consumeCouncilYouth(repo, club.id);
   }
 }
