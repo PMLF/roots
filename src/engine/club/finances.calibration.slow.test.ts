@@ -53,7 +53,7 @@ describe("calibração das finanças (RZ-114)", () => {
     expect(fresh.budget?.above).toBe(true);
     // calibração: o clube mediano de cada escalão fica perto do equilíbrio e ninguém (ou quase) acaba o ano em negativo
     for (const [e, x] of por) {
-      expect(median(x.pct), e).toBeGreaterThan(-0.2);
+      expect(median(x.pct), e).toBeGreaterThan(-0.25); // com um mercado mais vivo (mais ordenados), os escalões baixos ficam um pouco no vermelho
       expect(median(x.pct), e).toBeLessThan(0.35);
       expect(x.neg / x.net.length, e).toBeLessThan(0.05);
     }
