@@ -347,7 +347,7 @@ export type CityProfileData = {
   indicators: {
     id: "economy" | "employment" | "tourism" | "pride" | "notoriety" | "footballCulture";
     level: ViewCityLevel;
-    trend: "rises" | "stable" | "drops";
+    trend: "up2" | "up1" | "stable" | "down1" | "down2";
     history: { season: number; label: string; level: ViewCityLevel }[];
   }[];
   /** Serviços do concelho (RZ-233): nível em palavras, seta de tendência (forte ou fraca) e, se um acontecimento recente os mexeu, a causa. */

@@ -7,7 +7,7 @@ import type { Repository } from "../persistence/repository";
 import type { View } from "../view/view";
 import { cityHistoryWithPast } from "./cities";
 import { CITY_SERVICES, type CityEventType } from "../config/parameters";
-import { INDICATORS, levelOf, serviceTrendOf, trendOf } from "./state";
+import { INDICATORS, levelOf, serviceTrendOf } from "./state";
 
 /** Atitude da Câmara perante o desporto (1-10 nos dados) em cinco níveis. */
 const supportLevel = (v: number): ViewCityLevel => (v <= 2 ? 1 : v <= 4 ? 2 : v <= 6 ? 3 : v <= 8 ? 4 : 5);
@@ -45,7 +45,7 @@ export function cityProfile(repo: Repository, data: BaseData, base: BaseData, pa
     indicators: INDICATORS.map((i) => ({
       id: i,
       level: levelOf(now.state[i], params),
-      trend: trendOf(before?.state[i], now.state[i], params),
+      trend: serviceTrendOf(before?.state[i], now.state[i], params),
       history: history.map((h) => ({ season: h.season, label: label(h.season), level: levelOf(h.state[i], params) })),
     })),
     services: CITY_SERVICES.map((id) => {
