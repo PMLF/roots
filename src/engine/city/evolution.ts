@@ -16,6 +16,8 @@ export type EvolutionInput = {
   effects: readonly CityEffects[];
   /** Pontos que o orçamento da Câmara soma ao alvo de cada serviço (RZ-236). */
   council?: Partial<Record<CityService, number>>;
+  /** Pontos que as empresas locais somam ao alvo do emprego e da economia (RZ-235). */
+  companies?: { employment: number; economy: number };
 };
 
 const clampPct = (x: number) => clamp(x, 0, 100);
@@ -26,8 +28,8 @@ export function evolveCity(before: CityState, e: EvolutionInput, rng: Rng, param
   const course = (current: number, target: number) => current + (target - current) * k.regression + rng.gauss(0, k.noise);
   const r = e.results;
 
-  const economy = clampPct(course(before.economy, e.targets.economy) + sum("economy"));
-  const employment = clampPct(course(before.employment, e.targets.employment) + sum("employment"));
+  const economy = clampPct(course(before.economy, e.targets.economy + (e.companies?.economy ?? 0)) + sum("economy"));
+  const employment = clampPct(course(before.employment, e.targets.employment + (e.companies?.employment ?? 0)) + sum("employment"));
   const tourism = clampPct(course(before.tourism, e.targets.tourism) + sum("tourism"));
   const pride = clampPct(course(before.pride, e.targets.pride) + r.champions * k.pride.champion + r.promotions * k.pride.promotion + r.relegations * k.pride.relegation + sum("pride"));
   const notoriety = clampPct(before.notoriety + (e.targets.notoriety - before.notoriety) * k.notoriety.regression + (pride - 50) * k.notoriety.byPride + sum("notoriety") + rng.gauss(0, k.noise / 2));

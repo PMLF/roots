@@ -374,6 +374,14 @@ export type ViewCouncil = {
     requests: { id: number; kind: CouncilKindId; created: string; due: string; status: "pending" | "approved" | "refused"; cofund: number; reply?: CouncilReplyView }[];
   };
 };
+/** Empresas do concelho (RZ-235): só o que é público (setor, escala, dono, patrocínios) e o tamanho em palavras. */
+/** Proposta de mecenato (RZ-235): uma empresa do concelho oferece dinheiro, às vezes em troca do naming do estádio. */
+export type PatronView = { id: number; company: EntityRef; owner?: EntityRef; amount: number; counterpart: "none" | "naming"; years: number; expires: string };
+export type CityCompaniesView = {
+  /** Dependência do maior empregador: baixa, média ou alta. */
+  dependence: "low" | "medium" | "high";
+  list: { id: string; name: string; sector: string; scale: "local" | "regional" | "national" | "international"; size: ViewCityLevel; owner?: EntityRef; sponsors: EntityRef[] }[];
+};
 export type CityProfileData = {
   id: string;
   name: string;
@@ -411,6 +419,8 @@ export type CityProfileData = {
   };
   /** Orçamento da Câmara por áreas e pedidos do gamer (RZ-236): prioridades em palavras com seta; euros nunca. */
   council?: ViewCouncil;
+  /** Empresas do concelho (RZ-235); falta enquanto o mundo não as tem. */
+  companies?: CityCompaniesView;
   localities: { ref: EntityRef; status: LocalityStatus; population: number }[];
   clubs: { ref: EntityRef; league: string; tier: string; stadium: { name: string; capacity: number; ownership: "club" | "municipal" | "shared" } }[];
   /** Acontecimentos que marcaram a cidade, do mais recente para o mais antigo. */
@@ -510,7 +520,7 @@ export type EngineRequests = {
   celebration: { input: null; output: { competition: string; season: number; cup: boolean; clinched: boolean } | null };
   dismissCelebration: { input: null; output: null };
   /** O que pede resposta antes de o tempo passar (RZ-257): a mensagem por ler mais antiga, propostas recebidas e negociações abertas. */
-  attention: { input: null; output: { unread?: number; offer?: { person: string }; bid?: { person: string }; campaign?: { city: string } } };
+  attention: { input: null; output: { unread?: number; offer?: { person: string }; bid?: { person: string }; campaign?: { city: string }; patron?: { id: number } } };
   /** Começa o jogo do gamer (RZ-170): nada fica no histórico até ao apito final. */
   startMatch: { input: { match: string; /** A interface exige onze completo e disponível. */ strict?: boolean }; output: LiveMatch };
   /** Avança `minutos` minutos do jogo a decorrer; no fim regista-o. */
@@ -534,6 +544,8 @@ export type EngineRequests = {
   /** Chama de volta um jogador do gamer emprestado (só na janela de janeiro). */
   recallLoan: { input: { person: string }; output: { ok: boolean } };
   /** Pedido ao autarca (RZ-236): tipo e índice do cofinanciamento (0 = nada). */
+  patrons: { input: null; output: PatronView[] };
+  patronReply: { input: { id: number; accept: boolean }; output: { ok: boolean } };
   campaign: { input: null; output: CampaignView | null };
   campaignSupport: { input: { candidate: string }; output: { ok: boolean } };
   councilRequest: { input: { kind: CouncilKindId; cofund: number }; output: { ok: true } | { ok: false; reason: "noMayor" | "open" | "cooldown" | "cash" | "invalid" | "noClub" } };

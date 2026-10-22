@@ -5,6 +5,7 @@ import { setBudget, clubBudget } from "../club/budget";
 import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
 import { ageAt, createDate } from "../calendar/dates";
 import type { IsoDate, PlayerRecord } from "../persistence/types";
+import { pendingPatrons, respondPatron } from "../company/patrons";
 import { campaignView } from "../city/campaign";
 import { campaignPending, supportCandidate } from "../council/elections";
 import { pendingOffers, respondOffer, type Offer } from "../market/offers";
@@ -388,7 +389,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     }
     case "attention": {
       const { repository, data, params } = await context(servicos);
-      const out: { unread?: number; offer?: { person: string }; bid?: { person: string }; campaign?: { city: string } } = {};
+      const out: { unread?: number; offer?: { person: string }; bid?: { person: string }; campaign?: { city: string }; patron?: { id: number } } = {};
       const all = inbox(repository, data, { limit: 500 });
       const oldest = all.messages.filter((x) => !x.isRead).map((x) => x.id).sort((a, b) => a - b)[0];
       if (oldest !== undefined) out.unread = oldest;
@@ -397,6 +398,8 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (offer) out.offer = { person: offer.person };
       const camp = campaignPending(repository, gamerClubOf(repository, data));
       if (camp) { const g = gamerClubOf(repository, data); if (g) out.campaign = { city: g.city }; }
+      const patron = pendingPatrons(repository)[0];
+      if (patron) out.patron = { id: patron.id };
       const bid = bids(repository).map((b) => bidViewOf(repository, data, params, b)).find((v) => (v.stage === "club" || v.stage === "agent") && !v.pending && !v.closed);
       if (bid) out.bid = { person: bid.person };
       return out;
@@ -457,6 +460,19 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const again = r.status === "counter" ? pendingOffers(repository).find((o) => o.id === m.input.id) : undefined;
       const view = again ? offerViewOf(repository, data, params, again) : undefined;
       return { ok: true, status: r.status, ...(view ? { offer: view } : {}) };
+    }
+    case "patrons": {
+      const { repository } = await context(servicos);
+      return pendingPatrons(repository).map((o) => ({
+        id: o.id, company: { k: "company" as const, id: o.company, name: repository.company(o.company)?.name ?? o.company },
+        ...(o.owner ? { owner: { k: "person" as const, id: o.owner, name: repository.publicPerson(o.owner)?.sportingName ?? o.owner } } : {}),
+        amount: o.amount, counterpart: o.counterpart, years: o.years, expires: o.expires,
+      }));
+    }
+    case "patronReply": {
+      const { repository, data } = await context(servicos);
+      const club = gamerClubOf(repository, data);
+      return club ? respondPatron(repository, club, (repository.meta("date.today") ?? "") as IsoDate, m.input.id, m.input.accept) : { ok: false };
     }
     case "campaign": {
       const { repository, data, params } = await context(servicos);

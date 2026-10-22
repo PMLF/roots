@@ -698,6 +698,15 @@ export type Params = {
     capital: { median: Record<"local" | "regional" | "national" | "international", number>; sigma: number };
     /** Volume de negócio (€) por empregado, por escala: serve para estimar o número de empregados da empresa. */
     capitalPerEmployee: Record<"local" | "regional" | "national" | "international", number>;
+    /** Empresas ↔ cidade (RZ-235). */
+    city: {
+      /** Empregos: parte dos empregados de cada escala que trabalha no concelho; pontos de emprego (e de economia, pelo volume de negócio) por duplicação face ao esperado para uma cidade deste tamanho, e limite; quotas do maior empregador para dependência média e alta. */
+      jobs: { localShare: Record<"local" | "regional" | "national" | "international", number>; employmentK: number; employmentMax: number; economyK: number; economyMax: number; dependence: [number, number]; /** Empregos locais a partir dos quais abrir ou fechar uma empresa é notícia na cidade. */ eventJobs: number };
+      /** Parceiros de serviços: setor da empresa → serviço que ajuda quando o orçamento da Câmara não chega; pontos por unidade de défice (1 − quociente de prioridade), peso por escala e limite por serviço. */
+      partners: { sectors: Partial<Record<string, CityService>>; k: number; scale: Record<"local" | "regional" | "national" | "international", number>; max: number };
+      /** Mecenato: probabilidade diária de uma proposta ao clube do gamer, dias de espera entre propostas e de validade, parte do valor anual de patrocínios que doa cada escala, bónus do naming, anos do naming. */
+      patron: { dailyChance: number; cooldownDays: number; validDays: number; share: Record<"local" | "regional" | "national" | "international", number>; namingBonus: number; namingYears: number };
+    };
     /** Evolução anual do capital: crescimento médio, efeito da economia da cidade (±metade da escala), desvio. */
     evolution: { growth: number; economyEffect: number; sigma: number; closureProbability: number; lowCapitalShare: number; lowCapitalClosure: number; foundingRate: number };
     sponsorship: {
@@ -1244,6 +1253,11 @@ export const DEFAULT_PARAMETERS: Params = {
     scaleWeight: { local: { base: 1, perDecade: 0 }, regional: { base: 0.3, perDecade: 0.35 }, national: { base: 0.02, perDecade: 0.12 }, international: { base: 0.004, perDecade: 0.04 } },
     capital: { median: { local: 300_000, regional: 3_000_000, national: 50_000_000, international: 600_000_000 }, sigma: 0.9 },
     capitalPerEmployee: { local: 15_000, regional: 60_000, national: 250_000, international: 600_000 },
+    city: {
+      jobs: { localShare: { local: 1, regional: 0.8, national: 0.25, international: 0.1 }, employmentK: 5, employmentMax: 10, economyK: 4, economyMax: 8, dependence: [0.6, 0.8], eventJobs: 30 },
+      partners: { sectors: { health: "health", transport: "mobility", energy: "safety", media: "entertainment" }, k: 8, scale: { local: 0.4, regional: 0.7, national: 1, international: 1 }, max: 8 },
+      patron: { dailyChance: 0.012, cooldownDays: 60, validDays: 21, share: { local: 0.03, regional: 0.06, national: 0.1, international: 0.1 }, namingBonus: 1.5, namingYears: 2 },
+    },
     evolution: { growth: 0.03, economyEffect: 0.06, sigma: 0.18, closureProbability: 0.012, lowCapitalShare: 0.15, lowCapitalClosure: 0.15, foundingRate: 0.5 },
     sponsorship: {
       slots: { firstLeague: ["shirt", "stadium", "youth"], secondLeague: ["shirt", "stadium", "youth"], thirdLeague: ["shirt", "stadium"], cp: ["shirt", "stadium"], district: ["shirt"] },

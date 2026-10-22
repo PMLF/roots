@@ -8,7 +8,7 @@ import { generateName } from "../world/names";
 import type { CompanyRecord, CompanyScale, PersonRecord, RoleRecord } from "../persistence/types";
 import { drawSector, companyName, isBroadcaster } from "./sectors";
 
-const SCALES: CompanyScale[] = ["local", "regional", "national", "international"];
+export const SCALES: CompanyScale[] = ["local", "regional", "national", "international"];
 const BASE_DECADE = Math.log10(15000);
 
 const decadesOf = (population: number): number => Math.log10(Math.max(population, 1)) - BASE_DECADE;
@@ -19,9 +19,11 @@ export function targetCompanies(city: Pick<BaseCity, "population">, params: Para
   return Math.max(k.min, Math.round(k.base + k.perDecade * decadesOf(city.population)));
 }
 
+/** Peso de cada escala numa cidade com esta população. */
+export const scaleWeightOf = (population: number, scale: CompanyScale, params: Params): number => Math.max(0, params.companies.scaleWeight[scale].base + params.companies.scaleWeight[scale].perDecade * decadesOf(population));
+
 function drawScale(rng: Rng, population: number, params: Params): CompanyScale {
-  const d = decadesOf(population);
-  return rng.weighted(SCALES, (s) => Math.max(0, params.companies.scaleWeight[s].base + params.companies.scaleWeight[s].perDecade * d));
+  return rng.weighted(SCALES, (s) => scaleWeightOf(population, s, params));
 }
 
 function drawCapital(rng: Rng, scale: CompanyScale, params: Params): number {

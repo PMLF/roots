@@ -4,12 +4,13 @@
  * de época o estado é o de arranque, que se reconstrói da seed.
  */
 import { Rng } from "../random/rng";
-import type { Params } from "../config/parameters";
+import type { CityService, CouncilArea, Params } from "../config/parameters";
+import { companyTargets, partnerOffsets } from "../company/employment";
 import type { BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { drawLotsIncidents } from "./incidents";
-import { agendaOf, councilServiceOffsets, mayorOf } from "../council/agenda";
+import { agendaOf, AREA_SERVICE, councilServiceOffsets, mayorOf, type Agenda } from "../council/agenda";
 import { WITHOUT_RESULTS, evolveCity, type ClubsResults } from "./evolution";
 import { CITY_SERVICES, budgetIndexes, cityTargets, sectorEffect, initialState, type CityState } from "./state";
 import { cityPreHistory } from "../history/preHistory";
@@ -69,6 +70,17 @@ export function cityHistoryWithPast(repo: Repository, base: BaseData, params: Pa
  * Fecha o ano de todas as cidades: sorteia os acontecimentos, evolui cada estado e grava os eventos.
  * `epoca` é a que acabou; os estados novos valem para `epoca + 1`.
  */
+/** Orçamento da Câmara (se há autarca) mais a ajuda das empresas parceiras onde a prioridade fica abaixo da média (RZ-235). */
+function withPartners(repo: Repository, params: Params, city: string, agenda: Agenda | undefined): Partial<Record<CityService, number>> {
+  const council = agenda ? councilServiceOffsets(agenda, params) : {};
+  const ratio: Partial<Record<CityService, number>> = {};
+  if (agenda) for (const [area, service] of Object.entries(AREA_SERVICE)) if (service) ratio[service] = agenda.ratio[area as CouncilArea];
+  const partners = partnerOffsets(repo, params, city, ratio);
+  const out = { ...council };
+  for (const [s, v] of Object.entries(partners)) out[s as CityService] = (out[s as CityService] ?? 0) + (v as number);
+  return out;
+}
+
 export function evolveCities(repo: Repository, base: BaseData, params: Pick<Params, "city">, season: number, today: IsoDate, results: ReadonlyMap<string, ClubsResults>): void {
   const rng = rngDoSave(repo).derive(`e${season}`);
   const incidents = drawLotsIncidents(base.cities, rng.derive("incidents"), params);
@@ -95,7 +107,8 @@ export function evolveCities(repo: Repository, base: BaseData, params: Pick<Para
         driftPopulationPct: sectorEffect(c, "populationPct", params),
         results: results.get(c.id) ?? WITHOUT_RESULTS,
         effects: ownSquad.map((a) => params.city.events.types[a.type].effects),
-        ...(mayor ? { council: councilServiceOffsets(agendaOf(repo.meta("seed") ?? "?", mayor, before, params as Params), params as Params) } : {}),
+        ...(mayor ? { council: withPartners(repo, params as Params, c.id, agendaOf(repo.meta("seed") ?? "?", mayor, before, params as Params)) } : { council: withPartners(repo, params as Params, c.id, undefined) }),
+        companies: companyTargets(repo, params as Params, c.id, before.population),
       },
       rng.derive(`cidade:${c.id}`),
       params,
