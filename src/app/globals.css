@@ -1167,3 +1167,12 @@ body {
   .novo-lista { max-height: 48vh; }
 }
 .novo-centro { grid-area: auto; height: 100vh; overflow: auto; padding: 0; }
+
+/* ---- Saves (RZ-134) ---- */
+.cartao.saves-guardar { flex-direction: row; gap: 10px; align-items: end; flex-wrap: wrap; margin: 12px 0; }
+.saves-guardar label { display: grid; gap: 4px; font-size: 13px; color: var(--suave); flex: 1 1 240px; }
+.saves-guardar input[type=text], .saves-guardar input:not([type]) { width: 100%; }
+.lembrete-backup { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--atencao-fundo); color: var(--texto); }
+.lembrete-backup button { margin-left: auto; }
+/* Vida fora do futebol (RZ-318): fundo branco, letras pretas, também no escuro (tal como o amarelo do mercado). */
+.chip-vida { background: #fff; border-color: #cfd6d2; color: #000; font-weight: 500; }

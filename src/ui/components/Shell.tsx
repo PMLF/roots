@@ -220,6 +220,7 @@ function Settings({ theme, onTheme, density, onDensity, locale, aoLocale }: { th
         <div className="definicoes-menu" id="menu-definicoes" role="group" aria-label={t("settings.label")}>
           <div className="definicoes-linha"><span>{t("theme.label")}</span><button type="button" onClick={onTheme} data-testid="theme">{t(`theme.${theme}` as Key)}</button></div>
           <div className="definicoes-linha"><span>{t("settings.density")}</span><button type="button" onClick={onDensity} aria-pressed={density === "compact"} data-testid="density">{t(density === "compact" ? "density.compact" : "density.normal")}</button></div>
+          <div className="definicoes-linha"><span>{t("saves.title")}</span><Link href="/saves/" data-testid="menu-saves">{t("saves.open")}</Link></div>
           <label className="definicoes-linha"><span>{t("language.label")}</span>
             <select value={locale} aria-label={t("language.label")} onChange={(e) => aoLocale(e.target.value as (typeof LOCALES)[number])}>
               {LOCALES.map((l) => <option key={l} value={l}>{t(`language.${l}`)}</option>)}

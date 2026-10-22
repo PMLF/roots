@@ -19,6 +19,7 @@ import { namePosition } from "@/ui/i18n/position";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { EntityLink } from "@/ui/components/Link";
 import { useRecentInbox } from "@/ui/useCash";
+import { useBackupReminder } from "@/ui/backupReminder";
 import { useDevMode } from "@/ui/dev";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { clubMatches } from "@/ui/clubMatches";
@@ -47,6 +48,7 @@ export default function Start() {
   const dev = useDevMode();
   const [world, setWorld] = useState<CreatedWorldSummary | null | undefined>(undefined);
   const [mine] = useOwnClub();
+  const backup = useBackupReminder(!!world);
   const time = useTime();
   const inbox = useRecentInbox(200);
   // «Avançar» pede o foco para a mensagem/decisão seguinte; tenta-se já e quando a lista muda
@@ -147,6 +149,11 @@ export default function Start() {
         {dev && world && <span className="suave" data-testid="hoje-mundo">{t("today.world", { seed: world.seed, people: world.people })}</span>}
         {club && <ResignButton />}
       </header>
+      {backup.due && (
+        <p className="aviso-previa lembrete-backup" role="status" data-testid="lembrete-backup">
+          {t("backup.reminder")} <Link href="/saves/">{t("backup.export")}</Link> <button type="button" onClick={backup.snooze}>{t("backup.later")}</button>
+        </p>
+      )}
 
       <section className="painel inicio-seguir" aria-labelledby="i-seguir">
         <h2 id="i-seguir">{t("start.follow")}</h2>

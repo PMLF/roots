@@ -136,7 +136,7 @@ Linhas que mostravam sempre «?»/«—» porque o motor não tem o dado foram r
 
 ## Vida fora do futebol: branco e preto (RZ-318, a implementar)
 
-Tudo o que diz respeito à vida da pessoa **fora do futebol** (profissão dos semi-profissionais e amadores, e mais tarde família, estudos, imprensa cor-de-rosa) usa **fundo branco com letras pretas**, em pills (`Chip`) como as do mercado. Os tokens ficam definidos em `globals.css` quando o RZ-318 for implementado.
+Tudo o que diz respeito à vida da pessoa **fora do futebol** (profissão dos semi-profissionais e amadores, e mais tarde família, estudos, imprensa cor-de-rosa) usa **fundo branco com letras pretas**, em pills (`Chip`) como as do mercado. Implementado no RZ-318: `Chip tone="vida"` (`.chip-vida` em `globals.css`, branco com preto também no tema escuro); a profissão aparece na ficha do jogador que o futebol não paga para viver.
 
 ## Mercado: amarelo e preto (RZ-257)
 

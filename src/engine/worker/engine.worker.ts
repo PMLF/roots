@@ -3,6 +3,8 @@ import { handle, type Servicos } from "../api/handler";
 import type { Message, EngineResponse } from "../api/contracts";
 import { SqliteRepository } from "../persistence/repositorySqlite";
 import { openWasm, publicUrl } from "./driverWasm";
+import { openSaveStore, webCodec } from "./saveStore";
+import type { SaveStore } from "../saves/saves";
 
 // Casca fina: recebe pedidos da interface, chama o motor e responde. Toda a lógica está em ../api e no resto do motor.
 const ctx = self as unknown as DedicatedWorkerGlobalScope;
@@ -15,25 +17,53 @@ const fetchText = async (f: string) => {
   return r.text();
 };
 
+const storeOpening = openSaveStore();
+let storeReady: SaveStore | undefined;
+
+const open = (bytes?: Uint8Array) =>
+  openWasm("current", bytes ? { bytes } : {}).then((b) => ({
+    repository: new SqliteRepository(b.driver),
+    backend: b.backend,
+    sqliteVersion: b.sqliteVersion,
+    ...(b.memoryReason !== undefined ? { memoryReason: b.memoryReason } : {}),
+  }));
+
 const servicos: Servicos = {
+  codec: webCodec,
+  get saves() {
+    return storeReady;
+  },
+  async exportCurrent() {
+    const { repository } = await servicos.openRepository();
+    return (repository as SqliteRepository).exportSqlite();
+  },
+  async replaceCurrent(bytes) {
+    // valida primeiro numa base em memória: um ficheiro estragado não pode substituir o mundo
+    const check = await openWasm("verificacao", { bytes, memoryOnly: true });
+    try {
+      if (check.driver.all("SELECT value FROM meta WHERE key = 'seed'").length === 0) throw new Error("Este ficheiro não tem um mundo do Raízes");
+    } finally {
+      check.driver.close();
+    }
+    const current = await servicos.openRepository();
+    (current.repository as SqliteRepository).close();
+    isOpen = open(bytes);
+    await isOpen;
+  },
   async loadData() {
     const [clubs, cities, localities, rivalries, districts, countries] = await Promise.all(["clubs", "cities", "localities", "rivalries", "districts", "countries"].map((n) => fetchText(`${n}.csv`)));
     return { clubs: clubs as string, cities: cities as string, localities: localities as string, rivalries: rivalries as string, districts: districts as string, countries: countries as string };
   },
-  // Abre a base uma só vez por worker. O save "ativo" por omissão chama-se "atual" (ranhuras: RZ-134).
+  // Abre a base uma só vez por worker. O save "ativo" chama-se "current"; os outros saves são cópias (`saves/`).
   openRepository() {
-    isOpen ??= openWasm("current").then((b) => ({
-      repository: new SqliteRepository(b.driver),
-      backend: b.backend,
-      sqliteVersion: b.sqliteVersion,
-      ...(b.memoryReason !== undefined ? { memoryReason: b.memoryReason } : {}),
-    }));
+    isOpen ??= open();
     return isOpen;
   },
 };
 
 ctx.onmessage = async (ev: MessageEvent<Message>) => {
   const m = ev.data;
+  storeReady ??= await storeOpening;
   let response: EngineResponse;
   let last = 0;
   try {

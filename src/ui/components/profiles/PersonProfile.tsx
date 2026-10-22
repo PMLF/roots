@@ -90,6 +90,7 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
       {forSale && <Chip tone="mercado">{t("person.forSale")}</Chip>}
       {d.interest && d.interest.offers.length > 0 ? <Chip tone="mercado">{t("interest.pillOffers")}</Chip> : d.interest && d.interest.clubs.length > 0 && <Chip tone="mercado">{t("interest.pillWanted")}</Chip>}
       {!j && p.fn && <Chip tone="destaque">{t(`fn.${p.fn}` as Key)}</Chip>}
+      {d.occupation && <Chip tone="vida">{t(`occupation.${d.occupation}` as Key)}</Chip>}
       {d.club && <Chip><EntityLink k="club" id={d.club.id}>{d.club.name}</EntityLink></Chip>}
       {d.foreignClub && <Chip>{d.foreignClub.name}</Chip>}
       {!d.club && !d.foreignClub && j?.state === "free" && <Chip tone="suave">{t("state.free")}</Chip>}
