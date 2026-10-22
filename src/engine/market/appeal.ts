@@ -31,10 +31,14 @@ export type DecisionInput = {
   starter: boolean;
 };
 
+export type LoanInput = { person: string; from: BaseClub; to: BaseClub; /** Teria lugar no onze do clube que recebe? */ starter: boolean; /** Está no banco (ou fora dele) no clube dono? */ benchwarmer: boolean };
+
 export type Appeal = {
   club: (club: BaseClub) => number;
   city: (city: string) => number;
   decide: (x: DecisionInput) => Decision;
+  /** Vontade de ir emprestado: quer jogar (mais quem não joga no clube dono), custa-lhe descer de escalão e a cidade conta um pouco. */
+  decideLoan: (x: LoanInput) => number;
 };
 
 /** Atração de um clube (0-1): escalão, reputação (contra a maior do país) e dimensão do estádio. */
@@ -85,5 +89,16 @@ export function makeAppeal(repo: Repository, data: BaseData, params: Params): Ap
     z -= d.byLoyalty * (loyalty - 10) * (x.from ? 1 : 0);
     return { p: clamp(sigmoid(z), 0.02, 0.98), delta };
   };
-  return { club, city, decide };
+  const decideLoan = (x: LoanInput): number => {
+    const person = repo.person(x.person);
+    const ambition = person?.personality.ambition ?? 10;
+    const loyalty = person?.personality.loyalty ?? 10;
+    const drop = Math.max(0, club(x.from) - club(x.to));
+    let z = d.bias + (x.starter ? d.playingTime : -d.playingTime) * (ambition / 10) + (x.benchwarmer ? d.playingTime : 0) - d.scale * 0.8 * drop * (1 + d.byAmbition * (ambition - 10));
+    z += 0.3 * d.scale * (city(x.to.city) - city(x.from.city));
+    if (person?.birthCity === x.to.city) z += d.home;
+    z -= d.byLoyalty * (loyalty - 10) * 0.5;
+    return clamp(sigmoid(z), 0.02, 0.98);
+  };
+  return { club, city, decide, decideLoan };
 }

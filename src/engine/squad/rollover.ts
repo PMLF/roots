@@ -7,6 +7,7 @@
  * 5. se não houver livre adequado, entra um jovem de emergência.
  * Determinístico: cada jogador e cada clube têm o seu fluxo aleatório; os clubes processam-se por escalão e reputação.
  */
+import { endDueLoans } from "../loans/loans";
 import { standingIn } from "../world/standing";
 import { Rng, clamp } from "../random/rng";
 import { ageAt } from "../calendar/dates";
@@ -76,6 +77,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
   const summary: RolloverSummary = { retired: 0, developed: 0, expired: 0, renewed: 0, released: 0, signedFree: 0, youth: 0, emergencyYouth: 0, prospectsAway: 0 };
   if (repo.peopleTotal() === 0) return summary; // save sem mundo gerado (testes de calendário)
   const date = o.seasonStart;
+  endDueLoans(repo, date, o.season, true); // os empréstimos acabam com a época: todos regressam ao clube dono (RZ-268)
   const rngOf = (path: string) => new Rng(seed, `rollover/${o.season}/${path}`);
 
   // ---------- 1. envelhecer: reforma ou desenvolvimento

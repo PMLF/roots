@@ -5,6 +5,7 @@
  * Com acordo, o jogador muda-se já se a janela está aberta; senão fica combinado («vai mudar-se para X em Y») e muda na abertura.
  * Quanto mais se sabe do jogador (observações do olheiro), mais certeiras são as sugestões de valores do popup.
  */
+import { loanOf } from "../loans/loans";
 import { addDays } from "../calendar/dates";
 import { clubBalance, monthlyWageBill, post } from "../club/finances";
 import { adjustTransfers, clubBudget } from "../club/budget";
@@ -119,13 +120,15 @@ function sellerAsk(repo: Repository, data: BaseData, params: Params, bid: Bid, t
   return Math.round((value * (mk.askBase + mk.askByGreed * (greed - 10)) * mult) / 1000) * 1000;
 }
 
-export type OpenError = "own" | "invalid" | "retired" | "prospect" | "locked";
+export type OpenError = "own" | "invalid" | "retired" | "prospect" | "locked" | "loaned";
 
 export function openBid(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, person: string): { ok: true; bid: Bid } | { ok: false; reason: OpenError } {
   const j = repo.player(person);
   if (!j || !repo.person(person)) return { ok: false, reason: "invalid" };
   if (j.state === "retired") return { ok: false, reason: "retired" };
   if (j.club === club.id) return { ok: false, reason: "own" };
+  // quem está emprestado tem contrato com o clube dono: só se negoceia depois de o empréstimo acabar (RZ-268)
+  if (loanOf(repo, person)) return { ok: false, reason: "loaned" };
   // a terra tem a primeira escolha dos seus jovens (RZ-256)
   const blocked = localBlock(repo, person, club, today);
   if (blocked) return { ok: false, reason: blocked };
