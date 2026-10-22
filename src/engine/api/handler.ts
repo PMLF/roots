@@ -8,7 +8,9 @@ import { pendingOffers, respondOffer, type Offer } from "../market/offers";
 import { valueOf } from "../market/bids";
 import { addDays } from "../calendar/dates";
 import { forSale, setForSale } from "../market/offers";
-import { bids, cancelBid, confirmBid, feeSuggestions, informationOf, openBid, submitBid, termSuggestions, type Bid } from "../market/bids";
+import { endLoan, loanEnd, loanOf } from "../loans/loans";
+import { proposeLoan, loanTermsOf } from "../market/loanBids";
+import { bids, cancelBid, dropBid, confirmBid, feeSuggestions, informationOf, openBid, submitBid, termSuggestions, type Bid } from "../market/bids";
 import { windowAt } from "../market/market";
 import { decisionOf, expiringPlayers, negotiateRenewal, negotiationOf, renewalAsk, renewalSuggestions, setDecision } from "../squad/renewals";
 import { DEFAULT_PARAMETERS, type Params, type Tier } from "../config/parameters";
@@ -152,6 +154,14 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         output.biddable = true;
         const open = bids(repository).find((b) => b.person === m.input.id && (b.stage === "club" || b.stage === "agent" || b.stage === "agreed"));
         if (open) output.bid = { stage: open.stage as "club" | "agent" | "agreed", ...(open.moving ? { moving: { club: gamerBase.name, date: open.moving.date } } : {}) };
+      }
+      const loanNow = loanOf(repository, m.input.id);
+      if (loanNow && gamerBase && (loanNow.from === gamerBase.id || loanNow.to === gamerBase.id)) {
+        const out = loanNow.from === gamerBase.id;
+        const other = data.clubs.find((c) => c.id === (out ? loanNow.to : loanNow.from));
+        const todayNow = (repository.meta("date.today") ?? "") as IsoDate;
+        if (other) output.loan = { direction: out ? "out" : "in", club: { k: "club", id: other.id, name: other.name }, until: loanNow.end, share: loanNow.wageShare, canRecall: out && windowAt(todayNow, params)?.index === 1 };
+        if (out) delete output.biddable;
       }
       if (asPlayer && asPlayer.state !== "retired") {
         const today = (repository.meta("date.today") ?? "") as IsoDate;
@@ -430,6 +440,15 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const view = again ? offerViewOf(repository, data, params, again) : undefined;
       return { ok: true, status: r.status, ...(view ? { offer: view } : {}) };
     }
+    case "recallLoan": {
+      const { repository, data, params } = await context(servicos);
+      const club = gamerClubOf(repository, data);
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      const ln = loanOf(repository, m.input.person);
+      if (!club || !ln || ln.from !== club.id || windowAt(today, params)?.index !== 1) return { ok: false };
+      endLoan(repository, m.input.person, today, Number(repository.meta("season") ?? 1), "recalled");
+      return { ok: true };
+    }
     case "setForSale": {
       const { repository } = await context(servicos);
       setForSale(repository, m.input.person, m.input.forSale);
@@ -694,7 +713,8 @@ function offerViewOf(r: Repository, data: BaseData, params: Params, o: Offer): O
     id: o.id, person: o.person, name: person.sportingName, position: player.positions[0]?.pos ?? "", age: ageAt(person.birth, today),
     buyer: { id: buyer.id, name: buyer.name }, fee: o.fee, wage: o.wage, years: o.years, release: o.release, currentWage: ct.monthlyWage, value,
     expires: o.expires, round: o.round, roundsLeft: Math.max(0, params.market.offers.maxRounds - o.round),
-    suggestions: (o.grid ?? [...new Set([1.1, 1.25, 1.4, 1.6, 2].map((m) => nice(Math.max(o.fee, value) * m)))]).filter((v) => v > o.fee).sort((a, b) => a - b),
+    ...(o.kind === "loan" ? { loan: { share: o.wageShare ?? 0.5, saves: Math.round(ct.monthlyWage * (o.wageShare ?? 0.5)), until: loanEnd(today) } } : {}),
+    suggestions: o.kind === "loan" ? [] : (o.grid ?? [...new Set([1.1, 1.25, 1.4, 1.6, 2].map((m) => nice(Math.max(o.fee, value) * m)))]).filter((v) => v > o.fee).sort((a, b) => a - b),
   };
 }
 
@@ -709,6 +729,8 @@ function bidViewOf(r: Repository, data: BaseData, params: Params, b: Bid): BidVi
   const release = informationOf(r, b.person) >= 1 ? r.contract(b.person)?.clauses?.release : undefined;
   const terms = club && b.stage === "agent" ? termSuggestions(r, data, params, club, b) : undefined;
   const closed = b.closed ?? neg.closed;
+  const lt = club && b.seller && (b.stage === "club" || b.stage === "agent") ? loanTermsOf(r, data, params, club, today, b.person) : undefined;
+  const loan: BidView["loan"] | undefined = lt === undefined ? undefined : typeof lt === "string" ? { available: false, reason: lt } : !windowAt(today, params) ? { available: false, reason: "window" } : { available: true, wage: lt.wage, shares: params.market.loans.proposalShares, minShare: lt.minShare, fee: lt.fee, until: lt.until, months: lt.months };
   return {
     person: b.person, name: person?.sportingName ?? b.person, stage: b.stage, ...(sellerName ? { seller: sellerName } : {}),
     ...(b.seller && data.clubs.some((c) => c.id === b.seller) ? { sellerId: b.seller } : {}),
@@ -727,6 +749,7 @@ function bidViewOf(r: Repository, data: BaseData, params: Params, b: Bid): BidVi
     ...(b.stage === "agent" && b.agentFrom && today < b.agentFrom ? { waitUntil: { who: "agent" as const, date: b.agentFrom } } : {}),
     ...(b.stage === "agreed" && !b.moving && b.confirmFrom && today < b.confirmFrom ? { waitUntil: { who: "confirm" as const, date: b.confirmFrom } } : {}),
     windowOpen: Boolean(windowAt(today, params)),
+    ...(loan ? { loan } : {}),
     cash: club ? clubBudget(r, club, params, Number(r.meta("season") ?? 1)).transfers : 0,
     wageRoom: club ? Math.max(0, Math.floor((clubBudget(r, club, params, Number(r.meta("season") ?? 1)).wageBillMax * (1 + params.market.wageSlack) - monthlyWageBill(r, club.id) * 12) / 12)) : 0,
   };
@@ -745,6 +768,11 @@ function bidAction(r: Repository, data: BaseData, params: Params, a: BidAction):
     return { ok: true, bid: bidViewOf(r, data, params, fresh ?? bid), ...(reply ? { reply } : {}) };
   };
   if (a.action === "open") return view();
+  if (a.action === "loan") {
+    const rep = proposeLoan(r, data, params, club, today, season, a.person, a.share);
+    if (rep.status === "accepted") { dropBid(r, bid); return { ok: true, bid: { ...bidViewOf(r, data, params, bid), stage: "done", loanedUntil: rep.until }, loanReply: rep }; }
+    return { ...(view() as Extract<BidResult, { ok: true }>), loanReply: rep.status === "counter" ? { status: "counter", share: rep.share } : { status: "closed", reason: rep.reason } };
+  }
   if (a.action === "cancel") { cancelBid(r, params, today, bid); return { ok: true, bid: { ...bidViewOf(r, data, params, bid), stage: "closed" } }; }
   if (a.action === "confirm") {
     const f = confirmBid(r, data, params, club, today, season, bid);

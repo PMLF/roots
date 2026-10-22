@@ -46,6 +46,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
   const [bidView, setBidView] = useState<BidView | undefined>(undefined);
   const bid = bidView ? (bidView.stage === "closed" ? undefined : { stage: bidView.stage, ...(bidView.moving ? { moving: { club: bidView.moving.club, date: bidView.moving.date } } : {}) }) : d.bid;
   const joined = bidView?.stage === "done";
+  const [recalled, setRecalled] = useState(false);
+  const recall = async () => { const r = await engine?.call("recallLoan", { person: d.profile.exposed.id }); if (r?.ok) setRecalled(true); };
   const unknown = <span className="valor-estimado" title={t("person.unknown")}>?</span>;
 
   // ---- atributos de 1 a 20
@@ -134,7 +136,9 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
           { label: t("person.clause"), value: d.clauses ? (d.clauses.release !== undefined ? eur(locale, d.clauses.release) : t("person.noClause")) : unknown },
         ]}
       />
-    {joined && <p><b>{t("bid.doneNow", { name: p.sportingName })}</b></p>}
+    {d.loan && !recalled && <p><b>{t(d.loan.direction === "out" ? "person.loan.out" : "person.loan.in", { club: d.loan.club.name, date: d.loan.until, share: Math.round(d.loan.share * 100) })}</b>{d.loan.direction === "out" && d.loan.canRecall && <> <button type="button" className="secundario" onClick={() => void recall()}>{t("person.loan.recall")}</button></>}</p>}
+    {recalled && <p><b>{t("person.loan.recalled", { name: p.sportingName })}</b></p>}
+    {joined && <p><b>{bidView?.loanedUntil ? t("bid.loan.doneNow", { name: p.sportingName, date: bidView.loanedUntil }) : t("bid.doneNow", { name: p.sportingName })}</b></p>}
     {bid?.moving && <p><b>{t("bid.moving", { club: bid.moving.club, date: bid.moving.date })}</b></p>}
     {d.renewable && (agreed ? <p><b>{t("renewals.done")}</b></p> : <p><button type="button" onClick={() => setRenewing(true)}>{t("renewals.renewContract")}</button></p>)}
       </Card>

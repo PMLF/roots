@@ -5,7 +5,7 @@ import { data, fresh } from "../squad/testWorld.testlib";
 import { dailyOffers, forSale, offers, pendingOffers, respondOffer, setForSale } from "./offers";
 
 // chance máxima para forçar propostas
-const P = { ...BASE, market: { ...BASE.market, offers: { ...BASE.market.offers, dailyChance: 1 } } };
+const P = { ...BASE, market: { ...BASE.market, offers: { ...BASE.market.offers, dailyChance: 1 }, loans: { ...BASE.market.loans, offerChance: 0 } } };
 const club = data.clubs.find((c) => c.tier === "firstLeague")!;
 
 const setup = (seed: string) => {

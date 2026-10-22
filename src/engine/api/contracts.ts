@@ -128,15 +128,20 @@ export type BidView = {
   wageRoom: number;
   /** Fase seguinte ainda fechada: o agente só atende / a transferência só se confirma a partir desta data. */
   waitUntil?: { who: "agent" | "confirm"; date: string };
+  /** Empréstimo em vez de compra (RZ-269): ordenado do jogador, percentagens possíveis, mínimo pedido e fim. Ausente se não é possível (ver `reason`). */
+  /** Preenchido quando a proposta acabou em empréstimo: data em que acaba. */
+  loanedUntil?: string;
+  loan?: { available: true; wage: number; shares: number[]; minShare: number; fee: number; until: string; months: number } | { available: false; reason: string };
 };
 export type BidAction =
   | { person: string; action: "open" }
   | { person: string; action: "fee"; fee: number }
   | { person: string; action: "terms"; wage: number; years: number; release: number | null }
   | { person: string; action: "confirm" }
+  | { person: string; action: "loan"; share: number }
   | { person: string; action: "cancel" };
 export type BidReply = { status: "accepted" | "counter" | "closed" | "blocked"; reason?: string; /** Contraproposta do agente. */ terms?: RenewalTermsView };
-export type BidResult = { ok: true; bid: BidView; reply?: BidReply; /** Resultado da confirmação. */ confirmed?: { moved: boolean; date?: string; failed?: string } } | { ok: false; reason: "own" | "invalid" | "retired" | "noClub" | "prospect" | "locked" | "loaned" };
+export type BidResult = { ok: true; bid: BidView; reply?: BidReply; /** Resposta à proposta de empréstimo. */ loanReply?: { status: "accepted" | "counter" | "closed"; share?: number; reason?: string; fee?: number; until?: string }; /** Resultado da confirmação. */ confirmed?: { moved: boolean; date?: string; failed?: string } } | { ok: false; reason: "own" | "invalid" | "retired" | "noClub" | "prospect" | "locked" | "loaned" };
 /** Proposta da IA por um jogador do gamer (RZ-232). */
 export type OfferView = {
   id: number;
@@ -161,6 +166,8 @@ export type OfferView = {
   roundsLeft: number;
   /** Valores para contrapropor. */
   suggestions: number[];
+  /** Pedido de empréstimo (RZ-269): parte do ordenado que o comprador paga, o que isso poupa por mês e quando acaba. Não há contraproposta. */
+  loan?: { share: number; saves: number; until: string };
 };
 type OfferAction = { id: number; action: "accept" | "reject" } | { id: number; action: "counter"; fee: number };
 export type OfferAnswer = { ok: true; status: "done" | "counter" | "refused" | "withdrawn" | "rejected" | "expired"; offer?: OfferView } | { ok: false };
@@ -243,6 +250,8 @@ export type PersonProfileData = {
   contractEndingSoon?: boolean;
   /** Jogador do clube do gamer: se está à venda. */
   forSale?: boolean;
+  /** Empréstimo do gamer (RZ-269): `out` = jogador teu emprestado a `club`; `in` = jogador de `club` emprestado a ti. `canRecall`: janela de janeiro aberta (só `out`). */
+  loan?: { direction: "out" | "in"; club: EntityRef; until: string; share: number; canRecall: boolean };
   /** Clubes que o poderiam querer (RZ-256) e propostas conhecidas: do gamer e as recebidas por jogadores do gamer. */
   interest?: { clubs: { club: EntityRef; level: "high" | "medium" | "low"; local: boolean }[]; offers: { buyer: EntityRef; fee: number }[] };
   /** O gamer pode fazer uma proposta por este jogador (RZ-231). */
@@ -471,6 +480,8 @@ export type EngineRequests = {
   bid: { input: BidAction; output: BidResult };
   /** Põe um jogador do clube do gamer à venda (ou tira-o). */
   setForSale: { input: { person: string; forSale: boolean }; output: null };
+  /** Chama de volta um jogador do gamer emprestado (só na janela de janeiro). */
+  recallLoan: { input: { person: string }; output: { ok: boolean } };
   bids: { input: null; output: BidView[] };
   transferOffers: { input: null; output: OfferView[] };
   offerReply: { input: OfferAction; output: OfferAnswer };

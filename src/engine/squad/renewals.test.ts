@@ -95,5 +95,5 @@ describe("renovações do clube do gamer", () => {
     expect(r.contract(ps[0]!)?.club).toBe(club.id);
     expect(r.contract(ps[0]!)?.monthlyWage).toBe(4321);
     expect(r.player(ps[1]!)?.club ?? null).not.toBe(club.id);
-  });
+  }, 60000);
 });

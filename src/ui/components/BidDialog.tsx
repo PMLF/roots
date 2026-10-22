@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { BidReply, BidView } from "@/engine/api/contracts";
+import type { BidReply, BidResult, BidView } from "@/engine/api/contracts";
 import { CloseButton } from "@/ui/components/CloseButton";
 import { ClubSwatch } from "@/ui/components/ClubSwatch";
 import { Data } from "@/ui/components/Card";
@@ -18,7 +18,7 @@ const withValue = (values: number[], current: string): number[] => {
 };
 
 type Reply = BidReply;
-type Input = { action: "fee"; fee: number } | { action: "terms"; wage: number; years: number; release: number | null } | { action: "cancel" } | { action: "confirm" };
+type Input = { action: "fee"; fee: number } | { action: "terms"; wage: number; years: number; release: number | null } | { action: "cancel" } | { action: "confirm" } | { action: "loan"; share: number };
 
 /**
  * Popup de proposta por um jogador de outro clube: primeiro o valor com o clube vendedor (livres saltam este passo) e depois o
@@ -35,6 +35,10 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
   const [reply, setReply] = useState<Reply | undefined>(undefined);
   const [error, setError] = useState<string | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  /** Transferência ou empréstimo (RZ-269); no empréstimo o gamer escolhe a parte do ordenado que paga. */
+  const [mode, setMode] = useState<"transfer" | "loan">("transfer");
+  const [share, setShare] = useState("0.5");
+  const [loanReply, setLoanReply] = useState<NonNullable<Extract<BidResult, { ok: true }>["loanReply"]> | undefined>(undefined);
 
   useEffect(() => { ref.current?.showModal(); }, []);
   /** Põe o estado novo no popup e acerta os campos ao que a outra parte pediu. */
@@ -56,12 +60,15 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
       const r = await engine.call("bid", { person, ...input });
       if (!r.ok) { setError(t("bid.error")); return; }
       setReply(r.reply);
+      setLoanReply(r.loanReply);
+      if (r.loanReply?.status === "counter" && r.loanReply.share !== undefined) setShare(String(r.loanReply.share));
       const c = r.reply?.terms;
       if (r.reply?.status === "counter" && c) setTerms({ wage: String(c.wage), years: String(c.years), release: c.release === null ? NONE : String(c.release) });
       take(r.bid);
       onChanged?.(r.bid);
     } catch { setError(t("bid.error")); } finally { setBusy(false); }
   };
+  const proposeLoan = () => void send({ action: "loan", share: Number(share) });
   const proposeFee = () => {
     const n = Math.round(Number(fee));
     if (!(n > 0)) { setError(t("renewals.invalid")); return; }
@@ -74,15 +81,19 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
     if (!(wage > 0) || !(years >= 1) || (release !== null && !(release > 0))) { setError(t("renewals.invalid")); return; }
     void send({ action: "terms", wage, years, release });
   };
+  const loanInfo = bid?.loan?.available ? bid.loan : undefined;
+  const loanMode = mode === "loan" && Boolean(loanInfo) && bid?.stage === "club";
+  const loanDone = loanReply?.status === "accepted";
   const finished = bid?.stage === "done" || bid?.stage === "closed" || Boolean(bid?.moving);
   const waiting = bid?.pending;
   const toConfirm = bid?.stage === "agreed" && !bid.moving && bid.needsConfirm;
   const waitUntil = bid?.waitUntil;
-  const turn = Boolean(bid) && !finished && !waiting && !toConfirm && !waitUntil && (bid?.stage === "club" || bid?.stage === "agent");
+  const turn = Boolean(bid) && !loanDone && !finished && !waiting && !toConfirm && !waitUntil && (bid?.stage === "club" || bid?.stage === "agent");
 
   /** Cartão de resultado, verde ou vermelho, com ícone: o acordo e a recusa têm de saltar à vista. */
   const banner = (() => {
     if (!bid) return undefined;
+    if (loanDone) return { tone: "ok", title: t("bid.loan.banner.done"), body: t("bid.loan.doneNow", { name, date: loanReply?.until ?? "" }) };
     if (bid.stage === "done") return { tone: "ok", title: t("bid.banner.done", { name }), body: t("bid.doneNow", { name }) };
     if (bid.moving) return { tone: "ok", title: t("bid.banner.moving"), body: t("bid.banner.moving.body", { name, date: bid.moving.date }) };
     if (toConfirm) return { tone: "ok", title: t("bid.banner.agreed"), body: `${t("bid.banner.agreed.body", { name })} ${t("bid.confirmBy", { date: toConfirm.by })}` };
@@ -91,10 +102,14 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
   })();
   const overFee = Boolean(bid) && bid?.stage === "club" && Number(fee) > (bid?.cash ?? 0);
   const overWage = Boolean(bid) && bid?.stage === "agent" && terms !== undefined && Number(terms.wage) > (bid?.wageRoom ?? 0);
-  const blocked = turn && (overFee || overWage);
+  const loanMonthly = loanInfo ? Math.round(loanInfo.wage * Number(share)) : 0;
+  const loanOver = Boolean(loanInfo) && loanMonthly > (bid?.wageRoom ?? 0) + 0;
+  const blocked = turn && (loanMode ? (loanInfo ? loanInfo.fee > (bid?.cash ?? 0) || loanOver : false) : overFee || overWage);
   const message = (() => {
     if (!bid || banner) return undefined;
-    if (blocked) return { tone: "erro", text: t(overWage ? "bid.blocked.wageBudget" : "bid.blocked.cash") };
+    if (loanMode && loanReply?.status === "counter") return { tone: "aviso", text: t("bid.loan.counter", { club: bid.seller ?? "", share: `${Math.round((loanReply.share ?? 0) * 100)} %` }) };
+    if (loanMode && loanReply?.status === "closed") return { tone: "erro", text: t(`bid.loan.closed.${loanReply.reason ?? "club"}` as Key, { name, club: bid.seller ?? "" }) };
+    if (blocked) return { tone: "erro", text: t(loanMode ? (loanOver ? "bid.blocked.wageBudget" : "bid.blocked.cash") : overWage ? "bid.blocked.wageBudget" : "bid.blocked.cash") };
     if (waitUntil) return { tone: "ok", text: t(waitUntil.who === "agent" ? "bid.waitAgent" : "bid.waitConfirm", { club: bid.seller ?? "", date: waitUntil.date }) };
     if (waiting) return { tone: "ok", text: t("bid.waiting", { who: t(waiting.kind === "fee" ? "bid.waiting.club" : "bid.waiting.agent"), date: waiting.due }) };
     if (bid.lastReply?.status === "blocked" || reply?.status === "blocked") return { tone: "erro", text: t(`bid.blocked.${(reply?.reason ?? bid.lastReply?.reason) === "wageBudget" ? "wageBudget" : "cash"}` as Key) };
@@ -124,10 +139,34 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
       {!bid ? (
         <p>{error ?? t("profile.loading")}</p>
       ) : (
-        <form className="formulario renovacao-form" onSubmit={(e) => { e.preventDefault(); if (bid.stage === "club") proposeFee(); else if (bid.stage === "agent") proposeTerms(); }}>
+        <form className="formulario renovacao-form" onSubmit={(e) => { e.preventDefault(); if (loanMode) proposeLoan(); else if (bid.stage === "club") proposeFee(); else if (bid.stage === "agent") proposeTerms(); }}>
           <Data lines={info} />
           {banner && <div className={`resultado-negocio ${banner.tone}`} role="status"><Icon name={banner.tone === "ok" ? "check" : "close"} /><div><b>{banner.title}</b><span>{banner.body}</span></div></div>}
-          {turn && bid.stage === "club" && (
+          {turn && bid.stage === "club" && bid.loan && (
+            <div role="tablist" aria-label={t("bid.mode")} className="separadores">
+              <button type="button" role="tab" aria-selected={!loanMode} onClick={() => { setMode("transfer"); setLoanReply(undefined); }}>{t("bid.mode.transfer")}</button>
+              <button type="button" role="tab" aria-selected={loanMode} disabled={!loanInfo} onClick={() => { setMode("loan"); setLoanReply(undefined); }}>{t("bid.mode.loan")}</button>
+            </div>
+          )}
+          {turn && bid.stage === "club" && bid.loan && !bid.loan.available && <p className="suave"><small>{t(`bid.loan.unavailable.${bid.loan.reason}` as Key, { club: bid.seller ?? "" })}</small></p>}
+          {turn && loanMode && loanInfo && (
+            <>
+              <label className={loanReply?.status === "counter" ? "alterado" : undefined}>
+                <span>{t("bid.loan.shareField")}</span>
+                <select disabled={busy} value={share} onChange={(e) => setShare(e.target.value)}>
+                  {[...new Set([...loanInfo.shares, Number(share)])].sort((a, b) => a - b).map((v) => <option key={v} value={v}>{Math.round(v * 100)} %</option>)}
+                </select>
+              </label>
+              <Data lines={[
+                { label: t("bid.loan.wage"), value: eur.format(loanInfo.wage) },
+                { label: t("bid.loan.youPay"), value: <b>{t("bid.loan.perMonth", { amount: eur.format(loanMonthly) })}</b> },
+                { label: t("bid.loan.total", { date: loanInfo.until }), value: eur.format(loanMonthly * loanInfo.months) },
+                ...(loanInfo.fee > 0 ? [{ label: t("bid.loan.fee"), value: eur.format(loanInfo.fee) }] : []),
+              ]} />
+              <p className="suave"><small>{t("bid.loan.note", { club: bid.seller ?? "" })}</small></p>
+            </>
+          )}
+          {turn && bid.stage === "club" && !loanMode && (
             <label className={feeCounter && Number(fee) === bid.ask ? "alterado" : undefined}>
               <span>{t("bid.feeField")}</span>
               <select disabled={busy} value={fee} onChange={(e) => setFee(e.target.value)}>
@@ -164,7 +203,7 @@ export function BidDialog({ person, name, onClose, onChanged }: { person: string
           {(turn || toConfirm || waiting || waitUntil) && (
             <div className="acoes-popup">
               {!waiting && <button type="button" className="perigo" disabled={busy} onClick={() => void send({ action: "cancel" })}>{t("bid.withdraw")}</button>}
-              {turn && <button type="submit" className="primario" disabled={busy || blocked}>{t(accepting ? "bid.accept" : "renewals.propose")}</button>}
+              {turn && <button type="submit" className="primario" disabled={busy || blocked}>{t(loanMode ? "bid.loan.propose" : accepting ? "bid.accept" : "renewals.propose")}</button>}
               {toConfirm && <button type="button" className="primario" disabled={busy} onClick={() => void send({ action: "confirm" })}>{t("bid.confirm")}</button>}
             </div>
           )}

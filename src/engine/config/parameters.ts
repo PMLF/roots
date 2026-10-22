@@ -719,7 +719,7 @@ export type Params = {
      * pontos de potencial acima da qualidade, sem lugar no onze), para clubes do mesmo escalão ou inferiores; o clube dono nunca fica abaixo
      * de alvo − `lenderMinSquad` jogadores. Cada clube recebe no máximo `maxPerClub`; em janeiro o dono chama de volta com `recallProbability`.
      */
-    loans: { actProbability: number; maxPerClub: number; wageShares: number[]; feeRate: number; prospectAgeMax: number; prospectGap: number; lenderMinSquad: number; recallProbability: number };
+    loans: { actProbability: number; maxPerClub: number; wageShares: number[]; /** Percentagens do ordenado que o gamer pode propor (RZ-269) e probabilidade diária de uma proposta de empréstimo por um jogador seu. */ proposalShares: number[]; offerChance: number; feeRate: number; prospectAgeMax: number; prospectGap: number; lenderMinSquad: number; recallProbability: number };
     /**
      * Decisão do jogador (RZ-266): o jogador tem a palavra final. Compara o conjunto clube + cidade do clube que propõe com o de onde joga
      * (`club`: peso do escalão, da reputação e do estádio; `city`: peso de cada indicador e da população; `cityShare`: parte da cidade no
@@ -1181,7 +1181,7 @@ export const DEFAULT_PARAMETERS: Params = {
     contractYears: [2, 4],
     saleToBudget: 0.6,
     consent: { up: 0.9, down: 0.35, byAmbition: 0.03, byLoyalty: 0.025, byWageRatio: 0.5 },
-    loans: { actProbability: 0.5, maxPerClub: 4, wageShares: [0.5, 0.75, 1], feeRate: 0.04, prospectAgeMax: 23, prospectGap: 2, lenderMinSquad: 3, recallProbability: 0.5 },
+    loans: { actProbability: 0.5, maxPerClub: 4, wageShares: [0.5, 0.75, 1], proposalShares: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.9, 1], offerChance: 0.01, feeRate: 0.04, prospectAgeMax: 23, prospectGap: 2, lenderMinSquad: 3, recallProbability: 0.5 },
     decision: {
       tier: { firstLeague: 1, secondLeague: 0.72, thirdLeague: 0.48, cp: 0.25, district: 0.08 },
       club: { tier: 0.5, reputation: 0.35, stadium: 0.15 },
@@ -1331,7 +1331,7 @@ export function validateParameters(p: Params): string[] {
   if (le.risk.opponentPlayFair.length !== 5) errors.push("lesoes.risco.fairPlayAdversario: 5 níveis");
   if (!(le.form.min < le.form.max && le.form.min <= le.form.onReturn && le.form.onReturn <= le.form.max && le.form.base >= le.form.min && le.form.base <= le.form.max)) errors.push("lesoes.forma: min < max e base/aoRegressar dentro dos limites");
   const ln = p.market.loans;
-  if (!(ln.actProbability >= 0 && ln.actProbability <= 1 && ln.maxPerClub >= 0 && ln.wageShares.length > 0 && ln.wageShares.every((x) => x > 0 && x <= 1) && ln.feeRate >= 0 && ln.recallProbability >= 0 && ln.recallProbability <= 1)) errors.push("market.loans: probabilidades entre 0 e 1, wageShares entre 0 e 1 (sem zero), feeRate ≥ 0");
+  if (!(ln.actProbability >= 0 && ln.actProbability <= 1 && ln.maxPerClub >= 0 && ln.wageShares.length > 0 && ln.wageShares.every((x) => x > 0 && x <= 1) && ln.proposalShares.length > 0 && ln.proposalShares.every((x) => x > 0 && x <= 1) && ln.offerChance >= 0 && ln.offerChance <= 1 && ln.feeRate >= 0 && ln.recallProbability >= 0 && ln.recallProbability <= 1)) errors.push("market.loans: probabilidades entre 0 e 1, wageShares entre 0 e 1 (sem zero), feeRate ≥ 0");
   const dc = p.market.decision;
   if (!(dc.scale > 0 && dc.minWillingness >= 0 && dc.minWillingness < 1 && dc.wagePremiums.length > 0 && dc.wagePremiums.every((x) => x >= 1) && dc.cityShare >= 0 && dc.cityShare <= 1 && dc.listing.discount > 0 && dc.listing.discount <= 1 && dc.listing.maxPerClub >= 0)) errors.push("market.decision: scale > 0, 0 ≤ minWillingness < 1, wagePremiums ≥ 1, 0 ≤ cityShare ≤ 1, 0 < listing.discount ≤ 1");
   const dis = p.discipline;

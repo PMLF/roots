@@ -42,7 +42,7 @@ export function OfferDialog({ offer, onClose, onAnswered }: { offer: OfferView; 
     } catch { setError(t("offer.error")); } finally { setBusy(false); }
   };
   const banner = result === undefined || result === "counter" ? undefined
-    : { tone: result === "done" ? "ok" : "erro", text: t(`offer.result.${result}` as Key, { name: current.name, club: current.buyer.name }) };
+    : { tone: result === "done" ? "ok" : "erro", text: t((current.loan && result === "done" ? "offer.loan.result.done" : current.loan && result === "refused" ? "offer.loan.result.refused" : `offer.result.${result}`) as Key, { name: current.name, club: current.buyer.name }) };
   const message = result === "counter" ? t("offer.counter", { club: current.buyer.name, fee: eur.format(current.fee) }) : undefined;
   const values = current.suggestions;
   const info = [
@@ -50,21 +50,28 @@ export function OfferDialog({ offer, onClose, onAnswered }: { offer: OfferView; 
     { label: t("bid.info.position"), value: namePosition(t, current.position) },
     { label: t("bid.info.age"), value: current.age },
     { label: t("offer.info.buyer"), value: <span className="clube-linha"><EntityLink k="club" id={current.buyer.id}>{current.buyer.name}</EntityLink></span> },
-    { label: t("offer.info.fee"), value: <b>{eur.format(current.fee)}</b> },
-    { label: t("offer.info.value"), value: eur.format(current.value) },
-    { label: t("offer.info.wageNow"), value: eur.format(current.currentWage) },
-    { label: t("offer.info.wageOffered"), value: `${eur.format(current.wage)} · ${t("renewals.years", { n: current.years })}` },
+    ...(current.loan ? [
+      { label: t("offer.loan.share"), value: <b>{Math.round(current.loan.share * 100)} %</b> },
+      { label: t("offer.loan.saves"), value: t("bid.loan.perMonth", { amount: eur.format(current.loan.saves) }) },
+      { label: t("offer.loan.fee"), value: current.fee > 0 ? eur.format(current.fee) : t("offer.loan.noFee") },
+      { label: t("offer.loan.until"), value: current.loan.until },
+    ] : [
+      { label: t("offer.info.fee"), value: <b>{eur.format(current.fee)}</b> },
+      { label: t("offer.info.value"), value: eur.format(current.value) },
+      { label: t("offer.info.wageNow"), value: eur.format(current.currentWage) },
+      { label: t("offer.info.wageOffered"), value: `${eur.format(current.wage)} · ${t("renewals.years", { n: current.years })}` },
+    ]),
     { label: t("offer.info.expires"), value: current.expires },
   ];
 
   return (
     <dialog ref={ref} className="popup popup-renovacao" aria-labelledby="h-offer" onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
       <CloseButton onClose={() => ref.current?.close()} />
-      <h2 id="h-offer">{t("offer.title", { name: current.name })}</h2>
+      <h2 id="h-offer">{t(current.loan ? "offer.loan.title" : "offer.title", { name: current.name })}</h2>
       <div className="formulario renovacao-form">
         <Data lines={info} />
-        {banner && <div className={`resultado-negocio ${banner.tone}`} role="status"><Icon name={banner.tone === "ok" ? "check" : "close"} /><div><b>{t(banner.tone === "ok" ? "offer.banner.done" : "offer.banner.closed")}</b><span>{banner.text}</span></div></div>}
-        {!finished && (
+        {banner && <div className={`resultado-negocio ${banner.tone}`} role="status"><Icon name={banner.tone === "ok" ? "check" : "close"} /><div><b>{t(banner.tone === "ok" ? (current.loan ? "offer.loan.banner.done" : "offer.banner.done") : "offer.banner.closed")}</b><span>{banner.text}</span></div></div>}
+        {!finished && !current.loan && (
           <label className={result === "counter" ? "alterado" : undefined}>
             <span>{t("offer.counterField")}</span>
             <select disabled={busy || values.length === 0} value={counter} onChange={(e) => setCounter(e.target.value)}>
@@ -77,7 +84,7 @@ export function OfferDialog({ offer, onClose, onAnswered }: { offer: OfferView; 
         {!finished && (
           <div className="acoes-popup">
             <button type="button" className="perigo" disabled={busy} onClick={() => void send({ action: "reject" })}>{t("offer.reject")}</button>
-            <button type="button" className="secundario" disabled={busy || values.length === 0} onClick={() => void send({ action: "counter", fee: Number(counter) })}>{t("offer.makeCounter")}</button>
+            {!current.loan && <button type="button" className="secundario" disabled={busy || values.length === 0} onClick={() => void send({ action: "counter", fee: Number(counter) })}>{t("offer.makeCounter")}</button>}
             <button type="button" className="primario" disabled={busy} onClick={() => void send({ action: "accept" })}>{t("offer.accept")}</button>
           </div>
         )}

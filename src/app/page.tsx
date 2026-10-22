@@ -117,7 +117,7 @@ export default function Start() {
   // uma só mensagem por proposta/negociação: o cartão de ação substitui o aviso «houve uma proposta»
   const openPeople = new Set([...offersIn.map((o) => o.person), ...pendingBids.map((b) => b.person), ...confirmBids.map((b) => b.person)]);
   const limit30 = time.state?.today ? new Date(Date.parse(`${time.state.today}T00:00:00Z`) - 30 * DAY_MS).toISOString().slice(0, 10) : "";
-  const shownMessages = inbox.messages.filter((m) => m.date >= limit30).filter((m) => !(["transfer_offer", "bid_progress", "bid_agreed"].includes(m.type) && m.links.some((l) => l.k === "person" && openPeople.has(l.id))));
+  const shownMessages = inbox.messages.filter((m) => m.date >= limit30).filter((m) => !(["transfer_offer", "loan_offer", "bid_progress", "bid_agreed"].includes(m.type) && m.links.some((l) => l.k === "person" && openPeople.has(l.id))));
   const decisions = (time.pause ? 1 : 0) + (world && !mine ? 1 : 0) + pendingBids.length + confirmBids.length + offersIn.length;
 
   return (

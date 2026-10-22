@@ -20,6 +20,10 @@ import { currentQuality } from "../world/player";
 import type { Attributes, Position } from "../world/types";
 import { valueOf } from "./bids";
 import { windowAt } from "./market";
+import { loanEnd, loanOf, startLoan } from "../loans/loans";
+import { monthlyWageBill } from "../club/finances";
+import { lendable } from "./loanBids";
+import { makeAppeal } from "./appeal";
 import { isImportantFee } from "./newsworthy";
 
 type OfferStatus = "pending" | "done" | "rejected" | "expired" | "withdrawn" | "refused" | "gone";
@@ -37,6 +41,9 @@ export type Offer = {
   expires: IsoDate;
   round: number;
   status: OfferStatus;
+  /** Proposta de empréstimo (RZ-269): `fee` é a taxa de empréstimo, `wageShare` a parte do ordenado que o comprador paga; `wage`/`years`/`release` não se aplicam. */
+  kind?: "loan";
+  wageShare?: number;
 };
 
 const KEY = "market.offers";
@@ -124,6 +131,44 @@ export function dailyOffers(repo: Repository, data: BaseData, params: Params, ga
     repo.appendEvent({ type: "TRANSFER_OFFER", date: today, season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: j.person, roleKind: "player" }, { k: "club", id: buyer.id, roleKind: "buyer" }, { k: "club", id: gamer.id }], data: { fee } });
     created.push(offer);
   }
+  created.push(...dailyLoanOffers(repo, data, params, gamer, today, season, buyers, rng));
+  return created;
+}
+
+/** Propostas de empréstimo por jogadores do gamer que não jogam (excedentes e jovens sem lugar no onze): só de clubes do mesmo escalão ou inferior. */
+function dailyLoanOffers(repo: Repository, data: BaseData, params: Params, gamer: BaseClub, today: IsoDate, season: number, buyers: BaseClub[], rng: Rng): Offer[] {
+  const created: Offer[] = [];
+  const lc = params.market.loans;
+  const cfg = params.market.offers;
+  const until = loanEnd(today);
+  const squad = repo.clubPlayers(gamer.id);
+  if (squad.length - 1 < params.world.squad[gamer.tier] - lc.lenderMinSquad) return created;
+  const lower = buyers.filter((c) => TIER_ORDER.indexOf(c.tier) >= TIER_ORDER.indexOf(gamer.tier));
+  for (const j of squad) {
+    if (j.state !== "active" || loanOf(repo, j.person) || !rng.prob(lc.offerChance)) continue;
+    const ct = repo.contract(j.person);
+    const p = repo.person(j.person);
+    const kind = lendable(repo, params, gamer, j.person, today);
+    if (!ct || !p || !kind || ct.end <= until) continue;
+    const age = (Date.parse(today) - Date.parse(p.birth)) / (365.25 * 86400000);
+    if (age < cfg.minAge) continue;
+    if (offers(repo).some((o) => o.person === j.person && (o.status === "pending" || addDays(o.created, cfg.sameWindowDays) > today))) continue;
+    const fee = kind === "prospect" ? 0 : round1000(valueOf(repo, params, j.person, today) * lc.feeRate);
+    const quality = currentQuality(j.attributes as Attributes, (j.positions[0]?.pos ?? "CM") as Position);
+    const borrower = rng.shuffle([...lower]).find((c) => {
+      const tq = params.world.targetQuality[c.tier];
+      if (quality < tq.mean - 0.5 * tq.deviation || quality > tq.mean + 1.5 * tq.deviation) return false;
+      if (Math.min(clubBalance(repo, c), clubBudget(repo, c, params, season).transfers) < fee) return false;
+      return lc.wageShares.some((x) => monthlyWageBill(repo, c.id) * 12 + ct.monthlyWage * x * 12 <= clubBudget(repo, c, params, season).wageBillMax * (1 + params.market.wageSlack));
+    });
+    if (!borrower) continue;
+    const share = lc.wageShares.find((x) => monthlyWageBill(repo, borrower.id) * 12 + ct.monthlyWage * x * 12 <= clubBudget(repo, borrower, params, season).wageBillMax * (1 + params.market.wageSlack)) ?? 1;
+    const list = offers(repo);
+    const offer: Offer = { id: Math.max(0, ...list.map((x) => x.id)) + 1, person: j.person, buyer: borrower.id, fee, wage: ct.monthlyWage, years: 0, release: null, created: today, expires: [addDays(today, cfg.validDays), windowEnd(params, today)].sort()[0] as IsoDate, round: 0, status: "pending", kind: "loan", wageShare: share };
+    save(repo, [...list, offer]);
+    repo.appendEvent({ type: "TRANSFER_OFFER", date: today, season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: j.person, roleKind: "player" }, { k: "club", id: borrower.id, roleKind: "buyer" }, { k: "club", id: gamer.id }], data: { fee, loan: 1, share } });
+    created.push(offer);
+  }
   return created;
 }
 
@@ -132,10 +177,29 @@ export type OfferReply =
   | { status: "counter"; fee: number; roundsLeft: number }
   | { status: "refused" | "withdrawn" | "rejected" | "expired" };
 
+/** Empréstimo do jogador do gamer: o jogador tem de querer ir; recebes a taxa e o clube que recebe paga a sua parte do ordenado. */
+function settleLoan(repo: Repository, data: BaseData, params: Params, gamer: BaseClub, today: IsoDate, season: number, o: Offer, buyer: BaseClub): OfferReply {
+  const share = o.wageShare ?? 0.5;
+  const will = makeAppeal(repo, data, params).decideLoan({ person: o.person, from: gamer, to: buyer, starter: true, benchwarmer: true });
+  if (clubBalance(repo, buyer) < o.fee || !new Rng(repo.meta("seed") ?? "?", `loanoffer/${o.person}/${o.id}`).prob(will)) { update(repo, { ...o, status: "refused" }); return { status: "refused" }; }
+  if (o.fee > 0) {
+    post(repo, gamer, "transfers", o.fee);
+    post(repo, buyer, "transfers", -o.fee);
+    adjustTransfers(repo, gamer, params, season, o.fee);
+  }
+  startLoan(repo, { person: o.person, from: gamer.id, to: buyer.id, start: today, end: loanEnd(today), season, wageShare: share, fee: o.fee }, today);
+  const plan = readPlan(repo, gamer.id);
+  if (plan.lineup?.some((x) => x.player === o.person) || plan.bench?.includes(o.person)) savePlan(repo, gamer.id, { tactic: plan.tactic, ...(plan.lineup ? { lineup: plan.lineup.filter((x) => x.player !== o.person) } : {}), ...(plan.bench ? { bench: plan.bench.filter((id) => id !== o.person) } : {}) });
+  update(repo, { ...o, status: "done" });
+  for (const x of pendingOffers(repo)) if (x.person === o.person) update(repo, { ...x, status: "gone" });
+  return { status: "done" };
+}
+
 /** O jogador aceita o contrato do comprador (se não vir nele o nível que procura, recusa) e a transferência executa-se. */
 function settle(repo: Repository, data: BaseData, params: Params, gamer: BaseClub, today: IsoDate, season: number, o: Offer): OfferReply {
   const buyer = data.clubs.find((c) => c.id === o.buyer);
   if (!buyer || !windowAt(today, params) || repo.player(o.person)?.club !== gamer.id) { update(repo, { ...o, status: "expired" }); return { status: "expired" }; }
+  if (o.kind === "loan") return settleLoan(repo, data, params, gamer, today, season, o, buyer);
   if (!renewalInterest(repo, data, params, buyer, o.person).interested || clubBalance(repo, buyer) < o.fee) { update(repo, { ...o, status: "refused" }); return { status: "refused" }; }
   post(repo, gamer, "transfers", o.fee);
   post(repo, buyer, "transfers", -o.fee);
@@ -162,6 +226,7 @@ export function respondOffer(repo: Repository, data: BaseData, params: Params, g
   if (o.expires < today) { update(repo, { ...o, status: "expired" }); return { status: "expired" }; }
   if (action.kind === "reject") { update(repo, { ...o, status: "rejected" }); return { status: "rejected" }; }
   if (action.kind === "accept") return settle(repo, data, params, gamer, today, season, o);
+  if (o.kind === "loan") return settle(repo, data, params, gamer, today, season, o); // empréstimos não se regateiam
   const cfg = params.market.offers;
   const ceiling = buyerCeiling(repo, data, params, today, season, o);
   if (action.fee <= o.fee) return settle(repo, data, params, gamer, today, season, o);
