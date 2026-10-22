@@ -53,6 +53,7 @@ import { recentMatches } from "../competition/recent";
 import { competitionHistory } from "../competition/history";
 import { reputationLevel } from "../club/reputation";
 import { buildCatalog } from "./catalog";
+import { autosaveIfDue, createSave, listSaves, readSaveFile, type Codec, type SaveContext, type SaveStore } from "../saves/saves";
 import { generalLevel } from "../world/level";
 import { KEY } from "../world/player";
 import type { Attribute, Position } from "../world/types";
@@ -82,6 +83,14 @@ export type Servicos = {
     sqliteVersion: string;
     memoryReason?: string;
   }>;
+  /** Onde ficam os saves (RZ-134); sem isto os pedidos de saves falham com uma mensagem clara. */
+  saves?: SaveStore;
+  /** gzip, para os ficheiros `.raizes`. */
+  codec?: Codec;
+  /** SQLite do mundo atual (para guardar e exportar). */
+  exportCurrent?(): Promise<Uint8Array>;
+  /** Troca o mundo atual pelo SQLite dado (valida antes); a interface recarrega a seguir. */
+  replaceCurrent?(bytes: Uint8Array): Promise<void>;
   /** A data real de agora; define a época 1 do save (RZ-160). Por omissão o relógio do sistema. */
   now?(): Date;
 };
@@ -601,7 +610,48 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     }
     case "advance": {
       const { repository, data, params } = await context(servicos);
-      return advance(repository, data, params, m.input.mode, m.input.club ?? repository.meta("gamer.club"));
+      const result = advance(repository, data, params, m.input.mode, m.input.club ?? repository.meta("gamer.club"));
+      await autosave(servicos, repository, data, params);
+      return result;
+    }
+    case "saves":
+      return listSaves(saveStore(servicos));
+    case "saveGame": {
+      const { repository, data } = await context(servicos);
+      return createSave(saveContext(servicos, repository, data), "manual", m.input.name?.trim() || undefined);
+    }
+    case "loadSave": {
+      const { repository, data } = await context(servicos);
+      const store = saveStore(servicos);
+      const bytes = await store.get(m.input.id);
+      if (!bytes) throw new Error("Save não encontrado");
+      const sqlite = await readSaveFile(bytes, saveCodec(servicos));
+      if (repository.peopleTotal() > 0) await createSave(saveContext(servicos, repository, data), "backup", "Antes de carregar outro save");
+      await replaceWorld(servicos, sqlite);
+      return { ok: true };
+    }
+    case "deleteSave":
+      await saveStore(servicos).remove(m.input.id);
+      return null;
+    case "exportSave": {
+      if (m.input.id) {
+        const store = saveStore(servicos);
+        const bytes = await store.get(m.input.id);
+        const meta = (await store.list()).find((x) => x.id === m.input.id);
+        if (!bytes || !meta) throw new Error("Save não encontrado");
+        return { filename: saveFilename(meta.club, meta.gameDate), bytes };
+      }
+      const { repository, data } = await context(servicos);
+      if (!servicos.exportCurrent) throw new Error("Exportar não está disponível neste ambiente");
+      const s = saveContext(servicos, repository, data).state();
+      return { filename: saveFilename(s.club, s.gameDate), bytes: await saveCodec(servicos).compress(await servicos.exportCurrent()) };
+    }
+    case "importSave": {
+      const sqlite = await readSaveFile(m.input.bytes, saveCodec(servicos));
+      const { repository, data } = await context(servicos);
+      if (repository.peopleTotal() > 0) await createSave(saveContext(servicos, repository, data), "backup", "Antes de importar um ficheiro");
+      await replaceWorld(servicos, sqlite);
+      return { ok: true };
     }
     case "squad": {
       const { repository } = await servicos.openRepository();
@@ -945,6 +995,53 @@ function personTruth(r: Repository, id: string): PersonTruth | undefined {
 }
 
 /** Repositório + dados com a liga atual de cada clube (RZ-159); `base` são os dados de arranque. */
+function saveStore(servicos: Servicos): SaveStore {
+  if (!servicos.saves) throw new Error("Os saves não estão disponíveis neste ambiente");
+  return servicos.saves;
+}
+
+function saveCodec(servicos: Servicos): Codec {
+  if (!servicos.codec) throw new Error("Os saves não estão disponíveis neste ambiente");
+  return servicos.codec;
+}
+
+function saveContext(servicos: Servicos, repository: Repository, data: BaseData): SaveContext {
+  return {
+    store: saveStore(servicos),
+    codec: saveCodec(servicos),
+    exportCurrent: () => {
+      if (!servicos.exportCurrent) throw new Error("Guardar não está disponível neste ambiente");
+      return servicos.exportCurrent();
+    },
+    state: () => {
+      const id = repository.meta("gamer.club");
+      return { ...(id ? { club: data.clubs.find((c) => c.id === id)?.name ?? id } : {}), gameDate: (repository.meta("date.today") ?? "2026-07-01") as IsoDate, season: Number(repository.meta("season") ?? 1) };
+    },
+    now: () => (servicos.now ? servicos.now() : new Date()),
+  };
+}
+
+async function replaceWorld(servicos: Servicos, sqlite: Uint8Array): Promise<void> {
+  if (!servicos.replaceCurrent) throw new Error("Carregar saves não está disponível neste ambiente");
+  await servicos.replaceCurrent(sqlite);
+}
+
+const saveFilename = (club: string | undefined, date: string) => `${(club ?? "raizes").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "raizes"}-${date}.raizes`;
+
+/** Autosave depois de o tempo avançar (RZ-134): nunca falha o avanço, só deixa de guardar. */
+async function autosave(servicos: Servicos, repository: Repository, data: BaseData, params: Params): Promise<void> {
+  if (!servicos.saves || !servicos.exportCurrent || !servicos.codec || repository.peopleTotal() === 0) return;
+  try {
+    const last = repository.meta("autosave.last") as IsoDate | undefined;
+    const lastSeason = repository.meta("autosave.season");
+    const { state } = await autosaveIfDue(saveContext(servicos, repository, data), params, { ...(last ? { lastAuto: last } : {}), ...(lastSeason ? { lastSeason: Number(lastSeason) } : {}) });
+    if (state.lastAuto) repository.setMeta("autosave.last", state.lastAuto);
+    if (state.lastSeason !== undefined) repository.setMeta("autosave.season", String(state.lastSeason));
+  } catch {
+    // guardar é uma comodidade: um erro (disco cheio…) não pode impedir o jogo
+  }
+}
+
 async function context(servicos: Servicos): Promise<{ repository: Repository; data: BaseData; base: BaseData; countries: Country[]; params: Params }> {
   const [{ repository }, match] = await Promise.all([servicos.openRepository(), matchData(servicos)]);
   return { repository, data: seasonData(repository, match.data), base: match.data, countries: match.countries, params: saveParameters(repository, DEFAULT_PARAMETERS) };

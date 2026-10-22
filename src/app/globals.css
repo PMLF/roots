@@ -1167,3 +1167,8 @@ body {
   .novo-lista { max-height: 48vh; }
 }
 .novo-centro { grid-area: auto; height: 100vh; overflow: auto; padding: 0; }
+
+/* ---- Saves (RZ-134) ---- */
+.cartao.saves-guardar { flex-direction: row; gap: 10px; align-items: end; flex-wrap: wrap; margin: 12px 0; }
+.saves-guardar label { display: grid; gap: 4px; font-size: 13px; color: var(--suave); flex: 1 1 240px; }
+.saves-guardar input[type=text], .saves-guardar input:not([type]) { width: 100%; }

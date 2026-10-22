@@ -363,3 +363,8 @@ As notícias **não são guardadas**: derivam dos eventos públicos (`src/engine
 - `CIDADE_EPOCA` (**privado**, uma por cidade e por fecho de época): `{ valida, populacao, emprego, economia, turismo, orgulho, notoriedade, culturaFutebol, acontecimentos[] }`, entidade `cidade`. É o estado verdadeiro; o estado de arranque (época 1) não se grava, reconstrói-se da seed. A interface nunca o lê: recebe níveis e tendências (`fichaCidade`).
 - `CIDADE_EVENTO` (**público**): `{ evento, regional, polo? }`, entidades `cidade` (várias nos regionais). Alimenta as notícias (`cidade_evento`) e a lista de acontecimentos da ficha.
 
+
+
+## Saves (RZ-134)
+
+Um *save* é uma cópia do mundo guardada à parte: o SQLite do mundo ativo (`current`), comprimido com gzip, num ficheiro `.raizes` no OPFS (pasta `raizes-saves/`, com um `.json` de resumo por save: clube, dia do jogo, época, tipo, tamanho). Tipos: `manual`, `auto` (a cada `saves.daysAutosave` dias de jogo, `rotatingAutosaves` rotativos), `season` (início de época, `keepSeasonSaves`) e `backup` (cópia automática antes de carregar, importar ou recomeçar; ficam 2). Só os manuais nunca se apagam sozinhos. O motor não conhece o OPFS: recebe um `SaveStore` e um `Codec` (ver `Servicos`). Carregar ou importar substitui o `current` (validado antes numa base em memória) e a interface recarrega. O mesmo ficheiro `.raizes` serve de exportação; também se aceita um `.sqlite` simples. Sem OPFS (Safari privado), os saves ficam em memória e o gamer deve exportar.

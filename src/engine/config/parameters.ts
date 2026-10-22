@@ -282,7 +282,7 @@ export type Params = {
     /** Descanso mínimo entre dois jogos do mesmo clube, em dias entre datas (3 = dois dias de intervalo). */
     minRestDays: number;
   };
-  saves: { daysAutosave: number; rotatingAutosaves: number; saveAtSeasonStart: boolean };
+  saves: { daysAutosave: number; rotatingAutosaves: number; saveAtSeasonStart: boolean; /** Quantos saves de início de época se guardam. */ keepSeasonSaves: number };
   /** Assistente de nova save (RZ-138): limites de população do concelho para a bacia de adeptos pequena/média/grande. */
   onboarding: { basinThresholds: [number, number] };
   fairPlay: { levels: number; fallback: number };
@@ -977,7 +977,7 @@ export const DEFAULT_PARAMETERS: Params = {
     nationalStadium: { name: "Estádio Nacional", locality: "Oeiras", capacity: 38_000 },
     minRestDays: 3,
   },
-  saves: { daysAutosave: 7, rotatingAutosaves: 3, saveAtSeasonStart: true },
+  saves: { daysAutosave: 7, rotatingAutosaves: 3, saveAtSeasonStart: true, keepSeasonSaves: 5 },
   onboarding: { basinThresholds: [15_000, 60_000] },
   fairPlay: { levels: 5, fallback: 3 },
   knockoutRounds: { penalties: { initial: 5, goalProb: 0.76, takerSkill: 0.012, keeperSkill: 0.008 } },

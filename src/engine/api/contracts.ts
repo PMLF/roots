@@ -17,6 +17,8 @@ import type { Tier, LevelReputation } from "../config/parameters";
 import type { PlayerStatLine } from "../persistence/types";
 import type { PersonProfile, ViewPerson } from "../view/types";
 import type { CatalogClub } from "./catalog";
+import type { SaveMeta } from "../saves/saves";
+export type { SaveMeta, SaveKind } from "../saves/saves";
 export type { CatalogClub, Difficulty } from "./catalog";
 
 /** Resultado do autodiagnóstico da base de dados (RZ-128): escreve um evento e lê-o de volta. */
@@ -466,6 +468,14 @@ export type EngineRequests = {
   clubs: { input: null; output: SummaryClub[] };
   /** Os clubes jogáveis com o que interessa para escolher (RZ-138); não precisa de mundo. */
   clubCatalog: { input: null; output: CatalogClub[] };
+  /** Saves (RZ-134): lista, guardar agora, carregar (a interface recarrega a seguir), apagar, exportar e importar ficheiros `.raizes`. */
+  saves: { input: null; output: SaveMeta[] };
+  saveGame: { input: { name?: string }; output: SaveMeta };
+  loadSave: { input: { id: string }; output: { ok: true } };
+  deleteSave: { input: { id: string }; output: null };
+  /** Sem `id`, exporta o mundo atual como está. */
+  exportSave: { input: { id?: string }; output: { filename: string; bytes: Uint8Array } };
+  importSave: { input: { bytes: Uint8Array }; output: { ok: true } };
   /** Pesquisa de jogadores com o alcance dos olheiros (RZ-230). */
   scouting: { input: null; output: ScoutingData };
   localTalent: { input: { city: string }; output: LocalTalentData | null };

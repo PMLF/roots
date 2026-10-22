@@ -53,6 +53,8 @@ export function Onboarding() {
     setState({ phase: "creating" });
     try {
       const seed = newSeed();
+      // recomeçar apaga o mundo atual: fica antes uma cópia nos saves (se não for possível guardar, segue)
+      if (existing) await engine.call("saveGame", { name: t("new.backupName") }).catch(() => undefined);
       await engine.call(existing ? "restartWorld" : "createWorld", { seed }, (progress) => setState({ phase: "creating", progress }));
       await engine.call("chooseClub", { id: chosen.id, force: true });
       window.dispatchEvent(new Event("raizes:mundo"));
@@ -76,6 +78,7 @@ export function Onboarding() {
         <p className="acoes">
           <button type="button" className="primario" onClick={() => router.push("/")}>{t("new.existing.back")}</button>
           <button type="button" onClick={() => setReplace(true)} data-testid="novo-substituir">{t("new.existing.replace")}</button>
+          <button type="button" onClick={() => router.push("/saves/")}>{t("new.existing.saves")}</button>
         </p>
       </section>
     );
