@@ -7,7 +7,7 @@ import type { Params } from "../config/parameters";
 import type { BaseClub } from "../data/types";
 import { factorReputation } from "./finances";
 
-export type AttendanceInput = { home: BaseClub; away: BaseClub; footballCulture: number; final?: boolean };
+export type AttendanceInput = { home: BaseClub; away: BaseClub; footballCulture: number; final?: boolean; /** Multiplicador da cidade (mobilidade e turismo, RZ-233); 1 se não se conhece. */ cityFactor?: number };
 
 export function matchAttendance(e: AttendanceInput, params: Params): { attendance: number; revenue: number } {
   const m = params.finances.model;
@@ -19,6 +19,7 @@ export function matchAttendance(e: AttendanceInput, params: Params): { attendanc
   if (derby) occupancy *= e.home.rival === e.away.id && e.away.rival === e.home.id ? a.mutualDerby : a.derby;
   if (e.away.reputation > e.home.reputation) occupancy *= 1 + a.bigCoefAway * Math.min(1, e.away.reputation / e.home.reputation - 1);
   if (e.final) occupancy *= a.finalMult;
+  occupancy *= e.cityFactor ?? 1;
   const attendance = Math.round(e.home.stadium.capacity * Math.min(1, Math.max(0.05, occupancy)));
   return { attendance, revenue: Math.round(attendance * m.ticketPrice[tier]) };
 }

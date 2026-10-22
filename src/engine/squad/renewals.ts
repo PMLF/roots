@@ -11,6 +11,8 @@ import { clamp } from "../random/rng";
 import { currentQuality } from "../world/player";
 import type { Attributes, Position } from "../world/types";
 import { wageFor } from "./youth";
+import { cityStateNow } from "../city/cities";
+import { wageFactor } from "../city/effects";
 
 /** Condições de um contrato de renovação: ordenado mensal, anos e cláusula de rescisão (`null` = sem cláusula). */
 export type RenewalTerms = { wage: number; years: number; release: number | null };
@@ -65,7 +67,7 @@ export function renewalAsk(repo: Repository, data: BaseData, params: Params, clu
   const quality = currentQuality(j.attributes as Attributes, pos as Position);
   const ag = agentTraits(repo, j.agent);
   const agentFactor = ag ? 1 + params.market.agents.wageByGreed * (ag.greed - params.market.agents.greedPivot) : 1;
-  const formula = wageFor(params, tier, quality, wageScale) * params.squadCycle.contracts.renewalWageFactor * agentFactor;
+  const formula = wageFor(params, tier, quality, wageScale) * params.squadCycle.contracts.renewalWageFactor * agentFactor * wageFactor(cityStateNow(repo, data, params, club.city), params);
   const wage = Math.max(50, Math.round(Math.max(formula, (ct?.monthlyWage ?? 0) * 0.95) / 10) * 10);
   const ref = releaseReference(repo, params, person, wage);
   return { wage, years: params.squadCycle.contracts.negotiation.askYears, release: ref, releaseCeiling: Math.round((ref * params.squadCycle.contracts.negotiation.clauseCeiling) / 1000) * 1000 };

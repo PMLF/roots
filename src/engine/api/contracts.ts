@@ -350,6 +350,14 @@ export type CityProfileData = {
     trend: "rises" | "stable" | "drops";
     history: { season: number; label: string; level: ViewCityLevel }[];
   }[];
+  /** Serviços do concelho (RZ-233): nível em palavras, seta de tendência (forte ou fraca) e, se um acontecimento recente os mexeu, a causa. */
+  services: {
+    id: "health" | "education" | "mobility" | "housing" | "safety" | "entertainment";
+    level: ViewCityLevel;
+    trend: "up2" | "up1" | "stable" | "down1" | "down2";
+    history: { season: number; label: string; level: ViewCityLevel }[];
+    cause?: { type: string; label: string };
+  }[];
   /** Orçamento municipal por habitante, em relação às outras cidades. */
   budget: ViewCityLevel;
   mayor?: {

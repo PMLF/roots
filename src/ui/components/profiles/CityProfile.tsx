@@ -24,6 +24,8 @@ function LevelCell({ level, word }: { level: ViewCityLevel; word: string }) {
 }
 
 const ARROW = { rises: "↑", stable: "→", drops: "↓" } as const;
+/** Serviços: seta forte (↑ ↓), fraca (↗ ↘) ou traço quando estável. */
+const SERVICE_ARROW = { up2: "↑", up1: "↗", stable: "–", down1: "↘", down2: "↓" } as const;
 
 /** Evolução de um número ao longo das épocas (linha simples, sem eixos). */
 function ChartPopulation({ points }: { points: { label: string; population: number }[] }) {
@@ -79,6 +81,20 @@ export function CityProfile({ d }: { d: CityProfileData }) {
       ),
     };
   };
+  const serviceLine = (s: CityProfileData["services"][number]) => ({
+    label: t(`city.service.${s.id}` as Key),
+    value: (
+      <span className="nivel-linha">
+        <BarLevel level={s.level} />
+        <b>{level(s.level)}</b>
+        <span className={`tendencia tendencia-${s.trend.startsWith("up") ? "rises" : s.trend.startsWith("down") ? "drops" : "stable"}`} title={t(`city.serviceTrend.${s.trend}` as Key)}>
+          <span aria-hidden="true">{SERVICE_ARROW[s.trend]}</span>
+          <span className="so-leitor">{t(`city.serviceTrend.${s.trend}` as Key)}</span>
+        </span>
+        {s.cause && <span className="suave">{t(`city.incident.${s.cause.type}` as Key)} · {s.cause.label}</span>}
+      </span>
+    ),
+  });
   const sectorName = (c: string) => t(`sector.${c}` as Key);
   const sectors = [d.sector, d.secondarySector].filter((s, i, a) => s !== "" && a.indexOf(s) === i);
   const incident = (a: CityProfileData["incidents"][number]) => (
@@ -129,6 +145,9 @@ export function CityProfile({ d }: { d: CityProfileData }) {
       </Card>
       <Card title={t("card.cityEconomy")}>
         <Data lines={[line("economy"), line("employment"), line("tourism")]} />
+      </Card>
+      <Card title={t("card.cityServices")}>
+        <Data lines={d.services.map(serviceLine)} />
       </Card>
       <Card title={t("card.cityFootball")}>
         <Data lines={[line("pride"), line("notoriety"), line("footballCulture")]} />

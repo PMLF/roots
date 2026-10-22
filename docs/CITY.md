@@ -198,6 +198,15 @@ Cinco variáveis 0-100 por **concelho**, ocultas, mostradas em palavras com tend
 
 `transportes`, `estacionamento` e `valor do solo` da §2 passam a ser **`mobilidade`** e **`habitacao`** (menos variáveis, mais legíveis); os projetos (RZ-303/304) mexem nelas diretamente.
 
+**Implementado (RZ-233), decidido com o Pedro a 22-10-2026.** São **seis** serviços (acrescentou-se o `entretenimento`), todos 0-100 com «mais alto = melhor»; a `habitacao` é a **acessibilidade** (alto = casas baratas). Estado e evolução em `city/state.ts`/`evolution.ts`, efeitos em `city/effects.ts`, números em `city.services` (`parameters.ts`).
+
+- **Vida:** mudança anual lenta (regressão de 15 % ao alvo + ruído) e **acontecimentos** que as abanam (hospital novo/urgências que fecham, onda de assaltos, escola nova, obras nos transportes, novo espaço de lazer, rendas que disparam, habitação acessível; mais os efeitos nos dez acontecimentos que já existiam). Os acontecimentos viram notícia.
+- **Alvo:** base + tamanho (por cada dez vezes mais população) + setor + **orçamento municipal por habitante** (−1 a +1 entre os concelhos: cidade com pouca verba não mantém as infraestruturas e os serviços pioram) + ligação à economia, ao emprego e ao turismo de cada momento (p. ex. a segurança segue o emprego; o entretenimento, o turismo; a habitação encarece com economia e turismo). Até haver Câmara (RZ-236) o orçamento municipal é o dado do concelho.
+- **População:** cresce com economia, **emprego** e a média dos serviços.
+- **Apresentação:** nível em palavras + **seta** (↑ e ↓ para variação forte, ↗ e ↘ para fraca, – estável) + **causa** quando um acontecimento recente os mexeu («Hospital novo»). Os números ficam ocultos.
+- **Efeitos no jogo:** *saúde* → lesões recuperam mais depressa; *entretenimento* → quem tem pouco profissionalismo sai à noite: aparece mais cansado e recupera mais devagar das lesões; *mobilidade* → mais gente no estádio; *turismo* → mais gente nos meses quentes (maio a setembro); *habitação* → numa cidade cara os jogadores pedem mais ordenado; *educação* → teto do talento local (RZ-234); *segurança, entretenimento, saúde, mobilidade e habitação* → atração da cidade na decisão do jogador (RZ-266). A população já dá mais escolha de jovens (teto = população^0,6 × cultura).
+- **Fica para depois:** saída de jovens por habitação cara, apoio às empresas pela verba municipal (RZ-235), projetos do gamer e orçamento real do autarca (RZ-236).
+
 ### 12.3 O viveiro vem da cidade
 
 Dois passos, para que a terra defina o **teto** e o clube decida **quanto desse teto aproveita**:

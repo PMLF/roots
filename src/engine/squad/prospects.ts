@@ -28,10 +28,11 @@ export function prospectCount(ceiling: number, meanCeiling: number, params: Para
  * Gera a geração do ano: pessoas e jogadores com estado `prospect`, sem clube nem contrato.
  * A qualidade vem da mistura dos escalões (por nº de entradas) e o potencial é deslocado pelo teto do concelho.
  */
-export function newProspects(data: BaseData, params: Params, o: { season: number; seasonStart: string; seed: string; nextId: () => string }): WorldBatchRecord {
+export function newProspects(data: BaseData, params: Params, o: { season: number; seasonStart: string; seed: string; nextId: () => string; /** Educação (0-100) de cada concelho (RZ-233): uma terra com boa escola aproveita mais o teto. */ education?: (city: string) => number | undefined }): WorldBatchRecord {
   const y = params.squadCycle.youth;
   const p = y.prospects;
-  const ceilings = data.cities.map((c) => cityCeiling(c, params));
+  const ek = params.city.services.effects.prospects.education;
+  const ceilings = data.cities.map((c) => cityCeiling(c, params) * (o.education ? 1 - ek + (ek * (o.education(c.id) ?? 50)) / 100 : 1));
   const mean = ceilings.reduce((a, b) => a + b, 0) / Math.max(1, ceilings.length);
   const tierWeights = (Object.keys(y.perClub) as Tier[]).map((t) => ({ t, w: y.perClub[t] * data.clubs.filter((c) => c.tier === t).length }));
   const batch: WorldBatchRecord = { people: [], players: [], contracts: [], roles: [] };

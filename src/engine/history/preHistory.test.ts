@@ -59,8 +59,8 @@ describe("pré-história das cidades", () => {
     const cities = csv.split("\n").length;
     expect(cities).toBeGreaterThan(10);
     const city = { id: "x", sector: "TUR", tag2: "SER", island: false, population: 100000 } as unknown as BaseCity;
-    const initial = { population: 100000, employment: 60, economy: 55, tourism: 70, pride: 50, notoriety: 40, footballCulture: 45 };
-    const targets = { employment: 62, economy: 60, tourism: 70, pride: 50, notoriety: 45 };
+    const initial = { population: 100000, employment: 60, economy: 55, tourism: 70, pride: 50, notoriety: 40, footballCulture: 45, health: 50, education: 50, mobility: 50, housing: 50, safety: 60, entertainment: 45 };
+    const targets = { employment: 62, economy: 60, tourism: 70, pride: 50, notoriety: 45, services: { health: 55, education: 55, mobility: 55, housing: 50, safety: 60, entertainment: 50 } };
     const h = cityPreHistory("s", city, initial, targets, P);
     expect(h).toHaveLength(P.preHistory.seasons);
     expect(h[h.length - 1]!.season).toBe(0);

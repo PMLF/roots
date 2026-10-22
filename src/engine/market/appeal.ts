@@ -62,8 +62,8 @@ export function makeAppeal(repo: Repository, data: BaseData, params: Params): Ap
     if (v !== undefined) return v;
     const st = cityStateNow(repo, data, params, id);
     const w = d.city;
-    const total = w.economy + w.employment + w.tourism + w.pride + w.footballCulture + w.notoriety + w.population;
-    v = st ? (w.economy * st.economy + w.employment * st.employment + w.tourism * st.tourism + w.pride * st.pride + w.footballCulture * st.footballCulture + w.notoriety * st.notoriety) / 100 / total + (w.population * clamp(Math.log10(Math.max(1000, st.population)) / Math.log10(Math.max(10000, maxPopulation)), 0, 1)) / total : 0.5;
+    const total = w.economy + w.employment + w.tourism + w.pride + w.footballCulture + w.notoriety + w.population + w.safety + w.entertainment + w.health + w.mobility + w.housing;
+    v = st ? (w.economy * st.economy + w.employment * st.employment + w.tourism * st.tourism + w.pride * st.pride + w.footballCulture * st.footballCulture + w.notoriety * st.notoriety + w.safety * st.safety + w.entertainment * st.entertainment + w.health * st.health + w.mobility * st.mobility + w.housing * st.housing) / 100 / total + (w.population * clamp(Math.log10(Math.max(1000, st.population)) / Math.log10(Math.max(10000, maxPopulation)), 0, 1)) / total : 0.5;
     cities.set(id, v);
     return v;
   };
