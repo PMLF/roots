@@ -3,7 +3,7 @@ import { DEFAULT_PARAMETERS as P, COUNCIL_AREAS, validateParameters } from "../c
 import { data, fresh } from "../squad/testWorld.testlib";
 import { agendaOf, mayorOf, priorityLevel } from "./agenda";
 import { adjustRelation, relationOf } from "./relation";
-import { dailyCouncil, makeRequest, requestsOf, councilMatchdayBoost } from "./requests";
+import { dailyCouncil, kindStatus, makeRequest, requestsOf, councilMatchdayBoost } from "./requests";
 import { cityStateNow } from "../city/cities";
 
 const club = data.clubs.find((c) => mayorOf(fresh("probe"), data, c.city))!;
@@ -35,6 +35,8 @@ describe("Câmara (RZ-236)", { timeout: 120000 }, () => {
     expect(r.ok).toBe(true);
     const again = makeRequest(repo, data, P, club, "2027-08-02", 1, "matchday", 0);
     expect(again).toEqual({ ok: false, reason: "open" });
+    // um pedido em aberto traz sempre a data limite (a página da Câmara formata-a)
+    expect(kindStatus(repo, P, club, "matchday", "2027-08-02")).toEqual({ status: "open", until: requestsOf(repo)[0]!.due });
     for (let d = 2; d <= 25; d++) dailyCouncil(repo, data, P, club, `2027-08-${String(d).padStart(2, "0")}` as never, 1);
     const done = requestsOf(repo)[0]!;
     expect(done.status).not.toBe("pending");

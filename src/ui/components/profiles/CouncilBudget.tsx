@@ -15,7 +15,10 @@ export function CouncilBudget({ c }: { c: ViewCouncil }) {
   const { t, locale } = useT();
   const engine = useEngine();
   const money = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
-  const day = (iso: string) => new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
+  const day = (iso: string) => {
+    const d = new Date(`${iso}T00:00:00Z`);
+    return Number.isNaN(d.getTime()) ? "" : new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" }).format(d);
+  };
   const [cofund, setCofund] = useState<Record<string, number>>({});
   const [sent, setSent] = useState<Record<string, boolean>>({});
   const [msg, setMsg] = useState<string>();

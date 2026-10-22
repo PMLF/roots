@@ -74,16 +74,16 @@ export function Saves() {
       <h2>{t("saves.list")}</h2>
       {!list ? <p>{t("profile.loading")}</p> : list.length === 0 ? <p className="vazio" data-testid="saves-vazio">{t("saves.empty")}</p> : (
         <div className="tabela-caixa">
-          <table className="tabela" data-testid="saves-lista">
+          <table className="tabela saves-tabela" data-testid="saves-lista">
             <thead><tr><th>{t("saves.col.save")}</th><th>{t("saves.col.club")}</th><th>{t("saves.col.game")}</th><th>{t("saves.col.saved")}</th><th>{t("saves.col.size")}</th><th /></tr></thead>
             <tbody>
               {list.map((s) => (
                 <tr key={s.id}>
-                  <td><span className="chip chip-suave">{t(`saves.kind.${s.kind}` as Key)}</span> {s.name ?? ""}</td>
-                  <td>{s.club ?? "—"}</td>
-                  <td>{gameDate(s.gameDate)} · {t("saves.season", { n: s.season })}</td>
-                  <td>{date(s.createdAt)}</td>
-                  <td>{kb(s.bytes)}</td>
+                  <td data-label={t("saves.col.save")}><span className="chip chip-suave">{t(`saves.kind.${s.kind}` as Key)}</span> {s.name ?? ""}</td>
+                  <td data-label={t("saves.col.club")}>{s.club ?? "—"}</td>
+                  <td data-label={t("saves.col.game")}>{gameDate(s.gameDate)} · {t("saves.season", { n: s.season })}</td>
+                  <td data-label={t("saves.col.saved")}>{date(s.createdAt)}</td>
+                  <td data-label={t("saves.col.size")}>{kb(s.bytes)}</td>
                   <td className="acoes">
                     {confirm?.id === s.id ? (
                       <>

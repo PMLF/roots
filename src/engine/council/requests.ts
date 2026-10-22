@@ -57,7 +57,8 @@ export type KindStatus = "available" | "open" | "cooldown";
 export function kindStatus(repo: Repository, params: Params, club: BaseClub, kind: CouncilRequestKind, today: IsoDate): { status: KindStatus; until?: IsoDate } {
   const area = params.city.council.requests.areas[kind];
   const mine = requestsOf(repo).filter((r) => r.club === club.id && r.area === area);
-  if (mine.some((r) => r.status === "pending")) return { status: "open" };
+  const pending = mine.filter((r) => r.status === "pending").sort((a, b) => a.due.localeCompare(b.due))[0];
+  if (pending) return { status: "open", until: pending.due };
   const refused = mine.filter((r) => r.status === "refused" && r.decided).sort((a, b) => (b.decided as string).localeCompare(a.decided as string))[0];
   if (refused?.decided) {
     const until = addDays(refused.decided, params.city.council.requests.cooldownDays);
