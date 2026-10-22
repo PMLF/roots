@@ -11,7 +11,7 @@ import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 
 /** Cinco segmentos: quantos estão cheios diz o nível; a palavra vem sempre ao lado. */
-function BarLevel({ level }: { level: ViewCityLevel }) {
+export function BarLevel({ level }: { level: ViewCityLevel }) {
   return (
     <span className="nivel-barra" aria-hidden="true">
       {[1, 2, 3, 4, 5].map((i) => <span key={i} className={i <= level ? "full" : ""} />)}
@@ -24,7 +24,7 @@ function LevelCell({ level, word }: { level: ViewCityLevel; word: string }) {
 }
 
 /** Serviços: seta forte (↑ ↓), fraca (↗ ↘) ou traço quando estável. */
-const SERVICE_ARROW = { up2: "↑", up1: "↗", stable: "–", down1: "↘", down2: "↓" } as const;
+export const SERVICE_ARROW = { up2: "↑", up1: "↗", stable: "–", down1: "↘", down2: "↓" } as const;
 
 /** Evolução de um número ao longo das épocas (linha simples, sem eixos). */
 function ChartPopulation({ points }: { points: { label: string; population: number }[] }) {

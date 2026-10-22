@@ -30,8 +30,8 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n
   const base = `newsItem.${type}.${n.variant}`;
   // acontecimentos importantes do teu clube: cartão alto com as cores do clube (RZ-247)
   const europe = n.type === "europe_qualified" || n.type === "europe_draw" || n.type === "europe_phase" || n.type === "europe_qualifier";
-  if (n.type === "youth_intake" || n.type === "local_talent" || n.type === "transfer_offer" || n.type === "loan_offer" || (europe && n.ofClubYour)) {
-    const clubId = n.type === "transfer_offer" || n.type === "loan_offer" || europe ? n.links.find((l) => l.k === "club")?.id : mine;
+  if (n.type === "youth_intake" || n.type === "local_talent" || n.type === "transfer_offer" || n.type === "loan_offer" || n.type === "youth_offer" || (europe && n.ofClubYour)) {
+    const clubId = n.type === "transfer_offer" || n.type === "loan_offer" || n.type === "youth_offer" || europe ? n.links.find((l) => l.k === "club")?.id : mine;
     return (
       <TallCard clubId={clubId} unread={unread} title={t(`${base}.title` as Key, values)}
         details={<>{n.date}{n.links.filter((l) => l.k === "person").slice(0, 3).map((l) => <span key={l.id}> · <EntityLink k="person" id={l.id}>{l.name}</EntityLink></span>)}</>}

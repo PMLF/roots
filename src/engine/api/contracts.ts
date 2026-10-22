@@ -168,6 +168,8 @@ export type OfferView = {
   suggestions: number[];
   /** Pedido de empréstimo (RZ-269): parte do ordenado que o comprador paga, o que isso poupa por mês e quando acaba. Não há contraproposta. */
   loan?: { share: number; saves: number; until: string };
+  /** Jovem formado no clube (RZ-234): o valor já inclui a compensação de formação. */
+  youth?: { compensation: number };
 };
 type OfferAction = { id: number; action: "accept" | "reject" } | { id: number; action: "counter"; fee: number };
 export type OfferAnswer = { ok: true; status: "done" | "counter" | "refused" | "withdrawn" | "rejected" | "expired"; offer?: OfferView } | { ok: false };
@@ -312,6 +314,8 @@ export type ClubProfileData = {
   season?: ClubSeason;
   /** Por membro da equipa técnica: desde quando está no clube (contrato). */
   truth?: { reputation: number; finances: number; staffQuality: Record<string, Record<string, number>>; squadLevel: number };
+  /** Formação (RZ-234): quanto talento da terra o clube aproveita; só no clube do gamer. Nível em palavras, tendência e a causa principal. */
+  youth?: { level: ViewCityLevel; trend: "up2" | "up1" | "stable" | "down1" | "down2"; cause?: "patience" | "coach" | "finances" | "education" };
 };
 
 export type LocalityStatus = "village" | "town" | "city";

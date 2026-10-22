@@ -50,6 +50,7 @@ export function OfferDialog({ offer, onClose, onAnswered }: { offer: OfferView; 
     { label: t("bid.info.position"), value: namePosition(t, current.position) },
     { label: t("bid.info.age"), value: current.age },
     { label: t("offer.info.buyer"), value: <span className="clube-linha"><EntityLink k="club" id={current.buyer.id}>{current.buyer.name}</EntityLink></span> },
+    ...(current.youth ? [{ label: t("offer.youth.compensation"), value: current.youth.compensation > 0 ? eur.format(current.youth.compensation) : t("offer.youth.none") }] : []),
     ...(current.loan ? [
       { label: t("offer.loan.share"), value: <b>{Math.round(current.loan.share * 100)} %</b> },
       { label: t("offer.loan.saves"), value: t("bid.loan.perMonth", { amount: eur.format(current.loan.saves) }) },
@@ -67,7 +68,7 @@ export function OfferDialog({ offer, onClose, onAnswered }: { offer: OfferView; 
   return (
     <dialog ref={ref} className="popup popup-renovacao" aria-labelledby="h-offer" onClose={onClose} onClick={(e) => { if (e.target === ref.current) ref.current?.close(); }}>
       <CloseButton onClose={() => ref.current?.close()} />
-      <h2 id="h-offer">{t(current.loan ? "offer.loan.title" : "offer.title", { name: current.name })}</h2>
+      <h2 id="h-offer">{t(current.loan ? "offer.loan.title" : current.youth ? "offer.youth.title" : "offer.title", { name: current.name })}</h2>
       <div className="formulario renovacao-form">
         <Data lines={info} />
         {banner && <div className={`resultado-negocio ${banner.tone}`} role="status"><Icon name={banner.tone === "ok" ? "check" : "close"} /><div><b>{t(banner.tone === "ok" ? (current.loan ? "offer.loan.banner.done" : "offer.banner.done") : "offer.banner.closed")}</b><span>{banner.text}</span></div></div>}

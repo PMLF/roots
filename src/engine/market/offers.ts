@@ -42,7 +42,7 @@ export type Offer = {
   round: number;
   status: OfferStatus;
   /** Proposta de empréstimo (RZ-269): `fee` é a taxa de empréstimo, `wageShare` a parte do ordenado que o comprador paga; `wage`/`years`/`release` não se aplicam. */
-  kind?: "loan";
+  kind?: "loan" | "youth";
   wageShare?: number;
 };
 
@@ -131,7 +131,42 @@ export function dailyOffers(repo: Repository, data: BaseData, params: Params, ga
     repo.appendEvent({ type: "TRANSFER_OFFER", date: today, season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: j.person, roleKind: "player" }, { k: "club", id: buyer.id, roleKind: "buyer" }, { k: "club", id: gamer.id }], data: { fee } });
     created.push(offer);
   }
+  created.push(...dailyYouthOffers(repo, data, params, gamer, today, season, rng));
   created.push(...dailyLoanOffers(repo, data, params, gamer, today, season, buyers, rng));
+  return created;
+}
+
+/** Clubes de escalão acima cobiçam os jovens que o clube do gamer formou (RZ-234): pagam o valor e a compensação de formação; o gamer decide vender ou segurar. */
+function dailyYouthOffers(repo: Repository, data: BaseData, params: Params, gamer: BaseClub, today: IsoDate, season: number, rng: Rng): Offer[] {
+  const created: Offer[] = [];
+  const cfg = params.market.offers;
+  const yc = cfg.youth;
+  const gi = TIER_ORDER.indexOf(gamer.tier);
+  if (gi === 0) return created;
+  const above = data.clubs.filter((c) => c.id !== gamer.id && !isInSecondDistrict(c.league) && TIER_ORDER.indexOf(c.tier) < gi);
+  for (const j of repo.clubPlayers(gamer.id)) {
+    if (j.state !== "active" || j.trainedAt !== gamer.id || (j.potential ?? 0) < yc.minPotential || !rng.prob(yc.dailyChance)) continue;
+    const p = repo.person(j.person);
+    const ct = repo.contract(j.person);
+    if (!p || !ct) continue;
+    const age = (Date.parse(today) - Date.parse(p.birth)) / (365.25 * 86400000);
+    if (age < cfg.minAge || age > yc.ageMax) continue;
+    if (offers(repo).some((o) => o.person === j.person && (o.status === "pending" || addDays(o.created, cfg.sameWindowDays) > today))) continue;
+    const value = valueOf(repo, params, j.person, today);
+    if (value <= 0) continue;
+    const compensation = Math.round((ct.monthlyWage * 12 * params.market.training.byTier[gamer.tier]) / 100) * 100;
+    const fee = round1000(value * (cfg.feeSpread[0] + rng.float() * (cfg.feeSpread[1] - cfg.feeSpread[0])) + compensation);
+    const buyer = rng.shuffle([...above]).find((c) => Math.min(clubBalance(repo, c), clubBudget(repo, c, params, season).transfers) >= fee && renewalInterest(repo, data, params, c, j.person).interested);
+    if (!buyer) continue;
+    const ask = renewalAsk(repo, data, params, buyer, j.person);
+    if (!ask) continue;
+    const list = offers(repo);
+    const grid = [...new Set([1.1, 1.25, 1.4, 1.6, 2].map((m) => Math.round((fee * m) / 1000) * 1000))].sort((a, b) => a - b);
+    const offer: Offer = { id: Math.max(0, ...list.map((x) => x.id)) + 1, person: j.person, buyer: buyer.id, fee, grid, wage: ask.wage, years: ask.years, release: ask.release, created: today, expires: [addDays(today, cfg.validDays), windowEnd(params, today)].sort()[0] as IsoDate, round: 0, status: "pending", kind: "youth" };
+    save(repo, [...list, offer]);
+    repo.appendEvent({ type: "TRANSFER_OFFER", date: today, season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: j.person, roleKind: "player" }, { k: "club", id: buyer.id, roleKind: "buyer" }, { k: "club", id: gamer.id }], data: { fee, youth: 1 } });
+    created.push(offer);
+  }
   return created;
 }
 

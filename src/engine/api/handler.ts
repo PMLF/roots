@@ -59,6 +59,8 @@ import { Rng } from "../random/rng";
 import { startCompanies } from "../company/cycle";
 import { assignAgents } from "../agent/assign";
 import { newProspects } from "../squad/prospects";
+import { youthLevelOf } from "../squad/youthLevel";
+import { levelOf } from "../city/state";
 import { potentialRange, referenceTier, starsOf } from "../world/stars";
 import type { LocalTalentData, ViewPlan, OfferView, BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
@@ -249,6 +251,15 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         const level = playerLevel(repository, j.id, j.player?.position, fields, seeAll);
         const rating = playerRating(repository, j.id, level, known?.potential?.fields.potential, c.tier, params, seeAll);
         output.extraSquad[j.id] = { ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}), ...(rating ? { rating } : {}), ...(injured.has(j.id) ? { injured: true } : {}), ...(expiring.has(j.id) ? { renewable: true } : {}), ...(ct && today && ct.end < addDays(today as IsoDate, 365) ? { endingSoon: true } : {}), ...(repository.meta("gamer.club") === c.id && forSale(repository).has(j.id) ? { forSale: true } : {}), ...(ownClub && ct ? { wage: ct.monthlyWage } : {}) };
+      }
+      if (ownClub) {
+        const y = youthLevelOf(repository, data, params, c);
+        const diff = y.value - y.previous;
+        output.youth = {
+          level: levelOf(y.value, params),
+          trend: diff >= 1.2 ? "up2" : diff >= 0.5 ? "up1" : diff <= -1.2 ? "down2" : diff <= -0.5 ? "down1" : "stable",
+          ...(y.cause ? { cause: y.cause } : {}),
+        };
       }
       if (seeAll) {
         const levels = output.squad.map((j) => output.extraSquad[j.id]?.level?.value).filter((v): v is number => v !== undefined);
@@ -715,6 +726,7 @@ function offerViewOf(r: Repository, data: BaseData, params: Params, o: Offer): O
     buyer: { id: buyer.id, name: buyer.name }, fee: o.fee, wage: o.wage, years: o.years, release: o.release, currentWage: ct.monthlyWage, value,
     expires: o.expires, round: o.round, roundsLeft: Math.max(0, params.market.offers.maxRounds - o.round),
     ...(o.kind === "loan" ? { loan: { share: o.wageShare ?? 0.5, saves: Math.round(ct.monthlyWage * (o.wageShare ?? 0.5)), until: loanEnd(today) } } : {}),
+    ...(o.kind === "youth" ? { youth: { compensation: Math.round((ct.monthlyWage * 12 * params.market.training.byTier[mine?.tier ?? "district"]) / 100) * 100 } } : {}),
     suggestions: o.kind === "loan" ? [] : (o.grid ?? [...new Set([1.1, 1.25, 1.4, 1.6, 2].map((m) => nice(Math.max(o.fee, value) * m)))]).filter((v) => v > o.fee).sort((a, b) => a - b),
   };
 }

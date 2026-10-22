@@ -267,7 +267,7 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
       if (fee + commission + compensation > budget.transfers) continue;
       // preferências do clube: gente à venda, da terra ou do distrito
       const listed = from && listedOf(from).has(e.record.person);
-      const local = homeCity === club.city ? dc.homeScore : homeCity !== undefined && districtOfCity.get(homeCity) === club.district ? dc.regionScore : 0;
+      const local = homeCity === club.city ? dc.homeScore * (appeal.homePull(club.city, e.record.person) / dc.home) : homeCity !== undefined && districtOfCity.get(homeCity) === club.district ? dc.regionScore : 0;
       const score = (e.quality - floor) - (budget.transfers > 0 ? (fee / budget.transfers) * 0.8 : 0) - ((wage * 12) / Math.max(1, budget.wageBillMax)) * 2 + (listed ? (1 - dc.listing.discount) * 3 : 0) + local + will - dc.stepPenalty * Math.max(0, TIER_ORDER.indexOf(from ? tierOf(from) : tier) - TIER_ORDER.indexOf(tier) - 1) + crng.float() * 0.3;
       if (!best || score > best.score) best = { e, fee, wage, commission, compensation, trainer, years: crng.integer(mk.contractYears[0], mk.contractYears[1]), score, will };
     }

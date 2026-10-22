@@ -39,6 +39,8 @@ export type Appeal = {
   decide: (x: DecisionInput) => Decision;
   /** Vontade de ir emprestado: quer jogar (mais quem não joga no clube dono), custa-lhe descer de escalão e a cidade conta um pouco. */
   decideLoan: (x: LoanInput) => number;
+  /** Apelo (z) da terra natal para o jogador: escala com o orgulho da cidade; veteranos somam o desejo de regressar. */
+  homePull: (city: string, person: string, veteranReturn?: boolean) => number;
 };
 
 /** Atração de um clube (0-1): escalão, reputação (contra a maior do país) e dimensão do estádio. */
@@ -68,6 +70,16 @@ export function makeAppeal(repo: Repository, data: BaseData, params: Params): Ap
     return v;
   };
 
+  /** Apelo da terra natal: escala com o orgulho da cidade e, para veteranos, soma o desejo de regressar. */
+  const homePull = (cityId: string, person: string, veteranReturn = true): number => {
+    const pride = cityStateNow(repo, data, params, cityId)?.pride ?? 50;
+    let v = d.home * (1 + d.prideHome * clamp((pride - 50) / 50, -1, 1));
+    const birth = repo.person(person)?.birth;
+    const today = repo.meta("date.today");
+    if (veteranReturn && birth && today && (Date.parse(today) - Date.parse(birth)) / (365.25 * 86400000) >= d.returnHome.age) v += d.returnHome.bonus;
+    return v;
+  };
+
   const decide = (x: DecisionInput): Decision => {
     const person = repo.person(x.person);
     const ambition = person?.personality.ambition ?? 10;
@@ -81,7 +93,7 @@ export function makeAppeal(repo: Repository, data: BaseData, params: Params): Ap
     let z = d.bias + d.scale * delta;
     z += d.wage * (greed / 10) * Math.log(Math.max(1, x.newWage) / Math.max(1, x.currentWage || x.newWage));
     if (birth !== undefined) {
-      if (birth === x.to.city) z += d.home;
+      if (birth === x.to.city) z += homePull(x.to.city, x.person);
       else if (x.from && birth === x.from.city) z -= d.leavingHome;
     }
     z += (x.starter ? d.playingTime : -d.playingTime) * (ambition / 10);
@@ -96,9 +108,9 @@ export function makeAppeal(repo: Repository, data: BaseData, params: Params): Ap
     const drop = Math.max(0, club(x.from) - club(x.to));
     let z = d.bias + (x.starter ? d.playingTime : -d.playingTime) * (ambition / 10) + (x.benchwarmer ? d.playingTime : 0) - d.scale * 0.8 * drop * (1 + d.byAmbition * (ambition - 10));
     z += 0.3 * d.scale * (city(x.to.city) - city(x.from.city));
-    if (person?.birthCity === x.to.city) z += d.home;
+    if (person?.birthCity === x.to.city) z += homePull(x.to.city, x.person, false);
     z -= d.byLoyalty * (loyalty - 10) * 0.5;
     return clamp(sigmoid(z), 0.02, 0.98);
   };
-  return { club, city, decide, decideLoan };
+  return { club, city, decide, decideLoan, homePull };
 }
