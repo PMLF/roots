@@ -23,7 +23,6 @@ function LevelCell({ level, word }: { level: ViewCityLevel; word: string }) {
   return <span title={word}><BarLevel level={level} /><span className="so-leitor">{word}</span></span>;
 }
 
-const ARROW = { rises: "↑", stable: "→", drops: "↓" } as const;
 /** Serviços: seta forte (↑ ↓), fraca (↗ ↘) ou traço quando estável. */
 const SERVICE_ARROW = { up2: "↑", up1: "↗", stable: "–", down1: "↘", down2: "↓" } as const;
 
@@ -73,9 +72,9 @@ export function CityProfile({ d }: { d: CityProfileData }) {
         <span className="nivel-linha">
           <BarLevel level={i.level} />
           <b>{level(i.level)}</b>
-          <span className={`tendencia tendencia-${i.trend}`} title={t(`city.trend.${i.trend}` as Key)}>
-            <span aria-hidden="true">{ARROW[i.trend]}</span>
-            <span className="so-leitor">{t(`city.trend.${i.trend}` as Key)}</span>
+          <span className={`tendencia tendencia-${i.trend.startsWith("up") ? "rises" : i.trend.startsWith("down") ? "drops" : "stable"}`} title={t(`city.serviceTrend.${i.trend}` as Key)}>
+            <span aria-hidden="true">{SERVICE_ARROW[i.trend]}</span>
+            <span className="so-leitor">{t(`city.serviceTrend.${i.trend}` as Key)}</span>
           </span>
         </span>
       ),
