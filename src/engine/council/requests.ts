@@ -76,7 +76,7 @@ export function makeRequest(repo: Repository, data: BaseData, params: Params, cl
   if (st.status !== "available") return { ok: false, reason: st.status };
   const cofund = kind === "subsidy" ? 0 : (cfg.cofunds[cofundIndex] ?? 0);
   const cost = costOf(data, params, club, kind);
-  if (cofund * cost > clubBalance(repo, club)) return { ok: false, reason: "cash" };
+  if (cofund > 0 && cofund * cost > clubBalance(repo, club)) return { ok: false, reason: "cash" };
   const list = requestsOf(repo);
   const rng = new Rng(repo.meta("seed") ?? "?", `council/due/${list.length}/${today}`);
   const request: CouncilRequest = {

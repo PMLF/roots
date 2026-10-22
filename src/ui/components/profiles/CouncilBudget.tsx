@@ -48,6 +48,7 @@ export function CouncilBudget({ c }: { c: ViewCouncil }) {
                 <li key={k.kind}>
                   <b>{t(`council.kind.${k.kind}` as Key)}</b> <span className="suave">{t(`council.kind.${k.kind}.hint` as Key)}</span>
                   <div>
+                    {k.status === "available" && sent[k.kind] && <span className="suave">{t("council.pending")}</span>}
                     {k.status === "open" && <span className="suave">{t("council.request.open", { date: day(k.until ?? "") })}</span>}
                     {k.status === "cooldown" && <span className="suave">{t("council.request.cooldown", { date: day(k.until ?? "") })}</span>}
                     {!busy && (
