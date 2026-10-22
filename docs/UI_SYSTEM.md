@@ -134,6 +134,10 @@ Linhas que mostravam sempre «?»/«—» porque o motor não tem o dado foram r
 - **Jogo ao vivo:** o flash dos lances que param o tempo dura ~3 s (0,45 s × 6, forte); o segundo amarelo é um só lance com o cartão vermelho sobreposto ao amarelo; na janela de táticas arrasta-se ou toca-se para trocar titulares de lugar ou passar para um lugar vazio (de borla); a confirmação envia substituições e posições (`substitutionsInMatch.positions`).
 
 
+## Vida fora do futebol: branco e preto (RZ-318, a implementar)
+
+Tudo o que diz respeito à vida da pessoa **fora do futebol** (profissão dos semi-profissionais e amadores, e mais tarde família, estudos, imprensa cor-de-rosa) usa **fundo branco com letras pretas**, em pills (`Chip`) como as do mercado. Os tokens ficam definidos em `globals.css` quando o RZ-318 for implementado.
+
 ## Mercado: amarelo e preto (RZ-257)
 
 Tudo o que é do mercado de transferências usa `--mercado` (amarelo) com `--mercado-texto` (preto): pills «À venda», «Clubes interessados» e «Ofertas feitas» (`Chip tone="mercado"`) e o destaque da mensagem para onde «Avançar» te leva. «Avançar» não passa o tempo enquanto houver mensagens por ler, propostas recebidas por responder ou negociações abertas: leva-te, uma a uma, ao que falta.
