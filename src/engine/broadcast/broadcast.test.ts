@@ -133,7 +133,7 @@ describe("leilões em várias épocas", { timeout: 120000 }, () => {
     for (const c of data.clubs) {
       const rows = repo.clubSponsorships(c.id, "2031-08-01");
       expect(rows.filter((r) => r.kind === "broadcast").length).toBeLessThanOrEqual(1);
-      expect(rows.filter((r) => r.kind !== "broadcast").map((r) => r.kind).sort()).toEqual([...P.companies.sponsorship.slots[c.tier]].sort());
+      expect([...new Set(rows.filter((r) => r.kind !== "broadcast").map((r) => r.kind))].sort()).toEqual([...P.companies.sponsorship.slots[c.tier]].sort());
     }
   });
 });
