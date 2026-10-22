@@ -15,7 +15,7 @@ type Props = {
   numbers?: NumberValue[];
   /** Cabeçalho próprio (nome + cartão de identidade); sem ele, usa-se título, subtítulo e números-chave. */
   top?: ReactNode;
-  /** Conteúdo por separador; os que faltam aparecem como "em breve", na ordem fixa do tipo. */
+  /** Conteúdo por separador, na ordem fixa do tipo; os que ainda não têm conteúdo não aparecem (nada fica «em breve»). */
   tabs: Tabs;
   /** Separadores que esta ficha não tem (por exemplo «Carreira» nas pessoas que não são jogadores). */
   omit?: readonly string[];
@@ -24,7 +24,7 @@ type Props = {
 /** Estrutura comum a todas as entidades (TOM_E_UX §3.2): cabeçalho, números-chave, separadores fixos, ligações. */
 export function Profile({ type, title, subtitle, numbers = [], top, tabs, omit = [] }: Props) {
   const { t } = useT();
-  const ids = TABS[type].filter((id) => !omit.includes(id));
+  const ids = TABS[type].filter((id) => !omit.includes(id) && tabs[id] !== undefined);
   const router = useRouter();
   const path = usePathname();
   const params = useSearchParams();
@@ -73,7 +73,7 @@ export function Profile({ type, title, subtitle, numbers = [], top, tabs, omit =
             ))}
           </div>
           <div role="tabpanel" id={`painel-${active}`} aria-labelledby={`sep-${active}`} className="separador-corpo">
-            {tabs[active] ?? <p className="vazio">{t("profile.soon")}</p>}
+            {tabs[active]}
           </div>
         </div>
       </div>
