@@ -3,10 +3,11 @@ import { useRoundName } from "@/ui/components/competition/CupRounds";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { BidView, OfferView, CompetitionPage, ClubProfileData, CreatedWorldSummary } from "@/engine/api/contracts";
+import type { BidView, CampaignView, OfferView, CompetitionPage, ClubProfileData, CreatedWorldSummary } from "@/engine/api/contracts";
 import type { NewsItem } from "@/engine/news/news";
 import { BidDialog } from "@/ui/components/BidDialog";
 import { OfferDialog } from "@/ui/components/OfferDialog";
+import { CampaignDialog } from "@/ui/components/CampaignDialog";
 import { ResignButton, ChooseInitialClub } from "@/ui/components/WithClub";
 import { LastMatches, MiniTable } from "@/ui/components/HomeCards";
 import { ResultsFita } from "@/ui/components/ResultsStrip";
@@ -79,6 +80,12 @@ export default function Start() {
   const [answering, setAnswering] = useState<OfferView | undefined>(undefined);
   const loadOffers = () => { engine?.call("transferOffers", null).then(setOffersIn).catch(() => undefined); };
   useEffect(loadOffers, [engine, world, time.state?.today]);
+  // campanha autárquica no concelho do clube (RZ-236B): decisão obrigatória até ao dia das eleições
+  const [campaign, setCampaign] = useState<CampaignView | null>(null);
+  const [deciding, setDeciding] = useState(false);
+  const loadCampaign = () => { engine?.call("campaign", null).then(setCampaign).catch(() => undefined); };
+  useEffect(loadCampaign, [engine, world, time.state?.today]);
+  const campaignOpen = campaign !== null && campaign.choice === undefined;
   const pendingBids = openBids.filter((b) => (b.stage === "club" || b.stage === "agent") && !b.pending && (b.round > 0 || b.fee !== undefined || b.lastReply !== undefined));
   const waitingBids = openBids.filter((b) => b.pending);
   const confirmBids = openBids.filter((b) => b.stage === "agreed" && b.needsConfirm);
@@ -118,7 +125,7 @@ export default function Start() {
   const openPeople = new Set([...offersIn.map((o) => o.person), ...pendingBids.map((b) => b.person), ...confirmBids.map((b) => b.person)]);
   const limit30 = time.state?.today ? new Date(Date.parse(`${time.state.today}T00:00:00Z`) - 30 * DAY_MS).toISOString().slice(0, 10) : "";
   const shownMessages = inbox.messages.filter((m) => m.date >= limit30).filter((m) => !(["transfer_offer", "loan_offer", "youth_offer", "bid_progress", "bid_agreed"].includes(m.type) && m.links.some((l) => l.k === "person" && openPeople.has(l.id))));
-  const decisions = (time.pause ? 1 : 0) + (world && !mine ? 1 : 0) + pendingBids.length + confirmBids.length + offersIn.length;
+  const decisions = (campaignOpen ? 1 : 0) + (time.pause ? 1 : 0) + (world && !mine ? 1 : 0) + pendingBids.length + confirmBids.length + offersIn.length;
 
   return (
     <section className="inicio">
@@ -175,6 +182,13 @@ export default function Start() {
               </p>
             </div>
           )}
+          {campaignOpen && campaign && (
+            <div id={`campanha-${campaign.city.id}`}><TallCard unread
+              title={t("campaign.decision", { city: campaign.city.name })}
+              details={t("campaign.details", { date: new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${campaign.date}T00:00:00Z`)) })}
+              actions={<button type="button" className="primario" onClick={() => setDeciding(true)}>{t("campaign.answer")}</button>} /></div>
+          )}
+          {deciding && campaign && <CampaignDialog campaign={campaign} onClose={() => { setDeciding(false); loadCampaign(); }} onAnswered={loadCampaign} />}
           {pendingBids.map((b) => (
             <div className="decisao" key={b.person} id={`negoc-${b.person}`}>
               <p><ClubSwatch id={b.sellerId} /><b><WithPlayer text={t("bid.today", { name: "\u0000", date: "" })} id={b.person} name={b.name} /></b></p>

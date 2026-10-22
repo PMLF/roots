@@ -1,4 +1,5 @@
 /** Tabela «História» de uma pessoa (RZ-229): uma linha por profissão e período, só com factos públicos. */
+import { termsOf } from "../council/elections";
 import { cityHistory } from "../city/cities";
 import type { Params } from "../config/parameters";
 import type { BaseData } from "../data/types";
@@ -41,7 +42,11 @@ export function personHistory(repo: Repository, data: BaseData, base: BaseData, 
     if (city) {
       const history = cityHistory(repo, base, params, city.id);
       const place: EntityRef = { k: "city", id: city.id, name: city.name };
+      // só as épocas em que foi autarca (os mandatos vêm das eleições, RZ-236B)
+      const terms = termsOf(repo, base, params, city.id);
+      const spans = terms.map((t, i) => ({ person: t.person, from: t.from, to: (terms[i + 1]?.from ?? season + 1) - 1 })).filter((t) => t.person === person);
       for (let s = 1; s <= season; s++) {
+        if (!spans.some((t) => s >= t.from && s <= t.to)) continue;
         const start = history.find((h) => h.season === s)?.state.population;
         const end = history.find((h) => h.season === s + 1)?.state.population;
         rows.push({ profession: "mayor", season: s, place, ...(start !== undefined && end !== undefined ? { populationChange: end - start } : {}) });

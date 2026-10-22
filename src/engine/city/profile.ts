@@ -9,6 +9,7 @@ import { cityHistoryWithPast } from "./cities";
 import { CITY_SERVICES, type CityEventType } from "../config/parameters";
 import { INDICATORS, levelOf, serviceTrendOf } from "./state";
 import { agendaOf, mayorOf, priorityLevel } from "../council/agenda";
+import { candidateInfo, electionOf, termsOf } from "../council/elections";
 import { costOf, kindStatus, requestsOf } from "../council/requests";
 import { relationOf } from "../council/relation";
 import { COUNCIL_AREAS, COUNCIL_REQUESTS } from "../config/parameters";
@@ -32,13 +33,15 @@ export function cityProfile(repo: Repository, data: BaseData, base: BaseData, pa
   const label = (season: number) => seasonName(season, params.calendar.initialYear);
 
   const perCapita = (x: { municipalBudget: number; population: number }) => x.municipalBudget / Math.max(1, x.population);
-  const mayor = view.roles({ city: id }).find((p) => p.fn === "mayor");
-  const { vanity, ambition } = c.mayor.traits;
+  const mayorInfo = mayorOf(repo, base, id);
+  const mayor = mayorInfo ? view.person(mayorInfo.person) : undefined;
+  const { vanity, ambition } = mayorInfo?.traits ?? c.mayor.traits;
   const profile: NonNullable<CityProfileData["mayor"]>["profile"] = [];
   if (vanity >= 15) profile.push("vain"); else if (vanity <= 6) profile.push("lowProfile");
   if (ambition >= 15) profile.push("ambitious");
-  // mandato fixo no MVP: as eleições autárquicas (RZ-308) ainda não mudam o autarca
-  const since = params.city.sinceTerm;
+  // o mandato em curso começou nas últimas autárquicas já contadas (RZ-236B)
+  const election = electionOf(repo);
+  const since = !election ? params.city.sinceTerm : election.stage === "done" ? election.year : election.year - params.city.yearsMunicipalElections;
 
   const recent = repo
     .eventsOf({ k: "city", id }, { type: "CITY_EVENT", publicOnly: true, limit: 10 })
@@ -67,7 +70,7 @@ export function cityProfile(repo: Repository, data: BaseData, base: BaseData, pa
     }),
     budget: quintile(perCapita({ municipalBudget: c.municipalBudget, population: now.state.population }), base.cities.map(perCapita)),
     ...(mayor
-      ? { mayor: { person: { k: "person" as const, id: mayor.id, name: mayor.sportingName }, sinceTerm: since, untilTerm: since + params.city.yearsMunicipalElections, sportSupport: supportLevel(c.mayor.sportSupport), profile } }
+      ? { mayor: { person: { k: "person" as const, id: mayor.id, name: mayor.sportingName }, sinceTerm: since, untilTerm: since + params.city.yearsMunicipalElections, sportSupport: supportLevel(mayorInfo?.sportSupport ?? c.mayor.sportSupport), profile } }
       : {}),
     ...(council ? { council } : {}),
     localities: base.localities
@@ -91,12 +94,17 @@ function councilView(repo: Repository, base: BaseData, params: Params, city: str
   if (!mayor) return undefined;
   const seed = repo.meta("seed") ?? "?";
   const a = agendaOf(seed, mayor, now, params);
-  const b = before ? agendaOf(seed, mayor, before, params) : undefined;
+  // autarca novo (eleições, RZ-236B): a seta compara com o anterior e a causa é a mudança de autarca
+  const terms = termsOf(repo, base, params, city);
+  const last = terms.at(-1);
+  const prev = terms.at(-2);
+  const fresh = !!last && !!prev && last.person === mayor.person && last.from >= Number(repo.meta("season") ?? 1) - 1;
+  const b = fresh && prev ? agendaOf(seed, candidateInfo(repo, { p: prev.person, k: "exMayor", s: 5 }), now, params) : before ? agendaOf(seed, mayor, before, params) : undefined;
   const [weak, strong] = params.city.council.shareTrend;
   const areas = COUNCIL_AREAS.map((id) => {
     const d = b ? a.ratio[id] - b.ratio[id] : 0;
     const trend = d >= strong ? "up2" : d >= weak ? "up1" : d <= -strong ? "down2" : d <= -weak ? "down1" : "stable";
-    return { id, priority: priorityLevel(a.ratio[id], params) as ViewCityLevel, trend: trend as ViewCouncil["areas"][number]["trend"], ...(trend !== "stable" ? { cause: "need" as const } : {}) };
+    return { id, priority: priorityLevel(a.ratio[id], params) as ViewCityLevel, trend: trend as ViewCouncil["areas"][number]["trend"], ...(trend !== "stable" ? { cause: (fresh ? "newMayor" : "need") as "need" | "newMayor" } : {}) };
   });
   const club = base.clubs.find((x) => x.id === repo.meta("gamer.club"));
   if (!club || club.city !== city) return { areas };

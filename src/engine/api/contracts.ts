@@ -341,6 +341,29 @@ type CouncilTrend = "up2" | "up1" | "stable" | "down1" | "down2";
 export type CouncilAreaId = "sport" | "health" | "education" | "mobility" | "housing" | "safety" | "leisure";
 export type CouncilKindId = "youth" | "matchday" | "subsidy";
 export type CouncilReplyView = { approved: boolean; reason: "priority" | "relation" | "visibility" | "generic" | "noBudget" | "notPriority" | "poorRelation" | "expensive"; tone: "vain" | "ambitious" | "humble" | "plain"; amount: number };
+/** A campanha autárquica no concelho do gamer (RZ-236B): quem concorre, o que valoriza cada um e o peso do apoio do gamer. */
+export type CampaignView = {
+  city: EntityRef;
+  /** Dia das eleições. */
+  date: string;
+  /** Quanto pesa o apoio do gamer (1 = quase nada … 5 = muito). */
+  weight: ViewCityLevel;
+  candidates: {
+    person: EntityRef;
+    kind: "incumbent" | "exMayor" | "retired" | "new";
+    /** O autarca em funções (mesmo que o cargo possa mudar). */
+    current: boolean;
+    most: CouncilAreaId[];
+    least: CouncilAreaId[];
+    promises: CouncilAreaId[];
+    /** Só quando já houve relação com esta pessoa. */
+    relation?: { level: ViewCityLevel; trend: CouncilTrend };
+    /** Promessas cumpridas no mandato (só para quem está no cargo). */
+    kept?: { kept: number; total: number };
+  }[];
+  /** A decisão tomada: id do candidato ou `neutral`; falta enquanto o gamer não decide. */
+  choice?: string;
+};
 export type ViewCouncil = {
   areas: { id: CouncilAreaId; priority: ViewCityLevel; trend: CouncilTrend; cause?: "need" | "newMayor" }[];
   /** Relação do gamer com o autarca. */
@@ -487,7 +510,7 @@ export type EngineRequests = {
   celebration: { input: null; output: { competition: string; season: number; cup: boolean; clinched: boolean } | null };
   dismissCelebration: { input: null; output: null };
   /** O que pede resposta antes de o tempo passar (RZ-257): a mensagem por ler mais antiga, propostas recebidas e negociações abertas. */
-  attention: { input: null; output: { unread?: number; offer?: { person: string }; bid?: { person: string } } };
+  attention: { input: null; output: { unread?: number; offer?: { person: string }; bid?: { person: string }; campaign?: { city: string } } };
   /** Começa o jogo do gamer (RZ-170): nada fica no histórico até ao apito final. */
   startMatch: { input: { match: string; /** A interface exige onze completo e disponível. */ strict?: boolean }; output: LiveMatch };
   /** Avança `minutos` minutos do jogo a decorrer; no fim regista-o. */
@@ -511,6 +534,8 @@ export type EngineRequests = {
   /** Chama de volta um jogador do gamer emprestado (só na janela de janeiro). */
   recallLoan: { input: { person: string }; output: { ok: boolean } };
   /** Pedido ao autarca (RZ-236): tipo e índice do cofinanciamento (0 = nada). */
+  campaign: { input: null; output: CampaignView | null };
+  campaignSupport: { input: { candidate: string }; output: { ok: boolean } };
   councilRequest: { input: { kind: CouncilKindId; cofund: number }; output: { ok: true } | { ok: false; reason: "noMayor" | "open" | "cooldown" | "cash" | "invalid" | "noClub" } };
   bids: { input: null; output: BidView[] };
   transferOffers: { input: null; output: OfferView[] };
