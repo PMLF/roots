@@ -392,7 +392,8 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const all = inbox(repository, data, { limit: 500 });
       const oldest = all.messages.filter((x) => !x.isRead).map((x) => x.id).sort((a, b) => a - b)[0];
       if (oldest !== undefined) out.unread = oldest;
-      const offer = pendingOffers(repository)[0];
+      // só conta a proposta que a Início consegue mostrar (sem vista, o «Avançar» ficaria preso)
+      const offer = pendingOffers(repository).find((o) => offerViewOf(repository, data, params, o) !== undefined);
       if (offer) out.offer = { person: offer.person };
       const camp = campaignPending(repository, gamerClubOf(repository, data));
       if (camp) { const g = gamerClubOf(repository, data); if (g) out.campaign = { city: g.city }; }

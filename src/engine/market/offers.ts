@@ -92,7 +92,7 @@ export function dailyOffers(repo: Repository, data: BaseData, params: Params, ga
   const cfg = params.market.offers;
   // vencidas, ou o jogador já não é do clube
   for (const o of pendingOffers(repo)) {
-    if (repo.player(o.person)?.club !== gamer.id) update(repo, { ...o, status: "gone" });
+    if (repo.player(o.person)?.club !== gamer.id || !repo.contract(o.person)) update(repo, { ...o, status: "gone" });
     else if (o.expires < today) update(repo, { ...o, status: "expired" });
   }
   if (!windowAt(today, params) || repo.peopleTotal() === 0) return created;
