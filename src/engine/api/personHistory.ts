@@ -1,15 +1,12 @@
 /** Tabela «História» de uma pessoa (RZ-229): uma linha por profissão e período, só com factos públicos. */
+import { employeesOf } from "../company/employment";
 import { termsOf } from "../council/elections";
 import { cityHistory } from "../city/cities";
 import type { Params } from "../config/parameters";
 import type { BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
-import type { CompanyRecord } from "../persistence/types";
 import type { EntityRef, HistoryRow } from "./contracts";
 
-/** Empregados estimados: volume de negócio a dividir pelo volume típico por empregado da escala (pelo menos 1). */
-const employeesOf = (c: Pick<CompanyRecord, "capital" | "scale">, params: Pick<Params, "companies">): number =>
-  Math.max(1, Math.round(c.capital / params.companies.capitalPerEmployee[c.scale]));
 
 export function personHistory(repo: Repository, data: BaseData, base: BaseData, params: Params, person: string, season: number): HistoryRow[] {
   const rows: HistoryRow[] = [];

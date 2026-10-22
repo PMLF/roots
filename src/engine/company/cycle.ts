@@ -9,6 +9,7 @@ import { cityHistory } from "../city/cities";
 import type { Repository } from "../persistence/repository";
 import type { CompanyRecord, IsoDate, PersonRecord, RoleRecord } from "../persistence/types";
 import { createCompany, createNationalBroadcaster, createOwner, targetCompanies } from "./generate";
+import { localJobsOf } from "./employment";
 import { fillSponsorships, renewSponsorships } from "./sponsorship";
 import { auctionRights } from "../broadcast/rights";
 
@@ -78,6 +79,12 @@ export function rolloverCompanies(repo: Repository, data: BaseData, params: Para
   const event = (type: string, company: string, data0: Record<string, unknown>) =>
     repo.appendEvent({ type, date: o.seasonStart, season: o.season, visibility: "exposed", origin: "generated", entities: [{ k: "company", id: company, roleKind: "company" }], data: data0 });
 
+  // empresa grande a abrir ou a fechar: acontecimento da cidade (o efeito vem dos empregos, não do acontecimento; RZ-235)
+  const cityNews = (type: "factory_closes" | "factory_opens", c: CompanyRecord) => {
+    if (localJobsOf(c, params) < params.companies.city.jobs.eventJobs) return;
+    repo.appendEvent({ type: "CITY_EVENT", date: o.seasonStart, season: o.season, visibility: "exposed", origin: "generated", entities: [{ k: "city", id: c.city, roleKind: "afetada" }, { k: "company", id: c.id, roleKind: "company" }], data: { event: type, regional: false, company: c.id } });
+  };
+
   // 1. evolução do capital e falências
   for (const c of repo.companies({ state: "active" })) {
     const rng = new Rng(seed, `company/evolve/${o.season}/${c.id}`);
@@ -93,6 +100,7 @@ export function rolloverCompanies(repo: Repository, data: BaseData, params: Para
         });
       }
       event("COMPANY_CLOSED", c.id, { sector: c.sector, scale: c.scale });
+      cityNews("factory_closes", c);
       summary.closed++;
     } else repo.updateCompany(c.id, { capital });
   }
@@ -119,7 +127,7 @@ export function rolloverCompanies(repo: Repository, data: BaseData, params: Para
   if (fresh.length > 0) {
     repo.addPeople({ people, players: [], contracts: [], roles });
     repo.saveCompanies(fresh);
-    for (const c of fresh) event("COMPANY_FOUNDED", c.id, { sector: c.sector, scale: c.scale, city: c.city });
+    for (const c of fresh) { event("COMPANY_FOUNDED", c.id, { sector: c.sector, scale: c.scale, city: c.city }); cityNews("factory_opens", c); }
     summary.founded = fresh.length;
   }
 

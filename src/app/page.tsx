@@ -3,7 +3,7 @@ import { useRoundName } from "@/ui/components/competition/CupRounds";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { BidView, CampaignView, OfferView, CompetitionPage, ClubProfileData, CreatedWorldSummary } from "@/engine/api/contracts";
+import type { BidView, CampaignView, PatronView, OfferView, CompetitionPage, ClubProfileData, CreatedWorldSummary } from "@/engine/api/contracts";
 import type { NewsItem } from "@/engine/news/news";
 import { BidDialog } from "@/ui/components/BidDialog";
 import { OfferDialog } from "@/ui/components/OfferDialog";
@@ -85,6 +85,11 @@ export default function Start() {
   const [deciding, setDeciding] = useState(false);
   const loadCampaign = () => { engine?.call("campaign", null).then(setCampaign).catch(() => undefined); };
   useEffect(loadCampaign, [engine, world, time.state?.today]);
+  // propostas de mecenato (RZ-235)
+  const [patrons, setPatrons] = useState<PatronView[]>([]);
+  const loadPatrons = () => { engine?.call("patrons", null).then(setPatrons).catch(() => undefined); };
+  useEffect(loadPatrons, [engine, world, time.state?.today]);
+  const answerPatron = (id: number, accept: boolean) => { void engine?.call("patronReply", { id, accept }).then(() => { loadPatrons(); window.dispatchEvent(new Event("raizes:caixa")); }); };
   const campaignOpen = campaign !== null && campaign.choice === undefined;
   const pendingBids = openBids.filter((b) => (b.stage === "club" || b.stage === "agent") && !b.pending && (b.round > 0 || b.fee !== undefined || b.lastReply !== undefined));
   const waitingBids = openBids.filter((b) => b.pending);
@@ -125,7 +130,7 @@ export default function Start() {
   const openPeople = new Set([...offersIn.map((o) => o.person), ...pendingBids.map((b) => b.person), ...confirmBids.map((b) => b.person)]);
   const limit30 = time.state?.today ? new Date(Date.parse(`${time.state.today}T00:00:00Z`) - 30 * DAY_MS).toISOString().slice(0, 10) : "";
   const shownMessages = inbox.messages.filter((m) => m.date >= limit30).filter((m) => !(["transfer_offer", "loan_offer", "youth_offer", "bid_progress", "bid_agreed"].includes(m.type) && m.links.some((l) => l.k === "person" && openPeople.has(l.id))));
-  const decisions = (campaignOpen ? 1 : 0) + (time.pause ? 1 : 0) + (world && !mine ? 1 : 0) + pendingBids.length + confirmBids.length + offersIn.length;
+  const decisions = patrons.length + (campaignOpen ? 1 : 0) + (time.pause ? 1 : 0) + (world && !mine ? 1 : 0) + pendingBids.length + confirmBids.length + offersIn.length;
 
   return (
     <section className="inicio">
@@ -189,6 +194,12 @@ export default function Start() {
               actions={<button type="button" className="primario" onClick={() => setDeciding(true)}>{t("campaign.answer")}</button>} /></div>
           )}
           {deciding && campaign && <CampaignDialog campaign={campaign} onClose={() => { setDeciding(false); loadCampaign(); }} onAnswered={loadCampaign} />}
+          {patrons.map((o) => (
+            <div key={o.id} id={`mecenas-${o.id}`}><TallCard unread
+              title={t("patron.decision", { company: o.company.name })}
+              details={t(o.counterpart === "naming" ? "patron.details.naming" : "patron.details.none", { amount: new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(o.amount), years: o.years, date: o.expires })}
+              actions={<><button type="button" className="primario" onClick={() => answerPatron(o.id, true)}>{t("patron.accept")}</button><button type="button" onClick={() => answerPatron(o.id, false)}>{t("patron.decline")}</button></>} /></div>
+          ))}
           {pendingBids.map((b) => (
             <div className="decisao" key={b.person} id={`negoc-${b.person}`}>
               <p><ClubSwatch id={b.sellerId} /><b><WithPlayer text={t("bid.today", { name: "\u0000", date: "" })} id={b.person} name={b.name} /></b></p>

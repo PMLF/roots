@@ -73,6 +73,7 @@ export function AdvanceButton() {
           toHome(`msg-${a.unread}`);
         } else if (a.offer) toHome(`oferta-${a.offer.person}`);
         else if (a.campaign) toHome(`campanha-${a.campaign.city}`);
+        else if (a.patron) toHome(`mecenas-${a.patron.id}`);
         else if (a.bid) toHome(`negoc-${a.bid.person}`);
         else await advanceTime();
       }).catch(() => advanceTime());

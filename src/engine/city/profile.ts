@@ -1,5 +1,5 @@
 /** Ficha pública de uma cidade (RZ-133): converte o estado verdadeiro em níveis em palavras e tendências. */
-import type { CityProfileData, ViewCityLevel, ViewCouncil } from "../api/contracts";
+import type { CityCompaniesView, CityProfileData, ViewCityLevel, ViewCouncil } from "../api/contracts";
 import type { Params } from "../config/parameters";
 import type { BaseData } from "../data/types";
 import { seasonName } from "../calendar/seasonName";
@@ -9,6 +9,7 @@ import { cityHistoryWithPast } from "./cities";
 import { CITY_SERVICES, type CityEventType } from "../config/parameters";
 import { INDICATORS, levelOf, serviceTrendOf } from "./state";
 import { agendaOf, mayorOf, priorityLevel } from "../council/agenda";
+import { cityJobs, localJobsOf } from "../company/employment";
 import { candidateInfo, electionOf, termsOf } from "../council/elections";
 import { costOf, kindStatus, requestsOf } from "../council/requests";
 import { relationOf } from "../council/relation";
@@ -46,6 +47,7 @@ export function cityProfile(repo: Repository, data: BaseData, base: BaseData, pa
   const recent = repo
     .eventsOf({ k: "city", id }, { type: "CITY_EVENT", publicOnly: true, limit: 10 })
     .map((e) => ({ type: String(e.data.event) as CityEventType, season: e.season }));
+  const companies = companiesView(repo, base, params, id);
   const council = councilView(repo, base, params, id, now.state, before?.state);
   return {
     id: c.id, name: c.name, district: c.district, hub: c.hub, island: c.island, sector: c.sector, secondarySector: c.tag2,
@@ -73,6 +75,7 @@ export function cityProfile(repo: Repository, data: BaseData, base: BaseData, pa
       ? { mayor: { person: { k: "person" as const, id: mayor.id, name: mayor.sportingName }, sinceTerm: since, untilTerm: since + params.city.yearsMunicipalElections, sportSupport: supportLevel(mayorInfo?.sportSupport ?? c.mayor.sportSupport), profile } }
       : {}),
     ...(council ? { council } : {}),
+    ...(companies ? { companies } : {}),
     localities: base.localities
       .filter((l) => l.city === id)
       .map((l) => {
@@ -122,5 +125,22 @@ function councilView(repo: Repository, base: BaseData, params: Params, city: str
       }),
       requests: requests.map((r) => ({ id: r.id, kind: r.kind, created: r.created, due: r.due, status: r.status, cofund: r.cofund, ...(r.outcome ? { reply: { approved: r.status === "approved", reason: r.outcome.reason, tone: r.outcome.tone, amount: r.outcome.amount } } : {}) })),
     },
+  };
+}
+
+/** Tamanho em palavras pelos empregos locais: 1 = muito pequena … 5 = muito grande. */
+const sizeOf = (jobs: number): ViewCityLevel => (jobs < 10 ? 1 : jobs < 30 ? 2 : jobs < 100 ? 3 : jobs < 300 ? 4 : 5);
+
+function companiesView(repo: Repository, base: BaseData, params: Params, city: string): CityCompaniesView | undefined {
+  if (repo.meta("companies.enabled") !== "1") return undefined;
+  const clubName = (id: string) => base.clubs.find((c) => c.id === id)?.name ?? id;
+  const list = repo.companies({ city, state: "active" }).sort((a, b) => localJobsOf(b, params) - localJobsOf(a, params) || (a.id < b.id ? -1 : 1));
+  return {
+    dependence: cityJobs(repo, params, city).dependence,
+    list: list.map((c) => ({
+      id: c.id, name: c.name, sector: c.sector, scale: c.scale, size: sizeOf(localJobsOf(c, params)),
+      ...(c.owner ? { owner: { k: "person" as const, id: c.owner, name: repo.publicPerson(c.owner)?.sportingName ?? c.owner } } : {}),
+      sponsors: [...new Set(repo.companySponsorships(c.id, (repo.meta("date.today") ?? undefined) as IsoDate | undefined).map((s) => s.club))].map((id) => ({ k: "club" as const, id, name: clubName(id) })),
+    })),
   };
 }

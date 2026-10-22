@@ -34,6 +34,7 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n
     values.reelected = t(`newsItem.election_result.reelected.${values.reelected}` as Key);
     values.backed = t(`newsItem.election_result.backed.${values.backed}` as Key);
   }
+  if (n.type === "patron_offer") values.naming = values.counterpart === "naming" ? t("newsItem.patron_offer.naming") : "";
   if (n.type === "election_campaign") values.date = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${values.date}T00:00:00Z`));
   const toSquad = n.type === "youth_intake";
   const toScouting = n.type === "scout_search" || n.type === "scout_report";

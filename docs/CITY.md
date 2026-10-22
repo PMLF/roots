@@ -237,6 +237,8 @@ Papéis (cada um com ligação a RZ já existente):
 - **Parceiros de serviços** — empresas `health`, `transport`, `energy`, `media` financiam ou executam parte dos serviços (mexem em `saude`, `mobilidade`) quando o orçamento da Câmara não chega.
 - **Compradores de direitos** (RZ-218, existe) e **lobby** — donos podem apoiar candidatos nas eleições e pedir terrenos e licenças; **interesses em conflito** geram notícias e decisões.
 
+**Estado (RZ-235, 22-10-2026).** Feito: `employees` por empresa e `emprego`/`economia` calculados a partir delas (`company/employment.ts`); dependência baixa/média/alta de um empregador dominante, sentida só pela cidade (emprego, economia e população descem; o patrocínio da empresa acaba); mecenato como proposta na caixa de entrada com contrapartida (`company/patrons.ts`, meta `patron.offers`); parceiros de serviços com efeito em saúde, mobilidade e afins. Adiado: fornecedores de obras (RZ-303). Fechos reais emitem notícia informativa; o efeito vem dos empregos, não do evento.
+
 ### 12.6 O autarca e o orçamento
 
 Desenho decidido com o Pedro a 22-10-2026 (RZ-236, em duas fatias: **A** orçamento, relação e pedidos; **B** eleições).
