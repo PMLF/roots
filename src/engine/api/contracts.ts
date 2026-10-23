@@ -179,7 +179,15 @@ type OfferAction = { id: number; action: "accept" | "reject" } | { id: number; a
 export type OfferAnswer = { ok: true; status: "done" | "counter" | "refused" | "withdrawn" | "rejected" | "expired"; offer?: OfferView } | { ok: false };
 export type RenewalsData = { season: number; nextSeasonStart: string; lines: RenewalLine[] };
 
-export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string };
+export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string; /** Salário mensal de referência que o clube oferece. */ wage: number; yearsMin: number; yearsMax: number; defaultYears: number };
+/** Condições de um contrato do gamer e a resposta do presidente (RZ-161). */
+export type ContractTerms = { monthlyWage: number; years: number };
+export type ContractReason = "budget" | "results" | "trust" | "greed" | "grudge" | "generic" | "cooldown" | "tenure";
+export type ContractReply =
+  | { result: "accepted"; terms: ContractTerms }
+  | { result: "counter"; terms: ContractTerms; reason: ContractReason }
+  | { result: "refused"; reason: ContractReason };
+export type GamerContractView = { club: string; clubName: string; monthlyWage: number; start: string; end: string; reference: number; yearsMin: number; yearsMax: number; canAsk: boolean; askFrom?: string };
 
 /** Uma passagem pela carreira de um jogador (eventos públicos de contratos e transferências). */
 export type CareerLine = { id: number; date: string; season: number; kind: "transfer" | "signed" | "renewed" | "released" | "retired" | "loan" | "loanEnd" | "current"; club?: EntityRef; from?: EntityRef; fee?: number };
@@ -552,6 +560,12 @@ export type EngineRequests = {
   /** Ofertas de clubes quando o gamer está sem clube. */
   offers: { input: null; output: { unemployed: boolean; previous?: string; offers: ClubOffer[] } };
   acceptOffer: { input: { id: string }; output: { id: string } };
+  /** Contrato atual do gamer (null em saves sem contrato). */
+  gamerContract: { input: null; output: GamerContractView | null };
+  /** Propor salário e duração a um clube que fez oferta; se o presidente aceita, o gamer fica contratado. */
+  negotiateOffer: { input: { id: string; terms: ContractTerms }; output: ContractReply };
+  /** Pedir um aumento no clube atual. */
+  askRaise: { input: { terms: ContractTerms }; output: ContractReply };
   /** Contratos a expirar no clube do gamer, com o pedido de cada jogador (RZ-165). Quem não tiver decisão renova pela fórmula do escalão. */
   renewals: { input: null; output: RenewalsData };
   bid: { input: BidAction; output: BidResult };

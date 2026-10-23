@@ -298,6 +298,22 @@ export type Params = {
     surprises: number;
     /** Até quantos pontos de reputação acima do clube anterior pode vir uma surpresa. */
     surpriseMargin: number;
+    /** Contrato do gamer (RZ-161): salário de referência, resposta do presidente, pedir aumento. */
+    contract: {
+      /** Salário de referência = média de salários do escalão × `wageFactor` × (reputação/referência)^`repExponent`. */
+      wageFactor: number; repExponent: number;
+      yearsMin: number; yearsMax: number; defaultYears: number;
+      /** Máximo (em múltiplos do salário de referência) que o presidente aceita: base + confiança + resultados + finanças + traços − ressentimento. */
+      accept: { base: number; trust: number; results: number; finances: number; loyalty: number; greed: number; min: number; max: number };
+      /** Dias no clube para a confiança chegar ao máximo. */
+      trustDays: number;
+      /** Acima do máximo mas dentro desta folga, o presidente contrapropõe; acima, recusa. */
+      counterSlack: number;
+      /** Ressentimento (reduz o máximo aceite) por cada recusa e quanto passa por mês. */
+      grudgeStep: number; grudgeDecayPerMonth: number;
+      /** Dias entre pedidos de aumento e dias mínimos no clube para o poder pedir. */
+      raiseCooldownDays: number; raiseMinTenureDays: number;
+    };
   };
   /** Percentagem média de estrangeiros nos plantéis, por escalão (GERACAO_MUNDO §4). */
   foreigners: Record<Tier, number>;
@@ -1010,7 +1026,15 @@ export const DEFAULT_PARAMETERS: Params = {
   },
   fairPlay: { levels: 5, fallback: 3 },
   knockoutRounds: { penalties: { initial: 5, goalProb: 0.76, takerSkill: 0.012, keeperSkill: 0.008 } },
-  coach: { offers: 3, surprises: 1, surpriseMargin: 600 },
+  coach: {
+    offers: 3, surprises: 1, surpriseMargin: 600,
+    contract: {
+      wageFactor: 2.5, repExponent: 0.8, yearsMin: 1, yearsMax: 3, defaultYears: 2,
+      accept: { base: 1.0, trust: 0.15, results: 0.25, finances: 0.15, loyalty: 0.1, greed: 0.15, min: 0.7, max: 1.8 },
+      trustDays: 365, counterSlack: 1.35, grudgeStep: 0.08, grudgeDecayPerMonth: 0.02,
+      raiseCooldownDays: 120, raiseMinTenureDays: 90,
+    },
+  },
   foreigners: { firstLeague: 0.55, secondLeague: 0.3, thirdLeague: 0.15, cp: 0.08, district: 0.03 },
   attendance: {
     finalMult: 2.5,
@@ -1482,6 +1506,8 @@ export function validateParameters(p: Params): string[] {
   for (const m of [c.seasonStartMonth, c.seasonEndMonth]) if (m < 1 || m > 12) errors.push("calendario: meses entre 1 e 12");
   if (c.windows.length === 0) errors.push("calendario: tem de existir pelo menos uma janela de transferências");
   if (p.saves.daysAutosave < 1 || p.saves.rotatingAutosaves < 1) errors.push("saves: autosaveDias e autosavesRotativos ≥ 1");
+  const ct = p.coach.contract;
+  if (ct.yearsMin < 1 || ct.yearsMax < ct.yearsMin || ct.defaultYears < ct.yearsMin || ct.defaultYears > ct.yearsMax || ct.counterSlack < 1 || ct.accept.min > ct.accept.max) errors.push("treinador.contrato: anos e folgas incoerentes");
   if (p.coach.offers < 1 || p.coach.surprises < 0 || p.coach.surpriseMargin < 0) errors.push("treinador: pelo menos 1 oferta, surpresas e margem >= 0");
   if (p.fairPlay.levels < 2 || p.fairPlay.fallback < 1 || p.fairPlay.fallback > p.fairPlay.levels) errors.push("fairPlay: padrao dentro dos níveis");
 

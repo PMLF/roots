@@ -71,7 +71,7 @@ export function useClubs(): SummaryClub[] | null | undefined {
 
 /** Ofertas de clubes quando o gamer está sem clube (RZ-157). */
 function ClubsOffers({ offers, previous }: { offers: ClubOffer[]; previous?: string }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const engine = useEngine();
   const [error, setError] = useState<string | undefined>(undefined);
   const accept = async (id: string) => {
@@ -89,6 +89,8 @@ function ClubsOffers({ offers, previous }: { offers: ClubOffer[]; previous?: str
           {offers.map((o) => (
             <li key={o.id}>
               <b>{o.name}</b> <span className="suave">{o.league} · {t(`reputation.level.${o.levelReputation}` as Key)}</span>{" "}
+              <span className="suave">{t("contract.wageOffer", { value: new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(o.wage) })}</span>{" "}
+              <Link href={`/contract/?club=${o.id}`} className="botao" data-testid={`oferta-negociar-${o.id}`}>{t("contract.negotiate")}</Link>{" "}
               <button type="button" className="primario" onClick={() => void accept(o.id)}>{t("myClub.accept")}</button>
             </li>
           ))}
@@ -125,6 +127,22 @@ export function ChooseInitialClub() {
       <ClubSelector clubs={clubs} isOpen0 onChoose={(id) => void set(id)} />
     </div>
   );
+}
+
+/** Ligação para pedir um aumento (só aparece se o save tem contrato do gamer, RZ-161). */
+export function ContractLink() {
+  const { t } = useT();
+  const engine = useEngine();
+  const [has, setHas] = useState(false);
+  useEffect(() => {
+    if (!engine) return;
+    let live = true;
+    const load = () => { engine.call("gamerContract", null).then((c) => live && setHas(c !== null)).catch(() => undefined); };
+    load();
+    window.addEventListener("raizes:meuClube", load);
+    return () => { live = false; window.removeEventListener("raizes:meuClube", load); };
+  }, [engine]);
+  return has ? <Link href="/contract/" data-testid="link-contrato">{t("contract.askRaise")}</Link> : null;
 }
 
 /** Demitir-se do clube (pede confirmação). */
