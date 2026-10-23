@@ -691,7 +691,7 @@ button.dev { border-style: dashed; }
 .velocidade-seg button { border: 0; background: none; padding: 3px 10px; font-size: 12px; color: var(--suave); font-variant-numeric: tabular-nums; }
 .velocidade-seg button[aria-checked="true"] { background: var(--destaque-fundo); color: var(--destaque-texto); font-weight: 600; }
 .controlo-saltar { border: 0; background: none; padding: 6px 8px; color: var(--suave); }
-@media (max-width: 760px) { .controlos-fixos { bottom: 10px; right: 12px; } }
+@media (max-width: 760px) { .controlos-fixos { top: auto; bottom: calc(68px + env(safe-area-inset-bottom, 0px)); right: 12px; } }
 .controlos-jogo button .icone, .controlos-jogo button .ev-icone { width: 16px; height: 16px; margin-right: 6px; vertical-align: -3px; }
 .controlos-jogo button { display: inline-flex; align-items: center; }
 
@@ -1230,4 +1230,10 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
   .pedido-cofund { justify-content: flex-start; }
   .pedidos > li > button { justify-self: start; }
   .nivel-bloco { align-items: flex-start; }
+}
+
+/* Jogo em direto no telemóvel: o popup do intervalo cabe no ecrã e mantém os botões à vista */
+@media (max-width: 760px) {
+  .popup.intervalo-jogo { padding: 16px 14px; max-height: calc(100dvh - 24px); }
+  .popup.intervalo-jogo .acoes { position: sticky; bottom: -16px; margin: 0; padding: 10px 0 2px; background: var(--painel); }
 }
