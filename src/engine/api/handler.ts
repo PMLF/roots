@@ -9,7 +9,7 @@ import { pendingPatrons, respondPatron } from "../company/patrons";
 import { campaignView } from "../city/campaign";
 import { campaignPending, supportCandidate } from "../council/elections";
 import { pendingOffers, respondOffer, type Offer } from "../market/offers";
-import { valueOf } from "../market/bids";
+import { valueOf, valueView } from "../market/bids";
 import { addDays } from "../calendar/dates";
 import { forSale, setForSale } from "../market/offers";
 import { endLoan, loanEnd, loanOf } from "../loans/loans";
@@ -207,6 +207,12 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const ratingClub = profile.exposed.club ? data.clubs.find((c) => c.id === profile.exposed.club) : undefined;
       const rating = playerRating(repository, m.input.id, level, profile.potential?.fields.potential, ratingClub?.tier, params, m.input.seeAll === true || monthScouted);
       if (rating) output.rating = rating;
+      {
+        const own = profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club;
+        const today = (repository.meta("date.today") ?? "") as IsoDate;
+        const mv = level || own || m.input.seeAll === true ? valueView(repository, data, params, m.input.id, today, own || m.input.seeAll === true) : undefined;
+        if (mv) output.marketValue = mv;
+      }
       if (m.input.seeAll) output.truth = personTruth(repository, m.input.id);
       else if (profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club) {
         const inside = personTruth(repository, m.input.id);
@@ -275,7 +281,8 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         const fields = known?.attributes?.fields;
         const level = playerLevel(repository, j.id, j.player?.position, fields, seeAll);
         const rating = playerRating(repository, j.id, level, known?.potential?.fields.potential, c.tier, params, seeAll);
-        output.extraSquad[j.id] = { ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}), ...(rating ? { rating } : {}), ...(injured.has(j.id) ? { injured: true } : {}), ...(expiring.has(j.id) ? { renewable: true } : {}), ...(ct && today && ct.end < addDays(today as IsoDate, 365) ? { endingSoon: true } : {}), ...(repository.meta("gamer.club") === c.id && forSale(repository).has(j.id) ? { forSale: true } : {}), ...(ownClub && ct ? { wage: ct.monthlyWage } : {}) };
+        const mv = (level || ownClub) && today ? valueView(repository, data, params, j.id, today as IsoDate, ownClub) : undefined;
+        output.extraSquad[j.id] = { ...(mv ? { value: mv.value } : {}), ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}), ...(rating ? { rating } : {}), ...(injured.has(j.id) ? { injured: true } : {}), ...(expiring.has(j.id) ? { renewable: true } : {}), ...(ct && today && ct.end < addDays(today as IsoDate, 365) ? { endingSoon: true } : {}), ...(repository.meta("gamer.club") === c.id && forSale(repository).has(j.id) ? { forSale: true } : {}), ...(ownClub && ct ? { wage: ct.monthlyWage } : {}) };
       }
       if (ownClub) {
         const y = youthLevelOf(repository, data, params, c);

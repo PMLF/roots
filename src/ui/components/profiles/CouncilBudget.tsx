@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { ViewCouncil } from "@/engine/api/contracts";
 import { Card, Data } from "@/ui/components/Card";
 import { BarLevel, SERVICE_ARROW } from "@/ui/components/profiles/CityProfile";
@@ -11,7 +11,7 @@ import { useT } from "@/ui/i18n/LocaleProvider";
 const trendClass = (tr: string) => `tendencia tendencia-${tr.startsWith("up") ? "rises" : tr.startsWith("down") ? "drops" : "stable"}`;
 
 /** Separador Câmara (RZ-236): prioridades por área, relação com o autarca e pedidos do clube. */
-export function CouncilBudget({ c }: { c: ViewCouncil }) {
+export function CouncilBudget({ c, lead }: { c: ViewCouncil; /** Linhas do cartão «Câmara» (autarca, mandato, apoio, orçamento). */ lead: { label: string; value: ReactNode }[] }) {
   const { t, locale } = useT();
   const engine = useEngine();
   const money = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
@@ -28,57 +28,67 @@ export function CouncilBudget({ c }: { c: ViewCouncil }) {
     if (r?.ok) { setSent((s) => ({ ...s, [kind]: true })); setMsg(t("council.request.sent")); }
     else setMsg(r?.reason === "cash" ? t("council.request.cash") : t("council.request.error"));
   };
+  const levelLine = (level: ViewCouncil["areas"][number]["priority"], tr: string, label: string, cause?: string) => (
+    <span className="nivel-bloco">
+      <span className="nivel-linha"><BarLevel level={level} /><b>{label}</b>{arrow(tr)}</span>
+      {cause && <small className="suave">{cause}</small>}
+    </span>
+  );
+  const relation = c.relation
+    ? [{ label: t("council.relation"), value: levelLine(c.relation.level, c.relation.trend, t(`city.level.${c.relation.level}` as Key), c.relation.cause ? t(`council.relationCause.${c.relation.cause}` as Key) : undefined) }]
+    : [];
   return (
     <>
-      <Card title={t("card.councilBudget")}>
-        <Data lines={c.areas.map((a) => ({
-          label: t(`council.area.${a.id}` as Key),
-          value: <span className="nivel-linha"><BarLevel level={a.priority} /><b>{t(`council.priority.${a.priority}` as Key)}</b>{arrow(a.trend)}{a.cause && <span className="suave">{t(`council.cause.${a.cause}` as Key)}</span>}</span>,
-        }))} />
-      </Card>
-      {c.relation && (
-        <Card title={t("card.councilRelation")}>
-          <Data lines={[{ label: t("council.relation"), value: <span className="nivel-linha"><BarLevel level={c.relation.level} /><b>{t(`city.level.${c.relation.level}` as Key)}</b>{arrow(c.relation.trend)}{c.relation.cause && <span className="suave">{t(`council.relationCause.${c.relation.cause}` as Key)}</span>}</span> }]} />
+      <div className="cartoes-par camara-par">
+        <Card title={t("card.council")}>
+          <Data lines={[...lead, ...relation]} />
         </Card>
-      )}
+        <Card title={t("card.councilBudget")}>
+          <Data lines={c.areas.map((a) => ({
+            label: t(`council.area.${a.id}` as Key),
+            value: levelLine(a.priority, a.trend, t(`council.priority.${a.priority}` as Key), a.cause ? t(`council.cause.${a.cause}` as Key) : undefined),
+          }))} />
+        </Card>
+      </div>
       {c.own && (
         <Card title={t("card.councilRequests")} wide>
-          <ul className="lista-simples">
+          <ul className="pedidos">
             {c.own.kinds.map((k) => {
               const busy = k.status !== "available" || sent[k.kind];
               const idx = cofund[k.kind] ?? 0;
+              const state = k.status === "open" ? t("council.request.open", { date: day(k.until ?? "") })
+                : k.status === "cooldown" ? t("council.request.cooldown", { date: day(k.until ?? "") })
+                : sent[k.kind] ? t("council.pending") : undefined;
               return (
                 <li key={k.kind}>
-                  <b>{t(`council.kind.${k.kind}` as Key)}</b> <span className="suave">{t(`council.kind.${k.kind}.hint` as Key)}</span>
-                  <div>
-                    {k.status === "available" && sent[k.kind] && <span className="suave">{t("council.pending")}</span>}
-                    {k.status === "open" && <span className="suave">{t("council.request.open", { date: day(k.until ?? "") })}</span>}
-                    {k.status === "cooldown" && <span className="suave">{t("council.request.cooldown", { date: day(k.until ?? "") })}</span>}
-                    {!busy && (
-                      <>
-                        {k.cofunds.length > 1 && (
-                          <label>{t("council.request.cofund")}{" "}
-                            <select value={idx} onChange={(e) => setCofund((s) => ({ ...s, [k.kind]: Number(e.target.value) }))}>
-                              {k.cofunds.map((f, i) => <option key={f} value={i}>{f === 0 ? t("council.request.cofund.0") : `${Math.round(f * 100)}% · ${money.format(k.cost * f)}`}</option>)}
-                            </select>
-                          </label>
-                        )}{" "}
-                        <button type="button" className="ligacao-botao" onClick={() => void ask(k.kind)}>{t("council.request.button")}</button>
-                      </>
-                    )}
-                  </div>
+                  <span className="pedido-titulo"><b>{t(`council.kind.${k.kind}` as Key)}</b><small className="suave">{t(`council.kind.${k.kind}.hint` as Key)}</small></span>
+                  {busy ? (
+                    <span className="pedido-estado suave">{state}</span>
+                  ) : (
+                    <>
+                      {k.cofunds.length > 1 ? (
+                        <label className="pedido-cofund">
+                          <span className="suave">{t("council.request.cofund")}</span>
+                          <select value={idx} onChange={(e) => setCofund((st) => ({ ...st, [k.kind]: Number(e.target.value) }))}>
+                            {k.cofunds.map((f, i) => <option key={f} value={i}>{f === 0 ? t("council.request.cofund.0") : `${Math.round(f * 100)}% · ${money.format(k.cost * f)}`}</option>)}
+                          </select>
+                        </label>
+                      ) : <span />}
+                      <button type="button" className="primario" onClick={() => void ask(k.kind)}>{t("council.request.button")}</button>
+                    </>
+                  )}
                 </li>
               );
             })}
           </ul>
           {msg && <p className="suave" role="status">{msg}</p>}
-          <h4>{t("council.history")}</h4>
+          <h3 className="subtitulo-cartao">{t("council.history")}</h3>
           {c.own.requests.length === 0 ? <p className="vazio">{t("council.noRequests")}</p> : (
-            <ul className="lista-simples">
+            <ul className="pedidos pedidos-historico">
               {c.own.requests.map((r) => (
                 <li key={r.id}>
-                  <b>{t(`council.kind.${r.kind}` as Key)}</b> <span className="suave">{day(r.created)}</span>
-                  {r.reply ? <p>{councilSpeech(t, { ...r.reply, kind: r.kind }, money)}</p> : <p className="suave">{t("council.pending")}</p>}
+                  <span className="pedido-titulo"><b>{t(`council.kind.${r.kind}` as Key)}</b><small className="suave">{day(r.created)}</small></span>
+                  <span>{r.reply ? councilSpeech(t, { ...r.reply, kind: r.kind }, money) : <span className="suave">{t("council.pending")}</span>}</span>
                 </li>
               ))}
             </ul>

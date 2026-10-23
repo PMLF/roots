@@ -22,6 +22,8 @@ import { useCountries } from "@/ui/useCountries";
 import type { Column } from "@/ui/table/logic";
 import { showEstimate } from "@/ui/value";
 
+/** Valores de mercado em formato curto («450 mil €», «1,2 M €»); estimativas levam «≈». */
+const eurValue = (locale: string, n: number, exact: boolean) => `${exact ? "" : "≈ "}${new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", notation: "compact", maximumFractionDigits: 1 }).format(n)}`;
 const eur = (locale: string, n: number) => new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 
 /** Ficha de uma pessoa: dados de identidade ao lado do nome; no corpo, o que o gamer sabe (ou «?»), conforme o papel. */
@@ -134,6 +136,8 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
           { label: t("person.atClubSince"), value: d.contract?.start ?? unknown },
           { label: t("person.wage"), value: (d.wage ?? truth?.monthlyWage) !== undefined ? `${eur(locale, (d.wage ?? truth?.monthlyWage) as number)}/${t("person.month")}` : unknown },
           ...(d.agent ? [{ label: t("person.agent"), value: <EntityLink k="person" id={d.agent.id}>{d.agent.name}</EntityLink> }] : []),
+          ...(d.marketValue ? [{ label: t("person.marketValue"), value: eurValue(locale, d.marketValue.value, d.marketValue.exact) }] : []),
+          ...(d.marketValue?.asking ? [{ label: t("person.asking"), value: <span title={d.marketValue.asking.reasons.map((r) => t(`person.asking.${r}` as Key)).join(" · ")}>{eurValue(locale, d.marketValue.asking.value, false)}{d.marketValue.asking.reasons.length > 0 && <span className="suave"> · {d.marketValue.asking.reasons.map((r) => t(`person.asking.${r}` as Key)).join(", ")}</span>}</span> }] : []),
           { label: t("person.clause"), value: d.clauses ? (d.clauses.release !== undefined ? eur(locale, d.clauses.release) : t("person.noClause")) : unknown },
         ]}
       />

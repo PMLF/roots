@@ -1206,3 +1206,28 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 .contrato-form input, .contrato-form select { width: 100%; }
 .contrato-resposta { display: grid; gap: 8px; margin: 12px 0; }
 @media (max-width: 700px) { .cartao.contrato-form { flex-direction: column; align-items: stretch; } }
+
+/* Cidade › Câmara: cartões lado a lado com linhas distribuídas, pedidos em linhas alinhadas */
+.camara-par .dados { flex: 1; grid-auto-rows: 1fr; }
+.camara-par .dados > div { align-items: center; }
+.nivel-bloco { display: inline-flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.nivel-bloco small { font-size: 12px; font-weight: 400; }
+.subtitulo-cartao { font-size: 14px; margin: 14px 0 8px; padding-top: 14px; border-top: 1px solid var(--linha); }
+.pedidos { list-style: none; margin: 0; padding: 0; display: grid; }
+.pedidos > li { display: grid; grid-template-columns: minmax(0, 1fr) minmax(200px, auto) auto; gap: 6px 16px; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--linha); }
+.pedidos > li:first-child { padding-top: 0; }
+.pedidos > li:last-child { border-bottom: 0; padding-bottom: 0; }
+.pedido-titulo { display: grid; gap: 2px; min-width: 0; }
+.pedido-titulo small { font-size: 13px; }
+.pedido-cofund { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.pedido-cofund select { min-width: 150px; }
+.pedido-estado { grid-column: 2 / -1; text-align: right; }
+.pedidos > li > button { justify-self: end; }
+.pedidos-historico > li { grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); align-items: start; }
+@media (max-width: 700px) {
+  .pedidos > li, .pedidos-historico > li { grid-template-columns: 1fr; }
+  .pedido-estado { grid-column: 1; text-align: left; }
+  .pedido-cofund { justify-content: flex-start; }
+  .pedidos > li > button { justify-self: start; }
+  .nivel-bloco { align-items: flex-start; }
+}

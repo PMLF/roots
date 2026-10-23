@@ -264,6 +264,8 @@ export type PersonProfileData = {
   contractEndingSoon?: boolean;
   /** Jogador do clube do gamer: se está à venda. */
   forSale?: boolean;
+  /** Estimativa do valor de mercado e, em jogadores de outros clubes, do preço que o clube deverá pedir (RZ-239). */
+  marketValue?: { value: number; exact: boolean; asking?: { value: number; reasons: ("important" | "form")[] } };
   /** Empréstimo do gamer (RZ-269): `out` = jogador teu emprestado a `club`; `in` = jogador de `club` emprestado a ti. `canRecall`: janela de janeiro aberta (só `out`). */
   loan?: { direction: "out" | "in"; club: EntityRef; until: string; share: number; canRecall: boolean };
   /** Clubes que o poderiam querer (RZ-256) e propostas conhecidas: do gamer e as recebidas por jogadores do gamer. */
@@ -323,7 +325,7 @@ export type ClubProfileData = {
   /** Divisão em que o clube esteve, por época (a história de subidas e descidas). */
   divisionsHistory: { season: number; label: string; tier: Tier; league: string; position?: number; of?: number; movement?: "promoted" | "relegated"; /** Antes do arranque do save. */ past?: true }[];
   /** Por jogador do plantel: fim de contrato e nível geral. */
-  extraSquad: Record<string, { endContract?: string; level?: EstimatedLevel; rating?: StarRating; injured?: boolean; renewable?: boolean; /** O contrato acaba daqui a menos de um ano. */ endingSoon?: boolean; /** Posto à venda pelo gamer. */ forSale?: boolean; /** Só no clube do gamer (ou em modo developer). */ wage?: number }>;
+  extraSquad: Record<string, { endContract?: string; level?: EstimatedLevel; rating?: StarRating; injured?: boolean; renewable?: boolean; /** O contrato acaba daqui a menos de um ano. */ endingSoon?: boolean; /** Posto à venda pelo gamer. */ forSale?: boolean; /** Só no clube do gamer (ou em modo developer). */ wage?: number; /** Estimativa do valor de mercado (2 algarismos significativos). */ value?: number }>;
   /** Estatísticas da época atual (jogadores do plantel e tops do clube). */
   season?: ClubSeason;
   /** Por membro da equipa técnica: desde quando está no clube (contrato). */
