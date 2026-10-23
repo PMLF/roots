@@ -870,6 +870,8 @@ export type Params = {
       /** Jogador importante para o vendedor fica mais caro: [posição no plantel (0 = melhor), multiplicador]; o primeiro escalão que servir. */ importance: [number, number][];
       /** Mais 15 % por desvio de qualidade acima da média do escalão do vendedor. */ qualityPremium: number;
       /** Com uma oferta a partir desta fração do pedido o clube dá mais uma ronda. */ closeBonus: number;
+      /** Quem está em boa forma sai mais caro: com pelo menos `minGames` notas recentes, +`perPoint` por ponto de nota média acima de `threshold`, até `max`. */
+      form: { minGames: number; threshold: number; perPoint: number; max: number };
     };
   };
   /** O que se sabe sobre os outros (HISTORICO_EVENTOS §5.B, PERSONALIDADE §7). */
@@ -1410,7 +1412,7 @@ export const DEFAULT_PARAMETERS: Params = {
     training: { ageMax: 23, byTier: { firstLeague: 1.2, secondLeague: 0.8, thirdLeague: 0.4, cp: 0.08, district: 0 } },
     offers: { forSaleChance: 5, forSaleFee: 0.93, dailyChance: 0.012, validDays: 10, feeSpread: [0.85, 1.15], maxMult: 1.3, maxRounds: 3, concession: 0.5, minAge: 16, sameWindowDays: 45, youth: { dailyChance: 0.02, ageMax: 21, minPotential: 14 } },
     news: { minFee: 1500000 },
-    bids: { walkAway: 0.6, concession: 0.55, maxRounds: 4, waitDays: 30, suggestionNoise: 0.3, stepBackWage: 1.4, endOfCareerAge: 33, confirmDays: 7, importance: [[0, 1.6], [2, 1.4], [5, 1.2]], qualityPremium: 0.15, closeBonus: 0.85 },
+    bids: { walkAway: 0.6, concession: 0.55, maxRounds: 4, waitDays: 30, suggestionNoise: 0.3, stepBackWage: 1.4, endOfCareerAge: 33, confirmDays: 7, importance: [[0, 1.6], [2, 1.4], [5, 1.2]], qualityPremium: 0.15, closeBonus: 0.85, form: { minGames: 3, threshold: 6.8, perPoint: 0.2, max: 0.3 } },
   },
   scouting: {
     reach: { base: 0.03, perScout: 0.06, max: 0.6, foreignFactor: 0.15 },

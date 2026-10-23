@@ -99,25 +99,64 @@ const presidentGreed = (repo: Repository, club: string): number => {
   return (p ? repo.person(p.id)?.personality.greed : undefined) ?? 10;
 };
 
-/** Preço pedido pelo clube vendedor: valor × (base + ganância do presidente); mais 25 % se for dos titulares. */
-function sellerAsk(repo: Repository, data: BaseData, params: Params, bid: Bid, today: IsoDate): number {
-  if (!bid.seller) return 0;
+export type AskReason = "important" | "form";
+
+/**
+ * Preço que o clube vendedor pede por um jogador: valor × (base + ganância do presidente); mais caro se for importante na equipa
+ * (melhores do plantel, titular, qualidade acima do escalão) ou estiver em boa forma (notas recentes).
+ */
+export function askingPrice(repo: Repository, data: BaseData, params: Params, sellerId: string, person: string, today: IsoDate): { price: number; reasons: AskReason[] } {
   const mk = params.market;
-  const value = valueOf(repo, params, bid.person, today);
-  const greed = isForeignClub(bid.seller) ? 10 : presidentGreed(repo, bid.seller);
-  const pos = repo.player(bid.person)?.positions[0]?.pos;
+  const value = valueOf(repo, params, person, today);
+  const foreign = isForeignClub(sellerId);
+  const greed = foreign ? 10 : presidentGreed(repo, sellerId);
+  const pos = repo.player(person)?.positions[0]?.pos;
   const quality = (id: string) => { const j = repo.player(id); const ps = j?.positions[0]?.pos; return j && ps ? currentQuality(j.attributes as Attributes, ps as Position) : 0; };
-  const squad = repo.clubPlayers(bid.seller);
-  const mine = quality(bid.person);
-  const better = squad.filter((x) => x.person !== bid.person && quality(x.person) > mine).length;
+  const squad = repo.clubPlayers(sellerId);
+  const mine = quality(person);
+  const better = squad.filter((x) => x.person !== person && quality(x.person) > mine).length;
   const mates = squad.filter((x) => x.positions[0]?.pos === pos);
   const starter = mates.filter((x) => quality(x.person) > mine).length < 2;
   const importance = mk.bids.importance.find(([rank]) => better <= rank)?.[1] ?? 1;
-  const seller = data.clubs.find((c) => c.id === bid.seller);
+  const seller = data.clubs.find((c) => c.id === sellerId);
   const tq = seller ? params.world.targetQuality[seller.tier] : undefined;
   const premium = tq ? 1 + mk.bids.qualityPremium * Math.max(0, (mine - tq.mean) / tq.deviation) : 1;
-  const mult = isForeignClub(bid.seller) ? 1 : importance * (starter ? 1.1 : 1) * premium;
-  return Math.round((value * (mk.askBase + mk.askByGreed * (greed - 10)) * mult) / 1000) * 1000;
+  const ratings = repo.playerRecentRatings(person, 5);
+  const f = mk.bids.form;
+  const average = ratings.length >= f.minGames ? ratings.reduce((a, b) => a + b, 0) / ratings.length : undefined;
+  const formMult = average === undefined ? 1 : 1 + clamp((average - f.threshold) * f.perPoint, 0, f.max);
+  const mult = foreign ? 1 : importance * (starter ? 1.1 : 1) * premium * formMult;
+  const reasons: AskReason[] = [];
+  if (!foreign && (importance > 1 || starter)) reasons.push("important");
+  if (!foreign && formMult > 1.02) reasons.push("form");
+  return { price: Math.round((value * (mk.askBase + mk.askByGreed * (greed - 10)) * mult) / 1000) * 1000, reasons };
+}
+
+function sellerAsk(repo: Repository, data: BaseData, params: Params, bid: Bid, today: IsoDate): number {
+  return bid.seller ? askingPrice(repo, data, params, bid.seller, bid.person, today).price : 0;
+}
+
+/** Arredonda a dois algarismos significativos (as estimativas não fingem precisão). */
+const estimate = (v: number): number => (v <= 0 ? 0 : Math.round(v / 10 ** Math.max(0, Math.floor(Math.log10(v)) - 1)) * 10 ** Math.max(0, Math.floor(Math.log10(v)) - 1));
+
+export type ValueView = { value: number; exact: boolean; asking?: { value: number; reasons: AskReason[] } };
+
+/**
+ * Estimativa do valor de mercado de um jogador e, se for de outro clube, do preço que o clube deverá pedir. O erro de quem
+ * sabe pouco do jogador segue as sugestões de transferência (sem informação até ±`suggestionNoise`; o plantel do gamer é exato).
+ */
+export function valueView(repo: Repository, data: BaseData, params: Params, person: string, today: IsoDate, own: boolean): ValueView | undefined {
+  const value = valueOf(repo, params, person, today);
+  if (value <= 0) return undefined;
+  const info = own ? 1 : informationOf(repo, person);
+  const sigma = params.market.bids.suggestionNoise * (1 - info);
+  const shift = sigma > 0 ? clamp(new Rng(repo.meta("seed") ?? "?", `value/${person}`).gauss(0, sigma), -sigma * 2, sigma * 2) : 0;
+  const club = repo.player(person)?.club;
+  const ask = club && !own ? askingPrice(repo, data, params, club, person, today) : undefined;
+  return {
+    value: estimate(value * (1 + shift)), exact: sigma === 0,
+    ...(ask && ask.price > estimate(value * (1 + shift)) * 1.02 ? { asking: { value: estimate(ask.price * (1 + shift)), reasons: ask.reasons } } : {}),
+  };
 }
 
 export type OpenError = "own" | "invalid" | "retired" | "prospect" | "locked" | "loaned";

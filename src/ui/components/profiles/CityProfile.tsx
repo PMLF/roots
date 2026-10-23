@@ -146,27 +146,22 @@ export function CityProfile({ d }: { d: CityProfileData }) {
     </div>
   );
 
+  const councilLines = d.mayor
+    ? [
+        { label: t("city.mayor"), value: <EntityLink k="person" id={d.mayor.person.id}>{d.mayor.person.name}</EntityLink> },
+        { label: t("mayor.term"), value: `${d.mayor.sinceTerm}–${d.mayor.untilTerm}` },
+        { label: t("mayor.support"), value: <span className="nivel-linha"><BarLevel level={d.mayor.sportSupport} /><b>{level(d.mayor.sportSupport)}</b></span> },
+        { label: t("mayor.reputation"), value: d.mayor.profile.length > 0 ? ((txt) => txt.charAt(0).toUpperCase() + txt.slice(1))(d.mayor.profile.map((p) => t(`mayor.profile.${p}` as Key)).join(" · ")) : "—" },
+        { label: t("city.budget"), value: <span className="nivel-linha"><BarLevel level={d.budget} /><b>{level(d.budget)}</b></span> },
+      ]
+    : [{ label: t("city.mayor"), value: <span className="suave">{t("city.noMayor")}</span> }, { label: t("city.budget"), value: <span className="nivel-linha"><BarLevel level={d.budget} /><b>{level(d.budget)}</b></span> }];
   const councilTab = (
     <div className="cartoes">
-      <Card title={t("card.council")}>
-        {d.mayor ? (
-          <Data
-            lines={[
-              { label: t("city.mayor"), value: <EntityLink k="person" id={d.mayor.person.id}>{d.mayor.person.name}</EntityLink> },
-              { label: t("mayor.term"), value: `${d.mayor.sinceTerm}–${d.mayor.untilTerm}` },
-              { label: t("mayor.support"), value: <span className="nivel-linha"><BarLevel level={d.mayor.sportSupport} /><b>{level(d.mayor.sportSupport)}</b></span> },
-              { label: t("mayor.reputation"), value: d.mayor.profile.length > 0 ? ((txt) => txt.charAt(0).toUpperCase() + txt.slice(1))(d.mayor.profile.map((p) => t(`mayor.profile.${p}` as Key)).join(" · ")) : "—" },
-              { label: t("city.budget"), value: <span className="nivel-linha"><BarLevel level={d.budget} /><b>{level(d.budget)}</b></span> },
-            ]}
-          />
-        ) : (
-          <>
-            <p className="vazio">{t("city.noMayor")}</p>
-            <Data lines={[{ label: t("city.budget"), value: <span className="nivel-linha"><BarLevel level={d.budget} /><b>{level(d.budget)}</b></span> }]} />
-          </>
-        )}
-      </Card>
-      {d.council && <CouncilBudget c={d.council} />}
+      {d.council ? (
+        <CouncilBudget c={d.council} lead={councilLines} />
+      ) : (
+        <Card title={t("card.council")}><Data lines={councilLines} /></Card>
+      )}
     </div>
   );
   const serviceColumns: Column<CityProfileData["historyPopulation"][number]>[] = [
