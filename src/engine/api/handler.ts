@@ -33,6 +33,7 @@ import { readLiveMatch, type LiveMatch, type LivePlayer } from "../season/liveMa
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
 import { acceptOffer, resign, isUnemployed, gamerOffers } from "../season/coachMarket";
+import { askRaise, contractOf, negotiateOffer, referenceWage, signHired, signInitial } from "../season/gamerContract";
 import { advance, timeState } from "../season/advance";
 import { saveParameters, seasonYearContaining, saveInitialYear, seasonName } from "../season/saveYear";
 import { foreignClubs } from "../world/foreign";
@@ -544,24 +545,69 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         ...(previous ? { previous: name(previous) ?? previous } : {}),
         offers: unemployed ? gamerOffers(repository).flatMap((o) => {
           const c = data.clubs.find((x) => x.id === o.club);
-          return c ? [{ id: c.id, name: c.name, league: c.league, tier: c.tier, levelReputation: reputationLevel(c.reputation, params), since: o.since }] : [];
+          return c ? [{ id: c.id, name: c.name, league: c.league, tier: c.tier, levelReputation: reputationLevel(c.reputation, params), since: o.since, wage: referenceWage(c, params), yearsMin: params.coach.contract.yearsMin, yearsMax: params.coach.contract.yearsMax, defaultYears: params.coach.contract.defaultYears }] : [];
         }) : [],
       };
     }
     case "acceptOffer": {
-      const { repository } = await context(servicos);
-      acceptOffer(repository, m.input.id);
+      const { repository, data, params } = await context(servicos);
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      const club = data.clubs.find((c) => c.id === m.input.id);
+      repository.transaction(() => {
+        acceptOffer(repository, m.input.id);
+        if (club) signInitial(repository, params, club, today);
+      });
       return { id: m.input.id };
     }
+    case "gamerContract": {
+      const { repository, data, params } = await context(servicos);
+      const contract = contractOf(repository);
+      const club = contract ? data.clubs.find((c) => c.id === contract.club) : undefined;
+      if (!contract || !club || repository.meta("gamer.club") !== contract.club) return null;
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      const ct = params.coach.contract;
+      const days = (d: string) => Math.floor(Date.parse(`${d}T00:00:00Z`) / 86400000);
+      const raw = repository.meta("gamer.grudge");
+      const lastAsk = raw ? (JSON.parse(raw) as { lastAsk?: string }).lastAsk : undefined;
+      const from = Math.max(days(contract.start) + ct.raiseMinTenureDays, lastAsk ? days(lastAsk) + ct.raiseCooldownDays : 0);
+      const canAsk = days(today) >= from;
+      return {
+        club: club.id, clubName: club.name, monthlyWage: contract.monthlyWage, start: contract.start, end: contract.end, reference: referenceWage(club, params),
+        yearsMin: ct.yearsMin, yearsMax: ct.yearsMax, canAsk, ...(canAsk ? {} : { askFrom: new Date(from * 86400000).toISOString().slice(0, 10) }),
+      };
+    }
+    case "negotiateOffer": {
+      const { repository, data, params } = await context(servicos);
+      if (!isUnemployed(repository)) throw new Error("Já tens clube");
+      if (!gamerOffers(repository).some((o) => o.club === m.input.id)) throw new Error("Esse clube não te fez nenhuma oferta");
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      let r!: ReturnType<typeof negotiateOffer>;
+      repository.transaction(() => {
+        r = negotiateOffer(repository, data, params, m.input.id, today, m.input.terms);
+        if (r.result === "accepted") { acceptOffer(repository, m.input.id); signHired(repository, m.input.id, today, r.terms); }
+      });
+      return r;
+    }
+    case "askRaise": {
+      const { repository, data, params } = await context(servicos);
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      let r!: ReturnType<typeof askRaise>;
+      repository.transaction(() => { r = askRaise(repository, data, params, today, m.input.terms); });
+      return r;
+    }
     case "chooseClub": {
-      const { repository, data } = await context(servicos);
+      const { repository, data, params } = await context(servicos);
       if (isUnemployed(repository) && m.input.force !== true) throw new Error("Sem clube: escolhe uma das ofertas recebidas");
       const chosen = data.clubs.find((c) => c.id === m.input.id);
       if (!chosen) throw new Error("Clube desconhecido");
       if (isInSecondDistrict(chosen.league)) throw new Error("Esse clube está na segunda distrital: só é jogável quando voltar à pirâmide");
       const current = repository.meta("gamer.club");
       if (current && current !== m.input.id && m.input.force !== true) throw new Error("O clube do save já foi escolhido: só muda se fores despedido ou te despedires");
-      repository.setMeta("gamer.club", m.input.id);
+      repository.transaction(() => {
+        repository.setMeta("gamer.club", m.input.id);
+        // saves novos: contrato inicial (os antigos continuam sem contrato)
+        if (!current || m.input.force === true) signInitial(repository, params, chosen, (repository.meta("date.today") ?? createDate(params.calendar.initialYear, params.calendar.seasonStartMonth, 1)) as IsoDate);
+      });
       return { id: m.input.id };
     }
     case "plan": {

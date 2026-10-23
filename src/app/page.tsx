@@ -8,7 +8,7 @@ import type { NewsItem } from "@/engine/news/news";
 import { BidDialog } from "@/ui/components/BidDialog";
 import { OfferDialog } from "@/ui/components/OfferDialog";
 import { CampaignDialog } from "@/ui/components/CampaignDialog";
-import { ResignButton, ChooseInitialClub } from "@/ui/components/WithClub";
+import { ContractLink, ResignButton, ChooseInitialClub } from "@/ui/components/WithClub";
 import { LastMatches, MiniTable } from "@/ui/components/HomeCards";
 import { ResultsFita } from "@/ui/components/ResultsStrip";
 import { applyHomeFocus, onHomeFocus } from "@/ui/focusHome";
@@ -147,6 +147,7 @@ export default function Start() {
         )}
         <span className="espaco" />
         {dev && world && <span className="suave" data-testid="hoje-mundo">{t("today.world", { seed: world.seed, people: world.people })}</span>}
+        {club && <ContractLink />}
         {club && <ResignButton />}
       </header>
       {backup.due && (

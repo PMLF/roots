@@ -1197,3 +1197,12 @@ body {
   .saves-tabela td.acoes::before { content: none; }
 }
 @media (max-width: 700px) { .saves-tabela .chip { white-space: nowrap; flex: none; } }
+
+/* Contrato do gamer (RZ-161) */
+a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; color: inherit; background: var(--painel); border: 1px solid var(--linha-forte); border-radius: var(--r-s); padding: 5px 12px; text-decoration: none; }
+.contrato-resposta a.primario { color: #fff; background: var(--destaque); border-color: var(--destaque); font-weight: 600; }
+.cartao.contrato-form { flex-direction: row; gap: 12px; align-items: end; flex-wrap: wrap; margin: 12px 0; }
+.contrato-form label { display: grid; gap: 4px; font-size: 13px; color: var(--suave); flex: 1 1 200px; }
+.contrato-form input, .contrato-form select { width: 100%; }
+.contrato-resposta { display: grid; gap: 8px; margin: 12px 0; }
+@media (max-width: 700px) { .cartao.contrato-form { flex-direction: column; align-items: stretch; } }
