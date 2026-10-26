@@ -9,7 +9,11 @@ import { cityHistoryWithPast } from "./cities";
 import { CITY_SERVICES, type CityEventType } from "../config/parameters";
 import { INDICATORS, levelOf, serviceTrendOf } from "./state";
 import { agendaOf, mayorOf, priorityLevel } from "../council/agenda";
-import { cityJobs, localJobsOf } from "../company/employment";
+import { companyColours } from "../company/colours";
+import { cityJobs, employeesOf, localJobsOf } from "../company/employment";
+
+/** Dois algarismos significativos: um número estimado não finge precisão. */
+const roundedCount = (n: number): number => (n < 20 ? n : Number(n.toPrecision(2)));
 import { candidateInfo, electionOf, termsOf } from "../council/elections";
 import { costOf, kindStatus, requestsOf } from "../council/requests";
 import { relationOf } from "../council/relation";
@@ -147,6 +151,9 @@ function companiesView(repo: Repository, base: BaseData, params: Params, city: s
     dependence: cityJobs(repo, params, city).dependence,
     list: list.map((c) => ({
       id: c.id, name: c.name, sector: c.sector, scale: c.scale, size: sizeOf(localJobsOf(c, params)),
+      colours: companyColours(c.id),
+      years: Math.max(0, Number((repo.meta("date.today") ?? "").slice(0, 4)) - c.founded) || 0,
+      employees: roundedCount(employeesOf(c, params)),
       ...(c.owner ? { owner: { k: "person" as const, id: c.owner, name: repo.publicPerson(c.owner)?.sportingName ?? c.owner } } : {}),
       sponsors: [...new Set(repo.companySponsorships(c.id, (repo.meta("date.today") ?? undefined) as IsoDate | undefined).map((s) => s.club))].map((id) => ({ k: "club" as const, id, name: clubName(id) })),
     })),

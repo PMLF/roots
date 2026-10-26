@@ -3,6 +3,7 @@ import type { CityProfileData, LocalityProfileData } from "@/engine/api/contract
 import { Chip } from "@/ui/components/Attributes";
 import { Card, Data, Top } from "@/ui/components/Card";
 import { Table } from "@/ui/components/Table";
+import { CompanyCards } from "@/ui/components/profiles/CompanyCards";
 import { Profile } from "@/ui/components/Profile";
 import { BarLevel, CityProfile, StatusHistory, serviceLines } from "@/ui/components/profiles/CityProfile";
 import { EntityLink } from "@/ui/components/Link";
@@ -104,22 +105,9 @@ export function LocalityProfile({ d, city }: { d: LocalityProfileData; city: Cit
     </div>
   ) : undefined;
 
-  type Company = NonNullable<CityProfileData["companies"]>["list"][number];
-  const companyColumns: Column<Company>[] = [
-    { id: "name", title: t("column.company"), value: (c) => c.name },
-    { id: "sector", title: t("column.sector"), value: (c) => t(`company.sector.${c.sector}` as Key) },
-    { id: "scale", title: t("column.scale"), value: (c) => t(`company.scale.${c.scale}` as Key) },
-  ];
   // nas aldeias não há empresas à parte: o concelho é que as tem (RZ-238)
   const companies = city?.companies && d.status !== "village" ? (
-    <div className="cartoes">
-      <Card title={t("card.companies")} wide>
-        {city.companies.list.length > 0 ? (
-          <Table id="local-empresas" simple columns={companyColumns} lines={city.companies.list} rowKey={(c) => c.id}
-            cell={{ sector: (c) => t(`company.sector.${c.sector}` as Key), scale: (c) => t(`company.scale.${c.scale}` as Key) }} />
-        ) : <p className="vazio">{t("city.noCompanies")}</p>}
-      </Card>
-    </div>
+    <div className="cartoes"><CompanyCards list={city.companies.list} full={false} /></div>
   ) : undefined;
 
   const story = (

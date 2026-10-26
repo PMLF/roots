@@ -5,6 +5,7 @@ import { Card, Data, Top } from "@/ui/components/Card";
 import { Table } from "@/ui/components/Table";
 import type { Column } from "@/ui/table/logic";
 import { Profile } from "@/ui/components/Profile";
+import { CompanyCards } from "@/ui/components/profiles/CompanyCards";
 import { CouncilBudget } from "@/ui/components/profiles/CouncilBudget";
 import { LocalTalent } from "@/ui/components/profiles/LocalTalent";
 import { EntityLink } from "@/ui/components/Link";
@@ -216,33 +217,13 @@ export function CityProfile({ d, locality }: { d: CityProfileData; locality?: Lo
     { id: "season", title: t("column.season"), value: (p) => p.season, sortValue: (p) => p.season },
     ...d.indicators.map((i): Column<CityProfileData["historyPopulation"][number]> => ({ id: i.id, title: t(`city.indicator.${i.id}` as Key), value: (p) => i.history.find((h) => h.season === p.season)?.level ?? 0 })),
   ];
-  type Company = NonNullable<CityProfileData["companies"]>["list"][number];
-  const companyColumns: Column<Company>[] = [
-    { id: "name", title: t("column.company"), value: (c) => c.name },
-    { id: "sector", title: t("column.sector"), value: (c) => t(`company.sector.${c.sector}` as Key) },
-    { id: "scale", title: t("column.scale"), value: (c) => t(`company.scale.${c.scale}` as Key) },
-    { id: "size", title: t("column.size"), value: (c) => c.size },
-    { id: "owner", title: t("column.owner"), value: (c) => c.owner?.name ?? "" },
-    { id: "sponsors", title: t("column.sponsors"), value: (c) => c.sponsors.map((x) => x.name).join(", ") },
-  ];
   const companiesTab = d.companies ? (
     <div className="cartoes">
-      <Card title={t("card.employers")}>
+      <Card title={t("card.employers")} wide>
         <Data lines={[{ label: t("city.dependence"), value: <span className="nivel-linha"><b>{t(`city.dependence.${d.companies.dependence}` as Key)}</b></span> }]} />
         <p className="suave">{t("city.dependence.hint")}</p>
       </Card>
-      <Card title={t("card.companies")} wide>
-        {d.companies.list.length > 0 ? (
-          <Table
-            id="cidade-empresas" simple columns={companyColumns} lines={d.companies.list} rowKey={(c) => c.id}
-            cell={{
-              size: (c) => <LevelCell level={c.size} word={t(`company.size.${c.size}` as Key)} />,
-              owner: (c) => (c.owner ? <EntityLink k="person" id={c.owner.id}>{c.owner.name}</EntityLink> : "—"),
-              sponsors: (c) => (c.sponsors.length > 0 ? <>{c.sponsors.map((x, i) => <span key={x.id}>{i > 0 && ", "}<EntityLink k="club" id={x.id}>{x.name}</EntityLink></span>)}</> : "—"),
-            }}
-          />
-        ) : <p className="vazio">{t("city.noCompanies")}</p>}
-      </Card>
+      <CompanyCards list={d.companies.list} />
     </div>
   ) : undefined;
   const clubs = (

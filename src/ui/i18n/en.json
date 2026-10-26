@@ -1824,5 +1824,8 @@
   "locality.statusHistory": "Status and population",
   "locality.seat": "Municipality seat",
   "locality.clubsCount": "Clubs",
-  "card.locality": "Locality"
+  "card.locality": "Locality",
+  "company.years": "In the industry for",
+  "company.yearsValue": "{n, plural, one {# year} other {# years}}",
+  "company.employees": "Employees"
 }

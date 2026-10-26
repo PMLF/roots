@@ -398,7 +398,15 @@ export type PatronView = { id: number; company: EntityRef; owner?: EntityRef; am
 export type CityCompaniesView = {
   /** Dependência do maior empregador: baixa, média ou alta. */
   dependence: "low" | "medium" | "high";
-  list: { id: string; name: string; sector: string; scale: "local" | "regional" | "national" | "international"; size: ViewCityLevel; owner?: EntityRef; sponsors: EntityRef[] }[];
+  list: {
+    id: string; name: string; sector: string; scale: "local" | "regional" | "national" | "international"; size: ViewCityLevel; owner?: EntityRef; sponsors: EntityRef[];
+    /** Cores da empresa (texto, como as dos clubes). */
+    colours: string;
+    /** Anos no setor (a empresa tem a idade que as pessoas lhe conhecem). */
+    years: number;
+    /** Empregados estimados (todos os sítios), arredondados: o número exato não é público. */
+    employees: number;
+  }[];
 };
 export type CityProfileData = {
   id: string;
