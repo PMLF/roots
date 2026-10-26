@@ -87,7 +87,7 @@ describe("notícias e caixa de entrada", () => {
     expect(cx.messages.map((m) => m.type)).toContain("resignation");
     // a demissão está por ler (se o clube estiver nas europeias, o sorteio e o apuramento também)
     expect(cx.messages.find((m) => m.type === "resignation")?.isRead).toBe(false);
-    expect(cx.messages.filter((m) => m.type !== "resignation" && !m.type.startsWith("europe_"))).toEqual([]);
+    expect(cx.messages.filter((m) => m.type !== "resignation" && m.type !== "club_offer" && !m.type.startsWith("europe_"))).toEqual([]);
   }, 60000);
 
   it("depois de demitido, a caixa só traz imprensa: nada de resultados nem lesões internas", async () => {

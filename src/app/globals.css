@@ -1246,3 +1246,10 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 .doar { margin-top: 10px; display: grid; gap: 6px; }
 .doar-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .doar-form input { width: 9rem; }
+
+/* mensagens que pedem decisão (RZ-164): estado e botões na própria mensagem */
+.noticia-decisao { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.estado-decisao { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--destaque-fundo); color: var(--destaque-texto); }
+.estado-decisao.estado-answered { background: var(--painel-2); color: var(--texto); box-shadow: inset 0 0 0 1px var(--linha); }
+.estado-decisao.estado-answered.resposta-declined { color: var(--aviso); }
+.estado-decisao.estado-expired { background: var(--painel-2); color: var(--suave); box-shadow: inset 0 0 0 1px var(--linha); }

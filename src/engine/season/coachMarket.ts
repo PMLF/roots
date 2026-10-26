@@ -39,6 +39,9 @@ export function updateOffers(repo: Repository, data: BaseData, params: Params, t
   const surprises = take(others.filter((c) => !ids.has(c.id) && c.reputation > ref && c.reputation <= ref + params.coach.surpriseMargin), params.coach.surprises);
   const offers = [...normal, ...surprises].map((c): Offer => ({ club: c.id, since: today }));
   repo.setMeta("gamer.offers", JSON.stringify(offers));
+  // cada oferta é uma mensagem na caixa de entrada com estado e botões (RZ-164)
+  const surpriseIds = new Set(surprises.map((c) => c.id));
+  for (const o of offers) repo.appendEvent({ type: "CLUB_OFFER", date: today, season: currentSeason(repo), visibility: "exposed", origin: "generated", entities: [{ k: "club", id: o.club, roleKind: "offer" }, ...(previous ? [{ k: "club" as const, id: previous, roleKind: "previous" }] : [])], data: { surprise: surpriseIds.has(o.club) } });
   return offers;
 }
 

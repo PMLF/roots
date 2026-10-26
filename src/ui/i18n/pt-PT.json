@@ -1845,5 +1845,16 @@
   "donate.reason.amount": "O donativo mínimo é {min}.",
   "donate.reason.funds": "Não tens saldo suficiente na tua conta.",
   "donate.reason.company": "Esta empresa já não existe.",
-  "donate.reason.cooldown": "Já ajudaste esta empresa há pouco tempo."
+  "donate.reason.cooldown": "Já ajudaste esta empresa há pouco tempo.",
+  "decision.pending": "Por responder",
+  "decision.pendingUntil": "Por responder até {date}",
+  "decision.accepted": "Aceite",
+  "decision.declined": "Recusada",
+  "decision.expired": "Expirada",
+  "decision.accept": "Aceitar",
+  "decision.decline": "Recusar",
+  "decision.decide": "Decidir",
+  "decision.negotiate": "Negociar",
+  "newsItem.club_offer.1.title": "{club} quer-te como treinador",
+  "newsItem.club_offer.1.body": "{league}. Podes aceitar já ou negociar salário e duração."
 }

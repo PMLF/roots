@@ -13,7 +13,7 @@ import { councilSpeech } from "@/ui/councilSpeech";
 import { profileHref, TAB_URL } from "@/ui/links";
 
 /** Uma notícia ou mensagem: título, frase de apoio e ligações para as fichas. O texto vem das chaves `newsItem.<type>.<n>.*`. */
-export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n: NewsItem; /** Botão para responder (proposta em aberto). */ action?: ReactNode; unread?: boolean; compact?: boolean; /** Na caixa de entrada: marcar como lida ou por ler. */ onToggleIsRead?: () => void }) {
+export function NewsItemView({ n, unread, compact, onToggleIsRead, action, status }: { n: NewsItem; /** Botões para responder (proposta em aberto). */ action?: ReactNode; /** Estado da mensagem que pede decisão: por responder, respondida, expirada (RZ-164). */ status?: ReactNode; unread?: boolean; compact?: boolean; /** Na caixa de entrada: marcar como lida ou por ler. */ onToggleIsRead?: () => void }) {
   const { t, locale } = useT();
   const [mine] = useOwnClub();
   const type = n.type === "outcome" ? `outcome.${n.values.outcome}` : n.type === "city_event" ? `city.${n.values.event}` : n.type;
@@ -45,7 +45,7 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n
     const clubId = n.type === "transfer_offer" || n.type === "loan_offer" || n.type === "youth_offer" || europe ? n.links.find((l) => l.k === "club")?.id : mine;
     return (
       <TallCard clubId={clubId} unread={unread} title={t(`${base}.title` as Key, values)}
-        details={<>{n.date}{n.links.filter((l) => l.k === "person").slice(0, 3).map((l) => <span key={l.id}> · <EntityLink k="person" id={l.id}>{l.name}</EntityLink></span>)}</>}
+        details={<>{n.date}{status}{n.links.filter((l) => l.k === "person").slice(0, 3).map((l) => <span key={l.id}> · <EntityLink k="person" id={l.id}>{l.name}</EntityLink></span>)}</>}
         actions={<>
           {action}
           {toSquad && <Link href="/squad/" className="ligacao-botao">{t("youth.viewSquad")}</Link>}
@@ -70,6 +70,7 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action }: { n
     <article className={`noticia${unread ? " nao-lida" : ""}${n.ofClubYour ? " do-teu-clube" : ""}${tone ? ` noticia-${tone}` : ""}`}>
       <h3>{unread && <span className="ponto" role="img" aria-label={t("inbox.unreadItem")} />}{tone && <span className={`selo-resultado ${tone}`}><Icon name={tone === "ok" ? "check" : "close"} /></span>}{swatches}{t(`${base}.title` as Key, values)}</h3>
       <p>{t(`${base}.body` as Key, values)}</p>
+      {(status || action) && <p className="noticia-decisao">{status}{action}</p>}
       {toScouting && <p><Link href="/scouting/" className="ligacao-botao">{t("scouting.viewFound")}</Link></p>}
       {toSquad && <p><Link href="/squad/" className="ligacao-botao">{t("youth.viewSquad")}</Link></p>}
       <p className="suave noticia-rodape">
