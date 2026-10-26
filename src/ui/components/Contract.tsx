@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { ClubOffer, ContractReply, ContractTerms, GamerContractView } from "@/engine/api/contracts";
+import type { ClubOffer, ContractReply, ContractTerms, GamerContractView, PersonalBankView } from "@/engine/api/contracts";
 import { useEngine } from "@/ui/EngineProvider";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -20,6 +20,7 @@ export function Contract() {
   const [years, setYears] = useState(2);
   const [answer, setAnswer] = useState<ContractReply | undefined>(undefined);
   const [busy, setBusy] = useState(false);
+  const [bank, setBank] = useState<PersonalBankView | null>(null);
   const [error, setError] = useState<string | undefined>(undefined);
   const money = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
   const day = (iso: string) => new Intl.DateTimeFormat(locale, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));
@@ -42,6 +43,8 @@ export function Contract() {
         if (!live) return;
         if (!view) { setSetup(null); return; }
         setSetup({ mode: "raise", view });
+        const b = await engine.call("personalBank", null);
+        if (live) setBank(b);
         setWage(Math.round((view.monthlyWage * 1.1) / 10) * 10);
         setYears(Math.min(view.yearsMax, Math.max(view.yearsMin, 2)));
       }
@@ -81,6 +84,18 @@ export function Contract() {
       {setup.mode === "raise" && (
         <div className="cartao">
           <p><b>{t("contract.current")}</b>: {money.format(setup.view.monthlyWage)} {t("contract.perMonth")} · {t("contract.until", { date: day(setup.view.end) })}</p>
+        </div>
+      )}
+      {setup.mode === "raise" && bank && (
+        <div className="cartao" data-testid="conta-pessoal">
+          <h2>{t("bank.title")}</h2>
+          <dl className="dados">
+            <div><dt>{t("bank.balance")}</dt><dd><b>{money.format(bank.balance)}</b></dd></div>
+            <div><dt>{t("bank.net")}</dt><dd>{money.format(bank.monthlyNet)} {t("contract.perMonth")}</dd></div>
+            <div><dt>{t("bank.living", { city: bank.city })}</dt><dd>{money.format(bank.living)} {t("contract.perMonth")}</dd></div>
+            <div><dt>{t("bank.savings")}</dt><dd><b>{money.format(bank.savings)}</b> {t("contract.perMonth")}</dd></div>
+          </dl>
+          <p className="suave">{t("bank.hint")}</p>
         </div>
       )}
       <div className="cartao contrato-form">

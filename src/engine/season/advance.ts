@@ -32,6 +32,7 @@ import { dailyOffers } from "../market/offers";
 import { dailyCouncil, councilMatchdayBoost } from "../council/requests";
 import { dailyElections } from "../council/elections";
 import { dailyPatrons } from "../company/patrons";
+import { accrueBank } from "../personal/bank";
 import { isInSecondDistrict } from "./districts";
 import { CP_FINAL_COMPETITION, generateCpFinal, generateCpFinalSemi } from "./cpFinalPhase";
 import { advanceCompetitions, hasNoTable } from "./competitions";
@@ -254,6 +255,7 @@ function advanceDay(repo: Repository, base: BaseData, params: Params, gamerClub?
         repo.appendEvent({ type: "MARKET_WINDOW", date: tomorrow, season, visibility: "exposed", origin: "generated", entities: [{ k: "club", id: gamerBase.id }], data: { state: will ? "open" : "close", name: (will ?? was)!.index === 0 ? "summer" : "winter" } });
       }
     }
+    accrueBank(repo, data, params, tomorrow);
     dailyElections(repo, data, params, gamerBase, tomorrow, season);
     if (gamerBase) { dailyBids(repo, data, params, gamerBase, tomorrow, season); dailyOffers(repo, data, params, gamerBase, tomorrow, season); dailyCouncil(repo, data, params, gamerBase, tomorrow, season); dailyPatrons(repo, params, gamerBase, tomorrow, season); }
     // olheiros do gamer: fecham as observações e pesquisas que chegaram ao fim (RZ-230)

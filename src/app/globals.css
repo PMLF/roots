@@ -1241,6 +1241,8 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 /* Empresas em cartões (RZ-240): cores ao lado do nome, como nos clubes */
 .empresa-nome { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .amostra-empresa { width: 22px; height: 14px; margin: 0; border-radius: 3px; }
-/* a última linha estica-se: nunca fica um buraco à direita */
-.empresas { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 14px; }
-.empresas > .cartao { flex: 1 1 290px; }
+/* listagem: todos os cartões têm a mesma largura (a última linha não estica) */
+.empresas { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; align-items: stretch; }
+.doar { margin-top: 10px; display: grid; gap: 6px; }
+.doar-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.doar-form input { width: 9rem; }
