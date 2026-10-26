@@ -38,7 +38,7 @@ O jogo corre no browser, sem conta nem servidor. Fica tudo guardado no teu naveg
 
 ## Correr o projeto
 
-Precisas de Node 22 ou superior e pnpm.
+Precisas de Node 24 (LTS, ver `.nvmrc`) ou superior e pnpm.
 
 ```bash
 pnpm install
