@@ -298,6 +298,14 @@ export type Params = {
     /** Saldo da conta no arranque. */
     startBalance: number;
     living: { base: number; /** Quanto sobe o custo por cada ordem de grandeza de população acima de 15 000. */ sizeFactor: number; /** Quanto sobe com a habitação pouco acessível. */ housingFactor: number };
+    /** Casa própria (raízes na terra): preço em meses de custo de vida e quanto desce o custo de vida depois de comprada. */
+    home: { priceMonths: number; livingDiscount: number };
+    /** Cursos de treinador (3 níveis, um de cada vez): custo e duração em dias. */
+    course: { cost: number[]; days: number[] };
+    /** Apoio a causas da cidade: pontos de serviço por cada euro doado por habitante (por mil), teto por ano e mínimo; relação com o autarca por 1000 € (com teto). */
+    cause: { min: number; pointsPer: number; maxPointsPerYear: number; relationPerThousand: number; maxRelation: number };
+    /** Ajuda ao clube em dificuldades: mínimo e quanto do ressentimento do presidente desaparece por cada ano do ordenado de referência doado. */
+    help: { min: number; grudgeReliefPerYearOfWage: number };
     donation: { min: number; /** Quanto do valor doado vira capital da empresa. */ efficiency: number; /** Máximo de capital que um donativo acrescenta (fração do que a empresa já tem). */ maxShare: number; cooldownDays: number };
   };
   coach: {
@@ -313,7 +321,7 @@ export type Params = {
       wageFactor: number; repExponent: number;
       yearsMin: number; yearsMax: number; defaultYears: number;
       /** Máximo (em múltiplos do salário de referência) que o presidente aceita: base + confiança + resultados + finanças + traços − ressentimento. */
-      accept: { base: number; trust: number; results: number; finances: number; loyalty: number; greed: number; min: number; max: number };
+      accept: { base: number; trust: number; results: number; finances: number; loyalty: number; greed: number; /** Casa própria na cidade do clube. */ roots: number; /** Por nível de curso de treinador. */ course: number; min: number; max: number };
       /** Dias no clube para a confiança chegar ao máximo. */
       trustDays: number;
       /** Acima do máximo mas dentro desta folga, o presidente contrapropõe; acima, recusa. */
@@ -1040,13 +1048,17 @@ export const DEFAULT_PARAMETERS: Params = {
   personal: {
     netShare: 0.74, startBalance: 2500,
     living: { base: 950, sizeFactor: 0.25, housingFactor: 0.2 },
+    home: { priceMonths: 60, livingDiscount: 0.3 },
+    course: { cost: [1500, 4000, 9000], days: [60, 120, 180] },
+    cause: { min: 200, pointsPer: 0.15, maxPointsPerYear: 5, relationPerThousand: 1.5, maxRelation: 6 },
+    help: { min: 500, grudgeReliefPerYearOfWage: 0.5 },
     donation: { min: 100, efficiency: 0.8, maxShare: 1, cooldownDays: 60 },
   },
   coach: {
     offers: 3, surprises: 1, surpriseMargin: 600,
     contract: {
       wageFactor: 2.5, repExponent: 0.8, yearsMin: 1, yearsMax: 3, defaultYears: 2,
-      accept: { base: 1.0, trust: 0.15, results: 0.25, finances: 0.15, loyalty: 0.1, greed: 0.15, min: 0.7, max: 1.8 },
+      accept: { base: 1.0, trust: 0.15, results: 0.25, finances: 0.15, loyalty: 0.1, greed: 0.15, roots: 0.06, course: 0.04, min: 0.7, max: 1.8 },
       trustDays: 365, counterSlack: 1.35, grudgeStep: 0.08, grudgeDecayPerMonth: 0.02,
       raiseCooldownDays: 120, raiseMinTenureDays: 90,
     },

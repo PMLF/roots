@@ -1253,3 +1253,7 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 .estado-decisao.estado-answered { background: var(--painel-2); color: var(--texto); box-shadow: inset 0 0 0 1px var(--linha); }
 .estado-decisao.estado-answered.resposta-declined { color: var(--aviso); }
 .estado-decisao.estado-expired { background: var(--painel-2); color: var(--suave); box-shadow: inset 0 0 0 1px var(--linha); }
+
+.lista-simples { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.lista-simples li { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.cartao label { display: grid; gap: 4px; margin-bottom: 8px; }

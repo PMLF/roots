@@ -33,6 +33,8 @@ import { readLiveMatch, type LiveMatch, type LivePlayer } from "../season/liveMa
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
 import { acceptOffer, resign, isUnemployed, gamerOffers } from "../season/coachMarket";
+import { buyHome, causeOffsets, courseLevel, courseTraining, helpClub, homePrice, ownsHome, startCourse, supportCause } from "../personal/spending";
+import { CITY_SERVICES } from "../config/parameters";
 import { decisionStates } from "../news/decisions";
 import { bankOf, donate, livingCost, monthlySavings } from "../personal/bank";
 import { askRaise, contractOf, negotiateOffer, referenceWage, signHired, signInitial } from "../season/gamerContract";
@@ -613,6 +615,47 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         balance: bankOf(repository, params, today).balance, monthlyNet: Math.round(wage * params.personal.netShare), living,
         savings: monthlySavings(wage, living, params), city: city?.name ?? club.city, employed: wage > 0, minDonation: params.personal.donation.min,
       };
+    }
+    case "personalSpending": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((c) => c.id === repository.meta("gamer.club"));
+      if (!club) return null;
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      const city = data.cities.find((c) => c.id === club.city);
+      const cfg = params.personal;
+      const level = courseLevel(repository, today);
+      const training = courseTraining(repository, today);
+      const offsets = causeOffsets(repository, club.city);
+      return {
+        balance: bankOf(repository, params, today).balance, city: { k: "city" as const, id: club.city, name: city?.name ?? club.city }, club: club.name,
+        home: { owned: ownsHome(repository, club.city), price: homePrice(repository, data, params, club.city), discountPct: Math.round(cfg.home.livingDiscount * 100) },
+        course: { level, max: cfg.course.cost.length, ...(training ? { training } : {}), ...(level < cfg.course.cost.length ? { next: { level: level + 1, cost: cfg.course.cost[level]!, days: cfg.course.days[level]! } } : {}) },
+        causes: CITY_SERVICES.map((service) => ({ service, points: Math.round((offsets[service] ?? 0) * 10) / 10 })),
+        minCause: cfg.cause.min, maxCausePoints: cfg.cause.maxPointsPerYear, minHelp: cfg.help.min,
+      };
+    }
+    case "buyHome": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((c) => c.id === repository.meta("gamer.club"));
+      return club ? buyHome(repository, data, params, (repository.meta("date.today") ?? "") as IsoDate, club.city) : { ok: false, reason: "club" };
+    }
+    case "startCourse": {
+      const { repository, params } = await context(servicos);
+      const r = startCourse(repository, params, (repository.meta("date.today") ?? "") as IsoDate);
+      return r.ok ? { ok: true, balance: r.balance } : r;
+    }
+    case "supportCause": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((c) => c.id === repository.meta("gamer.club"));
+      if (!club) return { ok: false, reason: "club" };
+      const r = supportCause(repository, data, params, (repository.meta("date.today") ?? "") as IsoDate, club.city, m.input.service, m.input.amount);
+      return r.ok ? { ok: true, balance: r.balance } : r;
+    }
+    case "helpClub": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((c) => c.id === repository.meta("gamer.club"));
+      if (!club) return { ok: false, reason: "club" };
+      return helpClub(repository, params, (repository.meta("date.today") ?? "") as IsoDate, club, referenceWage(club, params), m.input.amount);
     }
     case "donate": {
       const { repository, params } = await context(servicos);
