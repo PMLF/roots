@@ -45,7 +45,7 @@ import { clubDivisions } from "../history/clubDivisions";
 import { planView } from "../season/planView";
 import { confirmMatch, savePlan } from "../season/gamePlan";
 import { INJURY_EVENT } from "../injuries/state";
-import { cityProfile } from "../city/profile";
+import { cityProfile, seatOf } from "../city/profile";
 import { competitionPage } from "../competition/profile";
 import { cupView, nationalCups, districtCups, clubCompetitions } from "../competition/cup";
 import { europeView } from "../europe/view";
@@ -317,6 +317,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const output: LocalityProfileData = {
         id: base.id, name: base.name, status: current.status, population: current.population, since: current.since, host: base.host,
         city: { k: "city", id: base.city, name: city?.name ?? base.city }, district: base.district,
+        seat: seatOf(data, base.city, base),
         clubs: base.clubs.flatMap((id) => {
           const c = data.clubs.find((x) => x.id === id);
           return c ? [{ k: "club" as const, id: c.id, name: c.name, league: c.league }] : [];

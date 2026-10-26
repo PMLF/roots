@@ -1817,5 +1817,12 @@
   "person.asking": "Preço pedido pelo clube",
   "person.asking.important": "é importante na equipa",
   "person.asking.form": "está em boa forma",
-  "squad.valueHint": "Estimativa do valor de mercado"
+  "squad.valueHint": "Estimativa do valor de mercado",
+  "locality.councilOf": "Câmara de {name}",
+  "locality.seeCouncil": "Ver a Câmara em {name}",
+  "locality.servicesOf": "Serviços do concelho de {name}",
+  "locality.statusHistory": "Estatuto e população",
+  "locality.seat": "Sede do concelho",
+  "locality.clubsCount": "Clubes",
+  "card.locality": "Localidade"
 }

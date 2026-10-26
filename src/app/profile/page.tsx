@@ -1,8 +1,7 @@
 "use client";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import type { ClubProfileData, CompetitionPage, CupView, EuropeView, CityProfileData, LocalityProfileData, PersonProfileData } from "@/engine/api/contracts";
-import { CityProfile } from "@/ui/components/profiles/CityProfile";
 import { ClubProfile } from "@/ui/components/profiles/ClubProfile";
 import { CupProfile } from "@/ui/components/profiles/CupProfile";
 import { EuropeProfile } from "@/ui/components/profiles/EuropeProfile";
@@ -10,7 +9,7 @@ import { CompetitionProfile } from "@/ui/components/profiles/CompetitionProfile"
 import { LocalityProfile } from "@/ui/components/profiles/LocalityProfile";
 import { PersonProfile } from "@/ui/components/profiles/PersonProfile";
 import { useT } from "@/ui/i18n/LocaleProvider";
-import { readProfile } from "@/ui/links";
+import { profileHref, readProfile } from "@/ui/links";
 import { useSeeAll } from "@/ui/dev";
 import { useEngine } from "@/ui/EngineProvider";
 
@@ -20,8 +19,7 @@ type State =
   | { phase: "error"; error: string }
   | { phase: "club"; d: ClubProfileData }
   | { phase: "person"; d: PersonProfileData }
-  | { phase: "locality"; d: LocalityProfileData }
-  | { phase: "city"; d: CityProfileData }
+  | { phase: "locality"; d: LocalityProfileData; city: CityProfileData | null }
   | { phase: "competition"; d: CompetitionPage }
   | { phase: "cup"; d: CupView }
   | { phase: "europe"; d: EuropeView };
@@ -29,7 +27,10 @@ type State =
 function Content() {
   const { t } = useT();
   const engine = useEngine();
-  const target = readProfile(useSearchParams());
+  const params = useSearchParams();
+  const router = useRouter();
+  const target = readProfile(params);
+  const tabParam = params.get("tab");
   const [state, setState] = useState<State>({ phase: "loading" });
   const [seeAll] = useSeeAll();
   const k = target?.k;
@@ -49,10 +50,13 @@ function Content() {
           if (live) setState(d ? { phase: "person", d } : { phase: "not-found" });
         } else if (k === "locality") {
           const d = await engine.call("localityProfile", { id });
-          if (live) setState(d ? { phase: "locality", d } : { phase: "not-found" });
+          const city = d ? await engine.call("cityProfile", { id: d.city.id }) : null;
+          if (live) setState(d ? { phase: "locality", d, city } : { phase: "not-found" });
         } else if (k === "city") {
+          // uma só página de lugar (RZ-238): o concelho abre a ficha da sua sede, mantendo o separador
           const d = await engine.call("cityProfile", { id });
-          if (live) setState(d ? { phase: "city", d } : { phase: "not-found" });
+          if (d) router.replace(`${profileHref("locality", d.seat.id)}${tabParam ? `&tab=${encodeURIComponent(tabParam)}` : ""}`);
+          else if (live) setState({ phase: "not-found" });
         } else if (k === "competition") {
           const d = await engine.call("competitionPage", { league: id });
           if (d) { if (live) setState({ phase: "competition", d }); }
@@ -70,7 +74,7 @@ function Content() {
       }
     })();
     return () => { live = false; };
-  }, [engine, k, id, seeAll]);
+  }, [engine, k, id, seeAll, router, tabParam]);
 
   if (!target) return <p className="erro">{t("profile.invalida")}</p>;
   switch (state.phase) {
@@ -79,8 +83,7 @@ function Content() {
     case "error": return <p className="erro">{state.error}</p>;
     case "club": return <ClubProfile d={state.d} seeAll={seeAll} />;
     case "person": return <PersonProfile d={state.d} seeAll={seeAll} />;
-    case "locality": return <LocalityProfile d={state.d} />;
-    case "city": return <CityProfile d={state.d} />;
+    case "locality": return <LocalityProfile d={state.d} city={state.city} />;
     case "competition": return <CompetitionProfile d={state.d} />;
     case "cup": return <CupProfile d={state.d} />;
     case "europe": return <EuropeProfile d={state.d} />;

@@ -1,5 +1,5 @@
 "use client";
-import type { CityProfileData, ViewCityLevel } from "@/engine/api/contracts";
+import type { CityProfileData, LocalityProfileData, ViewCityLevel } from "@/engine/api/contracts";
 import { Chip } from "@/ui/components/Attributes";
 import { Card, Data, Top } from "@/ui/components/Card";
 import { Table } from "@/ui/components/Table";
@@ -26,6 +26,19 @@ function LevelCell({ level, word }: { level: ViewCityLevel; word: string }) {
 
 /** Serviços: seta forte (↑ ↓), fraca (↗ ↘) ou traço quando estável. */
 export const SERVICE_ARROW = { up2: "↑", up1: "↗", stable: "–", down1: "↘", down2: "↓" } as const;
+
+/** Mudanças de estatuto de uma localidade (aldeia, vila, cidade) com a população de cada momento. */
+export function StatusHistory({ d }: { d: LocalityProfileData }) {
+  const { t, locale } = useT();
+  const n = new Intl.NumberFormat(locale);
+  const rows = d.history.length > 0 ? d.history.map((h) => ({ date: h.date, status: h.to, population: h.population })) : [{ date: d.since, status: d.status, population: d.population }];
+  return (
+    <table className="tabela">
+      <thead><tr><th>{t("career.date")}</th><th>{t("locality.status")}</th><th className="within">{t("locality.population")}</th></tr></thead>
+      <tbody>{rows.map((h) => <tr key={h.date}><td>{h.date}</td><td>{t(`status.${h.status}` as Key)}</td><td className="num">{n.format(h.population)}</td></tr>)}</tbody>
+    </table>
+  );
+}
 
 /** Evolução de um número ao longo das épocas (linha simples, sem eixos). */
 function ChartPopulation({ points }: { points: { label: string; population: number }[] }) {
@@ -59,8 +72,30 @@ function ChartPopulation({ points }: { points: { label: string; population: numb
   );
 }
 
-/** Ficha de uma cidade (concelho; RZ-133): números em palavras, autarca, clubes e acontecimentos. Só o que é público. */
-export function CityProfile({ d }: { d: CityProfileData }) {
+/** Linhas de um serviço do concelho: barra, palavra, seta de tendência e a causa recente, se houver. */
+export function serviceLines(d: Pick<CityProfileData, "services">, t: ReturnType<typeof useT>["t"]) {
+  const level = (v: ViewCityLevel) => t(`city.level.${v}` as Key);
+  return d.services.map((s) => ({
+    label: t(`city.service.${s.id}` as Key),
+    value: (
+      <span className="nivel-linha">
+        <BarLevel level={s.level} />
+        <b>{level(s.level)}</b>
+        <span className={`tendencia tendencia-${s.trend.startsWith("up") ? "rises" : s.trend.startsWith("down") ? "drops" : "stable"}`} title={t(`city.serviceTrend.${s.trend}` as Key)}>
+          <span aria-hidden="true">{SERVICE_ARROW[s.trend]}</span>
+          <span className="so-leitor">{t(`city.serviceTrend.${s.trend}` as Key)}</span>
+        </span>
+        {s.cause && <span className="suave">{t(`city.incident.${s.cause.type}` as Key)} · {s.cause.label}</span>}
+      </span>
+    ),
+  }));
+}
+
+/**
+ * Conteúdo do concelho (RZ-133) na ficha da sede (RZ-238): números em palavras, autarca, clubes, serviços, Câmara e acontecimentos.
+ * Só o que é público. Com `locality`, o cabeçalho e a história são os da localidade-sede.
+ */
+export function CityProfile({ d, locality }: { d: CityProfileData; locality?: LocalityProfileData }) {
   const { t, locale } = useT();
   const n = new Intl.NumberFormat(locale);
   const level = (v: ViewCityLevel) => t(`city.level.${v}` as Key);
@@ -81,20 +116,6 @@ export function CityProfile({ d }: { d: CityProfileData }) {
       ),
     };
   };
-  const serviceLine = (s: CityProfileData["services"][number]) => ({
-    label: t(`city.service.${s.id}` as Key),
-    value: (
-      <span className="nivel-linha">
-        <BarLevel level={s.level} />
-        <b>{level(s.level)}</b>
-        <span className={`tendencia tendencia-${s.trend.startsWith("up") ? "rises" : s.trend.startsWith("down") ? "drops" : "stable"}`} title={t(`city.serviceTrend.${s.trend}` as Key)}>
-          <span aria-hidden="true">{SERVICE_ARROW[s.trend]}</span>
-          <span className="so-leitor">{t(`city.serviceTrend.${s.trend}` as Key)}</span>
-        </span>
-        {s.cause && <span className="suave">{t(`city.incident.${s.cause.type}` as Key)} · {s.cause.label}</span>}
-      </span>
-    ),
-  });
   const sectorName = (c: string) => t(`sector.${c}` as Key);
   const sectors = [d.sector, d.secondarySector].filter((s, i, a) => s !== "" && a.indexOf(s) === i);
   const incident = (a: CityProfileData["incidents"][number]) => (
@@ -106,7 +127,8 @@ export function CityProfile({ d }: { d: CityProfileData }) {
 
   const labels = (
     <>
-      <Chip tone="destaque">{sectorName(d.sector)}</Chip>
+      {locality && <Chip tone="destaque">{t(`status.${locality.status}` as Key)}</Chip>}
+      <Chip tone={locality ? "suave" : "destaque"}>{sectorName(d.sector)}</Chip>
       <Chip tone="suave">{d.district}</Chip>
       {d.hub && <Chip tone="suave">{d.hub}</Chip>}
       {d.island && <Chip tone="suave">{sectorName("ILH")}</Chip>}
@@ -115,7 +137,8 @@ export function CityProfile({ d }: { d: CityProfileData }) {
   const identity = (
     <Data
       lines={[
-        { label: t("city.population"), value: n.format(d.population) },
+        { label: t("city.population"), value: n.format(locality ? locality.population : d.population) },
+        ...(locality ? [{ label: t("locality.municipality"), value: <>{d.name} <span className="suave">({n.format(d.population)})</span></> }] : []),
         { label: t("city.sector"), value: sectors.map(sectorName).join(" · ") },
         { label: t("city.district"), value: d.district },
         ...(d.hub ? [{ label: t("city.region"), value: d.hub }] : []),
@@ -171,7 +194,7 @@ export function CityProfile({ d }: { d: CityProfileData }) {
   const servicesTab = (
     <div className="cartoes">
       <Card title={t("card.cityServices")} wide>
-        <Data lines={d.services.map(serviceLine)} />
+        <Data lines={serviceLines(d, t)} />
       </Card>
       <Card title={t("city.servicesHistory")} wide>
         <Table
@@ -250,6 +273,7 @@ export function CityProfile({ d }: { d: CityProfileData }) {
 
   const story = (
     <div className="cartoes">
+      {locality && <Card title={t("locality.statusHistory")} wide><StatusHistory d={locality} /></Card>}
       <Card title={t("city.populationHistory")} wide>
         <ChartPopulation points={d.historyPopulation} />
       </Card>
@@ -262,5 +286,5 @@ export function CityProfile({ d }: { d: CityProfileData }) {
     </div>
   );
 
-  return <Profile type="city" title={d.name} top={<Top title={d.name} labels={labels} card={identity} />} tabs={{ summary, clubs, services: servicesTab, ...(companiesTab ? { companies: companiesTab } : {}), council: councilTab, talent: <LocalTalent city={d.id} />, story }} />;
+  return <Profile type="locality" title={locality?.name ?? d.name} top={<Top title={locality?.name ?? d.name} labels={labels} card={identity} />} tabs={{ summary, clubs, services: servicesTab, ...(companiesTab ? { companies: companiesTab } : {}), council: councilTab, talent: <LocalTalent city={d.id} />, story }} />;
 }

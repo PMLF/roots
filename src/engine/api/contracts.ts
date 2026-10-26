@@ -345,6 +345,8 @@ export type LocalityProfileData = {
   since: string;
   host: boolean;
   city: EntityRef;
+  /** A sede do concelho (a localidade que é a «cidade» do concelho; RZ-238). */
+  seat: EntityRef;
   district: string;
   clubs: (EntityRef & { league: string })[];
   /** Mudanças de estatuto, da mais recente para a mais antiga. */
@@ -438,6 +440,8 @@ export type CityProfileData = {
   /** Empresas do concelho (RZ-235); falta enquanto o mundo não as tem. */
   companies?: CityCompaniesView;
   localities: { ref: EntityRef; status: LocalityStatus; population: number }[];
+  /** A sede do concelho: `type=city` redireciona para a ficha desta localidade (RZ-238). */
+  seat: EntityRef;
   clubs: { ref: EntityRef; league: string; tier: string; stadium: { name: string; capacity: number; ownership: "club" | "municipal" | "shared" } }[];
   /** Acontecimentos que marcaram a cidade, do mais recente para o mais antigo. */
   incidents: { date: string; season: number; label: string; type: string; regional: boolean; hub?: string }[];
