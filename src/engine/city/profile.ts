@@ -1,5 +1,5 @@
 /** Ficha pública de uma cidade (RZ-133): converte o estado verdadeiro em níveis em palavras e tendências. */
-import type { CityCompaniesView, CityProfileData, ViewCityLevel, ViewCouncil } from "../api/contracts";
+import type { CityCompaniesView, CityProfileData, EntityRef, ViewCityLevel, ViewCouncil } from "../api/contracts";
 import type { Params } from "../config/parameters";
 import type { BaseData } from "../data/types";
 import { seasonName } from "../calendar/seasonName";
@@ -24,6 +24,13 @@ const quintile = (value: number, all: readonly number[]): ViewCityLevel => {
   const below = all.filter((x) => x < value).length;
   return (Math.min(4, Math.floor((below / Math.max(1, all.length)) * 5)) + 1) as ViewCityLevel;
 };
+
+/** A sede do concelho: a localidade com `host`; se faltar, a mais populosa (RZ-238). */
+export function seatOf(data: BaseData, city: string, fallback?: { id: string; name: string }): EntityRef {
+  const own = data.localities.filter((l) => l.city === city);
+  const seat = own.find((l) => l.host) ?? [...own].sort((a, b) => b.population - a.population)[0] ?? fallback;
+  return { k: "locality", id: seat?.id ?? city, name: seat?.name ?? city };
+}
 
 export function cityProfile(repo: Repository, data: BaseData, base: BaseData, params: Params, view: View, id: string): CityProfileData | null {
   const c = base.cities.find((x) => x.id === id);
@@ -52,6 +59,7 @@ export function cityProfile(repo: Repository, data: BaseData, base: BaseData, pa
   return {
     id: c.id, name: c.name, district: c.district, hub: c.hub, island: c.island, sector: c.sector, secondarySector: c.tag2,
     population: now.state.population,
+    seat: seatOf(base, id),
     historyPopulation: history.map((h) => ({ season: h.season, label: label(h.season), population: h.state.population })),
     indicators: INDICATORS.map((i) => ({
       id: i,

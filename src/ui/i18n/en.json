@@ -1817,5 +1817,12 @@
   "person.asking": "Club's asking price",
   "person.asking.important": "important to the team",
   "person.asking.form": "in good form",
-  "squad.valueHint": "Estimated market value"
+  "squad.valueHint": "Estimated market value",
+  "locality.councilOf": "{name} council",
+  "locality.seeCouncil": "See the council in {name}",
+  "locality.servicesOf": "Services of the municipality of {name}",
+  "locality.statusHistory": "Status and population",
+  "locality.seat": "Municipality seat",
+  "locality.clubsCount": "Clubs",
+  "card.locality": "Locality"
 }
