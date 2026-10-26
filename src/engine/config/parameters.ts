@@ -291,6 +291,15 @@ export type Params = {
   /** Jogos a eliminar: se acabam empatados, decide-se nos penáltis (série inicial de `iniciais` cobranças por equipa, depois morte súbita). */
   knockoutRounds: { penalties: { initial: number; goalProb: number; /** Probabilidade a mais por ponto de «penalties» do marcador acima de 10. */ takerSkill: number; /** Probabilidade a menos por ponto médio (reflexos, mãos) do guarda-redes acima de 10. */ keeperSkill: number } };
   /** Mercado de treinadores (RZ-157): ofertas que o gamer recebe sem clube, renovadas todas as segundas-feiras. */
+  /** Finanças pessoais do gamer (RZ-162): custo de vida, conta bancária e donativos. */
+  personal: {
+    /** Parte do ordenado bruto que fica depois de impostos e descontos. */
+    netShare: number;
+    /** Saldo da conta no arranque. */
+    startBalance: number;
+    living: { base: number; /** Quanto sobe o custo por cada ordem de grandeza de população acima de 15 000. */ sizeFactor: number; /** Quanto sobe com a habitação pouco acessível. */ housingFactor: number };
+    donation: { min: number; /** Quanto do valor doado vira capital da empresa. */ efficiency: number; /** Máximo de capital que um donativo acrescenta (fração do que a empresa já tem). */ maxShare: number; cooldownDays: number };
+  };
   coach: {
     /** Ofertas de clubes de reputação igual ou inferior à do clube que deixou. */
     offers: number;
@@ -1028,6 +1037,11 @@ export const DEFAULT_PARAMETERS: Params = {
   },
   fairPlay: { levels: 5, fallback: 3 },
   knockoutRounds: { penalties: { initial: 5, goalProb: 0.76, takerSkill: 0.012, keeperSkill: 0.008 } },
+  personal: {
+    netShare: 0.74, startBalance: 2500,
+    living: { base: 950, sizeFactor: 0.25, housingFactor: 0.2 },
+    donation: { min: 100, efficiency: 0.8, maxShare: 1, cooldownDays: 60 },
+  },
   coach: {
     offers: 3, surprises: 1, surpriseMargin: 600,
     contract: {

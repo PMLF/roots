@@ -33,6 +33,7 @@ import { readLiveMatch, type LiveMatch, type LivePlayer } from "../season/liveMa
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
 import { acceptOffer, resign, isUnemployed, gamerOffers } from "../season/coachMarket";
+import { bankOf, donate, livingCost, monthlySavings } from "../personal/bank";
 import { askRaise, contractOf, negotiateOffer, referenceWage, signHired, signInitial } from "../season/gamerContract";
 import { advance, timeState } from "../season/advance";
 import { saveParameters, seasonYearContaining, saveInitialYear, seasonName } from "../season/saveYear";
@@ -595,6 +596,28 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         if (r.result === "accepted") { acceptOffer(repository, m.input.id); signHired(repository, m.input.id, today, r.terms); }
       });
       return r;
+    }
+    case "personalBank": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((c) => c.id === repository.meta("gamer.club"));
+      const contract = contractOf(repository);
+      if (!club) return null;
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      const living = livingCost(repository, data, params, club.city);
+      const wage = contract && contract.club === club.id ? contract.monthlyWage : 0;
+      const city = data.cities.find((c) => c.id === club.city);
+      return {
+        balance: bankOf(repository, params, today).balance, monthlyNet: Math.round(wage * params.personal.netShare), living,
+        savings: monthlySavings(wage, living, params), city: city?.name ?? club.city, employed: wage > 0, minDonation: params.personal.donation.min,
+      };
+    }
+    case "donate": {
+      const { repository, params } = await context(servicos);
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      const r = donate(repository, params, today, m.input.company, m.input.amount);
+      if (!r.ok) return r;
+      const effect = r.boost < 0.005 ? "negligible" : r.boost < 0.05 ? "small" : r.boost < 0.25 ? "noticeable" : "decisive";
+      return { ok: true, balance: r.balance, effect };
     }
     case "askRaise": {
       const { repository, data, params } = await context(servicos);

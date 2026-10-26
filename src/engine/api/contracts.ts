@@ -189,6 +189,9 @@ export type ContractReply =
   | { result: "refused"; reason: ContractReason };
 export type GamerContractView = { club: string; clubName: string; monthlyWage: number; start: string; end: string; reference: number; yearsMin: number; yearsMax: number; canAsk: boolean; askFrom?: string };
 
+export type PersonalBankView = { balance: number; monthlyNet: number; living: number; savings: number; city: string; employed: boolean; minDonation: number };
+export type DonationOutcome = { ok: true; balance: number; effect: "negligible" | "small" | "noticeable" | "decisive" } | { ok: false; reason: "amount" | "funds" | "company" | "cooldown" };
+
 /** Uma passagem pela carreira de um jogador (eventos públicos de contratos e transferências). */
 export type CareerLine = { id: number; date: string; season: number; kind: "transfer" | "signed" | "renewed" | "released" | "retired" | "loan" | "loanEnd" | "current"; club?: EntityRef; from?: EntityRef; fee?: number };
 
@@ -576,6 +579,10 @@ export type EngineRequests = {
   acceptOffer: { input: { id: string }; output: { id: string } };
   /** Contrato atual do gamer (null em saves sem contrato). */
   gamerContract: { input: null; output: GamerContractView | null };
+  /** Conta pessoal do gamer (RZ-162): saldo, ordenado líquido, custo de vida da cidade e quanto sobra por mês. */
+  personalBank: { input: null; output: PersonalBankView | null };
+  /** Doação pessoal a uma empresa (sai da conta do gamer, nunca do clube). */
+  donate: { input: { company: string; amount: number }; output: DonationOutcome };
   /** Propor salário e duração a um clube que fez oferta; se o presidente aceita, o gamer fica contratado. */
   negotiateOffer: { input: { id: string; terms: ContractTerms }; output: ContractReply };
   /** Pedir um aumento no clube atual. */
