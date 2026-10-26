@@ -1237,3 +1237,10 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
   .popup.intervalo-jogo { padding: 16px 14px; max-height: calc(100dvh - 24px); }
   .popup.intervalo-jogo .acoes { position: sticky; bottom: -16px; margin: 0; padding: 10px 0 2px; background: var(--painel); }
 }
+
+/* Empresas em cartões (RZ-240): cores ao lado do nome, como nos clubes */
+.empresa-nome { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.amostra-empresa { width: 22px; height: 14px; margin: 0; border-radius: 3px; }
+/* a última linha estica-se: nunca fica um buraco à direita */
+.empresas { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 14px; }
+.empresas > .cartao { flex: 1 1 290px; }

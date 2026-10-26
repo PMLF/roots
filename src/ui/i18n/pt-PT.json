@@ -1824,5 +1824,8 @@
   "locality.statusHistory": "Estatuto e população",
   "locality.seat": "Sede do concelho",
   "locality.clubsCount": "Clubes",
-  "card.locality": "Localidade"
+  "card.locality": "Localidade",
+  "company.years": "No setor há",
+  "company.yearsValue": "{n, plural, one {# ano} other {# anos}}",
+  "company.employees": "Empregados"
 }
