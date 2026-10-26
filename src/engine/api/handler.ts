@@ -33,6 +33,7 @@ import { readLiveMatch, type LiveMatch, type LivePlayer } from "../season/liveMa
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
 import { acceptOffer, resign, isUnemployed, gamerOffers } from "../season/coachMarket";
+import { decisionStates } from "../news/decisions";
 import { bankOf, donate, livingCost, monthlySavings } from "../personal/bank";
 import { askRaise, contractOf, negotiateOffer, referenceWage, signHired, signInitial } from "../season/gamerContract";
 import { advance, timeState } from "../season/advance";
@@ -491,6 +492,8 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const view = again ? offerViewOf(repository, data, params, again) : undefined;
       return { ok: true, status: r.status, ...(view ? { offer: view } : {}) };
     }
+    case "inboxDecisions":
+      return decisionStates((await context(servicos)).repository);
     case "patrons": {
       const { repository } = await context(servicos);
       return pendingPatrons(repository).map((o) => ({

@@ -1845,5 +1845,16 @@
   "donate.reason.amount": "The minimum donation is {min}.",
   "donate.reason.funds": "You don't have enough in your account.",
   "donate.reason.company": "This company no longer exists.",
-  "donate.reason.cooldown": "You helped this company recently."
+  "donate.reason.cooldown": "You helped this company recently.",
+  "decision.pending": "Waiting for your answer",
+  "decision.pendingUntil": "Waiting for your answer until {date}",
+  "decision.accepted": "Accepted",
+  "decision.declined": "Declined",
+  "decision.expired": "Expired",
+  "decision.accept": "Accept",
+  "decision.decline": "Decline",
+  "decision.decide": "Decide",
+  "decision.negotiate": "Negotiate",
+  "newsItem.club_offer.1.title": "{club} want you as their coach",
+  "newsItem.club_offer.1.body": "{league}. Accept now or negotiate salary and length."
 }

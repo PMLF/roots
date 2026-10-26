@@ -8,6 +8,7 @@ import type { RecentMatch } from "../competition/recent";
 import type { SummaryCompetition, LabMatch, LabLeague } from "../lab/lab";
 import type { ClubSeason } from "../competition/clubSeason";
 import type { FormationId, Tactic } from "../match/types";
+import type { Decision } from "../news/decisions";
 import type { NewsScope, Message as InboxMessage, NewsItem } from "../news/news";
 import type { LiveMatch } from "../season/liveMatch";
 import type { TimeState, Mode, AdvanceResult } from "../season/advance";
@@ -555,6 +556,8 @@ export type EngineRequests = {
   /** Notícias do clube do gamer, da liga dele ou do mundo (RZ-118), mais recentes primeiro. */
   news: { input: { scope: NewsScope; limit?: number; beforeOf?: number }; output: NewsItem[] };
   /** Caixa de entrada do gamer: o que se passa com o clube e com ele. */
+  /** Estado das mensagens que pedem decisão (pendente, respondida, expirada), por id da mensagem (RZ-164). */
+  inboxDecisions: { input: null; output: Record<number, Decision> };
   inbox: { input: { limit?: number; beforeOf?: number }; output: { messages: InboxMessage[]; unread: number } };
   markInboxRead: { input: null; output: null };
   /** Título do clube do gamer por celebrar (liga decidida matematicamente, taça ou supertaça ganhas), se houver. */
