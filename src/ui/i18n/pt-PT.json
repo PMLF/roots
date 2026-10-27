@@ -1838,7 +1838,6 @@
   "donate.open": "Doar",
   "donate.amount": "Valor do donativo",
   "donate.confirm": "Doar",
-  "donate.cancel": "Cancelar",
   "donate.effect.negligible": "O donativo agradece-se, mas para esta empresa quase não se nota.",
   "donate.effect.small": "Um reforço pequeno, mas útil.",
   "donate.effect.noticeable": "A empresa sente a diferença: ganha folga para crescer.",
@@ -1886,5 +1885,7 @@
   "personal.help.title": "Ajudar o clube",
   "personal.help.hint": "Põe dinheiro teu na tesouraria do clube (mínimo {min}). O presidente perdoa parte do ressentimento por contratos recusados.",
   "personal.help.give": "Dar ao clube",
-  "personal.link": "O que fazer com o dinheiro"
+  "personal.link": "O que fazer com o dinheiro",
+  "donate.balance": "O teu saldo",
+  "donate.hint": "Donativo pessoal, sai da tua conta. Mínimo {min}."
 }

@@ -1838,7 +1838,6 @@
   "donate.open": "Donate",
   "donate.amount": "Donation amount",
   "donate.confirm": "Donate",
-  "donate.cancel": "Cancel",
   "donate.effect.negligible": "The gift is appreciated, but for this company it hardly shows.",
   "donate.effect.small": "A small but useful boost.",
   "donate.effect.noticeable": "The company feels the difference: it gets room to grow.",
@@ -1886,5 +1885,7 @@
   "personal.help.title": "Help the club",
   "personal.help.hint": "Put your own money in the club's treasury (minimum {min}). The chairman forgives part of the grudge for refused contracts.",
   "personal.help.give": "Give to the club",
-  "personal.link": "What to do with your money"
+  "personal.link": "What to do with your money",
+  "donate.balance": "Your balance",
+  "donate.hint": "Personal donation, paid from your account. Minimum {min}."
 }
