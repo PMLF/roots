@@ -274,6 +274,9 @@ Em vez de tetos, **crescer custa**; tudo é efeito de variáveis que já existem
 
 **Calibração** (RZ-123, 50 épocas): distribuição de reputação e de caixa (sem clube a «fugir»: quantis estáveis), mobilidade de escalão, taxa de underdogs que sobem e se mantêm, proporção de clubes com saldo negativo, e que a população das cidades não diverja (cidades pequenas não desaparecem; grandes não explodem).
 
+
+**Equilíbrio financeiro (RZ-237).** Para as finanças dos clubes não derraparem ao longo das épocas: (1) a massa salarial por defeito não cresce acima de `wageShareMax` das receitas estimadas; (2) na passagem de época os clubes portugueses de IA vendem os seus destaques ao estrangeiro (múltiplo 1,2–1,6 do valor de mercado, entra em `transfers`) e repõem o plantel com compras de clubes estrangeiros, mais frequentes quanto melhor o scouting; (3) os patrocínios novos valem mais nos escalões altos e para campeões e promovidos. Subidas e descidas mantêm-se determinísticas (12 % = 36 clubes por época).
+
 ### 12.8 Uma só página «Local»
 
 `/profile/?type=locality&id=…` passa a ser a **única** página de lugar (aldeia, vila ou cidade); `type=city` redireciona para a **sede** do concelho. Dados: **população, clubes, empresas, cultura de futebol e pessoas** são da localidade; **serviços, Câmara, política e orçamento** são do concelho e aparecem como contexto.

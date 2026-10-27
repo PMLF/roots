@@ -28,6 +28,7 @@ import { agentTraits } from "../agent/assign";
 import { newProspects } from "./prospects";
 import { lockLocalSigning, pruneLocks } from "./localPriority";
 import { rolloverForeign } from "./foreign";
+import { buyAbroad, foreignPool, sellAbroad } from "./abroad";
 import { TIER_BONUS, youthFocus } from "./youthFocus";
 import { updateYouthLevels, yieldOf, youthLevelOf } from "./youthLevel";
 
@@ -164,6 +165,17 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const tb = TIER_ORDER.indexOf(o.tiers.get(b.id) ?? b.tier);
     return ta - tb || b.reputation - a.reputation || (a.id < b.id ? -1 : 1);
   });
+  // mercado com o estrangeiro (RZ-237): os clubes de IA vendem destaques e, mais abaixo, repõem com compras lá fora
+  const abroadCtx = { season: o.season, seasonStart: o.seasonStart, seed };
+  for (const club of order) {
+    if (club.id === o.gamerClub) continue;
+    const tier = o.tiers.get(club.id) ?? club.tier;
+    const desired = clamp(world.targetQuality[tier].mean + world.qualityByReputation * ((standing.get(club.id) ?? 0.5) - 0.5), 1, 20);
+    const list = squads.get(club.id) ?? [];
+    const gone = new Set(sellAbroad(repo, params, abroadCtx, club, tier, desired, list.map((m) => m.record)));
+    if (gone.size > 0) squads.set(club.id, list.filter((m) => !gone.has(m.record.person)));
+  }
+  const abroadPool = foreignPool(repo, params, abroadCtx);
   const years = (rng: Rng) => rng.integer(sc.contracts.yearsMin, sc.contracts.yearsMax);
   const event = (type: string, j: string, club: ClubId, extra: Record<string, unknown>) =>
     repo.appendEvent({ type, date, season: o.season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: j, roleKind: "player" }, { k: "club", id: club }], data: extra });
@@ -284,6 +296,14 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
 
     // livres para o que falta
     for (const position of missing().slice(0, Math.max(0, target - kept.length))) {
+      if (o.gamerClub !== club.id) {
+        const bought = buyAbroad(repo, params, abroadCtx, abroadPool, club, tier, wageScale, desired, position, years(rng));
+        if (bought) {
+          counts.set(position, (counts.get(position) ?? 0) + 1);
+          kept.push(member(bought));
+          continue;
+        }
+      }
       let best = -1;
       let bestGap = Infinity;
       pool.forEach((m, i) => {

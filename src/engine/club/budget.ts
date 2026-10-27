@@ -17,10 +17,11 @@ export function defaultBudget(repo: Repository, c: BaseClub, params: Params, sea
   const o = params.finances.budget;
   const currentBill = monthlyWageBill(repo, c.id) * 12;
   const costs = monthlyCosts(repo, c, params);
+  const revenue = estimatedAnnualRevenue(c, params);
   const reserve = o.monthsReserve * (costs.wages + costs.staff + costs.stadium + costs.fixed);
   return {
     season,
-    wageBillMax: round(Math.max(currentBill * (1 + o.wageHeadroom), estimatedAnnualRevenue(c, params) * o.revenueAboutBill)),
+    wageBillMax: round(Math.max(Math.min(currentBill * (1 + o.wageHeadroom), revenue * o.wageShareMax), revenue * o.revenueAboutBill)),
     transfers: round(Math.max(0, clubBalance(repo, c) - reserve) * o.transfersBye),
   };
 }
