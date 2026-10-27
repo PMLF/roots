@@ -1,15 +1,18 @@
-import { readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { handle, type Servicos } from "../api/handler";
 import { cityHistoryWithPast } from "../city/cities";
 import { DEFAULT_PARAMETERS as P } from "../config/parameters";
 import { importData } from "../data/importData";
+import { openSqliteBetter } from "../../node/driverBetterSqlite";
 import { MemoryRepository } from "../persistence/repositoryMemory";
+import { SqliteRepository } from "../persistence/repositorySqlite";
 
 /**
  * Calibração de várias épocas (RZ-237, docs/CITY.md §12.7): corre `CALIB_SEASONS` épocas (por defeito 3) sem gamer a mexer e mede se os
  * custos do sucesso seguram a bola de neve: caixa por escalão, mobilidade de escalão, população das cidades e empresas.
- * `CALIB_OUT=/caminho.json` grava o relatório época a época.
+ * `CALIB_OUT=/caminho.json` grava o relatório época a época. `CALIB_DB=/caminho.sqlite` guarda o mundo no disco no fim de cada época e,
+ * se o ficheiro já existir, retoma a partir da última época feita (sobrevive a reinícios do ambiente).
  */
 const read = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
 const raw = { clubs: read("clubs"), cities: read("cities"), localities: read("localities"), rivalries: read("rivalries"), districts: read("districts"), countries: read("countries") };
@@ -23,14 +26,17 @@ const SEASONS = Number(process.env.CALIB_SEASONS ?? 3);
 
 describe("calibração de várias épocas (RZ-237)", () => {
   it(`${SEASONS} épocas: caixa, mobilidade, população e empresas não divergem`, async () => {
-    const repository = new MemoryRepository();
+    const dbPath = process.env.CALIB_DB;
+    const resumed = !!dbPath && existsSync(dbPath);
+    const repository = dbPath ? new SqliteRepository(openSqliteBetter(dbPath)) : new MemoryRepository();
     const s: Servicos = { now: () => new Date(2026, 9, 15), openRepository: async () => ({ repository, backend: "memory" as const, sqliteVersion: "test" }), loadData: async () => raw };
-    await handle({ id: 1, type: "createWorld", input: { seed: "success" } }, s);
-    const start = new Map(data.cities.map((c) => [c.id, cityHistoryWithPast(repository, data, P, c.id).at(-1)?.state.population ?? c.population] as const));
+    if (!resumed) await handle({ id: 1, type: "createWorld", input: { seed: "success" } }, s);
+    const start = new Map<string, number>(resumed ? (JSON.parse(repository.meta("calib.start") ?? "[]") as [string, number][]) : data.cities.map((c) => [c.id, cityHistoryWithPast(repository, data, P, c.id).at(-1)?.state.population ?? c.population] as const));
+    if (!resumed) repository.setMeta("calib.start", JSON.stringify([...start]));
     let before = new Map((await handle({ id: 2, type: "clubs", input: null }, s)).map((c) => [c.id, tierOf(c.league)] as const));
-    const report: unknown[] = [];
+    const report: unknown[] = resumed ? (JSON.parse(repository.meta("calib.report") ?? "[]") as unknown[]) : [];
     let id = 10;
-    for (let season = 1; season <= SEASONS; season++) {
+    for (let season = report.length + 1; season <= SEASONS; season++) {
       let end = false, guard = 0;
       while (!end && guard++ < 90) end = (await handle({ id: id++, type: "advance", input: { mode: "week" } }, s)).seasonEnd;
       const clubs = await handle({ id: id++, type: "clubs", input: null }, s);
@@ -47,6 +53,7 @@ describe("calibração de várias épocas (RZ-237)", () => {
         companies: active,
       });
       before = after;
+      repository.setMeta("calib.report", JSON.stringify(report));
       if (process.env.CALIB_OUT) writeFileSync(process.env.CALIB_OUT, JSON.stringify(report, null, 1));
     }
     if (process.env.CALIB_OUT) writeFileSync(process.env.CALIB_OUT, JSON.stringify(report, null, 1));
