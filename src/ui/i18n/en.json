@@ -1856,5 +1856,16 @@
   "decision.decide": "Decide",
   "decision.negotiate": "Negotiate",
   "newsItem.club_offer.1.title": "{club} want you as their coach",
-  "newsItem.club_offer.1.body": "{league}. Accept now or negotiate salary and length."
+  "newsItem.club_offer.1.body": "{league}. Accept now or negotiate salary and length.",
+  "title.continue": "Continue",
+  "title.continueCurrent": "The save you left off",
+  "title.continueSave": "{name} · {date}",
+  "title.new": "New game",
+  "title.load": "Load game",
+  "title.import": "Import file",
+  "title.settings": "Settings",
+  "title.savedAt": "Saved {date}",
+  "title.opening": "Opening the game…",
+  "title.version": "Version {version}",
+  "title.news": "What's new: personal bank account, donations to city companies and decisions in the inbox."
 }

@@ -1856,5 +1856,16 @@
   "decision.decide": "Decidir",
   "decision.negotiate": "Negociar",
   "newsItem.club_offer.1.title": "{club} quer-te como treinador",
-  "newsItem.club_offer.1.body": "{league}. Podes aceitar já ou negociar salário e duração."
+  "newsItem.club_offer.1.body": "{league}. Podes aceitar já ou negociar salário e duração.",
+  "title.continue": "Continuar",
+  "title.continueCurrent": "O save onde ficaste",
+  "title.continueSave": "{name} · {date}",
+  "title.new": "Novo jogo",
+  "title.load": "Carregar jogo",
+  "title.import": "Importar ficheiro",
+  "title.settings": "Definições",
+  "title.savedAt": "Guardado a {date}",
+  "title.opening": "A abrir o jogo…",
+  "title.version": "Versão {version}",
+  "title.news": "Novidades: conta pessoal, donativos às empresas da cidade e decisões na caixa de entrada."
 }

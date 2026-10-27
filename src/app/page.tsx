@@ -26,6 +26,7 @@ import { clubMatches } from "@/ui/clubMatches";
 import { useOwnClub } from "@/ui/myClub";
 import { useEngine } from "@/ui/EngineProvider";
 import { useTime } from "@/ui/useTime";
+import { inGame } from "@/ui/session";
 
 const DAY_MS = 86_400_000;
 const betweenDays = (from: string, until: string) => Math.round((Date.parse(`${until}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS);
@@ -54,7 +55,9 @@ export default function Start() {
   // «Avançar» pede o foco para a mensagem/decisão seguinte; tenta-se já e quando a lista muda
   useEffect(() => { applyHomeFocus(); return onHomeFocus(() => { applyHomeFocus(); }); }, [inbox.messages, world]);
 
-  useEffect(() => { if (world === null) router.replace("/new/"); }, [world, router]);
+  // o ecrã inicial é a porta de entrada (RZ-501): sem sessão aberta volta para lá
+  useEffect(() => { if (!inGame()) router.replace("/start/"); }, [router]);
+  useEffect(() => { if (world === null && inGame()) router.replace("/new/"); }, [world, router]);
   useEffect(() => {
     if (!engine) return;
     let live = true;

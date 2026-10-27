@@ -83,6 +83,12 @@ export function Shell({ children }: { children: ReactNode }) {
     setDensity(read("raizes.density", isDensity) ?? "normal");
     setTheme(read("raizes.theme", isTheme) ?? "auto");
   }, []);
+  // o ecrã inicial muda o tema por aqui (RZ-501)
+  useEffect(() => {
+    const again = () => setTheme(read("raizes.theme", isTheme) ?? "auto");
+    window.addEventListener("raizes:tema", again);
+    return () => window.removeEventListener("raizes:tema", again);
+  }, []);
   useEffect(() => {
     document.documentElement.dataset.densidade = density === "compact" ? "compacta" : "normal";
   }, [density]);
@@ -119,7 +125,7 @@ export function Shell({ children }: { children: ReactNode }) {
   // «Mais» fica ativa quando a página atual só se chega pela gaveta
   const onlyInMore = !MENU.filter((m) => TABS.includes(m.rowKey)).some((m) => m.whenActive(path));
   // o assistente de nova save (RZ-138) ocupa o ecrã todo, sem menu nem barras
-  if (path.startsWith("/new")) return <main className="centro novo-centro">{children}</main>;
+  if (path.startsWith("/new") || path.startsWith("/start")) return <main className="centro novo-centro">{children}</main>;
   return (
     <div className="shell">
       <nav className={`menu${drawer ? " aberto" : ""}`} aria-label="Menu" id="menu-principal">
