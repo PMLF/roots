@@ -305,6 +305,8 @@ export type Params = {
     offers: number;
     /** Ofertas extra de clubes um pouco acima (a surpresa boa). */
     surprises: number;
+    /** Quem começa o jogo sem clube (RZ-501) tem a reputação de um treinador sem currículo: só recebe ofertas de clubes até aqui (mais a margem das surpresas). */
+    unemployedStartReputation: number;
     /** Até quantos pontos de reputação acima do clube anterior pode vir uma surpresa. */
     surpriseMargin: number;
     /** Contrato do gamer (RZ-161): salário de referência, resposta do presidente, pedir aumento. */
@@ -1043,7 +1045,7 @@ export const DEFAULT_PARAMETERS: Params = {
     donation: { min: 100, efficiency: 0.8, maxShare: 1, cooldownDays: 60 },
   },
   coach: {
-    offers: 3, surprises: 1, surpriseMargin: 600,
+    offers: 3, surprises: 1, surpriseMargin: 600, unemployedStartReputation: 1500,
     contract: {
       wageFactor: 2.5, repExponent: 0.8, yearsMin: 1, yearsMax: 3, defaultYears: 2,
       accept: { base: 1.0, trust: 0.15, results: 0.25, finances: 0.15, loyalty: 0.1, greed: 0.15, min: 0.7, max: 1.8 },

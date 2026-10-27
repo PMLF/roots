@@ -65,16 +65,16 @@ export function TitleScreen() {
   const setTheme = (v: string) => { save("raizes.theme", v); window.dispatchEvent(new Event("raizes:tema")); };
 
   return (
-    <section className="inicio-jogo" data-testid="ecra-inicial">
-      <div className="inicio-marca">
+    <section className="ecra-inicial" data-testid="ecra-inicial">
+      <div className="ecra-inicial-marca">
         <span className="marca-sinal"><Icon name="root" /></span>
         <h1>{t("app.name")}</h1>
         <p className="suave">{t("app.subtitle")}</p>
       </div>
 
-      <div className="inicio-botoes">
+      <div className="ecra-inicial-botoes">
         {canContinue && (
-          <button type="button" className="primario inicio-continuar" disabled={opening} onClick={() => void continueGame()} data-testid="inicio-continuar">
+          <button type="button" className="primario ecra-inicial-continuar" disabled={opening} onClick={() => void continueGame()} data-testid="inicio-continuar">
             <span>{t("title.continue")}</span>
             <small>{lastSave ? t("title.continueSave", { name: lastSave.name ?? t(`saves.kind.${lastSave.kind}` as Key), date: gameDate(lastSave.gameDate) }) : t("title.continueCurrent")}</small>
           </button>
@@ -89,10 +89,10 @@ export function TitleScreen() {
       {error && <p className="erro" role="alert">{error}</p>}
 
       {panel === "load" && (
-        <div className="cartao inicio-painel" data-testid="inicio-lista">
+        <div className="cartao ecra-inicial-painel" data-testid="inicio-lista">
           <h2>{t("title.load")}</h2>
           {!saves ? <p>{t("profile.loading")}</p> : saves.length === 0 ? <p className="vazio">{t("saves.empty")}</p> : (
-            <ul className="inicio-saves">
+            <ul className="ecra-inicial-saves">
               {[...saves].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map((s) => (
                 <li key={s.id}>
                   <button type="button" disabled={opening} onClick={() => void loadSave(s.id)} data-testid="inicio-save">
@@ -108,7 +108,7 @@ export function TitleScreen() {
       )}
 
       {panel === "settings" && (
-        <div className="cartao inicio-painel" data-testid="inicio-opcoes">
+        <div className="cartao ecra-inicial-painel" data-testid="inicio-opcoes">
           <h2>{t("title.settings")}</h2>
           <div className="definicoes-linha">
             <span>{t("language.label")}</span>
@@ -125,13 +125,13 @@ export function TitleScreen() {
         </div>
       )}
 
-      <footer className="inicio-rodape suave">
+      <footer className="ecra-inicial-rodape suave">
         <span>{t("title.version", { version: pkg.version })}</span>
         <span>{t("title.news")}</span>
       </footer>
 
       {opening && (
-        <div className="inicio-a-abrir" role="status" aria-live="polite" data-testid="inicio-a-abrir">
+        <div className="ecra-inicial-a-abrir" role="status" aria-live="polite" data-testid="inicio-a-abrir">
           <span className="rodar" aria-hidden="true" /> {t("title.opening")}
         </div>
       )}

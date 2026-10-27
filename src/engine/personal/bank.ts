@@ -42,9 +42,11 @@ export function accrueBank(repo: Repository, data: BaseData, params: Params, tod
   const club = repo.meta("gamer.club");
   const previous = repo.meta("gamer.previous");
   // saves antigos sem contrato do gamer, ou ainda sem clube escolhido: não há ordenado nem conta a mexer
-  if ((club && !contract) || (!club && !previous)) { repo.setMeta("gamer.bank", JSON.stringify({ ...bank, upTo: target })); return; }
+  const startedUnemployed = repo.meta("gamer.unemployed") === "1";
+  if ((club && !contract) || (!club && !previous && !startedUnemployed)) { repo.setMeta("gamer.bank", JSON.stringify({ ...bank, upTo: target })); return; }
   const homeClub = data.clubs.find((c) => c.id === (club ?? previous));
-  const living = homeClub ? livingCost(repo, data, params, homeClub.city) : params.personal.living.base;
+  const homeCity = homeClub?.city ?? repo.meta("gamer.home");
+  const living = homeCity ? livingCost(repo, data, params, homeCity) : params.personal.living.base;
   const employed = !!club && !!contract && contract.club === club;
   let { balance, upTo } = bank;
   while (upTo < target) {

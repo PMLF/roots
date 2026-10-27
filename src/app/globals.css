@@ -1255,17 +1255,29 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 .estado-decisao.estado-expired { background: var(--painel-2); color: var(--suave); box-shadow: inset 0 0 0 1px var(--linha); }
 
 /* Ecrã inicial (RZ-501) */
-.inicio-jogo { min-height: 100vh; display: grid; grid-template-rows: auto auto auto 1fr auto; justify-items: center; gap: 22px; padding: 56px 16px 24px; max-width: 520px; margin: 0 auto; }
-.inicio-marca { text-align: center; display: grid; gap: 6px; justify-items: center; }
-.inicio-marca h1 { margin: 0; font-size: 34px; }
-.inicio-marca p { margin: 0; }
-.inicio-marca .marca-sinal { width: 56px; height: 56px; }
-.inicio-botoes { display: grid; gap: 10px; width: 100%; }
-.inicio-botoes button { padding: 12px 16px; font-size: 15px; }
-.inicio-continuar { display: grid; gap: 2px; text-align: left; }
-.inicio-continuar small { font-weight: 400; opacity: 0.85; }
-.inicio-painel { width: 100%; }
-.inicio-saves { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 50vh; overflow: auto; }
-.inicio-saves button { width: 100%; display: grid; gap: 2px; text-align: left; }
-.inicio-rodape { align-self: end; display: grid; gap: 2px; text-align: center; font-size: 13px; }
-.inicio-a-abrir { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; gap: 4px; background: rgb(0 0 0 / 0.55); color: #fff; font-size: 16px; z-index: 50; }
+.ecra-inicial { min-height: 100vh; display: grid; grid-template-rows: auto auto auto 1fr auto; justify-items: center; gap: 22px; padding: 56px 16px 24px; max-width: 520px; margin: 0 auto; }
+.ecra-inicial-marca { text-align: center; display: grid; gap: 6px; justify-items: center; }
+.ecra-inicial-marca h1 { margin: 0; font-size: 34px; }
+.ecra-inicial-marca p { margin: 0; }
+.ecra-inicial-marca .marca-sinal { width: 56px; height: 56px; }
+.ecra-inicial-botoes { display: grid; gap: 10px; width: 100%; }
+.ecra-inicial-botoes button { padding: 12px 16px; font-size: 15px; }
+.ecra-inicial-continuar { display: grid; gap: 2px; text-align: left; }
+.ecra-inicial-continuar small { font-weight: 400; opacity: 0.85; }
+.ecra-inicial-painel { width: 100%; }
+.ecra-inicial-saves { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; max-height: 50vh; overflow: auto; }
+.ecra-inicial-saves button { width: 100%; display: grid; gap: 2px; text-align: left; }
+.ecra-inicial-rodape { align-self: end; display: grid; gap: 2px; text-align: center; font-size: 13px; }
+.ecra-inicial-a-abrir { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; gap: 4px; background: rgb(0 0 0 / 0.55); color: #fff; font-size: 16px; z-index: 50; }
+
+/* Escolha do arranque (RZ-501) */
+.novo-modo { display: inline-flex; gap: 0; border: 1px solid var(--linha-forte); border-radius: var(--r-s); overflow: hidden; margin-bottom: 8px; }
+.novo-modo button { border: 0; border-radius: 0; background: var(--painel); }
+.novo-modo button.ativo { background: var(--destaque-fundo); color: var(--destaque-texto); font-weight: 600; }
+.novo-mais { margin: 0 0 8px; }
+.novo-mais summary { cursor: pointer; color: var(--suave); font-size: 13px; margin-bottom: 6px; }
+.novo-aleatorio { display: grid; gap: 8px; padding: 10px 12px; margin-bottom: 8px; border: 1px dashed var(--linha-forte); border-radius: var(--r-s); }
+.novo-aleatorio-botoes, .novo-aleatorio-escaloes { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.novo-aleatorio-escaloes label { display: inline-flex; gap: 4px; align-items: center; font-size: 13px; }
+.novo-regiao { display: grid; gap: 4px; max-width: 360px; }
+.novo-ficha h4 { margin: 14px 0 6px; font-size: 14px; }

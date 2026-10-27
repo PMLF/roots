@@ -20,12 +20,16 @@ export const gamerOffers = (repo: Repository): Offer[] => {
   return raw ? (JSON.parse(raw) as Offer[]) : [];
 };
 
-export const isUnemployed = (repo: Repository): boolean => !repo.meta("gamer.club") && !!repo.meta("gamer.previous");
+/** Sem clube: despedido ou demitido (`gamer.previous`) ou a começar o jogo sem clube (`gamer.unemployed`, RZ-501). */
+export const isUnemployed = (repo: Repository): boolean => !repo.meta("gamer.club") && (!!repo.meta("gamer.previous") || repo.meta("gamer.unemployed") === "1");
 
 /** Renova as ofertas (determinístico por save e data). `dados` já traz as ligas atuais. */
 export function updateOffers(repo: Repository, data: BaseData, params: Params, today: IsoDate): Offer[] {
   const previous = repo.meta("gamer.previous");
-  const ref = data.clubs.find((c) => c.id === previous)?.reputation ?? 0;
+  const ref = data.clubs.find((c) => c.id === previous)?.reputation ?? params.coach.unemployedStartReputation;
+  // quem começa sem clube só vê ofertas da região onde diz que vive (se houver clubes que cheguem)
+  const region = repo.meta("gamer.region");
+  const cityHub = new Map(data.cities.map((c) => [c.id, c.hub] as const));
   const rng = new Rng(repo.meta("seed") ?? "?", `ofertas/${today}`);
   const take = (pool: typeof data.clubs, n: number) => {
     const p = [...pool];
@@ -33,7 +37,9 @@ export function updateOffers(repo: Repository, data: BaseData, params: Params, t
     while (out.length < n && p.length > 0) out.push(p.splice(rng.integer(0, p.length - 1), 1)[0]!);
     return out;
   };
-  const others = data.clubs.filter((c) => c.id !== previous && !isInSecondDistrict(c.league));
+  const everywhere = data.clubs.filter((c) => c.id !== previous && !isInSecondDistrict(c.league));
+  const near = region ? everywhere.filter((c) => cityHub.get(c.city) === region) : everywhere;
+  const others = near.filter((c) => c.reputation <= ref + params.coach.surpriseMargin).length >= params.coach.offers + params.coach.surprises ? near : everywhere;
   const normal = take(others.filter((c) => c.reputation <= ref), params.coach.offers);
   const ids = new Set(normal.map((c) => c.id));
   const surprises = take(others.filter((c) => !ids.has(c.id) && c.reputation > ref && c.reputation <= ref + params.coach.surpriseMargin), params.coach.surprises);
@@ -68,6 +74,7 @@ export function acceptOffer(repo: Repository, club: string): void {
     repo.appendEvent({ type: "GAMER_HIRED", date: today, season: currentSeason(repo), visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "contratou" }], data: { previous: repo.meta("gamer.previous") ?? "" } });
     repo.setMeta("gamer.club", club);
     repo.setMeta("gamer.previous", "");
+    repo.setMeta("gamer.unemployed", "");
     repo.setMeta("gamer.offers", "");
   });
 }
@@ -81,4 +88,19 @@ export function sackByRelegation(repo: Repository, data: BaseData, params: Param
     repo.setMeta("gamer.club", "");
     updateOffers(repo, data, params, date);
   });
+}
+
+/** Começar o jogo sem clube (RZ-501): diz-se a região onde se vive, que dá a cidade de casa e as primeiras ofertas. */
+export function startUnemployed(repo: Repository, data: BaseData, params: Params, region: string): { home: string } {
+  const home = data.cities.filter((c) => c.hub === region).sort((a, b) => b.population - a.population)[0];
+  if (!home) throw new Error("Região desconhecida");
+  if (repo.meta("gamer.club")) throw new Error("Já tens clube");
+  const { today } = prepareSeason(repo, data, params);
+  repo.transaction(() => {
+    repo.setMeta("gamer.unemployed", "1");
+    repo.setMeta("gamer.region", region);
+    repo.setMeta("gamer.home", home.id);
+    updateOffers(repo, data, params, today);
+  });
+  return { home: home.id };
 }
