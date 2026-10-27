@@ -66,7 +66,7 @@ describe("empresas no arranque", () => {
     }
     for (const [tier, ratio] of Object.entries(fillByTier(repo, "2026-08-01"))) {
       expect(ratio, tier).toBeGreaterThan(0.8);
-      expect(ratio, tier).toBeLessThan(1.15);
+      expect(ratio, tier).toBeLessThan(1.5); // inclui o bónus de escalão dos patrocínios novos (RZ-237)
     }
   });
   it("clubes de escalões altos têm empresas maiores; os distritais, locais", () => {

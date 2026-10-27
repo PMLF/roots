@@ -12,7 +12,7 @@ export type Budget = { season: number; wageBillMax: number; transfers: number };
 
 const round = (v: number) => Math.round(v / 1000) * 1000;
 
-/** O orçamento por defeito: a massa não fica abaixo da atual mais uma folga (ninguém nasce já em falta nem tem de despedir para contratar) nem do peso máximo sobre as receitas. */
+/** O orçamento por defeito: a massa não fica abaixo da atual (ninguém tem de despedir) e só ganha folga enquanto não passa de `wageShareMax` das receitas (sem catraca) nem do peso máximo sobre as receitas. */
 export function defaultBudget(repo: Repository, c: BaseClub, params: Params, season: number): Budget {
   const o = params.finances.budget;
   const currentBill = monthlyWageBill(repo, c.id) * 12;
@@ -21,7 +21,7 @@ export function defaultBudget(repo: Repository, c: BaseClub, params: Params, sea
   const reserve = o.monthsReserve * (costs.wages + costs.staff + costs.stadium + costs.fixed);
   return {
     season,
-    wageBillMax: round(Math.max(Math.min(currentBill * (1 + o.wageHeadroom), revenue * o.wageShareMax), revenue * o.revenueAboutBill)),
+    wageBillMax: round(Math.max(currentBill, Math.min(currentBill * (1 + o.wageHeadroom), revenue * o.wageShareMax), revenue * o.revenueAboutBill)),
     transfers: round(Math.max(0, clubBalance(repo, c) - reserve) * o.transfersBye),
   };
 }
