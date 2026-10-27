@@ -1338,7 +1338,7 @@ export const DEFAULT_PARAMETERS: Params = {
     retirement: { fromAge: 33, baseProbability: 0.06, perYear: 0.14, goalkeeperExtraYears: 3, maxAge: 40, freeMultiplier: 1.6 },
     contracts: { yearsMin: 1, yearsMax: 3, renewBase: 0.7, renewPerQualityPoint: 0.1, renewPerOldYear: 0.08, oldAge: 31, renewMin: 0.05, renewMax: 0.95, renewalWageFactor: 1, negotiation: { acceptFloor: 0.92, floorByLoyalty: 0.01, floorNative: 0.04, floorMin: 0.6, askYears: 2, maxRounds: 4, walkAway: 0.5, concession: 0.7, maxYears: 5, clauseWage: 0.08, noClauseRatio: 2.5, clauseCeiling: 2, level: { margin: 1.2, ambitionMin: 12, loyaltyStay: 14 }, distance: { tiers: ["cp", "district"], wageFactor: 1.5, loyaltyStay: 14 } } },
     squad: { slack: 2, freeAgentTolerance: 2.5 },
-    abroad: { sell: { probability: { firstLeague: 0.35, secondLeague: 0.3, thirdLeague: 0.25, cp: 0.15, district: 0.05 }, minAbove: 0.8, maxAge: 30, maxPerClub: 2, feeFactor: [1.2, 1.6], wageFactor: 1.5 }, buy: { base: 0.15, perScout: 0.12, perScoutQuality: 0.01, max: 0.8, maxAge: 29, feeFactor: 1, tolerance: 2 } },
+    abroad: { sell: { probability: { firstLeague: 0.25, secondLeague: 0.2, thirdLeague: 0.15, cp: 0.1, district: 0.03 }, minAbove: 0.8, maxAge: 30, maxPerClub: 2, feeFactor: [1.2, 1.6], wageFactor: 1.5 }, buy: { base: 0.15, perScout: 0.12, perScoutQuality: 0.01, max: 0.8, maxAge: 29, feeFactor: 1, tolerance: 2 } },
     youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal", focus: { spread: 0.4, byPatience: 0.05, byAmbition: 0.03, min: 0.25, max: 1.9 }, agePenalty: 0.25, qualityByFocus: 0.6, potentialByFocus: 1.0, renewalYouthEffect: 0.2, renewalVeteranEffect: 0.12, development: { base: 45, byFocus: 25, byCoach: 1.5, byFinances: 8, byEducation: 0.15, regression: 0.2, maxStep: 1.5, yieldMin: 0.4, yieldMax: 1.0, yieldPivot: 0.7, potentialByYield: 0.15, prideLocal: 0.2 }, prospects: { perCityMean: 5, ageMin: 15, ageMax: 17, popExponent: 0.6, potentialShift: 1, localLockDays: 150 } },
   },
   companies: {
@@ -1359,7 +1359,7 @@ export const DEFAULT_PARAMETERS: Params = {
       /** Contratos extra por reputação acima da normal do escalão (RZ-311): um a partir de `startRatio`, mais um por cada `perRatio`; cada extra vale `valueShare` do valor de referência do tipo. */
       extra: { startRatio: 1, perRatio: 0.45, max: { firstLeague: 4, secondLeague: 3, thirdLeague: 2, cp: 2, district: 1 }, valueShare: 0.4 },
       maxShareOfCapital: 0.08,
-      boost: { tier: { firstLeague: 1.3, secondLeague: 1.15, thirdLeague: 1.05, cp: 1, district: 1 }, champion: 0.25, promoted: 0.12 },
+      boost: { tier: { firstLeague: 1.12, secondLeague: 1.06, thirdLeague: 1, cp: 1, district: 1 }, champion: 0.15, promoted: 0.08 },
       yearsMin: 1,
       yearsMax: 3,
       renewBase: 0.65,
