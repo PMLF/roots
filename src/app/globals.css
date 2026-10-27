@@ -1057,14 +1057,14 @@ body {
     radial-gradient(1100px 620px at 4% -12%, rgb(20 128 79 / .26), transparent 70%),
     radial-gradient(900px 560px at 104% 108%, rgb(20 128 79 / .22), transparent 70%),
     repeating-linear-gradient(115deg, rgb(20 128 79 / .045) 0 46px, transparent 46px 92px),
-    radial-gradient(rgb(16 26 21 / .16) 1px, transparent 1.4px);
+    repeating-linear-gradient(25deg, rgb(20 128 79 / .035) 0 46px, transparent 46px 92px);
   background-size: auto, auto, auto, 16px 16px;
   background-attachment: fixed;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-tema="claro"]) body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .045) 0 46px, transparent 46px 92px), radial-gradient(rgb(232 238 234 / .13) 1px, transparent 1.4px); }
+  :root:not([data-tema="claro"]) body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .045) 0 46px, transparent 46px 92px), repeating-linear-gradient(25deg, rgb(63 192 136 / .035) 0 46px, transparent 46px 92px); }
 }
-:root[data-tema="escuro"] body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .045) 0 46px, transparent 46px 92px), radial-gradient(rgb(232 238 234 / .13) 1px, transparent 1.4px); }
+:root[data-tema="escuro"] body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .045) 0 46px, transparent 46px 92px), repeating-linear-gradient(25deg, rgb(63 192 136 / .035) 0 46px, transparent 46px 92px); }
 
 /* Zonas europeias da Primeira Liga: Champions (azul), pré-eliminatória (azul claro), Liga Europa (tijolo), Conferência (verde) */
 :root { --zona-cl: #2f6fd6; --zona-clq: #8fb0e8; --zona-el: #b5483a; --zona-ecl: #2e9d57; }
@@ -1281,3 +1281,28 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 .novo-aleatorio-escaloes label { display: inline-flex; gap: 4px; align-items: center; font-size: 13px; }
 .novo-regiao { display: grid; gap: 4px; max-width: 360px; }
 .novo-ficha h4 { margin: 14px 0 6px; font-size: 14px; }
+
+/* Como funciona (RZ-501) */
+.novo-jogo { max-width: 1240px; }
+.novo-heroi { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(220px, 0.8fr); gap: 24px; align-items: center; padding: 20px 24px; margin-top: 8px; background: var(--painel); border: 1px solid var(--linha); border-radius: var(--r-m); }
+.novo-heroi h2 { margin: 0 0 8px; font-size: 24px; letter-spacing: -0.01em; }
+.novo-heroi p { margin: 0; font-size: 16px; color: var(--suave); max-width: 60ch; }
+.novo-arte { width: 100%; max-height: 220px; fill: none; stroke: var(--destaque); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.novo-arte .arte-raizes { stroke: var(--suave); stroke-width: 1.6; }
+.novo-arte .arte-brotos { stroke: var(--destaque-texto); }
+.novo-ciclo { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; list-style: none; padding: 0; margin: 14px 0 6px; counter-reset: ciclo; }
+.novo-ciclo li { position: relative; display: flex; align-items: center; gap: 10px; padding: 12px 18px 12px 14px; background: var(--destaque-fundo); color: var(--destaque-texto); font-weight: 600; clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%); margin-left: -6px; }
+.novo-ciclo li:first-child { clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%); margin-left: 0; }
+.novo-ciclo .icone { width: 22px; height: 22px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.novo-cartoes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.novo-cartoes .cartao { padding: 18px 20px 20px; }
+.novo-cartoes .cartao .icone { width: 34px; height: 34px; }
+.novo-cartoes .cartao h3 { font-size: 17px; }
+@media (max-width: 900px) {
+  .novo-heroi { grid-template-columns: 1fr; }
+  .novo-arte { max-height: 160px; }
+  .novo-ciclo { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .novo-ciclo li, .novo-ciclo li:first-child { clip-path: none; margin-left: 0; border-radius: var(--r-s); }
+  .novo-cartoes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 560px) { .novo-cartoes { grid-template-columns: 1fr; } }

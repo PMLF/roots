@@ -26,8 +26,16 @@ const CARDS: { key: string; icon: IconName }[] = [
   { key: "city", icon: "city" },
   { key: "talent", icon: "search" },
   { key: "council", icon: "club" },
+  { key: "legends", icon: "star" },
   { key: "prize", icon: "competitions" },
   { key: "calendar", icon: "matches" },
+];
+/** O ciclo que faz clube e cidade crescerem juntos. */
+const CYCLE: { key: string; icon: IconName }[] = [
+  { key: "results", icon: "matches" },
+  { key: "fans", icon: "squad" },
+  { key: "city", icon: "city" },
+  { key: "club", icon: "growth" },
 ];
 
 /** Assistente de nova save (RZ-138): como funciona → a pirâmide → escolher o clube; no fim cria o mundo e vai ao Início. */
@@ -72,20 +80,6 @@ export function Onboarding() {
 
   const phaseText = (phase: string) => ({ clubs: t("world.phase.clubs"), cities: t("world.phase.cities"), others: t("world.phase.others"), free: t("world.phase.free"), validate: t("world.phase.validate"), save: t("world.phase.save") })[phase] ?? t("world.creating");
   const creating = state.phase === "creating";
-  const [replace, setReplace] = useState(false);
-
-  if (existing && !replace && step === 1)
-    return (
-      <section className="novo-jogo" data-testid="novo-existente">
-        <h1>{t("new.existing.title")}</h1>
-        <p>{t("new.existing.text")}</p>
-        <p className="acoes">
-          <button type="button" className="primario" onClick={() => { enterGame(); router.push("/"); }}>{t("new.existing.back")}</button>
-          <button type="button" onClick={() => setReplace(true)} data-testid="novo-substituir">{t("new.existing.replace")}</button>
-          <button type="button" onClick={() => router.push("/saves/")}>{t("new.existing.saves")}</button>
-        </p>
-      </section>
-    );
 
   return (
     <section className="novo-jogo" data-testid="novo-jogo">
@@ -100,6 +94,21 @@ export function Onboarding() {
 
       {step === 1 && (
         <>
+          <div className="novo-heroi" data-testid="novo-objetivo">
+            <div>
+              <h2>{t("new.how.goal.title")}</h2>
+              <p>{t("new.how.goal.text")}</p>
+            </div>
+            <GrowthArt />
+          </div>
+          <ol className="novo-ciclo" aria-label={t("new.how.cycle.label")}>
+            {CYCLE.map((c) => (
+              <li key={c.key}>
+                <Icon name={c.icon} />
+                <span>{t(`new.how.cycle.${c.key}` as Key)}</span>
+              </li>
+            ))}
+          </ol>
           <h2>{t("new.how.title")}</h2>
           <ul className="novo-cartoes">
             {CARDS.map((c) => (
@@ -134,6 +143,27 @@ export function Onboarding() {
         )}
       </footer>
     </section>
+  );
+}
+
+/** Raízes a crescer por baixo da cidade e do clube (decorativo). */
+function GrowthArt() {
+  return (
+    <svg className="novo-arte" viewBox="0 0 360 200" role="img" aria-hidden="true" focusable="false">
+      <g className="arte-cidade">
+        <path d="M30 120V80l22-10v50M52 120V56l26 12v52M78 120V90l20 8v22M20 120h92" />
+      </g>
+      <g className="arte-clube">
+        <path d="M270 40l-40 16v34c0 26 17 44 40 56 23-12 40-30 40-56V56z" />
+        <path d="M270 62v62M246 86h48" />
+      </g>
+      <g className="arte-raizes">
+        <path d="M66 120c0 20 14 30 40 36s64 4 84 22M96 120c0 18 20 26 44 30M270 146c0 14-14 22-40 28-24 6-44 4-56 18M270 146c0 10 10 16 26 20M190 178v16M150 150v14" />
+      </g>
+      <g className="arte-brotos">
+        <path d="M196 120v-20M196 108c0-9 7-15 16-15 0 9-7 15-16 15zM196 114c0-8-6-13-14-13 0 8 6 13 14 13z" />
+      </g>
+    </svg>
   );
 }
 
