@@ -1050,21 +1050,20 @@ button { transition: background-color .12s, border-color .12s, transform .12s cu
 .banco-cartao.esmaecido { opacity: .4; }
 @media (prefers-reduced-motion: reduce) { .lugar.dica-verde .lugar-cartao, .lugar.dica-amarelo .lugar-cartao, .lugar-vazio.dica-verde, .lugar-vazio.dica-amarelo { animation: none; } }
 
-/* Fundo com textura: grelha de pontos, riscas de relva na diagonal e dois focos de verde (relva vista de cima) */
+/* Fundo com textura: riscas de relva na diagonal cruzadas por outras a 90° (o corte em losangos do relvado) e dois focos de verde (relva vista de cima) */
 body {
   background-color: var(--fundo);
   background-image:
     radial-gradient(1100px 620px at 4% -12%, rgb(20 128 79 / .26), transparent 70%),
     radial-gradient(900px 560px at 104% 108%, rgb(20 128 79 / .22), transparent 70%),
-    repeating-linear-gradient(115deg, rgb(20 128 79 / .045) 0 46px, transparent 46px 92px),
-    repeating-linear-gradient(25deg, rgb(20 128 79 / .035) 0 46px, transparent 46px 92px);
-  background-size: auto, auto, auto, 16px 16px;
+    repeating-linear-gradient(115deg, rgb(20 128 79 / .03) 0 46px, transparent 46px 92px),
+    repeating-linear-gradient(25deg, rgb(20 128 79 / .03) 0 46px, transparent 46px 92px);
   background-attachment: fixed;
 }
 @media (prefers-color-scheme: dark) {
-  :root:not([data-tema="claro"]) body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .045) 0 46px, transparent 46px 92px), repeating-linear-gradient(25deg, rgb(63 192 136 / .035) 0 46px, transparent 46px 92px); }
+  :root:not([data-tema="claro"]) body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .03) 0 46px, transparent 46px 92px), repeating-linear-gradient(25deg, rgb(63 192 136 / .04) 0 46px, transparent 46px 92px); }
 }
-:root[data-tema="escuro"] body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .045) 0 46px, transparent 46px 92px), repeating-linear-gradient(25deg, rgb(63 192 136 / .035) 0 46px, transparent 46px 92px); }
+:root[data-tema="escuro"] body { background-image: radial-gradient(1100px 620px at 4% -12%, rgb(63 192 136 / .20), transparent 70%), radial-gradient(900px 560px at 104% 108%, rgb(63 192 136 / .15), transparent 70%), repeating-linear-gradient(115deg, rgb(63 192 136 / .03) 0 46px, transparent 46px 92px), repeating-linear-gradient(25deg, rgb(63 192 136 / .04) 0 46px, transparent 46px 92px); }
 
 /* Zonas europeias da Primeira Liga: Champions (azul), pré-eliminatória (azul claro), Liga Europa (tijolo), Conferência (verde) */
 :root { --zona-cl: #2f6fd6; --zona-clq: #8fb0e8; --zona-el: #b5483a; --zona-ecl: #2e9d57; }
@@ -1306,3 +1305,36 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
   .novo-cartoes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 560px) { .novo-cartoes { grid-template-columns: 1fr; } }
+
+/* /new cabe no ecrã em desktop: cabeçalho e rodapé fixos, o corpo ocupa o resto e só a lista de clubes rola */
+@media (min-width: 901px) {
+  .novo-jogo { height: 100vh; display: flex; flex-direction: column; padding-top: 16px; padding-bottom: 16px; box-sizing: border-box; }
+  .novo-corpo { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: auto; }
+  .novo-corpo > h2 { flex: none; margin: 8px 0 6px; }
+  .novo-corpo .novo-escolha { flex: 1 1 auto; min-height: 0; align-items: stretch; }
+  .novo-corpo .novo-escolha > div:first-child { display: flex; flex-direction: column; min-height: 0; }
+  .novo-corpo .novo-lista { flex: 1 1 auto; max-height: none; min-height: 120px; }
+  .novo-corpo .novo-ficha { position: static; overflow: auto; min-height: 0; align-self: start; max-height: 100%; }
+  .novo-modo { align-self: flex-start; }
+  .novo-rodape { flex: none; padding-top: 10px; }
+  .novo-heroi { padding: 14px 20px; }
+  .novo-arte { max-height: 150px; }
+  .novo-cartoes .cartao { padding: 14px 18px 16px; }
+  .novo-ciclo { margin: 10px 0 2px; }
+}
+@media (min-width: 901px) {
+  .novo-corpo > :not(.novo-escolha) { flex: none; }
+}
+@media (min-width: 901px) and (max-height: 800px) {
+  .novo-topo h1 { font-size: 20px; }
+  .novo-heroi { padding: 10px 18px; gap: 16px; }
+  .novo-heroi h2 { font-size: 20px; margin-bottom: 4px; }
+  .novo-heroi p { font-size: 14px; }
+  .novo-arte { max-height: 100px; }
+  .novo-ciclo li { padding: 8px 16px 8px 12px; }
+  .novo-cartoes { gap: 10px; margin-top: 6px; }
+  .novo-cartoes .cartao { padding: 10px 16px 12px; }
+  .novo-cartoes .cartao .icone { width: 26px; height: 26px; margin-bottom: 4px; }
+  .novo-cartoes .cartao h3 { font-size: 15px; }
+  .novo-cartoes .cartao p { font-size: 13px; }
+}

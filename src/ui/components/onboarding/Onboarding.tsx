@@ -92,6 +92,7 @@ export function Onboarding() {
         </ol>
       </header>
 
+      <div className="novo-corpo">
       {step === 1 && (
         <>
           <div className="novo-heroi" data-testid="novo-objetivo">
@@ -131,6 +132,7 @@ export function Onboarding() {
           {state.progress ? phaseText(state.progress.phase) : t("world.creating")} <progress max={state.progress?.total ?? 1} value={state.progress?.done ?? 0} />
         </p>
       )}
+      </div>
 
       <footer className="novo-rodape">
         {step > 1 && <button type="button" onClick={() => setStep(step - 1)} disabled={creating}>{t("new.back")}</button>}
