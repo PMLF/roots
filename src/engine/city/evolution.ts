@@ -45,7 +45,7 @@ export function evolveCity(before: CityState, e: EvolutionInput, rng: Rng, param
   const meanServices = CITY_SERVICES.reduce((a, id) => a + services[id], 0) / CITY_SERVICES.length;
 
   const pct = clamp(
-    e.driftPopulationPct + (economy - 50) * k.population.byEconomy + (pride - 50) * k.population.byPride + (meanServices - 50) * sv.population.byServices + (employment - 50) * sv.population.byEmployment + (services.housing - 50) * sv.population.byHousing + club("populationPct") + sum("populationPct") + rng.gauss(0, k.population.noisePct),
+    e.driftPopulationPct + (economy - 50) * k.population.byEconomy + (pride - 50) * k.population.byPride + (meanServices - 50) * sv.population.byServices + (employment - 50) * sv.population.byEmployment + (services.housing < 50 ? services.housing - 50 : (services.housing - 50) * sv.population.affordableFactor) * sv.population.byHousing + club("populationPct") + sum("populationPct") + rng.gauss(0, k.population.noisePct),
     -k.population.maxPct,
     k.population.maxPct,
   );

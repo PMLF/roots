@@ -2,7 +2,7 @@ import { cityStateNow } from "../city/cities";
 import { cupRoundTag } from "../competition/cup";
 import { interestedClubs } from "../market/interest";
 import { setBudget, clubBudget } from "../club/budget";
-import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
+import { financialState, monthlyWageBill, clubBalance, openingBalances } from "../club/finances";
 import { ageAt, createDate } from "../calendar/dates";
 import type { IsoDate, PlayerRecord } from "../persistence/types";
 import { pendingPatrons, respondPatron } from "../company/patrons";
@@ -1217,6 +1217,7 @@ async function createWorld(seed: string, servicos: Servicos, onProgress: (p: Wor
     repository.setMeta("world.players", String(batch.players.length));
     repository.setMeta("foreign.clubs", JSON.stringify(foreignClubs(seed, countries, params)));
     saveStartLocalities(repository, data, year);
+    openingBalances(repository, data.clubs, params);
     repository.saveWorld(batch, (done, total) => onProgress({ phase: "save", done, total }));
     onProgress({ phase: "companies", done: 0, total: 1 });
     startCompanies(repository, data, params, { seasonStart: createDate(year, params.calendar.seasonStartMonth, 1), year, tiers: new Map(data.clubs.map((c) => [c.id, c.tier] as const)) });

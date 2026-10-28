@@ -26,6 +26,11 @@ export function clubBalance(repo: Repository, club: BaseClub): number {
   return v === undefined ? club.finances : Number(v);
 }
 
+/** Caixa de arranque de cada clube: a coluna `finances` dos dados vezes o fator do escalão (RZ-237). */
+export function openingBalances(repo: Repository, clubs: readonly BaseClub[], params: Params): void {
+  for (const c of clubs) repo.setMeta(`balance.${c.id}`, String(Math.round(c.finances * params.finances.opening[c.tier])));
+}
+
 export function clubMonth(repo: Repository, club: string): Month {
   const v = repo.meta(`month.${club}`);
   return v ? (JSON.parse(v) as Month) : {};

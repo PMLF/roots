@@ -104,7 +104,7 @@ type CityParameters = {
     initial: { base: Record<CityService, number>; byDecade: Record<CityService, number>; byBudget: number; noise: number };
     links: Record<CityService, { economy: number; employment: number; tourism: number }>;
     regression: number; noise: number; strongTrend: number;
-    population: { byServices: number; byEmployment: number; /** % de crescimento por cada ponto de habitação acima de 50 (habitação acessível atrai, cara empurra gente para fora) (RZ-270). */ byHousing: number };
+    population: { byServices: number; byEmployment: number; /** % de crescimento por cada ponto de habitação acima de 50 (habitação acessível atrai, cara empurra gente para fora) (RZ-270). */ byHousing: number; /** Fração do efeito da habitação barata (acima de 50) que realmente atrai gente: a cara expulsa mais do que a barata atrai (RZ-270). */ affordableFactor: number };
     /** Pontos do alvo da habitação por cada duplicação da população desde o início (negativo: encarece). */
     housingGrowth: number;
     /** Efeitos no jogo: lesões (`health`), vida noturna (`nightlife`), assistência (`attendance`), ordenados (`wages`) e talento local (`prospects`). */
@@ -379,9 +379,11 @@ export type Params = {
     /** Receitas, custos e bilheteira por escalão (RZ-114/RZ-115), em euros. */
     model: FinancesModel;
     /** Orçamento anual por defeito (RZ-114): peso da massa salarial nas receitas, meses de reserva e fração da folga para transferências. */
-    budget: { revenueAboutBill: number; monthsReserve: number; transfersBye: number; /** Folga da massa salarial por defeito acima da atual: os clubes têm de poder contratar sem ter primeiro de despedir. */ wageHeadroom: number; /** Teto da massa salarial por defeito sobre as receitas anuais estimadas: o orçamento não cresce acima disto (RZ-237). */ wageShareMax: number };
+    budget: { revenueAboutBill: number; monthsReserve: number; transfersBye: number; /** Folga da massa salarial por defeito acima da atual: os clubes têm de poder contratar sem ter primeiro de despedir. */ wageHeadroom: number; /** Teto da massa salarial por defeito sobre as receitas anuais estimadas: o orçamento não cresce acima disto (RZ-237). */ wageShareMax: number; /** Quanto a massa salarial pode passar do normal por cada ponto de má gestão (RZ-270): os mal geridos gastam mais do que ganham. */ overspend: number };
     /** Investimento dos excedentes (RZ-237): os clubes de IA gastam em infraestruturas parte da caixa que passa de `reserveYears` anos de custos, para a caixa mediana de cada escalão não crescer sem fim. */
     surplus: { reserveYears: number; annualRate: number };
+    /** Fator da caixa de arranque (a coluna `finances` dos dados) por escalão (RZ-237): os clubes começam perto do que a caixa mediana do escalão vai ser. */
+    opening: Record<Tier, number>;
   };
   personality: {
     traitMin: number;
@@ -1002,12 +1004,12 @@ export const DEFAULT_PARAMETERS: Params = {
     ],
     dynamics: {
       position: { firstLeague: 180, secondLeague: 140, thirdLeague: 110, cp: 80, district: 55 },
-      champion: { firstLeague: 450, secondLeague: 300, thirdLeague: 220, cp: 160, district: 110 },
+      champion: { firstLeague: 350, secondLeague: 300, thirdLeague: 220, cp: 160, district: 110 },
       promotion: 220, relegation: 260,
       cup: 120, europe: 140, europeWinner: 500,
-      bands: { firstLeague: [3800, 10000], secondLeague: [3000, 6500], thirdLeague: [2200, 4300], cp: [1500, 3200], district: [500, 2000] },
+      bands: { firstLeague: [3800, 8800], secondLeague: [3000, 6500], thirdLeague: [2200, 4300], cp: [1500, 3200], district: [500, 2000] },
       bandPull: 0.35,
-      meanReversion: 0.04,
+      meanReversion: 0.06,
       min: 300, max: 10000,
     },
   },
@@ -1125,8 +1127,9 @@ export const DEFAULT_PARAMETERS: Params = {
     bankruptcyDelayWagesMonths: 3,
     wealthPercentiles: [90, 70, 40, 15],
     rivalEstimateErrorProb: 0.25,
-    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.05, wageShareMax: 0.95 },
-    surplus: { reserveYears: 3, annualRate: 0.25 },
+    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.05, wageShareMax: 0.95, overspend: 0.3 },
+    surplus: { reserveYears: 2.5, annualRate: 0.35 },
+    opening: { firstLeague: 8, secondLeague: 5, thirdLeague: 1.6, cp: 3, district: 5 },
     model: {
       refReputation: { firstLeague: 5300, secondLeague: 4650, thirdLeague: 3000, cp: 2590, district: 1295 },
       exponentReputation: 1.2,
@@ -1222,7 +1225,7 @@ export const DEFAULT_PARAMETERS: Params = {
         entertainment: { economy: 0.1, employment: 0, tourism: 0.25 },
       },
       regression: 0.15, noise: 2, strongTrend: 8,
-      population: { byServices: 0.006, byEmployment: 0.006, byHousing: 0.12 },
+      population: { byServices: 0.006, byEmployment: 0.006, byHousing: 0.08, affordableFactor: 0.3 },
       housingGrowth: -25,
       effects: {
         health: { recoveryPerPoint: 0.004 },
@@ -1360,7 +1363,7 @@ export const DEFAULT_PARAMETERS: Params = {
       cp: { mean: 8, deviation: 1.8 },
       district: { mean: 6.5, deviation: 1.8 },
     },
-    qualityByReputation: 5,
+    qualityByReputation: 3.8,
     standingReputationWeight: 0.6,
     stars: { centre: 2.5, pointsPerStar: 1, freeAgentTier: "thirdLeague" },
     variationForeignersReputation: 0.35,
@@ -1385,7 +1388,7 @@ export const DEFAULT_PARAMETERS: Params = {
     retirement: { fromAge: 33, baseProbability: 0.06, perYear: 0.14, goalkeeperExtraYears: 3, maxAge: 40, freeMultiplier: 1.6 },
     contracts: { yearsMin: 1, yearsMax: 3, renewBase: 0.7, renewPerQualityPoint: 0.1, renewPerOldYear: 0.08, oldAge: 31, renewMin: 0.05, renewMax: 0.95, renewalWageFactor: 1, negotiation: { acceptFloor: 0.92, floorByLoyalty: 0.01, floorNative: 0.04, floorMin: 0.6, askYears: 2, maxRounds: 4, walkAway: 0.5, concession: 0.7, maxYears: 5, clauseWage: 0.08, noClauseRatio: 2.5, clauseCeiling: 2, level: { margin: 1.2, ambitionMin: 12, loyaltyStay: 14 }, distance: { tiers: ["cp", "district"], wageFactor: 1.5, loyaltyStay: 14 } } },
     squad: { slack: 2, freeAgentTolerance: 2.5 },
-    management: { persistence: 0.75, sigma: 0.8, quality: 1 },
+    management: { persistence: 0.75, sigma: 1, quality: 1 },
     abroad: { sell: { probability: { firstLeague: 0.25, secondLeague: 0.2, thirdLeague: 0.15, cp: 0.2, district: 0.12 }, minAbove: 0.8, maxAge: 30, maxPerClub: 2, feeFactor: [1.2, 1.6], wageFactor: 1.5, marketShare: 0.7, marketSquadMargin: -2 }, buy: { base: 0.15, perScout: 0.12, perScoutQuality: 0.01, max: 0.8, maxAge: 29, feeFactor: 1, tolerance: 2, marketAttempt: 0.25 } },
     youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal", focus: { spread: 0.4, byPatience: 0.05, byAmbition: 0.03, min: 0.25, max: 1.9 }, agePenalty: 0.25, qualityByFocus: 0.6, potentialByFocus: 1.0, renewalYouthEffect: 0.2, renewalVeteranEffect: 0.12, development: { base: 45, byFocus: 25, byCoach: 1.5, byFinances: 8, byEducation: 0.15, regression: 0.2, maxStep: 1.5, yieldMin: 0.4, yieldMax: 1.0, yieldPivot: 0.7, potentialByYield: 0.15, prideLocal: 0.2 }, prospects: { perCityMean: 5, ageMin: 15, ageMax: 17, popExponent: 0.6, potentialShift: 1, localLockDays: 150 } },
   },
