@@ -1222,8 +1222,8 @@ export const DEFAULT_PARAMETERS: Params = {
         entertainment: { economy: 0.1, employment: 0, tourism: 0.25 },
       },
       regression: 0.15, noise: 2, strongTrend: 8,
-      population: { byServices: 0.006, byEmployment: 0.006, byHousing: 0.05 },
-      housingGrowth: -15,
+      population: { byServices: 0.006, byEmployment: 0.006, byHousing: 0.12 },
+      housingGrowth: -25,
       effects: {
         health: { recoveryPerPoint: 0.004 },
         nightlife: { formLoss: 0.06, recoveryExtra: 0.4 },
