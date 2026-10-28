@@ -104,7 +104,7 @@ type CityParameters = {
     initial: { base: Record<CityService, number>; byDecade: Record<CityService, number>; byBudget: number; noise: number };
     links: Record<CityService, { economy: number; employment: number; tourism: number }>;
     regression: number; noise: number; strongTrend: number;
-    population: { byServices: number; byEmployment: number; /** % de crescimento por cada ponto de habitação abaixo de 50: a habitação cara empurra gente para fora (RZ-270). */ byHousing: number };
+    population: { byServices: number; byEmployment: number; /** % de crescimento por cada ponto de habitação acima de 50 (habitação acessível atrai, cara empurra gente para fora) (RZ-270). */ byHousing: number };
     /** Pontos do alvo da habitação por cada duplicação da população desde o início (negativo: encarece). */
     housingGrowth: number;
     /** Efeitos no jogo: lesões (`health`), vida noturna (`nightlife`), assistência (`attendance`), ordenados (`wages`) e talento local (`prospects`). */
