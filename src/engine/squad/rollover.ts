@@ -27,6 +27,7 @@ import { releaseClause } from "../market/clauses";
 import { agentTraits } from "../agent/assign";
 import { newProspects } from "./prospects";
 import { clubBalance } from "../club/finances";
+import { advanceManagement } from "./management";
 import { lockLocalSigning, pruneLocks } from "./localPriority";
 import { rolloverForeign } from "./foreign";
 import { buyAbroad, foreignPool, sellAbroad } from "./abroad";
@@ -166,12 +167,13 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const tb = TIER_ORDER.indexOf(o.tiers.get(b.id) ?? b.tier);
     return ta - tb || b.reputation - a.reputation || (a.id < b.id ? -1 : 1);
   });
+  const management = advanceManagement(repo, data.clubs, params, o.season);
   // mercado com o estrangeiro (RZ-237): os clubes de IA vendem destaques e, mais abaixo, repõem com compras lá fora
   const abroadCtx = { season: o.season, seasonStart: o.seasonStart, seed };
   for (const club of order) {
     if (club.id === o.gamerClub) continue;
     const tier = o.tiers.get(club.id) ?? club.tier;
-    const desired = clamp(world.targetQuality[tier].mean + world.qualityByReputation * ((standing.get(club.id) ?? 0.5) - 0.5), 1, 20);
+    const desired = clamp(world.targetQuality[tier].mean + world.qualityByReputation * ((standing.get(club.id) ?? 0.5) - 0.5) + sc.management.quality * (management[club.id] ?? 0), 1, 20);
     const list = squads.get(club.id) ?? [];
     const gone = new Set(sellAbroad(repo, params, abroadCtx, club, tier, desired, list.map((m) => m.record)));
     if (gone.size > 0) squads.set(club.id, list.filter((m) => !gone.has(m.record.person)));
@@ -190,7 +192,7 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const target = world.squad[tier];
     const tq = world.targetQuality[tier];
     const repNorm = standing.get(club.id) ?? 0.5;
-    const desired = clamp(tq.mean + world.qualityByReputation * (repNorm - 0.5), 1, 20);
+    const desired = clamp(tq.mean + world.qualityByReputation * (repNorm - 0.5) + sc.management.quality * (management[club.id] ?? 0), 1, 20);
     // poder de compra: metade da riqueza de arranque, metade da caixa de agora face à mediana do escalão (clubes bem geridos gastam mais)
     const richness = 0.5 * (club.finances / stats.medianFinances) + 0.5 * clamp(clubBalance(repo, club) / stats.medianBalance, 0.05, 6);
     const wageScale = clamp(richness ** 0.4, 0.4, 2.5);
