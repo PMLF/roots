@@ -106,7 +106,7 @@ export function evolveCities(repo: Repository, base: BaseData, params: Pick<Para
     const fresh = evolveCity(
       before,
       {
-        targets: cityTargets(c, base.clubs, params, budgetIndexOf(base, c.id)),
+        targets: cityTargets(c, base.clubs, params, budgetIndexOf(base, c.id), before.population),
         driftPopulationPct: sectorEffect(c, "populationPct", params),
         results: results.get(c.id) ?? WITHOUT_RESULTS,
         effects: ownSquad.map((a) => params.city.events.types[a.type].effects),

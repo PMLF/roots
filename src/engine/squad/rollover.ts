@@ -26,6 +26,7 @@ import { marketValue } from "../market/value";
 import { releaseClause } from "../market/clauses";
 import { agentTraits } from "../agent/assign";
 import { newProspects } from "./prospects";
+import { clubBalance } from "../club/finances";
 import { lockLocalSigning, pruneLocks } from "./localPriority";
 import { rolloverForeign } from "./foreign";
 import { buyAbroad, foreignPool, sellAbroad } from "./abroad";
@@ -146,11 +147,11 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const t = o.tiers.get(c.id) ?? c.tier;
     byTier.set(t, [...(byTier.get(t) ?? []), c]);
   }
-  const tierStats = new Map<Tier, { medianFinances: number }>();
+  const tierStats = new Map<Tier, { medianFinances: number; medianBalance: number }>();
   const standing = new Map<string, number>();
   for (const [t, cs] of byTier) {
     for (const c of cs) standing.set(c.id, standingIn(c, cs, world.standingReputationWeight));
-    tierStats.set(t, { medianFinances: median(cs.map((c) => c.finances)) });
+    tierStats.set(t, { medianFinances: median(cs.map((c) => c.finances)), medianBalance: Math.max(1, median(cs.map((c) => clubBalance(repo, c)))) });
   }
 
   // ---------- 2-5. clubes por escalão e reputação
@@ -185,12 +186,14 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
   const rooms: { club: BaseClub; tier: Tier; target: number; desired: number; wageScale: number; kept: Member[]; counts: Map<Position, number>; missing: () => Position[]; rng: Rng }[] = [];
   for (const club of order) {
     const tier = o.tiers.get(club.id) ?? club.tier;
-    const stats = tierStats.get(tier) as { medianFinances: number };
+    const stats = tierStats.get(tier) as { medianFinances: number; medianBalance: number };
     const target = world.squad[tier];
     const tq = world.targetQuality[tier];
     const repNorm = standing.get(club.id) ?? 0.5;
     const desired = clamp(tq.mean + world.qualityByReputation * (repNorm - 0.5), 1, 20);
-    const wageScale = clamp((club.finances / stats.medianFinances) ** 0.4, 0.4, 2.5);
+    // poder de compra: metade da riqueza de arranque, metade da caixa de agora face à mediana do escalão (clubes bem geridos gastam mais)
+    const richness = 0.5 * (club.finances / stats.medianFinances) + 0.5 * clamp(clubBalance(repo, club) / stats.medianBalance, 0.05, 6);
+    const wageScale = clamp(richness ** 0.4, 0.4, 2.5);
     const rng = rngOf(`club/${club.id}`);
     const members = squads.get(club.id) ?? [];
     const focus = youthFocus(repo, club, tier, params);

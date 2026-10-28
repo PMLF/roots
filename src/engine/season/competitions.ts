@@ -85,7 +85,7 @@ export function readRun(repo: Repository, season: number, competition: string): 
 const saveRun = (repo: Repository, run: RunState) => repo.setMeta(runKey(run.season, run.id), JSON.stringify(run));
 
 /** Vencedor e finalista de uma taça da época, se já acabou. */
-function cupResult(repo: Repository, season: number, competition: string): { winner?: string; runnerUp?: string; done: boolean } {
+export function cupResult(repo: Repository, season: number, competition: string): { winner?: string; runnerUp?: string; done: boolean } {
   const run = readRun(repo, season, competition);
   if (!run) return { done: false };
   return { done: run.done, ...(run.winner ? { winner: run.winner } : {}), ...(run.runnerUp ? { runnerUp: run.runnerUp } : {}) };

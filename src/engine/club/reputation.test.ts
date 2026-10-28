@@ -17,7 +17,7 @@ describe("reputação em palavras", () => {
   });
   it("validação dos níveis", () => {
     expect(validateParameters(P)).toEqual([]);
-    expect(validateParameters({ ...P, reputation: { levels: [...P.reputation.levels].reverse() } })).not.toEqual([]);
+    expect(validateParameters({ ...P, reputation: { ...P.reputation, levels: [...P.reputation.levels].reverse() } })).not.toEqual([]);
   });
 });
 

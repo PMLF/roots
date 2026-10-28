@@ -91,6 +91,8 @@ type CityParameters = {
     notoriety: { base: number; byReputation: number; byDecade: number; noise: number };
     /** Reputação máxima da escala dos clubes (para normalizar). */
     reputationMax: number;
+    /** O melhor clube da terra (reputação 0-1) soma pontos ao alvo da economia e do emprego: um clube grande dá vida à cidade (RZ-270). */
+    byClub: { economy: number; employment: number };
   };
   /**
    * Serviços da cidade (RZ-233). `initial`: valor-base, desvio por cada dez vezes mais população (acima de 15 000), pontos a mais ou a
@@ -102,7 +104,9 @@ type CityParameters = {
     initial: { base: Record<CityService, number>; byDecade: Record<CityService, number>; byBudget: number; noise: number };
     links: Record<CityService, { economy: number; employment: number; tourism: number }>;
     regression: number; noise: number; strongTrend: number;
-    population: { byServices: number; byEmployment: number };
+    population: { byServices: number; byEmployment: number; /** % de crescimento por cada ponto de habitação abaixo de 50: a habitação cara empurra gente para fora (RZ-270). */ byHousing: number };
+    /** Pontos do alvo da habitação por cada duplicação da população desde o início (negativo: encarece). */
+    housingGrowth: number;
     /** Efeitos no jogo: lesões (`health`), vida noturna (`nightlife`), assistência (`attendance`), ordenados (`wages`) e talento local (`prospects`). */
     effects: {
       health: { recoveryPerPoint: number };
@@ -119,6 +123,8 @@ type CityParameters = {
     notoriety: { regression: number; byPride: number };
     culture: { byPride: number; champion: number; promotion: number };
     population: { byEconomy: number; byPride: number; noisePct: number; maxPct: number };
+    /** Efeito de um título, subida ou descida de um clube da terra (RZ-270): população (%), economia, emprego e pontos nos serviços. */
+    clubs: Record<"champion" | "promotion" | "relegation", { populationPct: number; economy: number; employment: number; entertainment: number; mobility: number }>;
   };
   events: {
     /** Probabilidade anual de acontecer um acontecimento local numa cidade / regional num polo. */
@@ -194,7 +200,26 @@ export type Params = {
    * Reputação dos clubes (0-10 000) em palavras, da mais alta para a mais baixa: um clube é do primeiro nível cujo `min`
    * não ultrapassa a sua reputação. O último tem `min` 0. A interface mostra a palavra, nunca o número.
    */
-  reputation: { levels: { level: LevelReputation; min: number }[] };
+  reputation: {
+    levels: { level: LevelReputation; min: number }[];
+    /** Reputação dinâmica (RZ-270): no fim de cada época sobe ou desce com o que o clube alcançou. */
+    dynamics: {
+      /** Máximo (em pontos) que a posição na tabela dá ou tira por escalão: 1.º lugar = +máximo, último = −máximo. */
+      position: Record<Tier, number>;
+      /** Bónus do título da liga, por escalão. */
+      champion: Record<Tier, number>;
+      /** Subir e descer de escalão (descer pesa mais). */
+      promotion: number; relegation: number;
+      /** Bónus por levar a taça, por jogar a Europa e por vencer a competição europeia. */
+      cup: number; europe: number; europeWinner: number;
+      /** Intervalo da reputação por escalão: fora dele, o clube é puxado `bandPull` do excesso por época. */
+      bands: Record<Tier, [number, number]>;
+      bandPull: number;
+      /** Regressão anual para o centro do escalão (fração da distância). */
+      meanReversion: number;
+      min: number; max: number;
+    };
+  };
   /** Página de uma competição: quantos jogadores nas listas de destaques e quantos jogos com nota para entrar na lista de melhores. */
   competitionView: { topN: number; minRatedGames: number };
   calendar: {
@@ -973,6 +998,16 @@ export const DEFAULT_PARAMETERS: Params = {
       { level: "local", min: 1000 },
       { level: "obscure", min: 0 },
     ],
+    dynamics: {
+      position: { firstLeague: 180, secondLeague: 140, thirdLeague: 110, cp: 80, district: 55 },
+      champion: { firstLeague: 450, secondLeague: 300, thirdLeague: 220, cp: 160, district: 110 },
+      promotion: 220, relegation: 260,
+      cup: 120, europe: 140, europeWinner: 500,
+      bands: { firstLeague: [3800, 10000], secondLeague: [3000, 6500], thirdLeague: [2200, 4300], cp: [1500, 3200], district: [500, 2000] },
+      bandPull: 0.35,
+      meanReversion: 0.04,
+      min: 300, max: 10000,
+    },
   },
   calendar: {
     seasonStartMonth: 7,
@@ -1168,6 +1203,7 @@ export const DEFAULT_PARAMETERS: Params = {
       pride: { base: 35, byReputation: 40, noise: 5 },
       notoriety: { base: 15, byReputation: 55, byDecade: 8, noise: 4 },
       reputationMax: 10000,
+      byClub: { economy: 10, employment: 4 },
     },
     services: {
       initial: {
@@ -1184,7 +1220,8 @@ export const DEFAULT_PARAMETERS: Params = {
         entertainment: { economy: 0.1, employment: 0, tourism: 0.25 },
       },
       regression: 0.15, noise: 2, strongTrend: 8,
-      population: { byServices: 0.006, byEmployment: 0.006 },
+      population: { byServices: 0.006, byEmployment: 0.006, byHousing: 0.05 },
+      housingGrowth: -15,
       effects: {
         health: { recoveryPerPoint: 0.004 },
         nightlife: { formLoss: 0.06, recoveryExtra: 0.4 },
@@ -1198,7 +1235,12 @@ export const DEFAULT_PARAMETERS: Params = {
       pride: { champion: 8, promotion: 6, relegation: -6 },
       notoriety: { regression: 0.25, byPride: 0.05 },
       culture: { byPride: 0.03, champion: 0.8, promotion: 0.5 },
-      population: { byEconomy: 0.012, byPride: 0.004, noisePct: 0.15, maxPct: 3 },
+      population: { byEconomy: 0.012, byPride: 0.015, noisePct: 0.15, maxPct: 3 },
+      clubs: {
+        champion: { populationPct: 0.5, economy: 2, employment: 1, entertainment: 3, mobility: 1 },
+        promotion: { populationPct: 0.6, economy: 2.5, employment: 1.5, entertainment: 3, mobility: 2 },
+        relegation: { populationPct: -0.5, economy: -2.5, employment: -1.5, entertainment: -3, mobility: -1 },
+      },
     },
     events: {
       cityProb: 0.12,

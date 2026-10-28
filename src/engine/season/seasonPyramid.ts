@@ -10,6 +10,7 @@ import type { ClubId, BaseData, CpSeries } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import { foreignAsBase, type ForeignClub } from "../world/foreign";
 import { SERIES, type Pyramid } from "./movements";
+import { withReputation } from "../club/reputationCycle";
 
 const rowKey = (season: number) => `pyramid.${season}`;
 
@@ -54,7 +55,7 @@ export function pyramidLeagues(p: Pyramid, data: BaseData): Map<ClubId, TierLeag
 export function pyramidData(repo: Repository, data: BaseData, season: number): BaseData {
   const leagues = pyramidLeagues(readPyramid(repo, data, season), data);
   // quem não está na pirâmide está na SegundaDistrital distrital: não joga (RZ-113)
-  return { ...data, clubs: data.clubs.map((c) => { const l = leagues.get(c.id); return l ? { ...c, league: l.league, tier: l.tier } : { ...c, league: secondDistrictLeague(c.district), tier: "district" as const }; }) };
+  return { ...data, clubs: withReputation(repo, data.clubs, season).map((c) => { const l = leagues.get(c.id); return l ? { ...c, league: l.league, tier: l.tier } : { ...c, league: secondDistrictLeague(c.district), tier: "district" as const }; }) };
 }
 
 /** Os dados com a liga e o escalão **atuais** de cada clube. Idempotente. */

@@ -30,6 +30,10 @@ import { assignAgents } from "../agent/assign";
 import { Rng } from "../random/rng";
 import { rolloverCompanies } from "../company/cycle";
 import { promotionGroupName, promotionGroups, prepareSeason } from "./prepare";
+import { reputationData, updateReputations, type SeasonFinish } from "../club/reputationCycle";
+import { CUP, cupResult } from "./competitions";
+import { EUROPE_NAME, EUROPEAN } from "../europe/europe";
+import { isForeignClub } from "../world/foreign";
 
 export type SeasonSummary = {
   season: number;
@@ -94,10 +98,13 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
 
   // Prémio do Estado (passo 2 do DESIGN_REGRAS §2): sobre as classificações finais, antes de qualquer movimento
   const ranked: RankedClub[] = [];
+  const finish: SeasonFinish[] = [];
   const competitions = new Map([...leagues.values()].map((l) => [l.league, l.tier] as const));
   for (const [competition, tier] of competitions) {
-    for (const l of competitionTable(repo, competition, season, tier === "cp" || tier === "district" ? "promotion" : "league", params, { seed, reputation: rep })) {
+    const table = competitionTable(repo, competition, season, tier === "cp" || tier === "district" ? "promotion" : "league", params, { seed, reputation: rep });
+    for (const l of table) {
       const cd = data.clubs.find((x) => x.id === l.club);
+      if (cd) finish.push({ club: l.club, tier, position: l.position, size: table.length });
       if (cd) ranked.push({ club: l.club, district: cd.district, tier, position: l.position, matches: l.matches, points: l.points, difference: l.difference, scoredGoals: l.scoredGoals, reputation: cd.reputation });
     }
   }
@@ -162,8 +169,12 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
       const city = cityOf.get(club);
       if (city) results.set(city, { champions: 0, promotions: 0, relegations: 0, ...results.get(city), [pitch]: (results.get(city)?.[pitch] ?? 0) + 1 });
     };
-    for (const c of champions) add(c.club, "champions");
-    for (const m of r.movements) add(m.club, m.reason === "relegation" ? "relegations" : "promotions");
+    for (const [i, c] of champions.entries()) { add(c.club, "champions"); if (i === 0) add(c.club, "champions"); }
+    for (const m of r.movements) {
+      add(m.club, m.reason === "relegation" ? "relegations" : "promotions");
+      // subir à Primeira Liga ou descer dela pesa o dobro na cidade
+      if (m.to === "first" || m.from === "first") add(m.club, m.reason === "relegation" ? "relegations" : "promotions");
+    }
     evolveCities(repo, data, params, season, today, results);
     // a relação do gamer com o autarca: o clube que dá orgulho à cidade agrada-lhe (RZ-236)
     const ownClub = data.clubs.find((c) => c.id === repo.meta("gamer.club"));
@@ -172,12 +183,23 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
     // plantéis: envelhecer, reformas, contratos, livres e formação para a nova época (RZ-117)
     const newSeasonStart = createDate(params.calendar.initialYear + season, params.calendar.seasonStartMonth, 1);
     const nextTiers = new Map([...pyramidLeagues(r.pyramid, data)].map(([club, l]) => [club, l.tier] as const));
+    // reputação da época seguinte: sobe e desce com o que cada clube alcançou (RZ-270)
+    const european = new Set<string>();
+    for (const kind of EUROPEAN) for (const m of repo.competitionMatches(EUROPE_NAME[kind], season)) for (const id of [m.home, m.away]) if (!isForeignClub(id)) european.add(id);
+    const cupWinner = cupResult(repo, season, CUP).winner;
+    const europeWinner = cupResult(repo, season, EUROPE_NAME.championsLeague).winner;
+    updateReputations(repo, data.clubs, params, {
+      season, finish, champions: [...champions.map((c) => c.club), ...(cpChampion ? [cpChampion] : [])],
+      tier: new Map([...leagues].map(([club, l]) => [club, l.tier] as const)), nextTier: nextTiers,
+      cupWinners: cupWinner ? [cupWinner] : [], europe: { played: [...european], ...(europeWinner && !isForeignClub(europeWinner) ? { winner: europeWinner } : {}) },
+    });
+    const next = reputationData(repo, data, season + 1);
     const gamerClub = repo.meta("gamer.club");
-    rolloverSquads(repo, data, params, { season, seasonStart: newSeasonStart, tiers: nextTiers, ...(gamerClub ? { gamerClub } : {}) });
+    rolloverSquads(repo, next, params, { season, seasonStart: newSeasonStart, tiers: nextTiers, ...(gamerClub ? { gamerClub } : {}) });
     // agentes para os novos jogadores (formação e livres contratados) (RZ-206)
     assignAgents(repo, new Rng(repo.meta("seed") ?? "?", `agents/${season}`), params, (club) => nextTiers.get(club));
     // empresas: evolução, falências, novas e patrocínios do clube para a nova época (RZ-219, RZ-311)
-    rolloverCompanies(repo, data, params, { season, seasonStart: newSeasonStart, year: params.calendar.initialYear + season, tiers: nextTiers, previousTiers: new Map([...leagues].map(([club, l]) => [club, l.tier] as const)) });
+    rolloverCompanies(repo, next, params, { season, seasonStart: newSeasonStart, year: params.calendar.initialYear + season, tiers: nextTiers, previousTiers: new Map([...leagues].map(([club, l]) => [club, l.tier] as const)) });
     savePyramid(repo, season + 1, r.pyramid);
     repo.setMeta("season", String(season + 1));
     repo.setMeta("date.today", newSeasonStart);
