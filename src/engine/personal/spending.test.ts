@@ -25,7 +25,7 @@ describe("o que o gamer faz com o dinheiro (RZ-162)", { timeout: 120000 }, () =>
     expect(r.ok).toBe(true);
     expect(ownsHome(repo, club.city)).toBe(true);
     expect(livingCost(repo, data, P, club.city)).toBeLessThan(living);
-    expect(homePrice(repo, data, P, club.city)).toBe(price);
+    expect(Math.abs(homePrice(repo, data, P, club.city) - price)).toBeLessThanOrEqual(1000); // o preço é arredondado ao milhar
     expect(acceptableRatio(repo, data, P, club, d0, true).max).toBeGreaterThan(before);
     expect(buyHome(repo, data, P, d0, club.city)).toEqual({ ok: false, reason: "owned" });
   });
