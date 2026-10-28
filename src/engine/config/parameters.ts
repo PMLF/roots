@@ -355,6 +355,8 @@ export type Params = {
     model: FinancesModel;
     /** Orçamento anual por defeito (RZ-114): peso da massa salarial nas receitas, meses de reserva e fração da folga para transferências. */
     budget: { revenueAboutBill: number; monthsReserve: number; transfersBye: number; /** Folga da massa salarial por defeito acima da atual: os clubes têm de poder contratar sem ter primeiro de despedir. */ wageHeadroom: number; /** Teto da massa salarial por defeito sobre as receitas anuais estimadas: o orçamento não cresce acima disto (RZ-237). */ wageShareMax: number };
+    /** Investimento dos excedentes (RZ-237): os clubes de IA gastam em infraestruturas parte da caixa que passa de `reserveYears` anos de custos, para a caixa mediana de cada escalão não crescer sem fim. */
+    surplus: { reserveYears: number; annualRate: number };
   };
   personality: {
     traitMin: number;
@@ -1087,6 +1089,7 @@ export const DEFAULT_PARAMETERS: Params = {
     wealthPercentiles: [90, 70, 40, 15],
     rivalEstimateErrorProb: 0.25,
     budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.05, wageShareMax: 0.95 },
+    surplus: { reserveYears: 1.5, annualRate: 0.3 },
     model: {
       refReputation: { firstLeague: 5300, secondLeague: 4650, thirdLeague: 3000, cp: 2590, district: 1295 },
       exponentReputation: 1.2,
