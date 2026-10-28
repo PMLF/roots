@@ -29,6 +29,8 @@ import { agentTraits } from "../agent/assign";
 import { makeAppeal } from "./appeal";
 import { activeLoans, endDueLoans, endLoan, loanEnd, startLoan } from "../loans/loans";
 import type { ContractClauses } from "../persistence/types";
+import { buyAbroad, foreignPool, sellAbroad, type ForeignPool } from "../squad/abroad";
+import { readManagement } from "../squad/management";
 
 export type MarketWindow = { index: number; last: boolean; id: string };
 
@@ -51,6 +53,15 @@ export function isMarketDay(date: IsoDate, params: Params): boolean {
   if (!w) return false;
   const first = params.market.windows[w.index]!.open;
   return w.last || weekDay(date) === params.market.roundWeekday || date.slice(5) === `${pad(first[0])}-${pad(first[1])}`;
+}
+
+/** Quantas rondas tem a janela (para repartir por elas as probabilidades anuais do mercado com o estrangeiro). */
+function roundsInWindow(date: IsoDate, w: MarketWindow, params: Params): number {
+  const { open, close } = params.market.windows[w.index]!;
+  const year = Number(date.slice(0, 4));
+  let n = 0;
+  for (let t = Date.UTC(year, open[0] - 1, open[1]); t <= Date.UTC(year, close[0] - 1, close[1]); t += 86_400_000) if (isMarketDay(new Date(t).toISOString().slice(0, 10) as IsoDate, params)) n++;
+  return Math.max(1, n);
 }
 
 export type MarketSummary = { transfers: number; freeSignings: number; spent: number; agentFees: number; releases: number; compensation: number; /** Empréstimos feitos e chamados de volta nesta ronda. */ loans?: number; recalls?: number };
@@ -347,6 +358,44 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
     }
     saveBudget(club);
     repo.setMeta(signKey(club.id), String(signed(club.id) + 1));
+  }
+
+  // ---------- estrangeiro (RZ-237): vendas de destaques e compras lá fora fazem-se nas rondas da janela, como as outras transferências
+  const ab = params.squadCycle.abroad;
+  const windowShare = (mk.windowFactor[win.index] ?? 1) / mk.windowFactor.reduce((a, b) => a + b, 0);
+  const abroadCtx = { season, seasonStart: date, seed, salt: date };
+  const sellScale = (ab.sell.marketShare * windowShare) / roundsInWindow(date, win, params);
+  const management = readManagement(repo);
+  let abroadPool: ForeignPool | undefined;
+  for (const club of rng.derive("abroad").shuffle(order)) {
+    const tier = tierOf(club);
+    if (!stats.get(tier)) continue;
+    const desired = clamp(desiredOf(club, tier) + params.squadCycle.management.quality * (management[club.id] ?? 0), 1, 20);
+    const squad = byClub.get(club.id) ?? [];
+    const gone = new Set(sellAbroad(repo, params, { ...abroadCtx, scale: sellScale, floor: world.squad[tier] + ab.sell.marketSquadMargin }, club, tier, desired, squad.map((e) => e.record)));
+    if (gone.size > 0) {
+      for (const e of squad.filter((x) => gone.has(x.record.person))) {
+        squad.splice(squad.indexOf(e), 1);
+        const list = byPos.get(e.position) ?? [];
+        list.splice(list.indexOf(e), 1);
+      }
+      budgets.delete(club.id);
+    }
+    if (squad.length >= world.squad[tier] + mk.squadSlack || signed(club.id) >= mk.maxSigningsPerWindow) continue;
+    const arng = rng.derive(`abroad/${club.id}`);
+    const pick = pickNeed(tier, squad, desired, arng);
+    if (!pick) continue;
+    abroadPool ??= foreignPool(repo, params, abroadCtx);
+    const st = stats.get(tier)!;
+    const wageScale = clamp((club.finances / st.medianFinances) ** 0.4, 0.4, 2.5);
+    const bought = buyAbroad(repo, params, { ...abroadCtx, scale: ab.buy.marketAttempt }, abroadPool, club, tier, wageScale, desired, pick.position, arng.integer(mk.contractYears[0], mk.contractYears[1]));
+    if (!bought) continue;
+    const entry: Entry = { record: bought, club: club.id, position: pick.position, quality: currentQuality(bought.attributes as Attributes, pick.position) };
+    squad.push(entry);
+    index(entry);
+    budgets.delete(club.id);
+    repo.setMeta(signKey(club.id), String(signed(club.id) + 1));
+    summary.transfers++;
   }
 
   // ---------- empréstimos: os clubes com excedentes (ou jovens sem lugar no onze) emprestam-nos a clubes de nível igual ou inferior

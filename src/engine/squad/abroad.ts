@@ -1,5 +1,5 @@
 /**
- * Mercado com o estrangeiro na passagem de época (RZ-237). Os clubes portugueses de IA vendem os seus destaques a clubes
+ * Mercado com o estrangeiro (RZ-237), na passagem de época e nas rondas das janelas de transferências. Os clubes portugueses de IA vendem os seus destaques a clubes
  * estrangeiros por mais do que valem (entra dinheiro na categoria `transfers`) e repõem o plantel também com compras lá
  * fora, mais quanto melhor for o seu scouting. O resto do plantel continua a vir de livres e da formação.
  */
@@ -18,7 +18,8 @@ import { scoutsOf } from "../scouting/scouting";
 import { contractDates, wageFor } from "./youth";
 import { foreignClubList } from "./foreign";
 
-type Ctx = { season: number; seasonStart: IsoDate; seed: string };
+/** `seasonStart` é a data do negócio (passagem de época ou ronda do mercado); `salt` distingue rondas; `scale` multiplica as probabilidades; `floor` é o plantel mínimo que o clube mantém ao vender. */
+export type Ctx = { season: number; seasonStart: IsoDate; seed: string; salt?: string; scale?: number; floor?: number };
 const quality = (j: PlayerRecord): number => currentQuality(j.attributes as Attributes, (j.positions[0]?.pos ?? "CM") as Position);
 const ageOf = (repo: Repository, j: PlayerRecord, on: IsoDate): number => ageAt((repo.person(j.person) as { birth: IsoDate }).birth, on);
 
@@ -30,7 +31,7 @@ export function sellAbroad(repo: Repository, params: Params, c: Ctx, club: BaseC
   const s = params.squadCycle.abroad.sell;
   const clubs = foreignClubList(repo);
   if (clubs.length === 0) return [];
-  const rng = new Rng(c.seed, `abroad/sell/${c.season}/${club.id}`);
+  const rng = new Rng(c.seed, `abroad/sell/${c.season}/${c.salt ?? ""}/${club.id}`);
   const sold: string[] = [];
   const candidates = squad
     .map((j) => ({ j, q: quality(j), age: ageOf(repo, j, c.seasonStart) }))
@@ -38,7 +39,8 @@ export function sellAbroad(repo: Repository, params: Params, c: Ctx, club: BaseC
     .sort((a, b) => b.q - a.q || (a.j.person < b.j.person ? -1 : 1));
   for (const x of candidates) {
     if (sold.length >= s.maxPerClub) break;
-    if (!rng.derive(`p/${x.j.person}`).prob(s.probability[tier])) continue;
+    if (c.floor !== undefined && squad.length - sold.length <= c.floor) break;
+    if (!rng.derive(`p/${x.j.person}`).prob(s.probability[tier] * (c.scale ?? 1))) continue;
     const buyers = clubs.filter((f) => (f.quality ?? 0) >= x.q - 1.5);
     if (buyers.length === 0) continue;
     const buyer = rng.derive(`b/${x.j.person}`).weighted(buyers, (f) => Math.max(0.1, (f.quality ?? 0) - x.q + 2));
@@ -74,8 +76,8 @@ export function buyAbroad(repo: Repository, params: Params, c: Ctx, pool: Foreig
   const b = params.squadCycle.abroad.buy;
   const scouts = scoutsOf(repo, club.id);
   const p = clamp(b.base + b.perScout * scouts.count + b.perScoutQuality * scouts.quality * Math.min(1, scouts.count), 0, b.max);
-  const rng = new Rng(c.seed, `abroad/buy/${c.season}/${club.id}/${position}/${pool.list.length}`);
-  if (!rng.prob(p)) return undefined;
+  const rng = new Rng(c.seed, `abroad/buy/${c.season}/${c.salt ?? ""}/${club.id}/${position}/${pool.list.length}`);
+  if (!rng.prob(p * (c.scale ?? 1))) return undefined;
   const budget = clubBudget(repo, club, params, c.season);
   let best = -1;
   let bestGap = Infinity;

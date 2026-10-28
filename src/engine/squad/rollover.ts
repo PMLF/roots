@@ -170,12 +170,14 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
   const management = advanceManagement(repo, data.clubs, params, o.season);
   // mercado com o estrangeiro (RZ-237): os clubes de IA vendem destaques e, mais abaixo, repõem com compras lá fora
   const abroadCtx = { season: o.season, seasonStart: o.seasonStart, seed };
+  // as vendas ao estrangeiro fazem-se sobretudo nas rondas do mercado; aqui fica só a parte da passagem de época
+  const sellCtx = { ...abroadCtx, scale: 1 - sc.abroad.sell.marketShare };
   for (const club of order) {
     if (club.id === o.gamerClub) continue;
     const tier = o.tiers.get(club.id) ?? club.tier;
     const desired = clamp(world.targetQuality[tier].mean + world.qualityByReputation * ((standing.get(club.id) ?? 0.5) - 0.5) + sc.management.quality * (management[club.id] ?? 0), 1, 20);
     const list = squads.get(club.id) ?? [];
-    const gone = new Set(sellAbroad(repo, params, abroadCtx, club, tier, desired, list.map((m) => m.record)));
+    const gone = new Set(sellAbroad(repo, params, sellCtx, club, tier, desired, list.map((m) => m.record)));
     if (gone.size > 0) squads.set(club.id, list.filter((m) => !gone.has(m.record.person)));
   }
   const abroadPool = foreignPool(repo, params, abroadCtx);

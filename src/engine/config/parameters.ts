@@ -713,8 +713,8 @@ export type Params = {
     /** Gestão oculta de cada clube (RZ-270): persistência anual, desvio do choque anual e pontos de qualidade do plantel por unidade. */
     management: { persistence: number; sigma: number; quality: number };
     abroad: {
-      sell: { probability: Record<Tier, number>; /** Pontos de qualidade acima do que o clube procura para ser destaque. */ minAbove: number; maxAge: number; maxPerClub: number; /** Intervalo do múltiplo do valor de mercado pago. */ feeFactor: [number, number]; wageFactor: number };
-      buy: { base: number; perScout: number; perScoutQuality: number; max: number; maxAge: number; feeFactor: number; tolerance: number };
+      sell: { probability: Record<Tier, number>; /** Pontos de qualidade acima do que o clube procura para ser destaque. */ minAbove: number; maxAge: number; maxPerClub: number; /** Intervalo do múltiplo do valor de mercado pago. */ feeFactor: [number, number]; wageFactor: number; /** Parte das vendas que se faz nas rondas do mercado (o resto, na passagem de época). */ marketShare: number; /** Plantel mínimo (acima do alvo) que o clube mantém ao vender durante a janela. */ marketSquadMargin: number };
+      buy: { base: number; perScout: number; perScoutQuality: number; max: number; maxAge: number; feeFactor: number; tolerance: number; /** Probabilidade, por ronda de mercado, de um clube com necessidade ir também procurar lá fora (multiplica a probabilidade de scouting). */ marketAttempt: number };
     };
     squad: {
       /** Jogadores acima do plantel-alvo que a formação ainda pode juntar. */
@@ -1386,7 +1386,7 @@ export const DEFAULT_PARAMETERS: Params = {
     contracts: { yearsMin: 1, yearsMax: 3, renewBase: 0.7, renewPerQualityPoint: 0.1, renewPerOldYear: 0.08, oldAge: 31, renewMin: 0.05, renewMax: 0.95, renewalWageFactor: 1, negotiation: { acceptFloor: 0.92, floorByLoyalty: 0.01, floorNative: 0.04, floorMin: 0.6, askYears: 2, maxRounds: 4, walkAway: 0.5, concession: 0.7, maxYears: 5, clauseWage: 0.08, noClauseRatio: 2.5, clauseCeiling: 2, level: { margin: 1.2, ambitionMin: 12, loyaltyStay: 14 }, distance: { tiers: ["cp", "district"], wageFactor: 1.5, loyaltyStay: 14 } } },
     squad: { slack: 2, freeAgentTolerance: 2.5 },
     management: { persistence: 0.75, sigma: 0.8, quality: 1 },
-    abroad: { sell: { probability: { firstLeague: 0.25, secondLeague: 0.2, thirdLeague: 0.15, cp: 0.2, district: 0.12 }, minAbove: 0.8, maxAge: 30, maxPerClub: 2, feeFactor: [1.2, 1.6], wageFactor: 1.5 }, buy: { base: 0.15, perScout: 0.12, perScoutQuality: 0.01, max: 0.8, maxAge: 29, feeFactor: 1, tolerance: 2 } },
+    abroad: { sell: { probability: { firstLeague: 0.25, secondLeague: 0.2, thirdLeague: 0.15, cp: 0.2, district: 0.12 }, minAbove: 0.8, maxAge: 30, maxPerClub: 2, feeFactor: [1.2, 1.6], wageFactor: 1.5, marketShare: 0.7, marketSquadMargin: -2 }, buy: { base: 0.15, perScout: 0.12, perScoutQuality: 0.01, max: 0.8, maxAge: 29, feeFactor: 1, tolerance: 2, marketAttempt: 0.25 } },
     youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal", focus: { spread: 0.4, byPatience: 0.05, byAmbition: 0.03, min: 0.25, max: 1.9 }, agePenalty: 0.25, qualityByFocus: 0.6, potentialByFocus: 1.0, renewalYouthEffect: 0.2, renewalVeteranEffect: 0.12, development: { base: 45, byFocus: 25, byCoach: 1.5, byFinances: 8, byEducation: 0.15, regression: 0.2, maxStep: 1.5, yieldMin: 0.4, yieldMax: 1.0, yieldPivot: 0.7, potentialByYield: 0.15, prideLocal: 0.2 }, prospects: { perCityMean: 5, ageMin: 15, ageMax: 17, popExponent: 0.6, potentialShift: 1, localLockDays: 150 } },
   },
   companies: {
