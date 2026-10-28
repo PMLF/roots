@@ -63,6 +63,8 @@ export function updateReputations(repo: Repository, clubs: readonly BaseClub[], 
     if (o.europe?.winner === c.id) delta += d.europeWinner;
     const [lo, hi] = d.bands[next];
     const centre = (lo + Math.min(hi, lo * 2.2)) / 2;
+    // rendimentos decrescentes: quem já está no topo da escala sobe devagar; quem está em baixo sobe depressa (e o inverso a descer)
+    delta *= delta >= 0 ? clamp((d.max - c.reputation) / (d.max - centre), 0.1, 1.5) : clamp((c.reputation - d.min) / (centre - d.min), 0.1, 1.5);
     let rep = c.reputation + delta;
     rep += (centre - rep) * d.meanReversion;
     if (rep < lo) rep += (lo - rep) * d.bandPull;
