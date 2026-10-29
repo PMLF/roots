@@ -1963,5 +1963,16 @@
   "newsItem.staff_retired.1.title": "{name} despede-se de {club}",
   "newsItem.staff_retired.1.body": "{name}, {fnText} de {club}, termina a carreira aos {age} anos.",
   "fn.gamerCoach": "Treinador (tu)",
-  "club.gamerCoach": "És o treinador deste clube: não há treinador da IA."
+  "club.gamerCoach": "És o treinador deste clube: não há treinador da IA.",
+  "staff.dismiss": "Despedir",
+  "staff.hire": "Contratar",
+  "staff.hireButton": "Contratar",
+  "staff.estimate": "Qualidade (estimada)",
+  "staff.estimateHint": "Estimativa com margem de erro: só vês ao certo depois de trabalhares com a pessoa.",
+  "staff.none": "Não há profissionais livres nesta função.",
+  "staff.reason.slotTaken": "Esse lugar já está ocupado: despede primeiro quem lá está.",
+  "staff.reason.notFree": "Esse profissional já foi contratado por outro clube.",
+  "staff.reason.notYours": "Esse profissional não é do teu clube.",
+  "staff.reason.unknown": "Profissional desconhecido.",
+  "staff.reason.invalid": "Não podes despedir esta função."
 }

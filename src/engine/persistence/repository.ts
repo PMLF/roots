@@ -173,6 +173,8 @@ export interface Repository {
   setRoleClub(person: string, club: string | null): void;
   /** Termina um cargo (reforma de staff): a pessoa fica, o cargo desaparece. */
   removeRole(person: string): void;
+  /** Muda a qualidade de um cargo (o staff evolui com os anos). */
+  setRoleQuality(person: string, quality: Record<string, number>): void;
   clubPlayers(club: string): PlayerRecord[];
 
   // --- empresas e patrocínios (RZ-219, RZ-311)

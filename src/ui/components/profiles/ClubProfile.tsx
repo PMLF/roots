@@ -25,6 +25,7 @@ import { abbreviationPosition, rankPosition } from "@/ui/i18n/position";
 import type { Column } from "@/ui/table/logic";
 import { useCountries } from "@/ui/useCountries";
 import { useOwnClub } from "@/ui/myClub";
+import { StaffManager } from "@/ui/components/profiles/StaffManager";
 
 /** Barra 0-100 (qualidade de um aspeto do estádio). */
 function Bar({ value }: { value: number }) {
@@ -323,7 +324,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
         staff: d.roles.length > 0 ? (
           <>
             {ownSquad && <p className="staff-gamer" data-testid="staff-gamer"><b>{t("fn.gamerCoach")}</b> <span className="suave">{t("club.gamerCoach")}</span></p>}
-            <Table id="staff" columns={staff} lines={d.roles} rowKey={(p) => p.id} cell={{ name: name }} />
+            {ownSquad ? <StaffManager club={d.id} /> : <Table id="staff" columns={staff} lines={d.roles} rowKey={(p) => p.id} cell={{ name: name }} />}
           </>
         ) : (
           <p className="vazio">{t("club.noWorld")}</p>

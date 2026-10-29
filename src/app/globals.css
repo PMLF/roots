@@ -1356,3 +1356,6 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 .novo-guardar p { margin: 0; }
 
 .staff-gamer { margin: 0 0 8px; }
+
+.staff-gestao h3 { margin: 16px 0 6px; }
+.staff-gestao label { display: inline-flex; gap: 6px; align-items: center; margin-bottom: 8px; }
