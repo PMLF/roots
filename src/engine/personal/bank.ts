@@ -25,7 +25,9 @@ export function livingCost(repo: Repository, data: BaseData, params: Params, cit
   const state = cityHistoryWithPast(repo, data, params, city).at(-1)?.state;
   const size = 1 + p.sizeFactor * Math.log10(Math.max(1, (state?.population ?? c?.population ?? 15_000) / 15_000));
   const housing = 1 + p.housingFactor * ((50 - (state?.housing ?? 50)) / 50);
-  return Math.round((p.base * Math.max(0.6, size) * housing) / 10) * 10;
+  // casa própria na cidade: sem renda, o custo de vida desce (RZ-162)
+  const own = (JSON.parse(repo.meta("gamer.homes") ?? "[]") as string[]).includes(city) ? 1 - params.personal.home.livingDiscount : 1;
+  return Math.round((p.base * Math.max(0.6, size) * housing * own) / 10) * 10;
 }
 
 /** Poupança mensal de quem tem este ordenado: líquido menos o custo de vida, nunca negativa. */

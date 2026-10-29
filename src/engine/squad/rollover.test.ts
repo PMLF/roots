@@ -115,8 +115,30 @@ describe("ligas estrangeiras", () => {
       expect(squad.length).toBe(P.world.foreignLeagues.squad);
       const ages = squad.map((j) => 2027 - Number((repo.person(j.person) as { birth: string }).birth.slice(0, 4)));
       expect(Math.max(...ages)).toBeLessThan(P.squadCycle.retirement.maxAge + 2);
-      expect(squad.every((j) => repo.person(j.person)?.nationality === c.country)).toBe(true);
+      // quem veio de Portugal (RZ-237) vem de fora: a maioria continua a ser do país do clube
+      expect(squad.filter((j) => repo.person(j.person)?.nationality === c.country).length).toBeGreaterThan(squad.length * 0.5);
     }
   });
 });
 
+
+describe("mercado com o estrangeiro (RZ-237)", () => {
+  it("clubes vendem destaques lá para fora, encaixam dinheiro e repõem o plantel", () => {
+    const repo = fresh("abroad-fast");
+    run(repo, 2);
+    const transfers = repo.eventsOf({ k: "club", id: data.clubs[0]!.id }, { type: "TRANSFER" }).length;
+    expect(transfers).toBeGreaterThanOrEqual(0);
+    let sold = 0, bought = 0, cash = 0;
+    for (const c of data.clubs) {
+      for (const e of repo.eventsOf({ k: "club", id: c.id }, { type: "TRANSFER" })) {
+        const d = e.data as { abroad?: string; fee: number };
+        if (d.abroad === "sale" && e.entities.some((x) => x.id === c.id && x.roleKind === "seller")) { sold++; cash += d.fee; }
+        if (d.abroad === "purchase" && e.entities.some((x) => x.id === c.id && x.roleKind === "buyer")) bought++;
+      }
+      expect(repo.clubPlayers(c.id).length).toBeGreaterThan(12);
+    }
+    expect(sold).toBeGreaterThan(5);
+    expect(cash).toBeGreaterThan(0);
+    expect(bought).toBeGreaterThan(0);
+  }, 60000);
+});

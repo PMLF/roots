@@ -91,6 +91,8 @@ type CityParameters = {
     notoriety: { base: number; byReputation: number; byDecade: number; noise: number };
     /** Reputação máxima da escala dos clubes (para normalizar). */
     reputationMax: number;
+    /** O melhor clube da terra (reputação 0-1) soma pontos ao alvo da economia e do emprego: um clube grande dá vida à cidade (RZ-270). */
+    byClub: { economy: number; employment: number };
   };
   /**
    * Serviços da cidade (RZ-233). `initial`: valor-base, desvio por cada dez vezes mais população (acima de 15 000), pontos a mais ou a
@@ -102,7 +104,9 @@ type CityParameters = {
     initial: { base: Record<CityService, number>; byDecade: Record<CityService, number>; byBudget: number; noise: number };
     links: Record<CityService, { economy: number; employment: number; tourism: number }>;
     regression: number; noise: number; strongTrend: number;
-    population: { byServices: number; byEmployment: number };
+    population: { byServices: number; byEmployment: number; /** % de crescimento por cada ponto de habitação acima de 50 (habitação acessível atrai, cara empurra gente para fora) (RZ-270). */ byHousing: number; /** Fração do efeito da habitação barata (acima de 50) que realmente atrai gente: a cara expulsa mais do que a barata atrai (RZ-270). */ affordableFactor: number; /** Habitação cara expulsa menos gente das cidades grandes (têm emprego e atração própria): o escudo vai de 0 em `shieldFrom` habitantes a `shieldMax` em `shieldFull` (RZ-270). */ shieldFrom: number; shieldFull: number; shieldMax: number };
+    /** Pontos do alvo da habitação por cada duplicação da população desde o início (negativo: encarece). */
+    housingGrowth: number;
     /** Efeitos no jogo: lesões (`health`), vida noturna (`nightlife`), assistência (`attendance`), ordenados (`wages`) e talento local (`prospects`). */
     effects: {
       health: { recoveryPerPoint: number };
@@ -119,6 +123,10 @@ type CityParameters = {
     notoriety: { regression: number; byPride: number };
     culture: { byPride: number; champion: number; promotion: number };
     population: { byEconomy: number; byPride: number; noisePct: number; maxPct: number };
+    /** Atração das cidades grandes (emprego, serviços, imigração; INE: Lisboa e Porto estáveis enquanto o interior perde): % por ano × log10(população de arranque / `ref`), entre `min` e `max` (RZ-270). */
+    centrality: { coefficient: number; ref: number; min: number; max: number };
+    /** Efeito de um título, subida ou descida de um clube da terra (RZ-270): população (%), economia, emprego e pontos nos serviços. */
+    clubs: Record<"champion" | "promotion" | "relegation", { populationPct: number; economy: number; employment: number; entertainment: number; mobility: number }>;
   };
   events: {
     /** Probabilidade anual de acontecer um acontecimento local numa cidade / regional num polo. */
@@ -194,7 +202,26 @@ export type Params = {
    * Reputação dos clubes (0-10 000) em palavras, da mais alta para a mais baixa: um clube é do primeiro nível cujo `min`
    * não ultrapassa a sua reputação. O último tem `min` 0. A interface mostra a palavra, nunca o número.
    */
-  reputation: { levels: { level: LevelReputation; min: number }[] };
+  reputation: {
+    levels: { level: LevelReputation; min: number }[];
+    /** Reputação dinâmica (RZ-270): no fim de cada época sobe ou desce com o que o clube alcançou. */
+    dynamics: {
+      /** Máximo (em pontos) que a posição na tabela dá ou tira por escalão: 1.º lugar = +máximo, último = −máximo. */
+      position: Record<Tier, number>;
+      /** Bónus do título da liga, por escalão. */
+      champion: Record<Tier, number>;
+      /** Subir e descer de escalão (descer pesa mais). */
+      promotion: number; relegation: number;
+      /** Bónus por levar a taça, por jogar a Europa e por vencer a competição europeia. */
+      cup: number; europe: number; europeWinner: number;
+      /** Intervalo da reputação por escalão: fora dele, o clube é puxado `bandPull` do excesso por época. */
+      bands: Record<Tier, [number, number]>;
+      bandPull: number;
+      /** Regressão anual para o centro do escalão (fração da distância). */
+      meanReversion: number;
+      min: number; max: number;
+    };
+  };
   /** Página de uma competição: quantos jogadores nas listas de destaques e quantos jogos com nota para entrar na lista de melhores. */
   competitionView: { topN: number; minRatedGames: number };
   calendar: {
@@ -298,6 +325,14 @@ export type Params = {
     /** Saldo da conta no arranque. */
     startBalance: number;
     living: { base: number; /** Quanto sobe o custo por cada ordem de grandeza de população acima de 15 000. */ sizeFactor: number; /** Quanto sobe com a habitação pouco acessível. */ housingFactor: number };
+    /** Casa própria (raízes na terra): preço em meses de custo de vida e quanto desce o custo de vida depois de comprada. */
+    home: { priceMonths: number; livingDiscount: number };
+    /** Cursos de treinador (3 níveis, um de cada vez): custo e duração em dias. */
+    course: { cost: number[]; days: number[] };
+    /** Apoio a causas da cidade: pontos de serviço por cada euro doado por habitante (por mil), teto por ano e mínimo; relação com o autarca por 1000 € (com teto). */
+    cause: { min: number; pointsPer: number; maxPointsPerYear: number; relationPerThousand: number; maxRelation: number };
+    /** Ajuda ao clube em dificuldades: mínimo e quanto do ressentimento do presidente desaparece por cada ano do ordenado de referência doado. */
+    help: { min: number; grudgeReliefPerYearOfWage: number };
     donation: { min: number; /** Quanto do valor doado vira capital da empresa. */ efficiency: number; /** Máximo de capital que um donativo acrescenta (fração do que a empresa já tem). */ maxShare: number; cooldownDays: number };
   };
   coach: {
@@ -307,13 +342,29 @@ export type Params = {
     surprises: number;
     /** Até quantos pontos de reputação acima do clube anterior pode vir uma surpresa. */
     surpriseMargin: number;
+    /**
+     * Direção e treinadores da IA (RZ-210): a confiança da direção (0-100) caminha para um alvo dado pelo lugar na tabela face ao esperado
+     * (reputação e dinheiro); abaixo do limiar, passadas as semanas de graça, o treinador é despedido. O clube procura um livre ou
+     * alicia um treinador que esteja a ter bons resultados noutro clube, que só aceita se for para um escalão acima ou pagar bastante mais.
+     */
+    board: {
+      start: number; rate: number; minMatches: number; graceDays: number; sackBelow: number; patienceEffect: number; sackProbability: number;
+      /** Despedimento no fim da época: probabilidade se o clube desceu e se acabou muito abaixo do esperado (desempenho ≤ `badPerf`). */
+      sackRelegated: number; sackBad: number; badPerf: number;
+      /** Dias de vaga antes de o clube contratar (interino). */
+      vacancyDays: number;
+      /** Aliciar: resultados mínimos (−1 a 1) do clube atual, vantagem de qualidade sobre o que o clube procura, probabilidades de aceitar (escalão acima, muito mais dinheiro, sem vantagem), múltiplo de salário e peso extra na escolha. */
+      poach: { minPerf: number; qualityEdge: number; tierUp: number; wage: number; stay: number; wageRatio: number; attempt: number; bonus: number; /** Quantos dos melhores candidatos empregados o clube tenta convencer. */ tries: number };
+      /** Pressão por escalão: multiplica o desempenho (lugar face ao esperado) no alvo da confiança; no topo qualquer deslize custa mais. */
+      pressure: Record<Tier, number>;
+    };
     /** Contrato do gamer (RZ-161): salário de referência, resposta do presidente, pedir aumento. */
     contract: {
       /** Salário de referência = média de salários do escalão × `wageFactor` × (reputação/referência)^`repExponent`. */
       wageFactor: number; repExponent: number;
       yearsMin: number; yearsMax: number; defaultYears: number;
       /** Máximo (em múltiplos do salário de referência) que o presidente aceita: base + confiança + resultados + finanças + traços − ressentimento. */
-      accept: { base: number; trust: number; results: number; finances: number; loyalty: number; greed: number; min: number; max: number };
+      accept: { base: number; trust: number; results: number; finances: number; loyalty: number; greed: number; /** Casa própria na cidade do clube. */ roots: number; /** Por nível de curso de treinador. */ course: number; min: number; max: number };
       /** Dias no clube para a confiança chegar ao máximo. */
       trustDays: number;
       /** Acima do máximo mas dentro desta folga, o presidente contrapropõe; acima, recusa. */
@@ -346,7 +397,11 @@ export type Params = {
     /** Receitas, custos e bilheteira por escalão (RZ-114/RZ-115), em euros. */
     model: FinancesModel;
     /** Orçamento anual por defeito (RZ-114): peso da massa salarial nas receitas, meses de reserva e fração da folga para transferências. */
-    budget: { revenueAboutBill: number; monthsReserve: number; transfersBye: number; /** Folga da massa salarial por defeito acima da atual: os clubes têm de poder contratar sem ter primeiro de despedir. */ wageHeadroom: number };
+    budget: { revenueAboutBill: number; monthsReserve: number; transfersBye: number; /** Folga da massa salarial por defeito acima da atual: os clubes têm de poder contratar sem ter primeiro de despedir. */ wageHeadroom: number; /** Teto da massa salarial por defeito sobre as receitas anuais estimadas: o orçamento não cresce acima disto (RZ-237). */ wageShareMax: number; /** Quanto a massa salarial pode passar do normal por cada ponto de má gestão (RZ-270): os mal geridos gastam mais do que ganham. */ overspend: number };
+    /** Investimento dos excedentes (RZ-237): os clubes de IA gastam em infraestruturas parte da caixa que passa de `reserveYears` anos de custos, para a caixa mediana de cada escalão não crescer sem fim. */
+    surplus: { reserveYears: number; annualRate: number };
+    /** Fator da caixa de arranque (a coluna `finances` dos dados) por escalão (RZ-237): os clubes começam perto do que a caixa mediana do escalão vai ser. */
+    opening: Record<Tier, number>;
   };
   personality: {
     traitMin: number;
@@ -649,6 +704,14 @@ export type Params = {
       /** Multiplicador para jogadores sem clube. */
       freeMultiplier: number;
     };
+    /** Reforma do staff e dos autarcas por idade: probabilidade anual = base + porAno × (idade − desde), 1 a partir de `maxAge`; por função pode mudar desde/maxAge e a idade média de quem entra. */
+    staffRetirement: {
+      baseProbability: number;
+      perYear: number;
+      byFn: Record<string, { fromAge: number; maxAge: number; entryAge: number }>;
+      /** Idade acima da qual um autarca já não se recandidata nem volta a concorrer. */
+      mayorMaxAge: number;
+    };
     contracts: {
       yearsMin: number;
       yearsMax: number;
@@ -673,6 +736,13 @@ export type Params = {
         level: { margin: number; ambitionMin: number; loyaltyStay: number };
         distance: { tiers: Tier[]; wageFactor: number; loyaltyStay: number };
       };
+    };
+    /** Mercado com o estrangeiro na passagem de época (RZ-237): clubes de IA vendem destaques por mais do que valem e repõem com compras lá fora, mais quanto melhor o scouting. */
+    /** Gestão oculta de cada clube (RZ-270): persistência anual, desvio do choque anual e pontos de qualidade do plantel por unidade. */
+    management: { persistence: number; sigma: number; quality: number };
+    abroad: {
+      sell: { probability: Record<Tier, number>; /** Pontos de qualidade acima do que o clube procura para ser destaque. */ minAbove: number; maxAge: number; maxPerClub: number; /** Intervalo do múltiplo do valor de mercado pago. */ feeFactor: [number, number]; wageFactor: number; /** Parte das vendas que se faz nas rondas do mercado (o resto, na passagem de época). */ marketShare: number; /** Plantel mínimo (acima do alvo) que o clube mantém ao vender durante a janela. */ marketSquadMargin: number };
+      buy: { base: number; perScout: number; perScoutQuality: number; max: number; maxAge: number; feeFactor: number; tolerance: number; /** Probabilidade, por ronda de mercado, de um clube com necessidade ir também procurar lá fora (multiplica a probabilidade de scouting). */ marketAttempt: number };
     };
     squad: {
       /** Jogadores acima do plantel-alvo que a formação ainda pode juntar. */
@@ -747,6 +817,8 @@ export type Params = {
       extra: { startRatio: number; perRatio: number; max: Record<Tier, number>; valueShare: number };
       /** Fração máxima da capacidade da empresa que pode estar comprometida em patrocínios por ano. */
       maxShareOfCapital: number;
+      /** Valor dos contratos novos (RZ-237): multiplicador por escalão e bónus para quem foi campeão ou subiu de escalão. */
+      boost: { tier: Record<Tier, number>; champion: number; promoted: number };
       yearsMin: number;
       yearsMax: number;
       /** Probabilidade de renovação, e os seus ajustes se o clube subiu ou desceu de escalão. */
@@ -956,6 +1028,16 @@ export const DEFAULT_PARAMETERS: Params = {
       { level: "local", min: 1000 },
       { level: "obscure", min: 0 },
     ],
+    dynamics: {
+      position: { firstLeague: 180, secondLeague: 140, thirdLeague: 110, cp: 80, district: 55 },
+      champion: { firstLeague: 350, secondLeague: 300, thirdLeague: 220, cp: 160, district: 110 },
+      promotion: 220, relegation: 260,
+      cup: 120, europe: 140, europeWinner: 500,
+      bands: { firstLeague: [3800, 8800], secondLeague: [3000, 6500], thirdLeague: [2200, 4300], cp: [1500, 3200], district: [500, 2000] },
+      bandPull: 0.35,
+      meanReversion: 0.06,
+      min: 300, max: 10000,
+    },
   },
   calendar: {
     seasonStartMonth: 7,
@@ -1040,13 +1122,23 @@ export const DEFAULT_PARAMETERS: Params = {
   personal: {
     netShare: 0.74, startBalance: 2500,
     living: { base: 950, sizeFactor: 0.25, housingFactor: 0.2 },
+    home: { priceMonths: 60, livingDiscount: 0.3 },
+    course: { cost: [1500, 4000, 9000], days: [60, 120, 180] },
+    cause: { min: 200, pointsPer: 0.15, maxPointsPerYear: 5, relationPerThousand: 1.5, maxRelation: 6 },
+    help: { min: 500, grudgeReliefPerYearOfWage: 0.5 },
     donation: { min: 100, efficiency: 0.8, maxShare: 1, cooldownDays: 60 },
   },
   coach: {
     offers: 3, surprises: 1, surpriseMargin: 600,
+    board: {
+      start: 60, rate: 0.12, minMatches: 6, graceDays: 60, sackBelow: 28, patienceEffect: 1.2, sackProbability: 0.5,
+      sackRelegated: 0.6, sackBad: 0.3, badPerf: -0.45, vacancyDays: 7,
+      poach: { minPerf: 0.15, qualityEdge: 0.5, tierUp: 0.7, wage: 0.45, stay: 0.03, wageRatio: 1.4, attempt: 0.4, bonus: 0.5, tries: 3 },
+      pressure: { firstLeague: 3, secondLeague: 1.2, thirdLeague: 1, cp: 0.8, district: 0.5 },
+    },
     contract: {
       wageFactor: 2.5, repExponent: 0.8, yearsMin: 1, yearsMax: 3, defaultYears: 2,
-      accept: { base: 1.0, trust: 0.15, results: 0.25, finances: 0.15, loyalty: 0.1, greed: 0.15, min: 0.7, max: 1.8 },
+      accept: { base: 1.0, trust: 0.15, results: 0.25, finances: 0.15, loyalty: 0.1, greed: 0.15, roots: 0.06, course: 0.04, min: 0.7, max: 1.8 },
       trustDays: 365, counterSlack: 1.35, grudgeStep: 0.08, grudgeDecayPerMonth: 0.02,
       raiseCooldownDays: 120, raiseMinTenureDays: 90,
     },
@@ -1067,7 +1159,9 @@ export const DEFAULT_PARAMETERS: Params = {
     bankruptcyDelayWagesMonths: 3,
     wealthPercentiles: [90, 70, 40, 15],
     rivalEstimateErrorProb: 0.25,
-    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.05 },
+    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.05, wageShareMax: 0.95, overspend: 0.5 },
+    surplus: { reserveYears: 0.4, annualRate: 0.75 },
+    opening: { firstLeague: 4.7, secondLeague: 2.4, thirdLeague: 0.4, cp: 0.55, district: 1.15 },
     model: {
       refReputation: { firstLeague: 5300, secondLeague: 4650, thirdLeague: 3000, cp: 2590, district: 1295 },
       exponentReputation: 1.2,
@@ -1146,6 +1240,7 @@ export const DEFAULT_PARAMETERS: Params = {
       pride: { base: 35, byReputation: 40, noise: 5 },
       notoriety: { base: 15, byReputation: 55, byDecade: 8, noise: 4 },
       reputationMax: 10000,
+      byClub: { economy: 10, employment: 4 },
     },
     services: {
       initial: {
@@ -1162,7 +1257,8 @@ export const DEFAULT_PARAMETERS: Params = {
         entertainment: { economy: 0.1, employment: 0, tourism: 0.25 },
       },
       regression: 0.15, noise: 2, strongTrend: 8,
-      population: { byServices: 0.006, byEmployment: 0.006 },
+      population: { byServices: 0.006, byEmployment: 0.006, byHousing: 0.08, affordableFactor: 0.3, shieldFrom: 100000, shieldFull: 500000, shieldMax: 0.4 },
+      housingGrowth: -25,
       effects: {
         health: { recoveryPerPoint: 0.004 },
         nightlife: { formLoss: 0.06, recoveryExtra: 0.4 },
@@ -1176,7 +1272,13 @@ export const DEFAULT_PARAMETERS: Params = {
       pride: { champion: 8, promotion: 6, relegation: -6 },
       notoriety: { regression: 0.25, byPride: 0.05 },
       culture: { byPride: 0.03, champion: 0.8, promotion: 0.5 },
-      population: { byEconomy: 0.012, byPride: 0.004, noisePct: 0.15, maxPct: 3 },
+      population: { byEconomy: 0.012, byPride: 0.015, noisePct: 0.15, maxPct: 3 },
+    centrality: { coefficient: 0.6, ref: 40000, min: -0.6, max: 1 },
+      clubs: {
+        champion: { populationPct: 0.5, economy: 2, employment: 1, entertainment: 3, mobility: 1 },
+        promotion: { populationPct: 0.6, economy: 2.5, employment: 1.5, entertainment: 3, mobility: 2 },
+        relegation: { populationPct: -0.3, economy: -1.5, employment: -1, entertainment: -2, mobility: -0.6 },
+      },
     },
     events: {
       cityProb: 0.12,
@@ -1294,7 +1396,7 @@ export const DEFAULT_PARAMETERS: Params = {
       cp: { mean: 8, deviation: 1.8 },
       district: { mean: 6.5, deviation: 1.8 },
     },
-    qualityByReputation: 5,
+    qualityByReputation: 2.8,
     standingReputationWeight: 0.6,
     stars: { centre: 2.5, pointsPerStar: 1, freeAgentTier: "thirdLeague" },
     variationForeignersReputation: 0.35,
@@ -1317,8 +1419,21 @@ export const DEFAULT_PARAMETERS: Params = {
   squadCycle: {
     development: { growthShare: 0.4, yearlyNoise: 0.45, declineAge: 30, declineBase: 0.2, declinePerYear: 0.12, physicalExtra: 0.25, mentalGain: 0.1, offPositionWeight: 0.7 },
     retirement: { fromAge: 33, baseProbability: 0.06, perYear: 0.14, goalkeeperExtraYears: 3, maxAge: 40, freeMultiplier: 1.6 },
+    staffRetirement: {
+      baseProbability: 0.05,
+      perYear: 0.12,
+      mayorMaxAge: 75,
+      byFn: {
+        coach: { fromAge: 58, maxAge: 72, entryAge: 44 }, assistant: { fromAge: 58, maxAge: 70, entryAge: 38 }, medical: { fromAge: 60, maxAge: 72, entryAge: 44 },
+        physio: { fromAge: 58, maxAge: 70, entryAge: 38 }, community: { fromAge: 58, maxAge: 70, entryAge: 38 }, scout: { fromAge: 60, maxAge: 74, entryAge: 40 },
+        president: { fromAge: 68, maxAge: 85, entryAge: 56 }, businessperson: { fromAge: 65, maxAge: 80, entryAge: 48 }, fanLeader: { fromAge: 62, maxAge: 78, entryAge: 44 },
+        agent: { fromAge: 62, maxAge: 76, entryAge: 42 }, referee: { fromAge: 45, maxAge: 52, entryAge: 30 }, journalist: { fromAge: 62, maxAge: 74, entryAge: 38 },
+      },
+    },
     contracts: { yearsMin: 1, yearsMax: 3, renewBase: 0.7, renewPerQualityPoint: 0.1, renewPerOldYear: 0.08, oldAge: 31, renewMin: 0.05, renewMax: 0.95, renewalWageFactor: 1, negotiation: { acceptFloor: 0.92, floorByLoyalty: 0.01, floorNative: 0.04, floorMin: 0.6, askYears: 2, maxRounds: 4, walkAway: 0.5, concession: 0.7, maxYears: 5, clauseWage: 0.08, noClauseRatio: 2.5, clauseCeiling: 2, level: { margin: 1.2, ambitionMin: 12, loyaltyStay: 14 }, distance: { tiers: ["cp", "district"], wageFactor: 1.5, loyaltyStay: 14 } } },
     squad: { slack: 2, freeAgentTolerance: 2.5 },
+    management: { persistence: 0.65, sigma: 1.25, quality: 1 },
+    abroad: { sell: { probability: { firstLeague: 0.25, secondLeague: 0.2, thirdLeague: 0.15, cp: 0.2, district: 0.12 }, minAbove: 0.8, maxAge: 30, maxPerClub: 2, feeFactor: [1.2, 1.6], wageFactor: 1.5, marketShare: 0.7, marketSquadMargin: -2 }, buy: { base: 0.15, perScout: 0.12, perScoutQuality: 0.01, max: 0.8, maxAge: 29, feeFactor: 1, tolerance: 2, marketAttempt: 0.25 } },
     youth: { perClub: { firstLeague: 4, secondLeague: 3, thirdLeague: 3, cp: 3, district: 2 }, ageMin: 16, ageMax: 18, targetOffset: 0, hometownProbability: 0.55, nameFamily: "portugal", focus: { spread: 0.4, byPatience: 0.05, byAmbition: 0.03, min: 0.25, max: 1.9 }, agePenalty: 0.25, qualityByFocus: 0.6, potentialByFocus: 1.0, renewalYouthEffect: 0.2, renewalVeteranEffect: 0.12, development: { base: 45, byFocus: 25, byCoach: 1.5, byFinances: 8, byEducation: 0.15, regression: 0.2, maxStep: 1.5, yieldMin: 0.4, yieldMax: 1.0, yieldPivot: 0.7, potentialByYield: 0.15, prideLocal: 0.2 }, prospects: { perCityMean: 5, ageMin: 15, ageMax: 17, popExponent: 0.6, potentialShift: 1, localLockDays: 150 } },
   },
   companies: {
@@ -1339,6 +1454,7 @@ export const DEFAULT_PARAMETERS: Params = {
       /** Contratos extra por reputação acima da normal do escalão (RZ-311): um a partir de `startRatio`, mais um por cada `perRatio`; cada extra vale `valueShare` do valor de referência do tipo. */
       extra: { startRatio: 1, perRatio: 0.45, max: { firstLeague: 4, secondLeague: 3, thirdLeague: 2, cp: 2, district: 1 }, valueShare: 0.4 },
       maxShareOfCapital: 0.08,
+      boost: { tier: { firstLeague: 1.12, secondLeague: 1.06, thirdLeague: 1, cp: 1, district: 1 }, champion: 0.15, promoted: 0.08 },
       yearsMin: 1,
       yearsMax: 3,
       renewBase: 0.65,

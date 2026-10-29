@@ -96,6 +96,7 @@ export function Contract() {
             <div><dt>{t("bank.savings")}</dt><dd><b>{money.format(bank.savings)}</b> {t("contract.perMonth")}</dd></div>
           </dl>
           <p className="suave">{t("bank.hint")}</p>
+          <Link href="/personal/" data-testid="ir-pessoal">{t("personal.link")}</Link>
         </div>
       )}
       <div className="cartao contrato-form">

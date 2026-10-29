@@ -17,7 +17,19 @@ export type SponsorContext = {
   /** Primeiro dia dos contratos novos (início da época). */
   start: IsoDate;
   tiers: ReadonlyMap<string, Tier>;
+  /** Escalão da época anterior (quem subiu ganha patrocínios maiores). */
+  previousTiers?: ReadonlyMap<string, Tier>;
 };
+
+/** Multiplicador do valor de um patrocínio novo: escalão mais alto paga mais, e os clubes em destaque (campeões, promovidos) ainda mais. */
+function performanceFactor(repo: Repository, club: BaseClub, tier: Tier, ctx: SponsorContext, params: Params): number {
+  const b = params.companies.sponsorship.boost;
+  let f = b.tier[tier];
+  if (repo.eventsOf({ k: "club", id: club.id }, { type: "CHAMPION", seasonSince: ctx.season - 1, untilSeason: ctx.season }).length > 0) f += b.champion;
+  const before = ctx.previousTiers?.get(club.id);
+  if (before && TIER_ORDER.indexOf(before) > TIER_ORDER.indexOf(tier)) f += b.promoted;
+  return f;
+}
 
 const TIER_ORDER: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
 
@@ -78,7 +90,7 @@ const roundValue = (x: number) => Math.max(500, Math.round(x / 100) * 100);
 
 function sign(pool: Pool, rng: Rng, club: BaseClub, tier: Tier, kind: SponsorSlot, ctx: SponsorContext, already: Set<string>, keep?: CompanyRecord, isExtra = false, kindCount = 1): SponsorshipRecord | undefined {
   const s = pool.params.companies.sponsorship;
-  const desired = (referenceValue(club, tier, kind, pool.params) / (1 + (kindCount - 1) * s.extra.valueShare)) * (isExtra ? s.extra.valueShare : 1) * Math.exp(rng.gauss(0, s.valueSigma));
+  const desired = performanceFactor(pool.repo, club, tier, ctx, pool.params) * (referenceValue(club, tier, kind, pool.params) / (1 + (kindCount - 1) * s.extra.valueShare)) * (isExtra ? s.extra.valueShare : 1) * Math.exp(rng.gauss(0, s.valueSigma));
   const company = keep ?? (pool.companies.length === 0 ? undefined : rng.weighted(pool.companies, (c) => weightOf(pool, c, club, tier, desired, already)));
   if (!company || already.has(company.id)) return undefined;
   const room = Math.max(0, company.capital * s.maxShareOfCapital - (pool.committed.get(company.id) ?? 0));

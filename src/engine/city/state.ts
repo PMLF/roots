@@ -68,6 +68,12 @@ export function trendOf(before: number | undefined, now: number, params: Pick<Pa
 }
 
 /** Efeito do setor num campo: o principal a 100 %, o secundário a 50 %, mais o das ilhas. */
+/** Atração própria do tamanho da cidade (% de população por ano): as grandes atraem, as pequenas perdem (RZ-270). */
+export function centralityPct(c: Pick<BaseCity, "population">, params: Pick<Params, "city">): number {
+  const k = params.city.evolution.centrality;
+  return k.coefficient * Math.min(k.max, Math.max(k.min, Math.log10(Math.max(1, c.population) / k.ref)));
+}
+
 export function sectorEffect(c: Pick<BaseCity, "sector" | "tag2" | "island">, pitch: keyof CityEffects, params: Pick<Params, "city">): number {
   const s = params.city.sectors;
   return (s[c.sector]?.[pitch] ?? 0) + 0.5 * (s[c.tag2]?.[pitch] ?? 0) + (c.island ? (s.ILH?.[pitch] ?? 0) : 0);
@@ -76,18 +82,18 @@ export function sectorEffect(c: Pick<BaseCity, "sector" | "tag2" | "island">, pi
 const clampPct = (x: number) => clamp(x, 0, 100);
 
 /** Valores para onde a cidade tende, sem ruído: o setor, o tamanho e o melhor clube da terra. */
-export function cityTargets(c: BaseCity, clubs: readonly BaseClub[], params: Pick<Params, "city">, budgetIndex = 0): CityTargets {
+export function cityTargets(c: BaseCity, clubs: readonly BaseClub[], params: Pick<Params, "city">, budgetIndex = 0, currentPopulation = c.population): CityTargets {
   const sv = params.city.services.initial;
   const k = params.city.initial;
   const decades = Math.log10(Math.max(c.population, 1)) - BASE_DECADE;
   const rep = Math.max(0, ...clubs.filter((x) => x.city === c.id).map((x) => x.reputation)) / k.reputationMax;
   return {
-    employment: clampPct(k.base + sectorEffect(c, "employment", params) + k.byEmploymentDecade * decades),
-    economy: clampPct(k.base + sectorEffect(c, "economy", params) + k.byEconomyDecade * decades),
+    employment: clampPct(k.base + sectorEffect(c, "employment", params) + k.byEmploymentDecade * decades + k.byClub.employment * (rep - 0.4)),
+    economy: clampPct(k.base + sectorEffect(c, "economy", params) + k.byEconomyDecade * decades + k.byClub.economy * (rep - 0.4)),
     tourism: clampPct(k.base + sectorEffect(c, "tourism", params)),
     pride: clampPct(k.pride.base + k.pride.byReputation * rep),
     notoriety: clampPct(k.notoriety.base + k.notoriety.byReputation * rep + k.notoriety.byDecade * decades),
-    services: Object.fromEntries(CITY_SERVICES.map((id) => [id, clampPct(sv.base[id] + sv.byDecade[id] * decades + sectorEffect(c, id, params) + sv.byBudget * budgetIndex)])) as Record<CityService, number>,
+    services: Object.fromEntries(CITY_SERVICES.map((id) => [id, clampPct(sv.base[id] + sv.byDecade[id] * decades + sectorEffect(c, id, params) + sv.byBudget * budgetIndex + (id === "housing" ? params.city.services.housingGrowth * Math.log2(Math.max(1, currentPopulation) / Math.max(1, c.population)) : 0))])) as Record<CityService, number>,
   };
 }
 

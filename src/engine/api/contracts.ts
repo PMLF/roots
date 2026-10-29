@@ -191,6 +191,18 @@ export type ContractReply =
 export type GamerContractView = { club: string; clubName: string; monthlyWage: number; start: string; end: string; reference: number; yearsMin: number; yearsMax: number; canAsk: boolean; askFrom?: string };
 
 export type PersonalBankView = { balance: number; monthlyNet: number; living: number; savings: number; city: string; employed: boolean; minDonation: number };
+export type PersonalSpendingView = {
+  balance: number;
+  city: EntityRef;
+  club: string;
+  home: { owned: boolean; price: number; discountPct: number };
+  course: { level: number; max: number; training?: { level: number; until: string }; next?: { level: number; cost: number; days: number } };
+  causes: { service: "health" | "education" | "mobility" | "housing" | "safety" | "entertainment"; points: number }[];
+  minCause: number;
+  maxCausePoints: number;
+  minHelp: number;
+};
+export type SpendOutcome = { ok: true; balance: number } | { ok: false; reason: string };
 export type DonationOutcome = { ok: true; balance: number; effect: "negligible" | "small" | "noticeable" | "decisive" } | { ok: false; reason: "amount" | "funds" | "company" | "cooldown" };
 
 /** Uma passagem pela carreira de um jogador (eventos públicos de contratos e transferências). */
@@ -389,7 +401,7 @@ export type CampaignView = {
 export type ViewCouncil = {
   areas: { id: CouncilAreaId; priority: ViewCityLevel; trend: CouncilTrend; cause?: "need" | "newMayor" }[];
   /** Relação do gamer com o autarca. */
-  relation?: { level: ViewCityLevel; trend: CouncilTrend; cause?: "approved" | "refused" | "pride" | "backed" | "backedRival" | "neutralLost" | "promiseKept" | "promiseBroken" };
+  relation?: { level: ViewCityLevel; trend: CouncilTrend; cause?: "approved" | "refused" | "pride" | "backed" | "backedRival" | "neutralLost" | "promiseKept" | "promiseBroken" | "cause" };
   /** Só na cidade do clube do gamer: o que se pode pedir e os pedidos feitos (do mais recente). */
   own?: {
     kinds: { kind: CouncilKindId; area: CouncilAreaId; status: "available" | "open" | "cooldown"; until?: string; cost: number; cofunds: number[] }[];
@@ -584,6 +596,12 @@ export type EngineRequests = {
   gamerContract: { input: null; output: GamerContractView | null };
   /** Conta pessoal do gamer (RZ-162): saldo, ordenado líquido, custo de vida da cidade e quanto sobra por mês. */
   personalBank: { input: null; output: PersonalBankView | null };
+  /** O que o gamer pode fazer com o dinheiro da conta (RZ-162): casa, cursos, causas da cidade e ajuda ao clube. */
+  personalSpending: { input: null; output: PersonalSpendingView | null };
+  buyHome: { input: null; output: SpendOutcome };
+  startCourse: { input: null; output: SpendOutcome };
+  supportCause: { input: { service: string; amount: number }; output: SpendOutcome };
+  helpClub: { input: { amount: number }; output: SpendOutcome };
   /** Doação pessoal a uma empresa (sai da conta do gamer, nunca do clube). */
   donate: { input: { company: string; amount: number }; output: DonationOutcome };
   /** Propor salário e duração a um clube que fez oferta; se o presidente aceita, o gamer fica contratado. */

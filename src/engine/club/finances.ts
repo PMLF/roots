@@ -26,6 +26,11 @@ export function clubBalance(repo: Repository, club: BaseClub): number {
   return v === undefined ? club.finances : Number(v);
 }
 
+/** Caixa de arranque de cada clube: a coluna `finances` dos dados vezes o fator do escalão (RZ-237). */
+export function openingBalances(repo: Repository, clubs: readonly BaseClub[], params: Params): void {
+  for (const c of clubs) repo.setMeta(`balance.${c.id}`, String(Math.round(c.finances * params.finances.opening[c.tier])));
+}
+
 export function clubMonth(repo: Repository, club: string): Month {
   const v = repo.meta(`month.${club}`);
   return v ? (JSON.parse(v) as Month) : {};
@@ -105,6 +110,12 @@ function closeMonth(repo: Repository, data: BaseData, params: Params, date: IsoD
     post(repo, c, "staff", -costs.staff);
     post(repo, c, "stadium", -costs.stadium);
     post(repo, c, "fixed", -costs.fixed);
+    // os clubes de IA investem em infraestruturas o excedente de caixa (o clube do gamer decide por si)
+    if (repo.meta("gamer.club") !== c.id) {
+      const sp = params.finances.surplus;
+      const extra = clubBalance(repo, c) - sp.reserveYears * 12 * (costs.wages + costs.staff + costs.stadium + costs.fixed);
+      if (extra > 0) post(repo, c, "stadium", -Math.round((extra * sp.annualRate) / 12));
+    }
     const month = clubMonth(repo, c.id);
     const revenues = Object.values(month).reduce((t, v) => t + Math.max(0, v as number), 0);
     const expenses = Object.values(month).reduce((t, v) => t + Math.min(0, v as number), 0);

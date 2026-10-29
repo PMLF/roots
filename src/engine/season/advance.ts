@@ -38,6 +38,7 @@ import { CP_FINAL_COMPETITION, generateCpFinal, generateCpFinalSemi } from "./cp
 import { advanceCompetitions, hasNoTable } from "./competitions";
 import { NATIONAL_STADIUM, venueStadium, type Stadium } from "./venues";
 import { isForeignClub } from "../world/foreign";
+import { coachRound } from "../club/coaches";
 import { closeSeason, generatePromotionPhase, type SeasonSummary } from "./closeSeason";
 import { playersForm } from "./fitness";
 import { rivalEvent, rivalReason } from "./rivals";
@@ -246,6 +247,8 @@ function advanceDay(repo: Repository, base: BaseData, params: Params, gamerClub?
     if (tomorrow.endsWith("-01")) closeUntilMonths(repo, data, params, tomorrow, season, (c) => !isInSecondDistrict(c.league));
     // mercado de transferências entre clubes da IA nas janelas (RZ-205/213)
     if (isMarketDay(tomorrow, params)) marketRound(repo, data, params, tomorrow, season, { ...(gamerClub ? { gamerClub } : {}), locked: lockedPlayers(repo) });
+    // direção e treinadores da IA: avaliação semanal, despedimentos e contratações (RZ-210)
+    if (weekDay(tomorrow) === 1) coachRound(repo, data, params, tomorrow, season, gamerClub);
     // acordos do gamer que esperavam pela janela (RZ-231)
     const gamerBase = gamerClub ? data.clubs.find((c) => c.id === gamerClub) : undefined;
     // aviso ao gamer: a janela de transferências abriu ou fechou

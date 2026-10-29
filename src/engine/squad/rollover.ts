@@ -26,8 +26,11 @@ import { marketValue } from "../market/value";
 import { releaseClause } from "../market/clauses";
 import { agentTraits } from "../agent/assign";
 import { newProspects } from "./prospects";
+import { clubBalance } from "../club/finances";
+import { advanceManagement } from "./management";
 import { lockLocalSigning, pruneLocks } from "./localPriority";
 import { rolloverForeign } from "./foreign";
+import { buyAbroad, foreignPool, sellAbroad } from "./abroad";
 import { TIER_BONUS, youthFocus } from "./youthFocus";
 import { updateYouthLevels, yieldOf, youthLevelOf } from "./youthLevel";
 
@@ -145,11 +148,11 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const t = o.tiers.get(c.id) ?? c.tier;
     byTier.set(t, [...(byTier.get(t) ?? []), c]);
   }
-  const tierStats = new Map<Tier, { medianFinances: number }>();
+  const tierStats = new Map<Tier, { medianFinances: number; medianBalance: number }>();
   const standing = new Map<string, number>();
   for (const [t, cs] of byTier) {
     for (const c of cs) standing.set(c.id, standingIn(c, cs, world.standingReputationWeight));
-    tierStats.set(t, { medianFinances: median(cs.map((c) => c.finances)) });
+    tierStats.set(t, { medianFinances: median(cs.map((c) => c.finances)), medianBalance: Math.max(1, median(cs.map((c) => clubBalance(repo, c)))) });
   }
 
   // ---------- 2-5. clubes por escalão e reputação
@@ -164,6 +167,20 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const tb = TIER_ORDER.indexOf(o.tiers.get(b.id) ?? b.tier);
     return ta - tb || b.reputation - a.reputation || (a.id < b.id ? -1 : 1);
   });
+  const management = advanceManagement(repo, data.clubs, params, o.season);
+  // mercado com o estrangeiro (RZ-237): os clubes de IA vendem destaques e, mais abaixo, repõem com compras lá fora
+  const abroadCtx = { season: o.season, seasonStart: o.seasonStart, seed };
+  // as vendas ao estrangeiro fazem-se sobretudo nas rondas do mercado; aqui fica só a parte da passagem de época
+  const sellCtx = { ...abroadCtx, scale: 1 - sc.abroad.sell.marketShare };
+  for (const club of order) {
+    if (club.id === o.gamerClub) continue;
+    const tier = o.tiers.get(club.id) ?? club.tier;
+    const desired = clamp(world.targetQuality[tier].mean + world.qualityByReputation * ((standing.get(club.id) ?? 0.5) - 0.5) + sc.management.quality * (management[club.id] ?? 0), 1, 20);
+    const list = squads.get(club.id) ?? [];
+    const gone = new Set(sellAbroad(repo, params, sellCtx, club, tier, desired, list.map((m) => m.record)));
+    if (gone.size > 0) squads.set(club.id, list.filter((m) => !gone.has(m.record.person)));
+  }
+  const abroadPool = foreignPool(repo, params, abroadCtx);
   const years = (rng: Rng) => rng.integer(sc.contracts.yearsMin, sc.contracts.yearsMax);
   const event = (type: string, j: string, club: ClubId, extra: Record<string, unknown>) =>
     repo.appendEvent({ type, date, season: o.season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: j, roleKind: "player" }, { k: "club", id: club }], data: extra });
@@ -173,12 +190,14 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
   const rooms: { club: BaseClub; tier: Tier; target: number; desired: number; wageScale: number; kept: Member[]; counts: Map<Position, number>; missing: () => Position[]; rng: Rng }[] = [];
   for (const club of order) {
     const tier = o.tiers.get(club.id) ?? club.tier;
-    const stats = tierStats.get(tier) as { medianFinances: number };
+    const stats = tierStats.get(tier) as { medianFinances: number; medianBalance: number };
     const target = world.squad[tier];
     const tq = world.targetQuality[tier];
     const repNorm = standing.get(club.id) ?? 0.5;
-    const desired = clamp(tq.mean + world.qualityByReputation * (repNorm - 0.5), 1, 20);
-    const wageScale = clamp((club.finances / stats.medianFinances) ** 0.4, 0.4, 2.5);
+    const desired = clamp(tq.mean + world.qualityByReputation * (repNorm - 0.5) + sc.management.quality * (management[club.id] ?? 0), 1, 20);
+    // poder de compra: metade da riqueza de arranque, metade da caixa de agora face à mediana do escalão (clubes bem geridos gastam mais)
+    const richness = 0.5 * (club.finances / stats.medianFinances) + 0.5 * clamp(clubBalance(repo, club) / stats.medianBalance, 0.05, 6);
+    const wageScale = clamp(richness ** 0.4, 0.4, 2.5);
     const rng = rngOf(`club/${club.id}`);
     const members = squads.get(club.id) ?? [];
     const focus = youthFocus(repo, club, tier, params);
@@ -284,6 +303,14 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
 
     // livres para o que falta
     for (const position of missing().slice(0, Math.max(0, target - kept.length))) {
+      if (o.gamerClub !== club.id) {
+        const bought = buyAbroad(repo, params, abroadCtx, abroadPool, club, tier, wageScale, desired, position, years(rng));
+        if (bought) {
+          counts.set(position, (counts.get(position) ?? 0) + 1);
+          kept.push(member(bought));
+          continue;
+        }
+      }
       let best = -1;
       let bestGap = Infinity;
       pool.forEach((m, i) => {

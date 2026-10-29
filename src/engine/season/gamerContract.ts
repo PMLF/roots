@@ -13,6 +13,7 @@ import { createDate } from "../calendar/dates";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { currentSeason } from "./seasonPyramid";
+import { courseLevel, ownsHome } from "../personal/spending";
 
 export type GamerContract = { club: string; monthlyWage: number; start: IsoDate; end: IsoDate };
 export type Terms = { monthlyWage: number; years: number };
@@ -32,6 +33,12 @@ export const contractOf = (repo: Repository): GamerContract | undefined => {
 
 type Grudge = { value: number; date: IsoDate; lastAsk?: IsoDate };
 const grudgeRaw = (repo: Repository): Grudge | undefined => { const r = repo.meta("gamer.grudge"); return r ? (JSON.parse(r) as Grudge) : undefined; };
+/** O presidente perdoa: tira ressentimento (ajudar o clube em dificuldades, RZ-162). */
+export function relieveGrudge(repo: Repository, params: Params, today: IsoDate, amount: number): void {
+  const g = grudgeRaw(repo);
+  if (!g) return;
+  repo.setMeta("gamer.grudge", JSON.stringify({ value: Math.max(0, grudgeNow(repo, params, today) - amount), date: today, ...(g.lastAsk ? { lastAsk: g.lastAsk } : {}) } satisfies Grudge));
+}
 /** Ressentimento atual (decai com o tempo). */
 export function grudgeNow(repo: Repository, params: Params, today: IsoDate): number {
   const g = grudgeRaw(repo);
@@ -70,10 +77,13 @@ export function acceptableRatio(repo: Repository, data: BaseData, params: Params
     loyalty: a.loyalty * (((pers?.loyalty ?? 10) - 10) / 10),
     greed: -a.greed * (((pers?.greed ?? 10) - 10) / 10),
     grudge: -grudgeNow(repo, params, today),
+    // raízes e formação (RZ-162): casa própria na cidade do clube e cursos de treinador pesam na negociação
+    roots: a.roots * (ownsHome(repo, club.city) ? 1 : 0),
+    course: a.course * courseLevel(repo, today),
   };
   const max = clamp(a.base + Object.values(terms).reduce((s, x) => s + x, 0), a.min, a.max);
   const weakest = (Object.entries(terms).sort((x, y) => x[1] - y[1])[0]![0]) as keyof typeof terms;
-  const reason: Reason = weakest === "finances" ? "budget" : weakest === "loyalty" ? "trust" : weakest;
+  const reason: Reason = weakest === "finances" ? "budget" : weakest === "loyalty" ? "trust" : weakest === "roots" || weakest === "course" ? "generic" : weakest;
   return { max, weakest: reason };
 }
 

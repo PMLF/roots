@@ -6,21 +6,24 @@
 import type { Params } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
+import { readManagement } from "../squad/management";
 import { monthlyCosts, monthlyWageBill, estimatedAnnualRevenue, clubBalance } from "./finances";
 
 export type Budget = { season: number; wageBillMax: number; transfers: number };
 
 const round = (v: number) => Math.round(v / 1000) * 1000;
 
-/** O orçamento por defeito: a massa não fica abaixo da atual mais uma folga (ninguém nasce já em falta nem tem de despedir para contratar) nem do peso máximo sobre as receitas. */
+/** O orçamento por defeito: a massa não fica abaixo da atual (ninguém tem de despedir) e só ganha folga enquanto não passa de `wageShareMax` das receitas (sem catraca) nem do peso máximo sobre as receitas. */
 export function defaultBudget(repo: Repository, c: BaseClub, params: Params, season: number): Budget {
   const o = params.finances.budget;
   const currentBill = monthlyWageBill(repo, c.id) * 12;
   const costs = monthlyCosts(repo, c, params);
+  const revenue = estimatedAnnualRevenue(c, params);
   const reserve = o.monthsReserve * (costs.wages + costs.staff + costs.stadium + costs.fixed);
+  const spend = 1 + o.overspend * Math.max(0, -(readManagement(repo)[c.id] ?? 0));
   return {
     season,
-    wageBillMax: round(Math.max(currentBill * (1 + o.wageHeadroom), estimatedAnnualRevenue(c, params) * o.revenueAboutBill)),
+    wageBillMax: round(Math.max(currentBill, Math.min(currentBill * (1 + o.wageHeadroom), revenue * o.wageShareMax * spend), revenue * o.revenueAboutBill * spend)),
     transfers: round(Math.max(0, clubBalance(repo, c) - reserve) * o.transfersBye),
   };
 }

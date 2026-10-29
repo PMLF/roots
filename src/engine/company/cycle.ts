@@ -132,7 +132,7 @@ export function rolloverCompanies(repo: Repository, data: BaseData, params: Para
   }
 
   // 3. patrocínios: renovar o que acabou e preencher o que falta
-  const ctx = { season: o.season, start: o.seasonStart, tiers: o.tiers };
+  const ctx = { season: o.season, start: o.seasonStart, tiers: o.tiers, previousTiers: o.previousTiers };
   const renewal = renewSponsorships(repo, data, params, { ...ctx, previousTiers: o.previousTiers });
   summary.renewed = renewal.renewed;
   summary.lapsed = renewal.lapsed;

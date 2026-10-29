@@ -6,13 +6,14 @@
 import { Rng } from "../random/rng";
 import type { CityService, CouncilArea, Params } from "../config/parameters";
 import { companyTargets, partnerOffsets } from "../company/employment";
+import { causeOffsets, clearCauses } from "../personal/spending";
 import type { BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { drawLotsIncidents } from "./incidents";
 import { agendaOf, AREA_SERVICE, councilServiceOffsets, mayorOf, type Agenda } from "../council/agenda";
 import { WITHOUT_RESULTS, evolveCity, type ClubsResults } from "./evolution";
-import { CITY_SERVICES, budgetIndexes, cityTargets, sectorEffect, initialState, type CityState } from "./state";
+import { CITY_SERVICES, budgetIndexes, cityTargets, centralityPct, sectorEffect, initialState, type CityState } from "./state";
 import { cityPreHistory } from "../history/preHistory";
 
 export type CityInstant = { season: number; state: CityState };
@@ -78,6 +79,8 @@ function withPartners(repo: Repository, params: Params, city: string, agenda: Ag
   const partners = partnerOffsets(repo, params, city, ratio);
   const out = { ...council };
   for (const [s, v] of Object.entries(partners)) out[s as CityService] = (out[s as CityService] ?? 0) + (v as number);
+  // causas apoiadas pelo gamer (RZ-162)
+  for (const [s, v] of Object.entries(causeOffsets(repo, city))) out[s as CityService] = (out[s as CityService] ?? 0) + (v as number);
   return out;
 }
 
@@ -103,8 +106,8 @@ export function evolveCities(repo: Repository, base: BaseData, params: Pick<Para
     const fresh = evolveCity(
       before,
       {
-        targets: cityTargets(c, base.clubs, params, budgetIndexOf(base, c.id)),
-        driftPopulationPct: sectorEffect(c, "populationPct", params),
+        targets: cityTargets(c, base.clubs, params, budgetIndexOf(base, c.id), before.population),
+        driftPopulationPct: sectorEffect(c, "populationPct", params) + centralityPct(c, params),
         results: results.get(c.id) ?? WITHOUT_RESULTS,
         effects: ownSquad.map((a) => params.city.events.types[a.type].effects),
         ...(mayor ? { council: withPartners(repo, params as Params, c.id, agendaOf(repo.meta("seed") ?? "?", mayor, before, params as Params)) } : { council: withPartners(repo, params as Params, c.id, undefined) }),
@@ -113,6 +116,7 @@ export function evolveCities(repo: Repository, base: BaseData, params: Pick<Para
       rng.derive(`cidade:${c.id}`),
       params,
     );
+    clearCauses(repo, c.id);
     repo.appendEvent({
       type: "CITY_SEASON", date: today, season, visibility: "private", origin: "generated",
       entities: [{ k: "city", id: c.id }],

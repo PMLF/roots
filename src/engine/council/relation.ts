@@ -4,7 +4,7 @@ import type { Params } from "../config/parameters";
 import type { Repository } from "../persistence/repository";
 import { levelOf, type CityLevel, type ServiceTrend } from "../city/state";
 
-export type RelationCause = "approved" | "refused" | "pride" | "backed" | "backedRival" | "neutralLost" | "promiseKept" | "promiseBroken";
+export type RelationCause = "approved" | "refused" | "pride" | "backed" | "backedRival" | "neutralLost" | "promiseKept" | "promiseBroken" | "cause";
 type Stored = { v: number; start: number; cause?: RelationCause; mag: number };
 const key = (person: string) => `council.relation.${person}`;
 

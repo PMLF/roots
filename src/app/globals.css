@@ -1243,7 +1243,7 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 .amostra-empresa { width: 22px; height: 14px; margin: 0; border-radius: 3px; }
 /* listagem: todos os cartões têm a mesma largura (a última linha não estica) */
 .empresas { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 14px; align-items: stretch; }
-.doar { margin-top: 10px; display: grid; gap: 6px; }
+.doar { margin-top: 10px; display: grid; }
 .doar-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .doar-form input { width: 9rem; }
 
@@ -1253,3 +1253,11 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 .estado-decisao.estado-answered { background: var(--painel-2); color: var(--texto); box-shadow: inset 0 0 0 1px var(--linha); }
 .estado-decisao.estado-answered.resposta-declined { color: var(--aviso); }
 .estado-decisao.estado-expired { background: var(--painel-2); color: var(--suave); box-shadow: inset 0 0 0 1px var(--linha); }
+
+.lista-simples { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.lista-simples li { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.cartao label { display: grid; gap: 4px; margin-bottom: 8px; }
+.popup-doar { width: min(26rem, calc(100vw - 32px)); }
+.popup-doar h2 { margin: 0 28px 10px 0; }
+.popup-doar .doar-form { margin-top: 12px; }
+.popup-doar p { margin: 10px 0 0; }

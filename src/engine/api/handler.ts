@@ -2,7 +2,7 @@ import { cityStateNow } from "../city/cities";
 import { cupRoundTag } from "../competition/cup";
 import { interestedClubs } from "../market/interest";
 import { setBudget, clubBudget } from "../club/budget";
-import { financialState, monthlyWageBill, clubBalance } from "../club/finances";
+import { financialState, monthlyWageBill, clubBalance, openingBalances } from "../club/finances";
 import { ageAt, createDate } from "../calendar/dates";
 import type { IsoDate, PlayerRecord } from "../persistence/types";
 import { pendingPatrons, respondPatron } from "../company/patrons";
@@ -32,7 +32,10 @@ import { clubSeason } from "../competition/clubSeason";
 import { readLiveMatch, type LiveMatch, type LivePlayer } from "../season/liveMatch";
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
+import { syncGamerCoach } from "../club/coaches";
 import { acceptOffer, resign, isUnemployed, gamerOffers } from "../season/coachMarket";
+import { buyHome, causeOffsets, courseLevel, courseTraining, helpClub, homePrice, ownsHome, startCourse, supportCause } from "../personal/spending";
+import { CITY_SERVICES } from "../config/parameters";
 import { decisionStates } from "../news/decisions";
 import { bankOf, donate, livingCost, monthlySavings } from "../personal/bank";
 import { askRaise, contractOf, negotiateOffer, referenceWage, signHired, signInitial } from "../season/gamerContract";
@@ -457,7 +460,9 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     }
     case "resign": {
       const { repository, data, params } = await context(servicos);
-      return resign(repository, data, params);
+      const resigned = resign(repository, data, params);
+      syncGamerCoach(repository, data, params);
+      return resigned;
     }
     case "renewals": {
       const { repository, data, params } = await context(servicos);
@@ -568,6 +573,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       repository.transaction(() => {
         acceptOffer(repository, m.input.id);
         if (club) signInitial(repository, params, club, today);
+        syncGamerCoach(repository, data, params);
       });
       return { id: m.input.id };
     }
@@ -596,7 +602,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       let r!: ReturnType<typeof negotiateOffer>;
       repository.transaction(() => {
         r = negotiateOffer(repository, data, params, m.input.id, today, m.input.terms);
-        if (r.result === "accepted") { acceptOffer(repository, m.input.id); signHired(repository, m.input.id, today, r.terms); }
+        if (r.result === "accepted") { acceptOffer(repository, m.input.id); signHired(repository, m.input.id, today, r.terms); syncGamerCoach(repository, data, params); }
       });
       return r;
     }
@@ -613,6 +619,47 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         balance: bankOf(repository, params, today).balance, monthlyNet: Math.round(wage * params.personal.netShare), living,
         savings: monthlySavings(wage, living, params), city: city?.name ?? club.city, employed: wage > 0, minDonation: params.personal.donation.min,
       };
+    }
+    case "personalSpending": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((c) => c.id === repository.meta("gamer.club"));
+      if (!club) return null;
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      const city = data.cities.find((c) => c.id === club.city);
+      const cfg = params.personal;
+      const level = courseLevel(repository, today);
+      const training = courseTraining(repository, today);
+      const offsets = causeOffsets(repository, club.city);
+      return {
+        balance: bankOf(repository, params, today).balance, city: { k: "city" as const, id: club.city, name: city?.name ?? club.city }, club: club.name,
+        home: { owned: ownsHome(repository, club.city), price: homePrice(repository, data, params, club.city), discountPct: Math.round(cfg.home.livingDiscount * 100) },
+        course: { level, max: cfg.course.cost.length, ...(training ? { training } : {}), ...(level < cfg.course.cost.length ? { next: { level: level + 1, cost: cfg.course.cost[level]!, days: cfg.course.days[level]! } } : {}) },
+        causes: CITY_SERVICES.map((service) => ({ service, points: Math.round((offsets[service] ?? 0) * 10) / 10 })),
+        minCause: cfg.cause.min, maxCausePoints: cfg.cause.maxPointsPerYear, minHelp: cfg.help.min,
+      };
+    }
+    case "buyHome": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((c) => c.id === repository.meta("gamer.club"));
+      return club ? buyHome(repository, data, params, (repository.meta("date.today") ?? "") as IsoDate, club.city) : { ok: false, reason: "club" };
+    }
+    case "startCourse": {
+      const { repository, params } = await context(servicos);
+      const r = startCourse(repository, params, (repository.meta("date.today") ?? "") as IsoDate);
+      return r.ok ? { ok: true, balance: r.balance } : r;
+    }
+    case "supportCause": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((c) => c.id === repository.meta("gamer.club"));
+      if (!club) return { ok: false, reason: "club" };
+      const r = supportCause(repository, data, params, (repository.meta("date.today") ?? "") as IsoDate, club.city, m.input.service, m.input.amount);
+      return r.ok ? { ok: true, balance: r.balance } : r;
+    }
+    case "helpClub": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((c) => c.id === repository.meta("gamer.club"));
+      if (!club) return { ok: false, reason: "club" };
+      return helpClub(repository, params, (repository.meta("date.today") ?? "") as IsoDate, club, referenceWage(club, params), m.input.amount);
     }
     case "donate": {
       const { repository, params } = await context(servicos);
@@ -641,6 +688,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         repository.setMeta("gamer.club", m.input.id);
         // saves novos: contrato inicial (os antigos continuam sem contrato)
         if (!current || m.input.force === true) signInitial(repository, params, chosen, (repository.meta("date.today") ?? createDate(params.calendar.initialYear, params.calendar.seasonStartMonth, 1)) as IsoDate);
+        syncGamerCoach(repository, data, params);
       });
       return { id: m.input.id };
     }
@@ -1174,6 +1222,7 @@ async function createWorld(seed: string, servicos: Servicos, onProgress: (p: Wor
     repository.setMeta("world.players", String(batch.players.length));
     repository.setMeta("foreign.clubs", JSON.stringify(foreignClubs(seed, countries, params)));
     saveStartLocalities(repository, data, year);
+    openingBalances(repository, data.clubs, params);
     repository.saveWorld(batch, (done, total) => onProgress({ phase: "save", done, total }));
     onProgress({ phase: "companies", done: 0, total: 1 });
     startCompanies(repository, data, params, { seasonStart: createDate(year, params.calendar.seasonStartMonth, 1), year, tiers: new Map(data.clubs.map((c) => [c.id, c.tier] as const)) });

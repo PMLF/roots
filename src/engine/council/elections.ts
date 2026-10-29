@@ -110,13 +110,14 @@ function drawCandidates(repo: Repository, data: BaseData, params: Params, cityId
   const current = mayorOf(repo, data, cityId);
   const terms = termsOf(repo, data, params, cityId);
   const out: Candidate[] = [];
-  if (current && rng.prob(el.pIncumbentRuns)) out.push({ p: current.person, k: "incumbent", s: current.sportSupport });
-  const past = [...new Set(terms.map((t) => t.person))].filter((p) => p !== current?.person);
+  const young = (p: string) => ageAt(repo.person(p)?.birth ?? today, today) < params.squadCycle.staffRetirement.mayorMaxAge;
+  if (current && young(current.person) && rng.prob(el.pIncumbentRuns)) out.push({ p: current.person, k: "incumbent", s: current.sportSupport });
+  const past = [...new Set(terms.map((t) => t.person))].filter((p) => p !== current?.person && young(p));
   const back = past.find(() => rng.prob(el.pExMayorRuns));
   if (back) out.push({ p: back, k: "exMayor", s: clamp(Math.round(city.mayor.sportSupport + rng.gauss(0, 1.5)), 1, 10) });
   if (rng.prob(el.pRetiredPlayer)) {
     const region = new Set(data.cities.filter((c) => c.id === cityId || (city.hub && c.hub === city.hub)).map((c) => c.id));
-    const pool = [...region].flatMap((c) => repo.playersBornIn(c)).filter((p) => repo.player(p)?.state === "retired" && !out.some((o) => o.p === p) && ageAt(repo.person(p)?.birth ?? today, today) >= el.retiredMinAge).sort();
+    const pool = [...region].flatMap((c) => repo.playersBornIn(c)).filter((p) => repo.player(p)?.state === "retired" && !out.some((o) => o.p === p) && ageAt(repo.person(p)?.birth ?? today, today) >= el.retiredMinAge && young(p)).sort();
     const pick = pool.length > 0 ? rng.choose(pool) : undefined;
     if (pick) out.push({ p: pick, k: "retired", s: clamp(Math.round(8 + rng.gauss(0, 1)), 1, 10) });
   }

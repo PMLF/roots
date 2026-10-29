@@ -51,8 +51,16 @@ function leagueSlots(pairings: number, season: number, c: Schedule, tier?: Tier)
   if (pairings <= W.length) return split(W.length, pairings).map((i) => ({ date: W[i] as IsoDate, weekend: true }));
   const pauses = c.pauses.map((p) => ({ from: seasonDate(season, p.from, c), until: seasonDate(season, p.until, c) }));
   const free = (d: IsoDate) => !pauses.some((p) => compare(d, p.from) >= 0 && compare(d, p.until) <= 0);
-  const candidate = W.map((s, i) => ({ i, wednesday: addDays(s, -3) })).filter(({ i, wednesday }) => i > 0 && i < W.length - 1 && free(wednesday));
+  let candidate = W.map((s, i) => ({ i, wednesday: addDays(s, -3) })).filter(({ i, wednesday }) => i > 0 && i < W.length - 1 && free(wednesday));
   const extra = pairings - W.length;
+  if (extra > candidate.length && W.length > 1) {
+    // as taças e as pausas comem fins de semana em certos anos (RZ-237, calibração): usam-se também as quartas-feiras livres das semanas de pausa de fim de semana
+    const have = new Set(candidate.map((x) => x.wednesday));
+    const first = W[0] as IsoDate;
+    const last = W[W.length - 1] as IsoDate;
+    for (let d = addDays(first, 4); compare(d, last) < 0; d = addDays(d, 7)) if (free(d) && !have.has(d)) candidate.push({ i: -1, wednesday: d });
+    candidate = candidate.sort((a, b) => compare(a.wednesday, b.wednesday));
+  }
   if (extra > candidate.length) throw new Error(`Calendário impossível: ${pairings} jornadas, só cabem ${W.length + candidate.length}`);
   const means = split(candidate.length, extra).map((k) => (candidate[k] as { wednesday: IsoDate }).wednesday);
   return [...W.map((date) => ({ date, weekend: true })), ...means.map((date) => ({ date, weekend: false }))].sort((a, b) => compare(a.date, b.date));

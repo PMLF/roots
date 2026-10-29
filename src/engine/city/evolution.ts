@@ -28,8 +28,11 @@ export function evolveCity(before: CityState, e: EvolutionInput, rng: Rng, param
   const course = (current: number, target: number) => current + (target - current) * k.regression + rng.gauss(0, k.noise);
   const r = e.results;
 
-  const economy = clampPct(course(before.economy, e.targets.economy + (e.companies?.economy ?? 0)) + sum("economy"));
-  const employment = clampPct(course(before.employment, e.targets.employment + (e.companies?.employment ?? 0)) + sum("employment"));
+  // o que os clubes da terra fazem (títulos, subidas, descidas) mexe logo na economia, no emprego, nos serviços e na população (RZ-270)
+  const cl = k.clubs;
+  const club = (f: keyof (typeof cl)["champion"]) => r.champions * cl.champion[f] + r.promotions * cl.promotion[f] + r.relegations * cl.relegation[f];
+  const economy = clampPct(course(before.economy, e.targets.economy + (e.companies?.economy ?? 0)) + sum("economy") + club("economy"));
+  const employment = clampPct(course(before.employment, e.targets.employment + (e.companies?.employment ?? 0)) + sum("employment") + club("employment"));
   const tourism = clampPct(course(before.tourism, e.targets.tourism) + sum("tourism"));
   const pride = clampPct(course(before.pride, e.targets.pride) + r.champions * k.pride.champion + r.promotions * k.pride.promotion + r.relegations * k.pride.relegation + sum("pride"));
   const notoriety = clampPct(before.notoriety + (e.targets.notoriety - before.notoriety) * k.notoriety.regression + (pride - 50) * k.notoriety.byPride + sum("notoriety") + rng.gauss(0, k.noise / 2));
@@ -38,11 +41,12 @@ export function evolveCity(before: CityState, e: EvolutionInput, rng: Rng, param
   // serviços: regridem para um alvo que depende do tamanho, setor, orçamento e da economia, emprego e turismo de agora
   const sv = params.city.services;
   const now = { economy, employment, tourism };
-  const services = Object.fromEntries(CITY_SERVICES.map((id) => [id, clampPct(before[id] + (serviceTarget(id, e.targets.services[id] + (e.council?.[id] ?? 0), now, params) - before[id]) * sv.regression + rng.derive(`service:${id}`).gauss(0, sv.noise) + sum(id))])) as Record<CityService, number>;
+  const services = Object.fromEntries(CITY_SERVICES.map((id) => [id, clampPct(before[id] + (serviceTarget(id, e.targets.services[id] + (e.council?.[id] ?? 0), now, params) - before[id]) * sv.regression + rng.derive(`service:${id}`).gauss(0, sv.noise) + sum(id) + (id === "entertainment" ? club("entertainment") : id === "mobility" ? club("mobility") : 0))])) as Record<CityService, number>;
   const meanServices = CITY_SERVICES.reduce((a, id) => a + services[id], 0) / CITY_SERVICES.length;
 
+  const shield = sv.population.shieldMax * clamp(Math.log(Math.max(1, before.population) / sv.population.shieldFrom) / Math.log(sv.population.shieldFull / sv.population.shieldFrom), 0, 1);
   const pct = clamp(
-    e.driftPopulationPct + (economy - 50) * k.population.byEconomy + (pride - 50) * k.population.byPride + (meanServices - 50) * sv.population.byServices + (employment - 50) * sv.population.byEmployment + sum("populationPct") + rng.gauss(0, k.population.noisePct),
+    e.driftPopulationPct + (economy - 50) * k.population.byEconomy + (pride - 50) * k.population.byPride + (meanServices - 50) * sv.population.byServices + (employment - 50) * sv.population.byEmployment + (services.housing < 50 ? (services.housing - 50) * (1 - shield) : (services.housing - 50) * sv.population.affordableFactor) * sv.population.byHousing + club("populationPct") + sum("populationPct") + rng.gauss(0, k.population.noisePct),
     -k.population.maxPct,
     k.population.maxPct,
   );
