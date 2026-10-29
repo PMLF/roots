@@ -11,6 +11,7 @@ import type { Tier, Params } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import { staffRating, staffWage } from "./staffPay";
+import { stadiumTotal } from "./stadiumState";
 import type { IsoDate } from "../persistence/types";
 
 /**
@@ -77,7 +78,7 @@ export function monthlyStaffCost(repo: Repository, club: BaseClub, params: Param
 export function monthlyCosts(repo: Repository, club: BaseClub, params: Params): Record<"wages" | "staff" | "stadium" | "fixed", number> {
   const m = params.finances.model;
   const e: Tier = club.tier;
-  return { wages: monthlyWageBill(repo, club.id), staff: monthlyStaffCost(repo, club, params), stadium: Math.round((club.stadium.capacity * m.stadiumPerPlaceYear[e]) / 12), fixed: m.monthlyFixed[e] };
+  return { wages: monthlyWageBill(repo, club.id), staff: monthlyStaffCost(repo, club, params), stadium: Math.round((stadiumTotal(repo, club, params) * m.stadiumPerPlaceYear[e]) / 12), fixed: m.monthlyFixed[e] };
 }
 
 /** Receitas anuais fixas esperadas (patrocínios e comercial); a bilheteira e os prémios variam. */
@@ -150,15 +151,15 @@ const BANDS: Record<Tier, [Wealth, Wealth, Wealth, Wealth, Wealth]> = {
 type Measure = { club: BaseClub; balance: number; costs: number; revenues: number };
 
 /** Receitas anuais esperadas (patrocínios + comercial + bilheteira típica de ~15 jogos em casa): serve o estado público e o orçamento. */
-export function estimatedAnnualRevenue(c: BaseClub, params: Params): number {
+export function estimatedAnnualRevenue(c: BaseClub, params: Params, capacity = c.stadium.capacity): number {
   const m = params.finances.model;
   const fixed = annualFixedRevenues(c, params);
-  return fixed.sponsorships + fixed.commercial + c.stadium.capacity * m.occupancy[c.tier] * m.ticketPrice[c.tier] * 15;
+  return fixed.sponsorships + fixed.commercial + capacity * m.occupancy[c.tier] * m.ticketPrice[c.tier] * 15;
 }
 
 function measure(repo: Repository, c: BaseClub, params: Params): Measure {
   const cm = monthlyCosts(repo, c, params);
-  return { club: c, balance: clubBalance(repo, c), costs: cm.wages + cm.staff + cm.stadium + cm.fixed, revenues: estimatedAnnualRevenue(c, params) };
+  return { club: c, balance: clubBalance(repo, c), costs: cm.wages + cm.staff + cm.stadium + cm.fixed, revenues: estimatedAnnualRevenue(c, params, stadiumTotal(repo, c, params)) };
 }
 
 /**

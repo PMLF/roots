@@ -5,6 +5,7 @@
 import type { Params } from "../config/parameters";
 import type { BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
+import { stadiumCapacity } from "../club/stadiumState";
 
 export type ClubEdge = { coach: number; medical: number; /** -1..1: médico/fisio prudente (paciente) arrisca menos e recupera mais devagar. */ caution: number; /** 0-1: 0,5 = ambiente normal. */ crowd: number };
 
@@ -38,6 +39,6 @@ export function clubEdge(repo: Repository, data: BaseData, club: string, params:
     coach: (coach ? mean([coach.tactics ?? 10, coach.motivation ?? 10]) : 10) + assistantBonus,
     medical: medical?.medicine ?? 10,
     caution: cautions.length > 0 ? mean(cautions) : 0,
-    crowd: base ? crowdOf(base.stadium.capacity, culture, params) : 0.5,
+    crowd: base ? crowdOf(stadiumCapacity(repo, base, params), culture, params) : 0.5,
   };
 }

@@ -33,6 +33,7 @@ import { promotionGroupName, promotionGroups, prepareSeason } from "./prepare";
 import { coachSeasonEnd } from "../club/coaches";
 import { staffSuccession } from "../people/succession";
 import { staffSeasonEnd } from "../club/staff";
+import { aiStadiums } from "../club/stadium";
 import { reputationData, updateReputations, type SeasonFinish } from "../club/reputationCycle";
 import { CUP, cupResult } from "./competitions";
 import { EUROPE_NAME, EUROPEAN } from "../europe/europe";
@@ -201,6 +202,8 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
     // staff que chega à idade da reforma sai e entra gente nova (treinadores novos entram livres)
     staffSuccession(repo, data, params, season, today);
     staffSeasonEnd(repo, data, params, season, today, nextTiers, repo.meta("gamer.club") || undefined);
+    // clubes do computador com estádio cheio encomendam ampliações
+    aiStadiums(repo, data, params, season, today, nextTiers, repo.meta("gamer.club") || undefined);
     const next = reputationData(repo, data, season + 1);
     const gamerClub = repo.meta("gamer.club");
     rolloverSquads(repo, next, params, { season, seasonStart: newSeasonStart, tiers: nextTiers, ...(gamerClub ? { gamerClub } : {}) });

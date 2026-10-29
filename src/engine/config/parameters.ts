@@ -28,6 +28,8 @@ export type CityService = (typeof CITY_SERVICES)[number];
 /** Áreas do orçamento da Câmara (RZ-236): o desporto e as seis dos serviços (o lazer financia o entretenimento). */
 export const COUNCIL_AREAS = ["sport", "health", "education", "mobility", "housing", "safety", "leisure"] as const;
 export type CouncilArea = (typeof COUNCIL_AREAS)[number];
+export const STADIUM_SECTORS = ["central", "side", "north", "south"] as const;
+export type StadiumSector = (typeof STADIUM_SECTORS)[number];
 export const COUNCIL_REQUESTS = ["youth", "matchday", "subsidy"] as const;
 export type CouncilRequestKind = (typeof COUNCIL_REQUESTS)[number];
 type Traits4 = { ambition: number; vanity: number; patience: number; integrity: number };
@@ -398,6 +400,20 @@ export type Params = {
   };
   /** Percentagem média de estrangeiros nos plantéis, por escalão (GERACAO_MUNDO §4). */
   foreigners: Record<Tier, number>;
+  /** Estádio (RZ-116): setores, obras de ampliação e ampliação dos clubes do computador. */
+  stadium: {
+    /** Repartição da capacidade dos dados pelos setores (soma 1). */
+    split: Record<StadiumSector, number>;
+    /** Custo por lugar novo (€) em cada setor e fator do escalão. */
+    costPerSeat: Record<StadiumSector, number>;
+    tierCost: Record<Tier, number>;
+    /** Obra: mínimo de lugares, crescimento máximo da capacidade total por obra, capacidade máxima, lugares construídos por mês, duração mínima (meses) e fração do setor fechada durante a obra. */
+    works: { minSeats: number; maxGrowth: number; maxCapacity: number; seatsPerMonth: number; minMonths: number; closedShare: number };
+    /** Fração do custo paga pela Câmara conforme a propriedade do estádio. */
+    councilShare: Record<"club" | "municipal" | "shared", number>;
+    /** Clubes do computador: ocupação esperada a partir da qual podem ampliar, probabilidade por época, crescimento da obra e folga de caixa exigida (múltiplo do custo). */
+    ai: { occupancy: number; probability: number; growth: number; cashCover: number };
+  };
   attendance: {
     finalMult: number;
     relegationPromotionDecisionMult: number;
@@ -1175,6 +1191,14 @@ export const DEFAULT_PARAMETERS: Params = {
     },
   },
   foreigners: { firstLeague: 0.55, secondLeague: 0.3, thirdLeague: 0.15, cp: 0.08, district: 0.03 },
+  stadium: {
+    split: { central: 0.38, side: 0.27, north: 0.175, south: 0.175 },
+    costPerSeat: { central: 450, side: 300, north: 220, south: 220 },
+    tierCost: { firstLeague: 1.3, secondLeague: 1.1, thirdLeague: 1, cp: 0.85, district: 0.7 },
+    works: { minSeats: 100, maxGrowth: 0.5, maxCapacity: 60000, seatsPerMonth: 500, minMonths: 3, closedShare: 0.4 },
+    councilShare: { club: 0, municipal: 0.5, shared: 0.25 },
+    ai: { occupancy: 0.7, probability: 0.25, growth: 0.15, cashCover: 2 },
+  },
   attendance: {
     finalMult: 2.5,
     relegationPromotionDecisionMult: 1.8,
