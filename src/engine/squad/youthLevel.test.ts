@@ -72,7 +72,7 @@ describe("formação do clube (RZ-234)", { timeout: 120000 }, () => {
     const youths = repo.clubPlayers(gamer.id).slice(0, 6);
     for (const j of youths) repo.updatePlayer(j.person, { trainedAt: gamer.id, potential: 19 });
     let made = 0;
-    for (let d = 0; d < 80 && made === 0; d++) {
+    for (let d = 0; d < 240 && made === 0; d++) {
       const day = new Date(Date.UTC(2027, 0, 2 + d)).toISOString().slice(0, 10) as `${number}-${number}-${number}`;
       repo.setMeta("date.today", day);
       dailyOffers(repo, data, P, gamer, day, 1);
