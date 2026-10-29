@@ -32,6 +32,7 @@ import { clubSeason } from "../competition/clubSeason";
 import { readLiveMatch, type LiveMatch, type LivePlayer } from "../season/liveMatch";
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
+import { syncGamerCoach } from "../club/coaches";
 import { acceptOffer, resign, isUnemployed, gamerOffers } from "../season/coachMarket";
 import { buyHome, causeOffsets, courseLevel, courseTraining, helpClub, homePrice, ownsHome, startCourse, supportCause } from "../personal/spending";
 import { CITY_SERVICES } from "../config/parameters";
@@ -459,7 +460,9 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     }
     case "resign": {
       const { repository, data, params } = await context(servicos);
-      return resign(repository, data, params);
+      const resigned = resign(repository, data, params);
+      syncGamerCoach(repository, data, params);
+      return resigned;
     }
     case "renewals": {
       const { repository, data, params } = await context(servicos);
@@ -570,6 +573,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       repository.transaction(() => {
         acceptOffer(repository, m.input.id);
         if (club) signInitial(repository, params, club, today);
+        syncGamerCoach(repository, data, params);
       });
       return { id: m.input.id };
     }
@@ -598,7 +602,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       let r!: ReturnType<typeof negotiateOffer>;
       repository.transaction(() => {
         r = negotiateOffer(repository, data, params, m.input.id, today, m.input.terms);
-        if (r.result === "accepted") { acceptOffer(repository, m.input.id); signHired(repository, m.input.id, today, r.terms); }
+        if (r.result === "accepted") { acceptOffer(repository, m.input.id); signHired(repository, m.input.id, today, r.terms); syncGamerCoach(repository, data, params); }
       });
       return r;
     }
@@ -684,6 +688,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         repository.setMeta("gamer.club", m.input.id);
         // saves novos: contrato inicial (os antigos continuam sem contrato)
         if (!current || m.input.force === true) signInitial(repository, params, chosen, (repository.meta("date.today") ?? createDate(params.calendar.initialYear, params.calendar.seasonStartMonth, 1)) as IsoDate);
+        syncGamerCoach(repository, data, params);
       });
       return { id: m.input.id };
     }

@@ -612,6 +612,12 @@ export function repositoryContract(name: string, create: () => Repository): void
       expect(r.player("p1")?.potential).toBe(15.5);
       expect(r.contract("p1")?.monthlyWage).toBe(1200);
       expect(r.role("p2")?.fn).toBe("president");
+      r.setRoleClub("p2", null);
+      expect(r.role("p2")?.club).toBeUndefined();
+      expect(r.publicRoles({ club: "X" })).toEqual([]);
+      r.setRoleClub("p2", "X");
+      expect(r.role("p2")?.club).toBe("X");
+      expect(() => r.setRoleClub("nada", "X")).toThrow();
       expect(r.clubPlayers("X").map((j) => j.person)).toEqual(["p1"]);
       expect(r.person("nada")).toBeUndefined();
     });

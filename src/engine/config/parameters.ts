@@ -342,6 +342,20 @@ export type Params = {
     surprises: number;
     /** Até quantos pontos de reputação acima do clube anterior pode vir uma surpresa. */
     surpriseMargin: number;
+    /**
+     * Direção e treinadores da IA (RZ-210): a confiança da direção (0-100) caminha para um alvo dado pelo lugar na tabela face ao esperado
+     * (reputação e dinheiro); abaixo do limiar, passadas as semanas de graça, o treinador é despedido. O clube procura um livre ou
+     * alicia um treinador que esteja a ter bons resultados noutro clube, que só aceita se for para um escalão acima ou pagar bastante mais.
+     */
+    board: {
+      start: number; rate: number; minMatches: number; graceDays: number; sackBelow: number; patienceEffect: number; sackProbability: number;
+      /** Despedimento no fim da época: probabilidade se o clube desceu e se acabou muito abaixo do esperado (desempenho ≤ `badPerf`). */
+      sackRelegated: number; sackBad: number; badPerf: number;
+      /** Dias de vaga antes de o clube contratar (interino). */
+      vacancyDays: number;
+      /** Aliciar: resultados mínimos (−1 a 1) do clube atual, vantagem de qualidade sobre o que o clube procura, probabilidades de aceitar (escalão acima, muito mais dinheiro, sem vantagem), múltiplo de salário e peso extra na escolha. */
+      poach: { minPerf: number; qualityEdge: number; tierUp: number; wage: number; stay: number; wageRatio: number; attempt: number; bonus: number };
+    };
     /** Contrato do gamer (RZ-161): salário de referência, resposta do presidente, pedir aumento. */
     contract: {
       /** Salário de referência = média de salários do escalão × `wageFactor` × (reputação/referência)^`repExponent`. */
@@ -1106,6 +1120,11 @@ export const DEFAULT_PARAMETERS: Params = {
   },
   coach: {
     offers: 3, surprises: 1, surpriseMargin: 600,
+    board: {
+      start: 60, rate: 0.12, minMatches: 6, graceDays: 60, sackBelow: 28, patienceEffect: 1.2, sackProbability: 0.5,
+      sackRelegated: 0.6, sackBad: 0.3, badPerf: -0.45, vacancyDays: 7,
+      poach: { minPerf: 0.15, qualityEdge: 0.5, tierUp: 0.7, wage: 0.45, stay: 0.03, wageRatio: 1.4, attempt: 0.5, bonus: 0.5 },
+    },
     contract: {
       wageFactor: 2.5, repExponent: 0.8, yearsMin: 1, yearsMax: 3, defaultYears: 2,
       accept: { base: 1.0, trust: 0.15, results: 0.25, finances: 0.15, loyalty: 0.1, greed: 0.15, roots: 0.06, course: 0.04, min: 0.7, max: 1.8 },

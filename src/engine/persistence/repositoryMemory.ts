@@ -376,6 +376,15 @@ export class MemoryRepository implements Repository {
   roleHolders(fn: string): string[] {
     return [...this.roles.values()].filter((r) => r.fn === fn).map((r) => r.person).sort();
   }
+  setRoleClub(person: string, club: string | null): void {
+    const before = this.roles.get(person);
+    if (!before) throw new Error(`Unknown role: ${person}`);
+    const next: RoleRecord = { ...before };
+    if (club === null) delete next.club;
+    else next.club = club;
+    this.roles.set(person, next);
+    this.undo(() => this.roles.set(person, before));
+  }
   role(person: string): RoleRecord | undefined {
     const c = this.roles.get(person);
     return c ? clone(c) : undefined;

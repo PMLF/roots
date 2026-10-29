@@ -30,6 +30,7 @@ import { assignAgents } from "../agent/assign";
 import { Rng } from "../random/rng";
 import { rolloverCompanies } from "../company/cycle";
 import { promotionGroupName, promotionGroups, prepareSeason } from "./prepare";
+import { coachSeasonEnd } from "../club/coaches";
 import { reputationData, updateReputations, type SeasonFinish } from "../club/reputationCycle";
 import { CUP, cupResult } from "./competitions";
 import { EUROPE_NAME, EUROPEAN } from "../europe/europe";
@@ -193,6 +194,8 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
       tier: new Map([...leagues].map(([club, l]) => [club, l.tier] as const)), nextTier: nextTiers,
       cupWinners: cupWinner ? [cupWinner] : [], europe: { played: [...european], ...(europeWinner && !isForeignClub(europeWinner) ? { winner: europeWinner } : {}) },
     });
+    // objetivos falhados: a direção despede os treinadores de quem desceu ou ficou muito abaixo do esperado (RZ-210)
+    coachSeasonEnd(repo, data, params, season, today, finish, nextTiers, repo.meta("gamer.club") || undefined);
     const next = reputationData(repo, data, season + 1);
     const gamerClub = repo.meta("gamer.club");
     rolloverSquads(repo, next, params, { season, seasonStart: newSeasonStart, tiers: nextTiers, ...(gamerClub ? { gamerClub } : {}) });

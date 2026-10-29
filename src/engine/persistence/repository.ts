@@ -169,6 +169,8 @@ export interface Repository {
   role(person: string): RoleRecord | undefined;
   /** Ids das pessoas com uma função (ex.: `agent`), por ordem de id. */
   roleHolders(fn: string): string[];
+  /** Muda o clube de um cargo (um treinador despedido fica livre com `null`; um contratado passa a ter o clube). */
+  setRoleClub(person: string, club: string | null): void;
   clubPlayers(club: string): PlayerRecord[];
 
   // --- empresas e patrocínios (RZ-219, RZ-311)
