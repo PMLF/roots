@@ -335,6 +335,21 @@ export type Params = {
     help: { min: number; grudgeReliefPerYearOfWage: number };
     donation: { min: number; /** Quanto do valor doado vira capital da empresa. */ efficiency: number; /** Máximo de capital que um donativo acrescenta (fração do que a empresa já tem). */ maxShare: number; cooldownDays: number };
   };
+  /** Staff técnico (RZ-208): evolução da qualidade com a idade, carreira entre clubes e mercado de livres (não inclui o treinador principal). */
+  staff: {
+    /** Funções do mercado de staff (o treinador principal tem o seu mercado em `coach`). */
+    functions: string[];
+    /** Máximo por função no clube do gamer (as restantes têm um lugar). */
+    scoutsMax: number;
+    /** Evolução anual: cada área sobe 1 com `gain` até `peakAge`, desce 1 com `loss` a partir de `declineAge`. */
+    develop: { peakAge: number; gain: number; declineAge: number; loss: number };
+    /** Carreira: probabilidade anual de um profissional bom procurar um clube melhor; só vai se for melhor que quem lá está e o clube estiver num escalão acima (ou igual com mais reputação). */
+    career: { attempt: number; qualityEdge: number; accept: number };
+    /** Entradas anuais de gente nova no mercado de livres, por 100 clubes e função, e idade média de quem entra. */
+    entrants: { per100Clubs: number; age: number };
+    /** Erro (±) da estimativa de qualidade que o gamer vê de um candidato. */
+    estimateError: number;
+  };
   coach: {
     /** Ofertas de clubes de reputação igual ou inferior à do clube que deixou. */
     offers: number;
@@ -1129,6 +1144,14 @@ export const DEFAULT_PARAMETERS: Params = {
     cause: { min: 200, pointsPer: 0.15, maxPointsPerYear: 5, relationPerThousand: 1.5, maxRelation: 6 },
     help: { min: 500, grudgeReliefPerYearOfWage: 0.5 },
     donation: { min: 100, efficiency: 0.8, maxShare: 1, cooldownDays: 60 },
+  },
+  staff: {
+    functions: ["assistant", "scout", "medical", "physio", "community"],
+    scoutsMax: 4,
+    develop: { peakAge: 50, gain: 0.3, declineAge: 60, loss: 0.3 },
+    career: { attempt: 0.12, qualityEdge: 1, accept: 0.7 },
+    entrants: { per100Clubs: 4, age: 36 },
+    estimateError: 2,
   },
   coach: {
     offers: 3, surprises: 1, surpriseMargin: 600, unemployedStartReputation: 1500,

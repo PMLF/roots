@@ -302,11 +302,14 @@ function collapse(c: Context, types: readonly string[], inboxOnly: boolean, limi
 
 /**
  * Relevância de uma notícia para o gamer (por esta ordem): o teu clube, os teus rivais, os clubes da tua divisão, os melhores
- * clubes do país. O peso cai com a idade (meia-vida `HALF_LIFE_DAYS`), por isso uma notícia do teu clube de há uma semana
- * ainda ganha a uma da divisão de ontem, mas uma de há dois meses já não.
+ * clubes do país. Só contam os últimos `RELEVANT_DAYS` dias, com o peso a cair a metade a cada `HALF_LIFE_DAYS`; escolhem-se as
+ * mais relevantes mas mostram-se por ordem cronológica (a mais recente primeiro). Se faltar notícia relevante, enche-se com o que
+ * o mundo contou mais recentemente.
  */
 const TIER_WEIGHT = { own: 16, rival: 8, division: 4, top: 2 } as const;
-const HALF_LIFE_DAYS = 21;
+const HALF_LIFE_DAYS = 2;
+/** Passados estes dias, uma notícia já não é relevante (só entra se faltar notícia nova para encher a lista). */
+const RELEVANT_DAYS = 6;
 const TOP_CLUBS = 8;
 
 function relevantNews(repo: Repository, data: BaseData, c: Context, limit: number): NewsItem[] {
@@ -334,12 +337,19 @@ function relevantNews(repo: Repository, data: BaseData, c: Context, limit: numbe
   const near = [...(own ? [own] : []), ...rivals];
   if (near.length > 0) add(collapse(c, NEWS_ITEM_EVENTS, false, 60, undefined, (n) => n.links.some((l) => l.k === "club" && near.includes(l.id)), { clubs: near }));
   const dayOf = (iso: string) => Date.parse(`${iso}T00:00:00Z`) / 86_400_000;
-  const now = Math.max(0, ...[...pool.values()].map((n) => dayOf(n.date)));
+  const today = repo.meta("date.today");
+  const now = today ? dayOf(today) : Math.max(0, ...[...pool.values()].map((n) => dayOf(n.date)));
   const scored = [...pool.values()].flatMap((n) => {
     const tier = tierOf(n);
-    return tier ? [{ n, score: TIER_WEIGHT[tier] * 0.5 ** ((now - dayOf(n.date)) / HALF_LIFE_DAYS) }] : [];
+    const age = now - dayOf(n.date);
+    return tier && age <= RELEVANT_DAYS ? [{ n, score: TIER_WEIGHT[tier] * 0.5 ** (age / HALF_LIFE_DAYS) }] : [];
   });
-  return scored.sort((a, b) => b.score - a.score || b.n.id - a.n.id).slice(0, limit).map((x) => x.n);
+  const picked = scored.sort((a, b) => b.score - a.score || b.n.id - a.n.id).slice(0, limit).map((x) => x.n);
+  if (picked.length < limit) {
+    const taken = new Set(picked.map((n) => n.id));
+    picked.push(...[...pool.values()].filter((n) => !taken.has(n.id)).sort((a, b) => b.id - a.id).slice(0, limit - picked.length));
+  }
+  return picked.sort((a, b) => b.id - a.id);
 }
 
 /** Notícias do clube do gamer, da liga dele ou do mundo todo. Mais recentes primeiro. */

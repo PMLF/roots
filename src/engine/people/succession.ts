@@ -4,14 +4,8 @@ import type { Params } from "../config/parameters";
 import type { BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate, PersonRecord, RoleRecord } from "../persistence/types";
-import { addDays, ageAt } from "../calendar/dates";
-import { generatePersonality, type PersonRole } from "../personality/generate";
-import { generateName } from "../world/names";
-
-const ROLE_KIND: Record<string, PersonRole> = {
-  coach: "coach", assistant: "staff", medical: "staff", physio: "staff", community: "staff", scout: "staff",
-  president: "president", businessperson: "businessperson", fanLeader: "fan", agent: "agent", referee: "referee", journalist: "journalist",
-};
+import { ageAt } from "../calendar/dates";
+import { newStaff } from "./newStaff";
 
 export function staffRetirementProbability(fn: string, age: number, params: Params): number {
   const cfg = params.squadCycle.staffRetirement;
@@ -39,16 +33,17 @@ export function staffSuccession(repo: Repository, _data: BaseData, params: Param
       const rng = new Rng(seed, `staff/${season}/${id}`);
       if (!rng.prob(staffRetirementProbability(fn, age, params))) continue;
       repo.removeRole(id);
+      const freeStaff = fn !== "coach" && !role.club && !role.city;
       repo.appendEvent({ type: "STAFF_RETIRED", date: today, season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id, roleKind: fn }, ...(role.club ? [{ k: "club" as const, id: role.club }] : [])], data: { fn, age } });
       retired++;
+      if (freeStaff) continue;
       const nrng = rng.derive("successor");
       const newId = `p${String(++next).padStart(6, "0")}`;
-      const name = generateName(nrng, params.squadCycle.youth.nameFamily);
       const entryAge = clamp(nrng.gauss(cfg.byFn[fn]!.entryAge, 5), 26, cfg.byFn[fn]!.fromAge);
-      const { personality, archetype } = generatePersonality(nrng, ROLE_KIND[fn] ?? "staff", {}, params.personality.traitMin, params.personality.traitMax);
-      people.push({ id: newId, name: name.full, sportingName: name.sporting, birth: addDays(today, -Math.round(entryAge * 365.25)), nationality: person.nationality, ...(person.birthCity ? { birthCity: person.birthCity } : {}), roles: [fn], personality, archetype, lod: 2 });
       const quality = role.quality ? Object.fromEntries(Object.entries(role.quality).map(([k, v]) => [k, clamp(Math.round(v + nrng.gauss(0, 1.5)), 1, 20)])) : undefined;
-      roles.push({ person: newId, fn, ...(fn === "coach" ? {} : role.club ? { club: role.club } : {}), ...(role.city ? { city: role.city } : {}), ...(quality ? { quality } : {}) });
+      const made = newStaff(nrng, params, { id: newId, fn, today, age: entryAge, nationality: person.nationality, ...(person.birthCity ? { birthCity: person.birthCity } : {}), ...(fn === "coach" || !role.club ? {} : { club: role.club }), ...(role.city ? { city: role.city } : {}), ...(quality ? { quality } : {}) });
+      people.push(made.person);
+      roles.push(made.role);
     }
   }
   if (people.length > 0) repo.addPeople({ people, players: [], contracts: [], roles });

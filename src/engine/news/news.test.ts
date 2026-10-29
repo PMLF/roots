@@ -120,7 +120,7 @@ describe("notícias e caixa de entrada", () => {
     expect(world.filter((n) => n.type === "coach_hired")).toHaveLength(1);
   }, 60000);
 
-  it("as notícias relevantes vêm por ordem: o teu clube, os rivais, a tua divisão e os melhores do país", async () => {
+  it("as notícias relevantes vêm por relevância (o teu clube, os rivais, a tua divisão e os melhores do país) mas lêem-se por ordem cronológica", async () => {
     const repository = new MemoryRepository();
     const s: Servicos = { ...servicos(), openRepository: async () => ({ repository, backend: "memory" as const, sqliteVersion: "test" }) };
     await handle({ id: 1, type: "createWorld", input: { seed: "relevantes" } }, s);
@@ -137,6 +137,11 @@ describe("notícias e caixa de entrada", () => {
     for (const club of [other.id, top.id, division.id, rivalId, mine.id]) emit(club);
     const list = await handle({ id: 5, type: "news", input: { scope: "relevant", limit: 10 } }, s);
     const clubs = list.filter((n) => n.type === "coach_sacked").map((n) => n.links.find((l) => l.k === "club")?.id);
+    // escolhem-se pela relevância mas lêem-se por ordem cronológica (o evento mais recente primeiro)
     expect(clubs).toEqual([mine.id, rivalId, division.id, top.id]);
+    expect(list.every((n, i, a) => i === 0 || a[i - 1]!.id > n.id)).toBe(true);
+    // com limite 2 ficam o teu clube e o rival (os mais relevantes), em ordem cronológica
+    const short = await handle({ id: 6, type: "news", input: { scope: "relevant", limit: 2 } }, s);
+    expect(short.map((n) => n.links.find((l) => l.k === "club")?.id)).toEqual([mine.id, rivalId]);
   }, 60000);
 });

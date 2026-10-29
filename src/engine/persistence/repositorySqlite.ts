@@ -387,6 +387,10 @@ export class SqliteRepository implements Repository {
     if (!this.role(person)) throw new Error(`Unknown role: ${person}`);
     this.d.run("UPDATE role SET club = ? WHERE person = ?", [club, person]);
   }
+  setRoleQuality(person: string, quality: Record<string, number>): void {
+    if (!this.role(person)) throw new Error(`Unknown role: ${person}`);
+    this.d.run("UPDATE role SET quality = ? WHERE person = ?", [JSON.stringify(quality), person]);
+  }
   removeRole(person: string): void {
     if (!this.role(person)) throw new Error(`Unknown role: ${person}`);
     this.d.run("DELETE FROM role WHERE person = ?", [person]);

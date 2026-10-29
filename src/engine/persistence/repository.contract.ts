@@ -618,6 +618,8 @@ export function repositoryContract(name: string, create: () => Repository): void
       r.setRoleClub("p2", "X");
       expect(r.role("p2")?.club).toBe("X");
       expect(() => r.setRoleClub("nada", "X")).toThrow();
+      r.setRoleQuality("p2", { tactics: 12 });
+      expect(r.role("p2")?.quality).toEqual({ tactics: 12 });
       r.removeRole("p2");
       expect(r.role("p2")).toBeUndefined();
       expect(() => r.removeRole("p2")).toThrow();
