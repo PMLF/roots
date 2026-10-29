@@ -9,6 +9,11 @@ import { useEngine } from "@/ui/EngineProvider";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import type { Key } from "@/ui/i18n";
 import { enterGame, rememberOpened } from "@/ui/session";
+import { chooseFile, canWriteInPlace, rememberFileGameDate, saveToDisk } from "@/ui/localFile";
+import { read, save } from "@/ui/storage";
+
+const ONBOARDED = "raizes.onboarded";
+const isFlag = (v: unknown): v is true => v === true;
 
 const TIERS: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
 const LEVELS = ["worldClass", "continental", "national", "regional", "local", "obscure"] as const;
@@ -43,7 +48,11 @@ export function Onboarding() {
   const { t } = useT();
   const engine = useEngine();
   const router = useRouter();
-  const [step, setStep] = useState(1);
+  // «Como funciona» e a pirâmide só se mostram no primeiro jogo; nos seguintes começa-se pelo clube (dá para voltar atrás)
+  const [seen] = useState(() => read(ONBOARDED, isFlag) === true);
+  const [step, setStep] = useState(seen ? 3 : 1);
+  const [saveName, setSaveName] = useState("");
+  const [fileChosen, setFileChosen] = useState(false);
   const [catalog, setCatalog] = useState<CatalogClub[] | undefined>(undefined);
   const [existing, setExisting] = useState<CreatedWorldSummary | null | undefined>(undefined);
   const [startChoice, setStartChoice] = useState<Start | undefined>(undefined);
@@ -67,6 +76,15 @@ export function Onboarding() {
       await engine.call(existing ? "restartWorld" : "createWorld", { seed }, (progress) => setState({ phase: "creating", progress }));
       if (startChoice.kind === "club") await engine.call("chooseClub", { id: startChoice.club.id, force: true });
       else await engine.call("startUnemployed", { region: startChoice.region });
+      // último passo: o save com o nome dado (e no ficheiro local, se o gamer o escolheu)
+      const name = saveName.trim() || (startChoice.kind === "club" ? startChoice.club.name : t("new.startUnemployed"));
+      await engine.call("saveGame", { name }).catch(() => undefined);
+      if (fileChosen) {
+        const r = await engine.call("exportSave", {}).catch(() => undefined);
+        const day = (await engine.call("timeState", null).catch(() => null))?.today;
+        if (r && (await saveToDisk(r.filename, r.bytes)) !== "cancelled" && day) rememberFileGameDate(day);
+      }
+      save(ONBOARDED, true);
       window.dispatchEvent(new Event("raizes:mundo"));
       window.dispatchEvent(new Event("raizes:meuClube"));
       window.dispatchEvent(new Event("raizes:tempo"));
@@ -86,7 +104,7 @@ export function Onboarding() {
       <header className="novo-topo">
         <h1>{t("app.name")}</h1>
         <ol className="novo-passos" aria-label={t("new.steps")}>
-          {[1, 2, 3].map((n) => (
+          {[1, 2, 3, 4].map((n) => (
             <li key={n} aria-current={n === step ? "step" : undefined} className={n < step ? "feito" : undefined}>{t(`new.step.${n}` as Key)}</li>
           ))}
         </ol>
@@ -125,6 +143,18 @@ export function Onboarding() {
 
       {step === 2 && <Pyramid catalog={catalog} />}
       {step === 3 && <ChooseClub catalog={catalog} start={startChoice} onStart={setStartChoice} disabled={creating} />}
+      {step === 4 && (
+        <div className="cartao novo-guardar" data-testid="novo-guardar">
+          <h2>{t("new.save.title")}</h2>
+          <label>
+            <span>{t("new.save.name")}</span>
+            <input value={saveName} onChange={(e) => setSaveName(e.target.value)} maxLength={60} placeholder={startChoice?.kind === "club" ? startChoice.club.name : ""} disabled={creating} data-testid="novo-nome" />
+          </label>
+          {canWriteInPlace() && <button type="button" onClick={() => void chooseFile(`${saveName.trim() || "raizes"}.raizes`).then(setFileChosen)} disabled={creating} data-testid="novo-ficheiro">{t("new.save.file")}</button>}
+          <p className="suave">{canWriteInPlace() ? (fileChosen ? t("new.save.fileDone") : t("new.save.later")) : t("new.save.fileNone")}</p>
+          <p className="suave">{t("new.save.hint")}</p>
+        </div>
+      )}
 
       {state.phase === "error" && <p className="erro" data-testid="novo-erro">{t("world.error", { error: state.error })}</p>}
       {creating && (
@@ -136,7 +166,9 @@ export function Onboarding() {
 
       <footer className="novo-rodape">
         {step > 1 && <button type="button" onClick={() => setStep(step - 1)} disabled={creating}>{t("new.back")}</button>}
-        {step < 3 ? (
+        {step === 3 ? (
+          <button type="button" className="primario" disabled={!startChoice || creating} onClick={() => setStep(4)} data-testid="novo-seguinte">{t("new.next")}</button>
+        ) : step < 3 ? (
           <button type="button" className="primario" onClick={() => setStep(step + 1)} data-testid="novo-seguinte">{t("new.next")}</button>
         ) : (
           <button type="button" className="primario" disabled={!startChoice || creating} onClick={() => void start()} data-testid="novo-comecar">
