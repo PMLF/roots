@@ -7,6 +7,8 @@
 import type { BaseData } from "../data/types";
 import { foreignClubList } from "../squad/foreign";
 import type { Repository } from "../persistence/repository";
+import { reputationData } from "../club/reputationCycle";
+import { currentSeason } from "../season/seasonPyramid";
 import type { HistoryEvent } from "../persistence/types";
 import type { IsoDate } from "../persistence/types";
 
@@ -48,7 +50,7 @@ const INBOX_EVENTS = [...NEWS_ITEM_EVENTS, "MATCH_PLAYED", "GAMER_RESIGNATION", 
 /** Lesões a partir desta gravidade são notícia no mundo; no teu plantel, todas. */
 const NEWS_ITEM_SEVERITY = 4;
 
-export type NewsScope = "club" | "league" | "world";
+export type NewsScope = "club" | "league" | "world" | "relevant";
 
 type Context = {
   repo: Repository;
@@ -298,10 +300,53 @@ function collapse(c: Context, types: readonly string[], inboxOnly: boolean, limi
   return out;
 }
 
+/**
+ * Relevância de uma notícia para o gamer (por esta ordem): o teu clube, os teus rivais, os clubes da tua divisão, os melhores
+ * clubes do país. O peso cai com a idade (meia-vida `HALF_LIFE_DAYS`), por isso uma notícia do teu clube de há uma semana
+ * ainda ganha a uma da divisão de ontem, mas uma de há dois meses já não.
+ */
+const TIER_WEIGHT = { own: 16, rival: 8, division: 4, top: 2 } as const;
+const HALF_LIFE_DAYS = 21;
+const TOP_CLUBS = 8;
+
+function relevantNews(repo: Repository, data: BaseData, c: Context, limit: number): NewsItem[] {
+  const own = c.club;
+  const ownClub = data.clubs.find((x) => x.id === own);
+  const rivals = new Set<string>();
+  if (own) {
+    if (ownClub?.rival) rivals.add(ownClub.rival);
+    for (const r of data.rivalries) { if (r.a === own) rivals.add(r.b); if (r.b === own) rivals.add(r.a); }
+  }
+  const division = new Set(ownClub ? data.clubs.filter((x) => x.league === ownClub.league).map((x) => x.id) : []);
+  const top = new Set([...reputationData(repo, data, currentSeason(repo)).clubs].sort((a, b) => b.reputation - a.reputation).slice(0, TOP_CLUBS).map((x) => x.id));
+  const tierOf = (n: NewsItem): keyof typeof TIER_WEIGHT | undefined => {
+    const ids = n.links.filter((l) => l.k === "club").map((l) => l.id);
+    if (n.ofClubYour || (own && ids.includes(own))) return "own";
+    if (ids.some((id) => rivals.has(id))) return "rival";
+    if (ids.some((id) => division.has(id))) return "division";
+    if (ids.some((id) => top.has(id))) return "top";
+    return undefined;
+  };
+  // candidatas: o que o mundo contou há pouco, mais o que se passou com o teu clube e os rivais (que pode ter ficado mais para trás)
+  const pool = new Map<number, NewsItem>();
+  const add = (list: NewsItem[]) => { for (const n of list) pool.set(n.id, n); };
+  add(collapse(c, NEWS_ITEM_EVENTS, false, 300, undefined, () => true));
+  const near = [...(own ? [own] : []), ...rivals];
+  if (near.length > 0) add(collapse(c, NEWS_ITEM_EVENTS, false, 60, undefined, (n) => n.links.some((l) => l.k === "club" && near.includes(l.id)), { clubs: near }));
+  const dayOf = (iso: string) => Date.parse(`${iso}T00:00:00Z`) / 86_400_000;
+  const now = Math.max(0, ...[...pool.values()].map((n) => dayOf(n.date)));
+  const scored = [...pool.values()].flatMap((n) => {
+    const tier = tierOf(n);
+    return tier ? [{ n, score: TIER_WEIGHT[tier] * 0.5 ** ((now - dayOf(n.date)) / HALF_LIFE_DAYS) }] : [];
+  });
+  return scored.sort((a, b) => b.score - a.score || b.n.id - a.n.id).slice(0, limit).map((x) => x.n);
+}
+
 /** Notícias do clube do gamer, da liga dele ou do mundo todo. Mais recentes primeiro. */
 export function news(repo: Repository, data: BaseData, options: { scope: NewsScope; limit?: number; beforeOf?: number }): NewsItem[] {
   const c = context(repo, data);
   const limit = options.limit ?? 30;
+  if (options.scope === "relevant") return relevantNews(repo, data, c, limit);
   const leagueOf = new Map(data.clubs.map((x) => [x.id, x.league] as const));
   const inLeague = (n: NewsItem) => n.links.some((l) => l.k === "club" && leagueOf.get(l.id) === c.league);
   const accepts = (n: NewsItem) => options.scope === "world" || (options.scope === "club" ? n.ofClubYour : c.league !== undefined && (n.ofClubYour || inLeague(n)));

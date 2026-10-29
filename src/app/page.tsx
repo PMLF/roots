@@ -106,7 +106,7 @@ export default function Start() {
   useEffect(() => {
     if (!engine || !world) return;
     let live = true;
-    engine.call("news", { scope: mine ? "league" : "world", limit: 5 }).then((l) => live && setNews(l)).catch(() => undefined);
+    engine.call("news", { scope: mine ? "relevant" : "world", limit: 5 }).then((l) => live && setNews(l)).catch(() => undefined);
     return () => { live = false; };
   }, [engine, world, mine, time.state?.today]);
 
