@@ -3,6 +3,7 @@
  * IndexedDB); Safari/Firefox: descarrega o ficheiro com o nome dado. Tudo é conveniência por pessoa e nunca entra no save.
  */
 import { markExported } from "@/ui/backupReminder";
+import { read, save } from "@/ui/storage";
 
 const DB = "raizes.localFile";
 const STORE = "handles";
@@ -31,6 +32,23 @@ function download(filename: string, bytes: Uint8Array): void {
   const a = document.createElement("a");
   a.href = url; a.download = filename; a.click();
   setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+const LAST_GAME_DATE = "raizes.localFile.gameDate";
+const isString = (v: unknown): v is string => typeof v === "string";
+/** Dia de jogo do último save gravado em ficheiro/descarregado: serve ao aviso de «tens progresso por guardar» ao sair. */
+export const lastFileGameDate = (): string | undefined => read(LAST_GAME_DATE, isString);
+export const rememberFileGameDate = (day: string): void => save(LAST_GAME_DATE, day);
+
+/** Pede ao gamer o ficheiro onde guardar (precisa de um clique; por isso faz-se antes de criar o mundo). Devolve se ficou escolhido. */
+export async function chooseFile(suggestedName: string): Promise<boolean> {
+  const pick = picker();
+  if (!pick) return false;
+  try {
+    const handle = await pick({ suggestedName, types: [{ description: "Raízes", accept: { "application/octet-stream": [".raizes"] } }] });
+    await idb("readwrite", (s) => s.put(handle, KEY));
+    return true;
+  } catch { return false; }
 }
 
 /** Grava os bytes no ficheiro local. Devolve `"file"` (ficheiro fixo), `"download"` ou `"cancelled"`. */

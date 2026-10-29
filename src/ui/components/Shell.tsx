@@ -19,7 +19,7 @@ import { ClubSelector, useClubs } from "@/ui/components/WithClub";
 import { MatchProgress, useMatchProgress } from "@/ui/components/GameProgress";
 import { useOwnClub } from "@/ui/myClub";
 import { leaveGame } from "@/ui/session";
-import { saveToDisk } from "@/ui/localFile";
+import { lastFileGameDate, rememberFileGameDate, saveToDisk } from "@/ui/localFile";
 
 type ItemMenu = { rowKey: Key; icon: IconName; href?: string; whenActive: (path: string) => boolean; /** Ferramenta de developer: só no modo dev (`ui/dev.ts`). */ devOnly?: true; /** Não aparece no menu (tem lugar noutra página), mas continua a ter rota e migalhas. */ hidden?: true };
 
@@ -212,6 +212,7 @@ function Settings({ theme, onTheme, density, onDensity, locale, aoLocale }: { th
   const inbox = useRef<HTMLDivElement>(null);
   const engine = useEngine();
   const router = useRouter();
+  const gameDay = useTime().state?.today;
   const [state, setState] = useState<"idle" | "saving" | "saved" | "error" | "confirmExit">("idle");
   const saveGame = async () => {
     if (!engine) return;
@@ -220,6 +221,7 @@ function Settings({ theme, onTheme, density, onDensity, locale, aoLocale }: { th
       await engine.call("saveGame", {});
       const r = await engine.call("exportSave", {});
       const where = await saveToDisk(r.filename, r.bytes);
+      if (where !== "cancelled" && gameDay) rememberFileGameDate(gameDay);
       setState(where === "cancelled" ? "idle" : "saved");
     } catch { setState("error"); }
   };
@@ -250,7 +252,7 @@ function Settings({ theme, onTheme, density, onDensity, locale, aoLocale }: { th
           <div className="definicoes-linha"><span>{t("game.exitLabel")}</span>
             {state === "confirmExit" ? (
               <>
-                <span>{t("game.exitConfirm")}</span>
+                <span>{t(gameDay && (lastFileGameDate() ?? "") < gameDay ? "game.exitUnsaved" : "game.exitConfirm")}</span>
                 <button type="button" onClick={exit} data-testid="game-exit-yes">{t("saves.yes")}</button>
                 <button type="button" onClick={() => setState("idle")}>{t("myClub.cancel")}</button>
               </>

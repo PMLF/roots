@@ -1348,3 +1348,9 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 :root[data-tema="escuro"] { --rede: rgb(63 192 136 / .09); }
 .fundo-rede { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
 .fundo-rede path { fill: none; stroke: var(--rede); stroke-width: 1; }
+
+/* Último passo de «Novo jogo»: nome e ficheiro do save (RZ-501) */
+.novo-guardar { display: grid; gap: 10px; max-width: 520px; }
+.novo-guardar h2 { margin: 0; }
+.novo-guardar label { display: grid; gap: 4px; margin: 0; }
+.novo-guardar p { margin: 0; }
