@@ -44,8 +44,9 @@ export function evolveCity(before: CityState, e: EvolutionInput, rng: Rng, param
   const services = Object.fromEntries(CITY_SERVICES.map((id) => [id, clampPct(before[id] + (serviceTarget(id, e.targets.services[id] + (e.council?.[id] ?? 0), now, params) - before[id]) * sv.regression + rng.derive(`service:${id}`).gauss(0, sv.noise) + sum(id) + (id === "entertainment" ? club("entertainment") : id === "mobility" ? club("mobility") : 0))])) as Record<CityService, number>;
   const meanServices = CITY_SERVICES.reduce((a, id) => a + services[id], 0) / CITY_SERVICES.length;
 
+  const shield = sv.population.shieldMax * clamp(Math.log(Math.max(1, before.population) / sv.population.shieldFrom) / Math.log(sv.population.shieldFull / sv.population.shieldFrom), 0, 1);
   const pct = clamp(
-    e.driftPopulationPct + (economy - 50) * k.population.byEconomy + (pride - 50) * k.population.byPride + (meanServices - 50) * sv.population.byServices + (employment - 50) * sv.population.byEmployment + (services.housing < 50 ? services.housing - 50 : (services.housing - 50) * sv.population.affordableFactor) * sv.population.byHousing + club("populationPct") + sum("populationPct") + rng.gauss(0, k.population.noisePct),
+    e.driftPopulationPct + (economy - 50) * k.population.byEconomy + (pride - 50) * k.population.byPride + (meanServices - 50) * sv.population.byServices + (employment - 50) * sv.population.byEmployment + (services.housing < 50 ? (services.housing - 50) * (1 - shield) : (services.housing - 50) * sv.population.affordableFactor) * sv.population.byHousing + club("populationPct") + sum("populationPct") + rng.gauss(0, k.population.noisePct),
     -k.population.maxPct,
     k.population.maxPct,
   );

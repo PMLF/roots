@@ -618,6 +618,9 @@ export function repositoryContract(name: string, create: () => Repository): void
       r.setRoleClub("p2", "X");
       expect(r.role("p2")?.club).toBe("X");
       expect(() => r.setRoleClub("nada", "X")).toThrow();
+      r.removeRole("p2");
+      expect(r.role("p2")).toBeUndefined();
+      expect(() => r.removeRole("p2")).toThrow();
       expect(r.clubPlayers("X").map((j) => j.person)).toEqual(["p1"]);
       expect(r.person("nada")).toBeUndefined();
     });

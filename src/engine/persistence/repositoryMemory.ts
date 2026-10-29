@@ -385,6 +385,12 @@ export class MemoryRepository implements Repository {
     this.roles.set(person, next);
     this.undo(() => this.roles.set(person, before));
   }
+  removeRole(person: string): void {
+    const before = this.roles.get(person);
+    if (!before) throw new Error(`Unknown role: ${person}`);
+    this.roles.delete(person);
+    this.undo(() => this.roles.set(person, before));
+  }
   role(person: string): RoleRecord | undefined {
     const c = this.roles.get(person);
     return c ? clone(c) : undefined;

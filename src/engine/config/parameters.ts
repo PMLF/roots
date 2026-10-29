@@ -104,7 +104,7 @@ type CityParameters = {
     initial: { base: Record<CityService, number>; byDecade: Record<CityService, number>; byBudget: number; noise: number };
     links: Record<CityService, { economy: number; employment: number; tourism: number }>;
     regression: number; noise: number; strongTrend: number;
-    population: { byServices: number; byEmployment: number; /** % de crescimento por cada ponto de habitação acima de 50 (habitação acessível atrai, cara empurra gente para fora) (RZ-270). */ byHousing: number; /** Fração do efeito da habitação barata (acima de 50) que realmente atrai gente: a cara expulsa mais do que a barata atrai (RZ-270). */ affordableFactor: number };
+    population: { byServices: number; byEmployment: number; /** % de crescimento por cada ponto de habitação acima de 50 (habitação acessível atrai, cara empurra gente para fora) (RZ-270). */ byHousing: number; /** Fração do efeito da habitação barata (acima de 50) que realmente atrai gente: a cara expulsa mais do que a barata atrai (RZ-270). */ affordableFactor: number; /** Habitação cara expulsa menos gente das cidades grandes (têm emprego e atração própria): o escudo vai de 0 em `shieldFrom` habitantes a `shieldMax` em `shieldFull` (RZ-270). */ shieldFrom: number; shieldFull: number; shieldMax: number };
     /** Pontos do alvo da habitação por cada duplicação da população desde o início (negativo: encarece). */
     housingGrowth: number;
     /** Efeitos no jogo: lesões (`health`), vida noturna (`nightlife`), assistência (`attendance`), ordenados (`wages`) e talento local (`prospects`). */
@@ -704,6 +704,14 @@ export type Params = {
       /** Multiplicador para jogadores sem clube. */
       freeMultiplier: number;
     };
+    /** Reforma do staff e dos autarcas por idade: probabilidade anual = base + porAno × (idade − desde), 1 a partir de `maxAge`; por função pode mudar desde/maxAge e a idade média de quem entra. */
+    staffRetirement: {
+      baseProbability: number;
+      perYear: number;
+      byFn: Record<string, { fromAge: number; maxAge: number; entryAge: number }>;
+      /** Idade acima da qual um autarca já não se recandidata nem volta a concorrer. */
+      mayorMaxAge: number;
+    };
     contracts: {
       yearsMin: number;
       yearsMax: number;
@@ -1126,7 +1134,7 @@ export const DEFAULT_PARAMETERS: Params = {
       start: 60, rate: 0.12, minMatches: 6, graceDays: 60, sackBelow: 28, patienceEffect: 1.2, sackProbability: 0.5,
       sackRelegated: 0.6, sackBad: 0.3, badPerf: -0.45, vacancyDays: 7,
       poach: { minPerf: 0.15, qualityEdge: 0.5, tierUp: 0.7, wage: 0.45, stay: 0.03, wageRatio: 1.4, attempt: 0.4, bonus: 0.5, tries: 3 },
-      pressure: { firstLeague: 3, secondLeague: 1.6, thirdLeague: 1, cp: 0.8, district: 0.5 },
+      pressure: { firstLeague: 3, secondLeague: 1.2, thirdLeague: 1, cp: 0.8, district: 0.5 },
     },
     contract: {
       wageFactor: 2.5, repExponent: 0.8, yearsMin: 1, yearsMax: 3, defaultYears: 2,
@@ -1151,8 +1159,8 @@ export const DEFAULT_PARAMETERS: Params = {
     bankruptcyDelayWagesMonths: 3,
     wealthPercentiles: [90, 70, 40, 15],
     rivalEstimateErrorProb: 0.25,
-    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.05, wageShareMax: 0.95, overspend: 0.8 },
-    surplus: { reserveYears: 0.5, annualRate: 0.6 },
+    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.05, wageShareMax: 0.95, overspend: 0.5 },
+    surplus: { reserveYears: 0.35, annualRate: 0.9 },
     opening: { firstLeague: 4.7, secondLeague: 2.4, thirdLeague: 0.4, cp: 0.55, district: 1.15 },
     model: {
       refReputation: { firstLeague: 5300, secondLeague: 4650, thirdLeague: 3000, cp: 2590, district: 1295 },
@@ -1249,7 +1257,7 @@ export const DEFAULT_PARAMETERS: Params = {
         entertainment: { economy: 0.1, employment: 0, tourism: 0.25 },
       },
       regression: 0.15, noise: 2, strongTrend: 8,
-      population: { byServices: 0.006, byEmployment: 0.006, byHousing: 0.08, affordableFactor: 0.3 },
+      population: { byServices: 0.006, byEmployment: 0.006, byHousing: 0.08, affordableFactor: 0.3, shieldFrom: 100000, shieldFull: 500000, shieldMax: 0.85 },
       housingGrowth: -25,
       effects: {
         health: { recoveryPerPoint: 0.004 },
@@ -1265,11 +1273,11 @@ export const DEFAULT_PARAMETERS: Params = {
       notoriety: { regression: 0.25, byPride: 0.05 },
       culture: { byPride: 0.03, champion: 0.8, promotion: 0.5 },
       population: { byEconomy: 0.012, byPride: 0.015, noisePct: 0.15, maxPct: 3 },
-    centrality: { coefficient: 0.5, ref: 40000, min: -0.6, max: 1 },
+    centrality: { coefficient: 0.7, ref: 40000, min: -0.6, max: 1 },
       clubs: {
         champion: { populationPct: 0.5, economy: 2, employment: 1, entertainment: 3, mobility: 1 },
         promotion: { populationPct: 0.6, economy: 2.5, employment: 1.5, entertainment: 3, mobility: 2 },
-        relegation: { populationPct: -0.5, economy: -2.5, employment: -1.5, entertainment: -3, mobility: -1 },
+        relegation: { populationPct: -0.3, economy: -1.5, employment: -1, entertainment: -2, mobility: -0.6 },
       },
     },
     events: {
@@ -1411,6 +1419,17 @@ export const DEFAULT_PARAMETERS: Params = {
   squadCycle: {
     development: { growthShare: 0.4, yearlyNoise: 0.45, declineAge: 30, declineBase: 0.2, declinePerYear: 0.12, physicalExtra: 0.25, mentalGain: 0.1, offPositionWeight: 0.7 },
     retirement: { fromAge: 33, baseProbability: 0.06, perYear: 0.14, goalkeeperExtraYears: 3, maxAge: 40, freeMultiplier: 1.6 },
+    staffRetirement: {
+      baseProbability: 0.05,
+      perYear: 0.12,
+      mayorMaxAge: 75,
+      byFn: {
+        coach: { fromAge: 58, maxAge: 72, entryAge: 44 }, assistant: { fromAge: 58, maxAge: 70, entryAge: 38 }, medical: { fromAge: 60, maxAge: 72, entryAge: 44 },
+        physio: { fromAge: 58, maxAge: 70, entryAge: 38 }, community: { fromAge: 58, maxAge: 70, entryAge: 38 }, scout: { fromAge: 60, maxAge: 74, entryAge: 40 },
+        president: { fromAge: 68, maxAge: 85, entryAge: 56 }, businessperson: { fromAge: 65, maxAge: 80, entryAge: 48 }, fanLeader: { fromAge: 62, maxAge: 78, entryAge: 44 },
+        agent: { fromAge: 62, maxAge: 76, entryAge: 42 }, referee: { fromAge: 45, maxAge: 52, entryAge: 30 }, journalist: { fromAge: 62, maxAge: 74, entryAge: 38 },
+      },
+    },
     contracts: { yearsMin: 1, yearsMax: 3, renewBase: 0.7, renewPerQualityPoint: 0.1, renewPerOldYear: 0.08, oldAge: 31, renewMin: 0.05, renewMax: 0.95, renewalWageFactor: 1, negotiation: { acceptFloor: 0.92, floorByLoyalty: 0.01, floorNative: 0.04, floorMin: 0.6, askYears: 2, maxRounds: 4, walkAway: 0.5, concession: 0.7, maxYears: 5, clauseWage: 0.08, noClauseRatio: 2.5, clauseCeiling: 2, level: { margin: 1.2, ambitionMin: 12, loyaltyStay: 14 }, distance: { tiers: ["cp", "district"], wageFactor: 1.5, loyaltyStay: 14 } } },
     squad: { slack: 2, freeAgentTolerance: 2.5 },
     management: { persistence: 0.65, sigma: 1.25, quality: 1 },

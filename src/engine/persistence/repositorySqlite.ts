@@ -387,6 +387,10 @@ export class SqliteRepository implements Repository {
     if (!this.role(person)) throw new Error(`Unknown role: ${person}`);
     this.d.run("UPDATE role SET club = ? WHERE person = ?", [club, person]);
   }
+  removeRole(person: string): void {
+    if (!this.role(person)) throw new Error(`Unknown role: ${person}`);
+    this.d.run("DELETE FROM role WHERE person = ?", [person]);
+  }
   role(person: string): RoleRecord | undefined {
     const r = this.d.all("SELECT * FROM role WHERE person = ?", [person])[0];
     if (!r) return undefined;
