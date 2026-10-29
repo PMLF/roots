@@ -7,6 +7,7 @@ import type { Params } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import { readManagement } from "../squad/management";
+import { stadiumTotal } from "./stadiumState";
 import { monthlyCosts, monthlyWageBill, estimatedAnnualRevenue, clubBalance } from "./finances";
 
 export type Budget = { season: number; wageBillMax: number; transfers: number };
@@ -18,7 +19,7 @@ export function defaultBudget(repo: Repository, c: BaseClub, params: Params, sea
   const o = params.finances.budget;
   const currentBill = monthlyWageBill(repo, c.id) * 12;
   const costs = monthlyCosts(repo, c, params);
-  const revenue = estimatedAnnualRevenue(c, params);
+  const revenue = estimatedAnnualRevenue(c, params, stadiumTotal(repo, c, params));
   const reserve = o.monthsReserve * (costs.wages + costs.staff + costs.stadium + costs.fixed);
   const spend = 1 + o.overspend * Math.max(0, -(readManagement(repo)[c.id] ?? 0));
   return {

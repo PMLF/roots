@@ -33,6 +33,7 @@ import { readLiveMatch, type LiveMatch, type LivePlayer } from "../season/liveMa
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
 import { syncGamerCoach } from "../club/coaches";
+import { quoteWorks, startWorks, stadiumCapacity, stadiumState, stadiumTotalOf } from "../club/stadium";
 import { dismissStaff, hireStaff, ownStaff, seedStaffMarket, staffCandidates } from "../club/staff";
 import { acceptOffer, resign, isUnemployed, gamerOffers, startUnemployed } from "../season/coachMarket";
 import { buyHome, causeOffsets, courseLevel, courseTraining, helpClub, homePrice, ownsHome, startCourse, supportCause } from "../personal/spending";
@@ -257,7 +258,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         city: { k: "city", id: c.city, name: city?.name ?? c.city },
         district: c.district, colours: c.colours, nickname: c.nickname, mascot: c.mascot, reputation: c.reputation,
         ...(rival ? { rival: { k: "club", id: rival.id, name: rival.name } as EntityRef } : {}),
-        stadium: { name: c.stadium.name, capacity: c.stadium.capacity },
+        stadium: (() => { const st = stadiumState(repository, c, params); return { name: c.stadium.name, capacity: stadiumCapacity(repository, c, params), ownership: c.stadium.ownership, sectors: st.sectors, ...(st.works ? { works: { sector: st.works.sector, seats: st.works.seats, cost: st.works.cost, councilPaid: st.works.councilPaid, end: st.works.end } } : {}) }; })(),
         squad: view.squad(c.id),
         roles: view.roles({ club: c.id }),
         tier: c.tier,
@@ -471,6 +472,20 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const today = (repository.meta("date.today") ?? "") as IsoDate;
       if (club && today) seedStaffMarket(repository, data, params, today);
       return club && today ? staffCandidates(repository, params, m.input.fn, club, today) : [];
+    }
+    case "stadiumQuote": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((x) => x.id === repository.meta("gamer.club"));
+      if (!club) return null;
+      const q = quoteWorks(params, club, m.input.sector, m.input.seats);
+      return { cost: q.cost, clubCost: q.clubCost, councilShare: q.councilShare, months: q.months, maxSeats: Math.floor(stadiumTotalOf(stadiumState(repository, club, params)) * params.stadium.works.maxGrowth) };
+    }
+    case "startStadiumWorks": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((x) => x.id === repository.meta("gamer.club"));
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      if (!club || !today) return { ok: false, reason: "unknown" } as const;
+      return startWorks(repository, params, club, m.input.sector, m.input.seats, today, currentSeason(repository));
     }
     case "ownStaff": {
       const { repository, data, params } = await context(servicos);

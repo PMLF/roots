@@ -9,6 +9,8 @@ import type { SummaryCompetition, LabMatch, LabLeague } from "../lab/lab";
 import type { ClubSeason } from "../competition/clubSeason";
 import type { FormationId, Tactic } from "../match/types";
 import type { Decision } from "../news/decisions";
+import type { StadiumSector } from "../config/parameters";
+import type { WorksResult } from "../club/stadium";
 import type { OwnStaff, StaffCandidate, StaffResult } from "../club/staff";
 import type { NewsScope, Message as InboxMessage, NewsItem } from "../news/news";
 import type { LiveMatch } from "../season/liveMatch";
@@ -331,7 +333,7 @@ export type ClubProfileData = {
   mascot: string;
   rival?: EntityRef;
   reputation: number;
-  stadium: { name: string; capacity: number };
+  stadium: { name: string; capacity: number; ownership: "club" | "municipal" | "shared"; sectors: Record<StadiumSector, number>; works?: { sector: StadiumSector; seats: number; cost: number; councilPaid: number; end: string } };
   squad: ViewPerson[];
   roles: ViewPerson[];
   tier: Tier;
@@ -593,6 +595,8 @@ export type EngineRequests = {
   resign: { input: null; output: { club: string } };
   /** Mercado de staff (RZ-208): profissionais livres de uma função, com a qualidade estimada. */
   staffMarket: { input: { fn: string }; output: StaffCandidate[] };
+  stadiumQuote: { input: { sector: StadiumSector; seats: number }; output: { cost: number; clubCost: number; councilShare: number; months: number; maxSeats: number } | null };
+  startStadiumWorks: { input: { sector: StadiumSector; seats: number }; output: WorksResult };
   ownStaff: { input: Record<string, never>; output: OwnStaff[] };
   hireStaff: { input: { person: string }; output: StaffResult };
   dismissStaff: { input: { person: string }; output: StaffResult };

@@ -21,6 +21,7 @@ import type { MatchTeam, MatchSummary } from "../match/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { matchAttendance } from "../club/attendance";
+import { dailyStadium, stadiumCapacity } from "../club/stadium";
 import { cityStateNow } from "../city/cities";
 import { adjustInjury, attendanceFactor, clubCityState, nightlifeFormLoss } from "../city/effects";
 import { ensureBudgets } from "../club/budget";
@@ -160,9 +161,10 @@ export function matchTicket(data: BaseData, params: Params, home: string, away: 
   const cf = club(away);
   if (!cc || !cf) return undefined;
   const neutral = flags.neutral && flags.venue ? venueStadium(data, params, flags.venue) : undefined;
-  const stadium: Stadium = neutral ?? { name: cc.stadium.name, locality: cc.locality || cc.name, capacity: cc.stadium.capacity };
+  const capacity = live && !isForeignClub(home) ? stadiumCapacity(live.repo, cc, params) : cc.stadium.capacity;
+  const stadium: Stadium = neutral ?? { name: cc.stadium.name, locality: cc.locality || cc.name, capacity };
   const hostCity = flags.neutral && flags.venue && flags.venue !== NATIONAL_STADIUM ? data.clubs.find((x) => x.id === flags.venue)?.city : cc.city;
-  const b = matchAttendance({ home: neutral ? { ...cc, stadium: { ...cc.stadium, name: neutral.name, capacity: neutral.capacity } } : cc, away: cf, footballCulture: data.cities.find((x) => x.id === hostCity)?.footballCulture ?? 50, ...(live && hostCity ? { cityFactor: attendanceFactor(cityStateNow(live.repo, data, params, hostCity), Number(live.date.slice(5, 7)), params) * (1 + councilMatchdayBoost(live.repo, params, home, Number(live.repo.meta("season") ?? 1))) } : {}), final: competition === CP_FINAL_COMPETITION || !!flags.neutral }, params);
+  const b = matchAttendance({ home: neutral ? { ...cc, stadium: { ...cc.stadium, name: neutral.name, capacity: neutral.capacity } } : { ...cc, stadium: { ...cc.stadium, capacity } }, away: cf, footballCulture: data.cities.find((x) => x.id === hostCity)?.footballCulture ?? 50, ...(live && hostCity ? { cityFactor: attendanceFactor(cityStateNow(live.repo, data, params, hostCity), Number(live.date.slice(5, 7)), params) * (1 + councilMatchdayBoost(live.repo, params, home, Number(live.repo.meta("season") ?? 1))) } : {}), final: competition === CP_FINAL_COMPETITION || !!flags.neutral }, params);
   return { ...b, club: cc, stadium, ...(flags.neutral ? { shared: [cc, cf] as [BaseClub, BaseClub] } : {}) };
 }
 
@@ -258,6 +260,7 @@ function advanceDay(repo: Repository, base: BaseData, params: Params, gamerClub?
         repo.appendEvent({ type: "MARKET_WINDOW", date: tomorrow, season, visibility: "exposed", origin: "generated", entities: [{ k: "club", id: gamerBase.id }], data: { state: will ? "open" : "close", name: (will ?? was)!.index === 0 ? "summer" : "winter" } });
       }
     }
+    dailyStadium(repo, data, params, tomorrow, season);
     accrueBank(repo, data, params, tomorrow);
     dailyElections(repo, data, params, gamerBase, tomorrow, season);
     if (gamerBase) { dailyBids(repo, data, params, gamerBase, tomorrow, season); dailyOffers(repo, data, params, gamerBase, tomorrow, season); dailyCouncil(repo, data, params, gamerBase, tomorrow, season); dailyPatrons(repo, params, gamerBase, tomorrow, season); }

@@ -30,6 +30,7 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action, statu
   if (n.type === "coach_hired") values.fromText = values.from ? t("newsItem.coach_hired.from", { club: String(values.from) }) : t("newsItem.coach_hired.free");
   if (n.type === "staff_hired" || n.type === "staff_dismissed" || n.type === "staff_moved") values.fnText = t(`fn.${values.fn}` as Key).toLowerCase();
   if (n.type === "staff_moved") values.moveText = t(values.poached ? "newsItem.staff_moved.poached" : "newsItem.staff_moved.arrives", { club: String(values.from) });
+  if (n.type === "stadium_works" || n.type === "stadium_opened") { values.sectorText = t(`stadium.sector.${values.sector}` as Key).toLowerCase(); values.costText = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(Number(values.cost)); }
   if (n.type === "staff_retired") values.fnText = t(`fn.${values.fn}` as Key).toLowerCase();
   if (n.type === "council_reply") {
     const money = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
