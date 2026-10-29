@@ -1,7 +1,7 @@
 /**
  * Staff técnico dos clubes (RZ-208): assistentes, olheiros, médicos, fisioterapeutas e responsáveis de comunidade. Todos os anos
  * evoluem com a idade, os bons procuram clubes melhores (e o clube de destino dispensa o pior), os lugares vagos preenchem-se
- * com livres ou gente nova, e entra gente nova no mercado. O clube do gamer só muda por decisão do gamer (contratar/despedir).
+ * com livres ou gente nova, e entra gente nova no mercado. O clube do gamer só muda por decisão do gamer (contratar/despedir) ou quando um clube melhor alicia um dos seus profissionais (fica o lugar vago).
  * O treinador principal tem o seu ciclo em `club/coaches.ts`.
  */
 import { Rng, clamp } from "../random/rng";
@@ -55,7 +55,7 @@ export function staffSeasonEnd(repo: Repository, data: BaseData, params: Params,
   for (const fn of cfg.functions) {
     for (const id of repo.roleHolders(fn)) {
       const role = repo.role(id);
-      if (!role?.club || role.club === gamerClub) continue;
+      if (!role?.club) continue;
       const r = rng.derive(`career/${id}`);
       if (!r.prob(cfg.career.attempt)) continue;
       const mine = staffRating(repo, id);
@@ -69,7 +69,7 @@ export function staffSeasonEnd(repo: Repository, data: BaseData, params: Params,
         event(repo, "STAFF_DISMISSED", today, season, worst, dest.id, { fn, reason: "replaced" });
         repo.setRoleClub(id, dest.id);
         event(repo, "STAFF_MOVED", today, season, id, dest.id, { fn }, role.club);
-        vacancies.push({ club: role.club, fn });
+        if (role.club !== gamerClub) vacancies.push({ club: role.club, fn });
         break;
       }
     }

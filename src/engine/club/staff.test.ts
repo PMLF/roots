@@ -40,4 +40,17 @@ describe("staff técnico (RZ-208)", () => {
       expect(holders(repo, "medical", c.id).length).toBe(1);
     }
   }, 60000);
+  it("um clube melhor pode aliciar staff do clube do gamer, que fica com o lugar vago e uma notícia", () => {
+    const repo = fresh("staff-aliciar");
+    const p = { ...P, staff: { ...P.staff, career: { ...P.staff.career, attempt: 1, accept: 1, qualityEdge: -20 } } };
+    const mine = data.clubs.find((c) => c.tier === "cp" && holders(repo, "medical", c.id).length > 0)!.id;
+    const staff = p.staff.functions.flatMap((fn) => holders(repo, fn, mine));
+    staffSeasonEnd(repo, data, p, 1, "2027-06-30", sameTiers, mine);
+    const gone = staff.filter((id) => repo.role(id)?.club !== mine);
+    expect(gone.length).toBeGreaterThan(0);
+    const moves = repo.recentEvents({ types: ["STAFF_MOVED"] }).filter((e) => e.entities.some((x) => x.roleKind === "from" && x.id === mine));
+    expect(moves.length).toBe(gone.length);
+    // o lugar vago do gamer não é preenchido por conta própria
+    expect(p.staff.functions.some((fn) => fn !== "scout" && holders(repo, fn, mine).length === 0)).toBe(true);
+  }, 60000);
 });

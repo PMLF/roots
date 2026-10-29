@@ -1974,5 +1974,13 @@
   "staff.reason.notFree": "Esse profissional já foi contratado por outro clube.",
   "staff.reason.notYours": "Esse profissional não é do teu clube.",
   "staff.reason.unknown": "Profissional desconhecido.",
-  "staff.reason.invalid": "Não podes despedir esta função."
+  "staff.reason.invalid": "Não podes despedir esta função.",
+  "newsItem.staff_hired.1.title": "{name} reforça {club}",
+  "newsItem.staff_hired.1.body": "{club} contrata {name} como {fnText}.",
+  "newsItem.staff_dismissed.1.title": "{name} deixa {club}",
+  "newsItem.staff_dismissed.1.body": "{name} deixa de ser {fnText} de {club}.",
+  "newsItem.staff_moved.1.title": "{name} muda-se para {club}",
+  "newsItem.staff_moved.1.body": "{name}, {fnText}, vai para {club}. {moveText}",
+  "newsItem.staff_moved.poached": "{club} perde-o para um clube de maior escalão.",
+  "newsItem.staff_moved.arrives": "Chega vindo de {club}."
 }

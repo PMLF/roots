@@ -28,6 +28,8 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action, statu
   if (n.type === "europe_qualifier") values.outcomeText = t(values.won === 1 ? "newsItem.europe_qualifier.won" : "newsItem.europe_qualifier.lost", { opponent: String(values.opponent) });
   if (n.type === "coach_sacked") values.reasonText = t(`newsItem.coach_sacked.reason.${values.reason}` as Key);
   if (n.type === "coach_hired") values.fromText = values.from ? t("newsItem.coach_hired.from", { club: String(values.from) }) : t("newsItem.coach_hired.free");
+  if (n.type === "staff_hired" || n.type === "staff_dismissed" || n.type === "staff_moved") values.fnText = t(`fn.${values.fn}` as Key).toLowerCase();
+  if (n.type === "staff_moved") values.moveText = t(values.poached ? "newsItem.staff_moved.poached" : "newsItem.staff_moved.arrives", { club: String(values.from) });
   if (n.type === "staff_retired") values.fnText = t(`fn.${values.fn}` as Key).toLowerCase();
   if (n.type === "council_reply") {
     const money = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
