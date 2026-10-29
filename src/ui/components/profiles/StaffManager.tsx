@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import type { StaffCandidate } from "@/engine/api/contracts";
+import type { OwnStaff, StaffCandidate } from "@/engine/api/contracts";
 import type { ViewPerson } from "@/engine/view/types";
 import { EntityLink } from "@/ui/components/Link";
 import { Table } from "@/ui/components/Table";
@@ -10,14 +10,16 @@ import { useCountries } from "@/ui/useCountries";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import type { Key } from "@/ui/i18n";
 
+const eur = (locale: string, n: number) => new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
 const FUNCTIONS = ["assistant", "scout", "medical", "physio", "community"] as const;
 
 /** Equipa técnica do clube do gamer (RZ-208): despedir quem lá está e contratar livres, com a qualidade estimada. */
 export function StaffManager({ club }: { club: string }) {
-  const { t } = useT();
+  const { t, locale } = useT();
   const engine = useEngine();
   const country = useCountries();
   const [roles, setRoles] = useState<ViewPerson[]>([]);
+  const [own, setOwn] = useState<Map<string, OwnStaff>>(new Map());
   const [fn, setFn] = useState<(typeof FUNCTIONS)[number]>("assistant");
   const [candidates, setCandidates] = useState<StaffCandidate[] | undefined>(undefined);
   const [confirm, setConfirm] = useState<string | undefined>(undefined);
@@ -26,6 +28,7 @@ export function StaffManager({ club }: { club: string }) {
   const load = useCallback(() => {
     if (!engine) return;
     engine.call("clubProfile", { id: club }).then((p) => p && setRoles(p.roles)).catch(() => undefined);
+    engine.call("ownStaff", {}).then((l) => setOwn(new Map(l.map((x) => [x.id, x])))).catch(() => undefined);
     engine.call("staffMarket", { fn }).then(setCandidates).catch(() => setCandidates([]));
   }, [engine, club, fn]);
   useEffect(() => { load(); }, [load]);
@@ -43,6 +46,9 @@ export function StaffManager({ club }: { club: string }) {
     { id: "role", title: t("column.fn"), value: (p) => (p.fn ? t(`fn.${p.fn}` as Key) : "") },
     { id: "age", title: t("column.age"), value: (p) => p.age, numeric: true },
     { id: "country", title: t("column.country"), value: (p) => country(p.nationality) },
+    { id: "quality", title: t("staff.quality"), value: (p) => own.get(p.id)?.quality ?? 0, numeric: true },
+    { id: "wage", title: t("staff.wage"), value: (p) => own.get(p.id)?.wage ?? 0, numeric: true },
+    { id: "trait", title: t("staff.trait"), value: (p) => own.get(p.id)?.trait ?? "" },
     { id: "act", title: "", value: () => "" },
   ];
   const candidateColumns: Column<StaffCandidate>[] = [
@@ -57,9 +63,13 @@ export function StaffManager({ club }: { club: string }) {
     <div className="staff-gestao" data-testid="staff-gestao">
       <Table id="staff-meu" columns={columns} lines={roles} rowKey={(p) => p.id} cell={{
         name: (p) => <EntityLink k="person" id={p.id}>{p.sportingName}</EntityLink>,
+        quality: (p) => own.has(p.id) ? own.get(p.id)!.quality : "",
+        wage: (p) => own.has(p.id) ? `${eur(locale, own.get(p.id)!.wage)}/${t("person.month")}` : "",
+        trait: (p) => { const x = own.get(p.id)?.trait; return x ? t(`staff.trait.${x}` as Key) : ""; },
         act: (p) => p.fn && p.fn !== "coach" && p.fn !== "president" ? (
           confirm === p.id ? (
             <>
+              <span className="suave">{t("staff.severance", { value: eur(locale, own.get(p.id)?.severance ?? 0) })}</span>{" "}
               <button type="button" onClick={() => void run(() => engine!.call("dismissStaff", { person: p.id }))} data-testid="staff-despedir-sim">{t("saves.yes")}</button>
               <button type="button" onClick={() => setConfirm(undefined)}>{t("myClub.cancel")}</button>
             </>

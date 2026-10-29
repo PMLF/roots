@@ -11,17 +11,13 @@ import type { Repository } from "../persistence/repository";
 import type { IsoDate, PersonRecord, RoleRecord } from "../persistence/types";
 import { ageAt } from "../calendar/dates";
 import { newStaff } from "../people/newStaff";
+import { post } from "./finances";
+import { staffRating, staffWage } from "./staffPay";
+export { staffRating, staffWage } from "./staffPay";
 
 const TIER_ORDER: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
 type Vacancy = { club: string; fn: string };
 const readVacancies = (repo: Repository): Vacancy[] => JSON.parse(repo.meta("staff.vacancies") ?? "[]") as Vacancy[];
-
-/** Qualidade global (média das áreas) de um profissional, 1-20. */
-export function staffRating(repo: Repository, person: string): number {
-  const q = repo.role(person)?.quality;
-  const v = q ? Object.values(q) : [];
-  return v.length === 0 ? 10 : v.reduce((a, b) => a + b, 0) / v.length;
-}
 
 const holders = (repo: Repository, fn: string, club: string): string[] => repo.roleHolders(fn).filter((id) => repo.role(id)?.club === club);
 const freePool = (repo: Repository, fn: string): string[] => repo.roleHolders(fn).filter((id) => repo.role(id)?.club === undefined);
@@ -138,7 +134,8 @@ export function staffCandidates(repo: Repository, params: Params, fn: string, cl
   return freePool(repo, fn).flatMap((id) => {
     const p = repo.person(id);
     if (!p) return [];
-    const err = params.staff.estimateError;
+    const scoutQuality = holders(repo, "scout", club).reduce((m, s) => Math.max(m, repo.role(s)?.quality?.scouting ?? 8), 0) || 10;
+    const err = params.staff.estimateError * clamp(1 - params.staff.traits.scoutEstimateCut * (scoutQuality - 10), 0.3, 1.5);
     const noise = (new Rng(seed, `staff/est/${club}/${id}`).float() * 2 - 1) * err;
     return [{ id, name: p.sportingName, age: ageAt(p.birth, today), nationality: p.nationality, estimate: clamp(Math.round(staffRating(repo, id) + noise), 1, 20) }];
   }).sort((a, b) => b.estimate - a.estimate || (a.id < b.id ? -1 : 1));
@@ -157,11 +154,29 @@ export function hireStaff(repo: Repository, params: Params, club: string, person
   return { ok: true };
 }
 
-export function dismissStaff(repo: Repository, params: Params, club: string, person: string, today: IsoDate, season: number): StaffResult {
+export function dismissStaff(repo: Repository, data: BaseData, params: Params, club: string, person: string, today: IsoDate, season: number): StaffResult {
   const role = repo.role(person);
   if (!role || !params.staff.functions.includes(role.fn)) return { ok: false, reason: "invalid" };
   if (role.club !== club) return { ok: false, reason: "notYours" };
+  const base = data.clubs.find((c) => c.id === club);
+  const severance = base ? params.staff.wages.severanceMonths * staffWage(params, base.tier, staffRating(repo, person)) : 0;
+  if (base) post(repo, base, "compensations", -severance);
   repo.setRoleClub(person, null);
-  event(repo, "STAFF_DISMISSED", today, season, person, club, { fn: role.fn, reason: "gamer" });
+  event(repo, "STAFF_DISMISSED", today, season, person, club, { fn: role.fn, reason: "gamer", severance });
   return { ok: true };
+}
+
+/** Profissional do clube do gamer, com a qualidade verdadeira (o clube conhece os seus) e o ordenado. */
+export type OwnStaff = { id: string; name: string; fn: string; age: number; nationality: string; quality: number; areas: Record<string, number>; wage: number; severance: number; trait: "ambitious" | "patient" | "rigorous" | undefined };
+
+export function ownStaff(repo: Repository, data: BaseData, params: Params, club: string, today: IsoDate): OwnStaff[] {
+  const base = data.clubs.find((c) => c.id === club);
+  if (!base) return [];
+  return params.staff.functions.flatMap((fn) => holders(repo, fn, club)).flatMap((id) => {
+    const p = repo.person(id), role = repo.role(id);
+    if (!p || !role) return [];
+    const q = staffRating(repo, id), wage = staffWage(params, base.tier, q), t = p.personality;
+    const trait = role.fn === "scout" && (t.ambition ?? 10) >= 14 ? "ambitious" : (role.fn === "medical" || role.fn === "physio") && (t.patience ?? 10) >= 14 ? "patient" : role.fn === "assistant" && (t.professionalism ?? 10) >= 14 ? "rigorous" : undefined;
+    return [{ id, name: p.sportingName, fn: role.fn, age: ageAt(p.birth, today), nationality: p.nationality, quality: Math.round(q * 10) / 10, areas: role.quality ?? {}, wage, severance: params.staff.wages.severanceMonths * wage, trait }];
+  });
 }

@@ -10,6 +10,7 @@ import { Rng } from "../random/rng";
 import type { Tier, Params } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
+import { staffRating, staffWage } from "./staffPay";
 import type { IsoDate } from "../persistence/types";
 
 /**
@@ -64,11 +65,19 @@ export function monthlyWageBill(repo: Repository, club: string): number {
   return own + lent;
 }
 
+/** Custo mensal do staff: a administração (o que não são ordenados do staff técnico) mais o ordenado de cada profissional do clube. */
+export function monthlyStaffCost(repo: Repository, club: BaseClub, params: Params): number {
+  const w = params.staff.wages;
+  const admin = params.finances.model.monthlyStaff[club.tier] * (1 - w.share);
+  const wages = repo.publicRoles({ club: club.id }).filter((p) => p.fn && params.staff.functions.includes(p.fn)).reduce((s, p) => s + staffWage(params, club.tier, staffRating(repo, p.id)), 0);
+  return Math.round(admin + wages);
+}
+
 /** Custos mensais (salários + staff + estádio + fixos), sempre positivos. */
 export function monthlyCosts(repo: Repository, club: BaseClub, params: Params): Record<"wages" | "staff" | "stadium" | "fixed", number> {
   const m = params.finances.model;
   const e: Tier = club.tier;
-  return { wages: monthlyWageBill(repo, club.id), staff: m.monthlyStaff[e], stadium: Math.round((club.stadium.capacity * m.stadiumPerPlaceYear[e]) / 12), fixed: m.monthlyFixed[e] };
+  return { wages: monthlyWageBill(repo, club.id), staff: monthlyStaffCost(repo, club, params), stadium: Math.round((club.stadium.capacity * m.stadiumPerPlaceYear[e]) / 12), fixed: m.monthlyFixed[e] };
 }
 
 /** Receitas anuais fixas esperadas (patrocínios e comercial); a bilheteira e os prémios variam. */

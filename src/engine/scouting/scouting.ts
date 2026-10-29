@@ -52,10 +52,12 @@ export const foundBySearch = (repo: Repository): Set<string> => new Set(repo.met
 export const scoutedLevel = (repo: Repository, person: string): "week" | "month" | undefined => (repo.meta(SCOUTED(person)) as "week" | "month" | null | undefined) ?? undefined;
 
 /** Olheiros do clube: quantos e a melhor qualidade de olheiro (1-20). */
-export function scoutsOf(repo: Repository, club: string): { count: number; quality: number } {
+export function scoutsOf(repo: Repository, club: string): { count: number; quality: number; /** -1..1: olheiros ambiciosos preferem jovens, os de pouca ambição preferem veteranos. */ youthBias: number } {
   const scouts = repo.publicRoles({ club }).filter((p) => p.fn === "scout");
+  const ambitions = scouts.map((p) => ((repo.person(p.id)?.personality.ambition ?? 10) - 10) / 10);
+  const youthBias = ambitions.length === 0 ? 0 : ambitions.reduce((a, b) => a + b, 0) / ambitions.length;
   const quality = scouts.reduce((best, p) => Math.max(best, repo.role(p.id)?.quality?.scouting ?? 8), 0);
-  return { count: scouts.length, quality };
+  return { count: scouts.length, quality, youthBias };
 }
 
 /** Fração dos jogadores nacionais que o clube vê, por olheiro (estrangeiros: muito menos). */
@@ -146,7 +148,7 @@ export function completeOrders(repo: Repository, data: BaseData, params: Params,
 }
 
 /** Jogadores da posição com nível ou potencial que interessam ao clube, entre os que a pesquisa alcança (3× o alcance normal). */
-function search(repo: Repository, data: BaseData, params: Params, club: string, season: number, scouts: { count: number; quality: number }, o: ScoutOrder, foreign: string[], rng: Rng, today: IsoDate): string[] {
+function search(repo: Repository, data: BaseData, params: Params, club: string, season: number, scouts: { count: number; quality: number; youthBias?: number }, o: ScoutOrder, foreign: string[], rng: Rng, today: IsoDate): string[] {
   const seed = repo.meta("seed") ?? "?";
   const pos = o.position as Position;
   const quality = (j: PlayerRecord) => currentQuality(j.attributes as Attributes, (j.positions[0]?.pos ?? "CM") as Position);
@@ -158,7 +160,7 @@ function search(repo: Repository, data: BaseData, params: Params, club: string, 
     .filter((j) => (!o.freeOnly || j.state === "free") && (o.minAge === undefined || age(j) >= o.minAge) && (o.maxAge === undefined || age(j) <= o.maxAge))
     .filter((j) => isVisible(seed, season, club, scouts.count, j, params, params.scouting.search.reachFactor))
     .filter((j) => Math.max(quality(j), j.potential - params.scouting.search.potentialDiscount) >= bar);
-  const noisy = candidates.map((j) => ({ j, score: Math.max(quality(j), j.potential - params.scouting.search.potentialDiscount) + rng.derive(j.person).gauss(0, params.scouting.search.noise) }));
+  const noisy = candidates.map((j) => ({ j, score: Math.max(quality(j), j.potential - params.scouting.search.potentialDiscount) + rng.derive(j.person).gauss(0, params.scouting.search.noise) + params.staff.traits.scoutYouth * (scouts.youthBias ?? 0) * (age(j) <= 21 ? 1 : age(j) >= 29 ? -1 : 0) }));
   const picked = noisy.sort((a, b) => b.score - a.score || (a.j.person < b.j.person ? -1 : 1)).slice(0, params.scouting.search.results).map((x) => x.j.person);
   for (const id of picked) observe(repo, params, club, id, "search", scouts.quality, today, season, rng.derive(`obs/${id}`));
   return picked;

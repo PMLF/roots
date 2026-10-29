@@ -1982,5 +1982,12 @@
   "newsItem.staff_moved.1.title": "{name} muda-se para {club}",
   "newsItem.staff_moved.1.body": "{name}, {fnText}, vai para {club}. {moveText}",
   "newsItem.staff_moved.poached": "{club} perde-o para um clube de maior escalão.",
-  "newsItem.staff_moved.arrives": "Chega vindo de {club}."
+  "newsItem.staff_moved.arrives": "Chega vindo de {club}.",
+  "staff.quality": "Qualidade",
+  "staff.wage": "Ordenado",
+  "staff.trait": "Perfil",
+  "staff.trait.ambitious": "Aposta nos jovens",
+  "staff.trait.patient": "Prudente",
+  "staff.trait.rigorous": "Rigoroso",
+  "staff.severance": "Indemnização: {value}"
 }

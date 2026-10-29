@@ -33,7 +33,7 @@ import { readLiveMatch, type LiveMatch, type LivePlayer } from "../season/liveMa
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
 import { syncGamerCoach } from "../club/coaches";
-import { dismissStaff, hireStaff, seedStaffMarket, staffCandidates } from "../club/staff";
+import { dismissStaff, hireStaff, ownStaff, seedStaffMarket, staffCandidates } from "../club/staff";
 import { acceptOffer, resign, isUnemployed, gamerOffers, startUnemployed } from "../season/coachMarket";
 import { buyHome, causeOffsets, courseLevel, courseTraining, helpClub, homePrice, ownsHome, startCourse, supportCause } from "../personal/spending";
 import { CITY_SERVICES } from "../config/parameters";
@@ -472,13 +472,19 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (club && today) seedStaffMarket(repository, data, params, today);
       return club && today ? staffCandidates(repository, params, m.input.fn, club, today) : [];
     }
+    case "ownStaff": {
+      const { repository, data, params } = await context(servicos);
+      const club = repository.meta("gamer.club");
+      const today = (repository.meta("date.today") ?? "") as IsoDate;
+      return club && today ? ownStaff(repository, data, params, club, today) : [];
+    }
     case "hireStaff": case "dismissStaff": {
-      const { repository, params } = await context(servicos);
+      const { repository, data, params } = await context(servicos);
       const club = repository.meta("gamer.club");
       const today = (repository.meta("date.today") ?? "") as IsoDate;
       if (!club || !today) return { ok: false, reason: "notYours" } as const;
       const season = currentSeason(repository);
-      return m.type === "hireStaff" ? hireStaff(repository, params, club, m.input.person, today, season) : dismissStaff(repository, params, club, m.input.person, today, season);
+      return m.type === "hireStaff" ? hireStaff(repository, params, club, m.input.person, today, season) : dismissStaff(repository, data, params, club, m.input.person, today, season);
     }
     case "renewals": {
       const { repository, data, params } = await context(servicos);

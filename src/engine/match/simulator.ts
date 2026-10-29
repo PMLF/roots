@@ -408,7 +408,7 @@ export class MatchSimulator {
     // o cansaço multiplica o risco de todos por igual: calcula-se uma vez por equipa e muda-se só quando a equipa muda
     const base = (this.baseRisks[side] ??= eq.lineup.map(
       (j) =>
-        riskPer90({ form: j.form, physicalAptitude: j.attributes.physicalAptitude, turf: this.turf, medical: eq.medical ?? 10, opponentPlayFair: toughness(this.tactic(otherSide(side))) as 1 | 2 | 3 | 4 | 5, intensity: t.intensity, relapse: !!j.relapse }, this.params) / this.regularDuration,
+        riskPer90({ form: j.form, physicalAptitude: j.attributes.physicalAptitude, turf: this.turf, medical: eq.medical ?? 10, caution: eq.caution ?? 0, opponentPlayFair: toughness(this.tactic(otherSide(side))) as 1 | 2 | 3 | 4 | 5, intensity: t.intensity, relapse: !!j.relapse }, this.params) / this.regularDuration,
     ));
     const factor = 1 + this.params.injuries.risk.fatigue * fatigue;
     const risks = base.map((x) => x * factor);
@@ -421,7 +421,7 @@ export class MatchSimulator {
       if (x < 0) break;
     }
     const player = eq.lineup[k] as OnPitchPlayer;
-    const injury = drawLotsInjury(r, this.params, { medical: eq.medical ?? 10, ...(player.relapse ? { relapse: player.relapse } : {}) });
+    const injury = drawLotsInjury(r, this.params, { medical: eq.medical ?? 10, caution: eq.caution ?? 0, ...(player.relapse ? { relapse: player.relapse } : {}) });
     this.stats[side].injuries++;
     this.injured[side].add(player.id);
     out.push({ type: "injury", minute: m, side, player: player.id, injury });
