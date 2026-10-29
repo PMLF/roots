@@ -1932,5 +1932,13 @@
   "new.how.cycle.city": "A cidade ganha orgulho e dinheiro",
   "new.how.cycle.club": "O clube investe e sobe",
   "new.how.legends.title": "As lendas voltam",
-  "new.how.legends.text": "Traz de volta as lendas do clube e da cidade: antigos craques, treinadores e dirigentes que fazem o clube crescer outra vez."
+  "new.how.legends.text": "Traz de volta as lendas do clube e da cidade: antigos craques, treinadores e dirigentes que fazem o clube crescer outra vez.",
+  "game.saveLabel": "Guardar o jogo",
+  "game.save": "Guardar",
+  "game.saving": "A guardar…",
+  "game.saved": "Guardado.",
+  "game.saveError": "Não foi possível guardar.",
+  "game.exitLabel": "Sair do jogo",
+  "game.exit": "Sair",
+  "game.exitConfirm": "O jogo guarda sozinho; sair volta ao ecrã inicial. Sair?"
 }

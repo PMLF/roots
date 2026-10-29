@@ -1932,5 +1932,13 @@
   "new.how.cycle.city": "The city gains pride and money",
   "new.how.cycle.club": "The club invests and climbs",
   "new.how.legends.title": "Legends come home",
-  "new.how.legends.text": "Bring back the legends of the club and the city: former stars, coaches and officials who help the club grow again."
+  "new.how.legends.text": "Bring back the legends of the club and the city: former stars, coaches and officials who help the club grow again.",
+  "game.saveLabel": "Save game",
+  "game.save": "Save",
+  "game.saving": "Saving…",
+  "game.saved": "Saved.",
+  "game.saveError": "Couldn't save.",
+  "game.exitLabel": "Leave game",
+  "game.exit": "Exit",
+  "game.exitConfirm": "The game autosaves; leaving goes back to the title screen. Leave?"
 }
