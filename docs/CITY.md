@@ -299,3 +299,6 @@ Em vez de tetos, **crescer custa**; tudo é efeito de variáveis que já existem
 4. **RZ-235** empresas ↔ cidade (empregos, mecenato, fornecedores).
 5. **RZ-236** orçamento municipal, autarca e eleições.
 6. **RZ-237** custos do sucesso e calibração de 50 épocas.
+
+## Nota (RZ-270): população das cidades grandes
+A habitação cara expulsa menos gente das cidades grandes: o efeito negativo de `housing < 50` é multiplicado por `1 − escudo`, com o escudo a crescer com o logaritmo da população (0 aos 100 mil, `shieldMax` aos 500 mil). A `centrality` dá atração própria ao tamanho. Os resultados dos clubes (títulos, subidas, descidas) continuam a mexer na população; as descidas pesam menos do que os títulos. Lisboa, Porto, Braga e Gaia devem manter ou subir ligeiramente; o total do país pode descer uns pontos percentuais em 50 épocas.
