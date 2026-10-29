@@ -13,6 +13,7 @@ import type { IsoDate } from "../persistence/types";
 import { dayNumber } from "../calendar/dates";
 import { isInSecondDistrict } from "../season/districts";
 import { referenceWage } from "../season/gamerContract";
+import { post } from "./finances";
 import { standingIn } from "../world/standing";
 import { currentSeason } from "../season/seasonPyramid";
 import type { SeasonFinish } from "./reputationCycle";
@@ -63,7 +64,10 @@ function event(repo: Repository, type: "COACH_SACKED" | "COACH_HIRED", date: Iso
   repo.appendEvent({ type, date, season, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: person, roleKind: "coach" }, { k: "club", id: club, roleKind: type === "COACH_SACKED" ? "sacked" : "hirer" }, ...(other ? [{ k: "club" as const, id: other, roleKind: "from" }] : [])], data });
 }
 
-function release(repo: Repository, board: Board, vacancies: Vacancies, club: string, coach: string, date: IsoDate, season: number, reason: string, vacant: boolean): void {
+function release(repo: Repository, data: BaseData, params: Params, board: Board, vacancies: Vacancies, club: string, coach: string, date: IsoDate, season: number, reason: string, vacant: boolean): void {
+  const base = data.clubs.find((c) => c.id === club);
+  // o clube que despede paga meses de salário de referência (quando o gamer sai por sua vontade, não há indemnização)
+  if (base && reason !== "gamer") post(repo, base, "compensations", -params.staff.wages.coachSeveranceMonths * referenceWage(base, params));
   repo.setRoleClub(coach, null);
   event(repo, "COACH_SACKED", date, season, coach, club, { reason });
   delete board[club];
@@ -121,7 +125,7 @@ export function coachRound(repo: Repository, data: BaseData, params: Params, tod
     const coach = coachOf(repo, club.id);
     if (club.id === gamerClub) {
       // o treinador do clube do gamer é o gamer
-      if (coach) release(repo, board, vacancies, club.id, coach, today, season, "gamer", false);
+      if (coach) release(repo, data, params, board, vacancies, club.id, coach, today, season, "gamer", false);
       delete vacancies[club.id];
       continue;
     }
@@ -134,7 +138,7 @@ export function coachRound(repo: Repository, data: BaseData, params: Params, tod
     const patience = (president ? repo.person(president.id)?.personality.patience : undefined) ?? 10;
     const limit = cfg.sackBelow - cfg.patienceEffect * (patience - 10);
     if (st.conf < limit && dayNumber(today) - dayNumber(st.since) >= cfg.graceDays && rng.derive(`sack/${club.id}`).prob(cfg.sackProbability)) {
-      release(repo, board, vacancies, club.id, coach, today, season, "results", true);
+      release(repo, data, params, board, vacancies, club.id, coach, today, season, "results", true);
     }
   }
   for (const club of clubs) {
@@ -162,7 +166,7 @@ export function coachSeasonEnd(repo: Repository, data: BaseData, params: Params,
     const perf = clamp((((expected.get(club.league)!.get(f.club) ?? f.position) - f.position) / Math.max(1, f.size - 1)) * cfg.pressure[f.tier], -1, 1);
     const relegated = TIER_ORDER.indexOf(nextTier.get(f.club) ?? f.tier) > TIER_ORDER.indexOf(f.tier);
     const p = relegated ? cfg.sackRelegated : perf <= cfg.badPerf ? cfg.sackBad : 0;
-    if (p > 0 && rng.derive(`s/${f.club}`).prob(p)) release(repo, board, vacancies, f.club, coach, today, season, relegated ? "relegation" : "results", true);
+    if (p > 0 && rng.derive(`s/${f.club}`).prob(p)) release(repo, data, params, board, vacancies, f.club, coach, today, season, relegated ? "relegation" : "results", true);
   }
   for (const st of Object.values(board)) st.conf = (st.conf + cfg.start) / 2;
   repo.setMeta("coach.board", JSON.stringify(board));

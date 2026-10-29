@@ -111,7 +111,7 @@ export function teamForMatch(repo: Repository, club: string, competition: string
   const picked = chosen.map((id) => { const c = all.find((x) => x.person === id) as LineupCandidate; return { id: c.person, position: (c.positions[0]?.pos ?? "CM") as Position, attributes: c.attributes as Attributes, heightCm: c.heightCm, form: c.form ?? 1, aptitude: aptitudeIn(c.positions, (c.positions[0]?.pos ?? "CM") as Position, params), positions: c.positions }; });
   const bench = [...picked, ...extra];
   const edge = base ? clubEdge(repo, base, club, params) : undefined;
-  return { club, lineup, tactic, bench, ...(edge ? { coach: edge.coach, medical: edge.medical, crowd: edge.crowd } : {}) };
+  return { club, lineup, tactic, bench, ...(edge ? { coach: edge.coach, medical: edge.medical, caution: edge.caution, crowd: edge.crowd } : {}) };
 }
 
 /** A tabela de uma competição tal como está agora (antes dos jogos de hoje), com todos os clubes. */

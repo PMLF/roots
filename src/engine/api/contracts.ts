@@ -9,7 +9,7 @@ import type { SummaryCompetition, LabMatch, LabLeague } from "../lab/lab";
 import type { ClubSeason } from "../competition/clubSeason";
 import type { FormationId, Tactic } from "../match/types";
 import type { Decision } from "../news/decisions";
-import type { StaffCandidate, StaffResult } from "../club/staff";
+import type { OwnStaff, StaffCandidate, StaffResult } from "../club/staff";
 import type { NewsScope, Message as InboxMessage, NewsItem } from "../news/news";
 import type { LiveMatch } from "../season/liveMatch";
 import type { TimeState, Mode, AdvanceResult } from "../season/advance";
@@ -21,7 +21,7 @@ import type { PersonProfile, ViewPerson } from "../view/types";
 import type { CatalogClub } from "./catalog";
 import type { SaveMeta } from "../saves/saves";
 export type { SaveMeta, SaveKind } from "../saves/saves";
-export type { StaffCandidate, StaffResult } from "../club/staff";
+export type { OwnStaff, StaffCandidate, StaffResult } from "../club/staff";
 export type { CatalogClub, Difficulty } from "./catalog";
 
 /** Resultado do autodiagnóstico da base de dados (RZ-128): escreve um evento e lê-o de volta. */
@@ -593,6 +593,7 @@ export type EngineRequests = {
   resign: { input: null; output: { club: string } };
   /** Mercado de staff (RZ-208): profissionais livres de uma função, com a qualidade estimada. */
   staffMarket: { input: { fn: string }; output: StaffCandidate[] };
+  ownStaff: { input: Record<string, never>; output: OwnStaff[] };
   hireStaff: { input: { person: string }; output: StaffResult };
   dismissStaff: { input: { person: string }; output: StaffResult };
   /** Ofertas de clubes quando o gamer está sem clube. */

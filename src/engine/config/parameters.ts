@@ -349,6 +349,10 @@ export type Params = {
     entrants: { per100Clubs: number; age: number };
     /** Erro (±) da estimativa de qualidade que o gamer vê de um candidato. */
     estimateError: number;
+    /** Ordenados: a parte do custo mensal de staff do escalão (`monthlyStaff`) que são ordenados, o nº de pessoas que ela paga (adjunto, olheiro, médico, fisio, comunidade), e quanto o ordenado sobe/desce com a qualidade (±spread na qualidade 20/1). Indemnização ao despedir: meses de ordenado (treinadores: do salário de referência). */
+    wages: { share: number; heads: number; spread: number; severanceMonths: number; coachSeveranceMonths: number };
+    /** Traços que contam em jogo: pontos de força por ponto de qualidade do adjunto e por ponto de profissionalismo; prudência (paciência) do médico/fisio: fração de risco de lesão a menos e de recuperação a mais por unidade de prudência (-1..1); pontos de pontuação de pesquisa que um olheiro ambicioso dá aos jovens (e tira aos veteranos); quanto a qualidade do olheiro reduz o erro das estimativas de staff (por ponto acima de 10). */
+    traits: { assistantPoints: number; assistantProfessionalism: number; cautionRisk: number; cautionRecovery: number; scoutYouth: number; scoutEstimateCut: number };
   };
   coach: {
     /** Ofertas de clubes de reputação igual ou inferior à do clube que deixou. */
@@ -1152,6 +1156,8 @@ export const DEFAULT_PARAMETERS: Params = {
     career: { attempt: 0.12, qualityEdge: 1, accept: 0.7 },
     entrants: { per100Clubs: 4, age: 36 },
     estimateError: 2,
+    wages: { share: 0.6, heads: 5, spread: 0.8, severanceMonths: 3, coachSeveranceMonths: 6 },
+    traits: { assistantPoints: 0.3, assistantProfessionalism: 0.05, cautionRisk: 0.15, cautionRecovery: 0.2, scoutYouth: 1.5, scoutEstimateCut: 0.05 },
   },
   coach: {
     offers: 3, surprises: 1, surpriseMargin: 600, unemployedStartReputation: 1500,

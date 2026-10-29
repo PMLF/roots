@@ -31,6 +31,8 @@ export type RiskContext = {
   turf?: number;
   /** Qualidade do staff médico (1-20). */
   medical?: number;
+  /** Prudência do staff médico, -1..1. */
+  caution?: number;
   /** Fair play do adversário (1-5). */
   opponentPlayFair?: 1 | 2 | 3 | 4 | 5;
   /** Intensidade da própria equipa (1-5). */
@@ -50,6 +52,7 @@ export function riskPer90(c: RiskContext, params: Params): number {
     (1 + r.turf * (0.5 - (c.turf ?? 0.5))) *
     (1 + r.byPhysicalAptitude * (10 - c.physicalAptitude)) *
     (1 + r.byMedical * (10 - (c.medical ?? 10))) *
+    (1 - params.staff.traits.cautionRisk * (c.caution ?? 0)) *
     (r.opponentPlayFair[(c.opponentPlayFair ?? 3) - 1] as number) *
     (1 + r.intensity * ((c.intensity ?? 3) - 3)) *
     (1 + r.fatigue * (c.fatigue ?? 0)) *
@@ -68,7 +71,7 @@ function chooseWeight<T extends string>(r: Rng, weights: Partial<Record<T, numbe
 }
 
 /** Sorteia uma lesão. Com `recaida`, é do mesmo tipo e dura mais. O staff médico encurta a paragem. */
-export function drawLotsInjury(r: Rng, params: Params, options: { medical?: number; relapse?: InjuryType } = {}): Injury {
+export function drawLotsInjury(r: Rng, params: Params, options: { medical?: number; caution?: number; relapse?: InjuryType } = {}): Injury {
   const p = params.injuries;
   let x = r.float();
   let g = 0;
@@ -80,7 +83,7 @@ export function drawLotsInjury(r: Rng, params: Params, options: { medical?: numb
   const [min, max] = (p.severities[g] as { days: [number, number] }).days;
   const type = options.relapse ?? chooseWeight<InjuryType>(r, TYPE_PER_SEVERITY[severity]);
   let days = min + r.float() * (max - min);
-  days *= clamp(1 - p.recoveryPerMedical * ((options.medical ?? 10) - 10), 0.5, 1.5);
+  days *= clamp(1 - p.recoveryPerMedical * ((options.medical ?? 10) - 10), 0.5, 1.5) * (1 + params.staff.traits.cautionRecovery * (options.caution ?? 0));
   if (options.relapse) days *= p.relapseDuration;
   return { type, severity, days: Math.max(1, Math.round(days)), relapse: !!options.relapse };
 }

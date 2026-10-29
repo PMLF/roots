@@ -6,7 +6,7 @@ import type { Params } from "../config/parameters";
 import type { BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 
-export type ClubEdge = { coach: number; medical: number; /** 0-1: 0,5 = ambiente normal. */ crowd: number };
+export type ClubEdge = { coach: number; medical: number; /** -1..1: médico/fisio prudente (paciente) arrisca menos e recupera mais devagar. */ caution: number; /** 0-1: 0,5 = ambiente normal. */ crowd: number };
 
 const mean = (xs: number[]) => (xs.length === 0 ? 10 : xs.reduce((a, b) => a + b, 0) / xs.length);
 
@@ -25,11 +25,19 @@ export function clubEdge(repo: Repository, data: BaseData, club: string, params:
   };
   const coach = quality("coach");
   const medical = quality("medical");
+  const holder = (fn: string) => repo.publicRoles({ club }).find((p) => p.fn === fn)?.id;
+  const t = params.staff.traits;
+  const assistantId = holder("assistant");
+  const assistant = assistantId ? repo.role(assistantId)?.quality : undefined;
+  const assistantBonus = assistant ? t.assistantPoints * (mean([assistant.tactics ?? 10, assistant.motivation ?? 10]) - 10) + t.assistantProfessionalism * ((repo.person(assistantId!)?.personality.professionalism ?? 10) - 10) : 0;
+  const medId = holder("medical"), physioId = holder("physio");
+  const cautions = [medId, physioId].flatMap((id) => (id ? [((repo.person(id)?.personality.patience ?? 10) - 10) / 10] : []));
   const cultureEvent = base ? repo.last("CITY_SEASON", { k: "city", id: base.city }) : undefined;
   const culture = Number((cultureEvent?.data as { footballCulture?: number } | undefined)?.footballCulture ?? 50);
   return {
-    coach: coach ? mean([coach.tactics ?? 10, coach.motivation ?? 10]) : 10,
+    coach: (coach ? mean([coach.tactics ?? 10, coach.motivation ?? 10]) : 10) + assistantBonus,
     medical: medical?.medicine ?? 10,
+    caution: cautions.length > 0 ? mean(cautions) : 0,
     crowd: base ? crowdOf(base.stadium.capacity, culture, params) : 0.5,
   };
 }

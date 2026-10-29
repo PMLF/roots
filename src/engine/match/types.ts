@@ -48,6 +48,8 @@ export type MatchTeam = {
   bench?: OnPitchPlayer[];
   /** Qualidade do staff médico (1-20, por omissão 10): menos lesões e paragens mais curtas. */
   medical?: number;
+  /** Prudência do staff médico, -1..1 (0 por omissão): menos lesões e paragens mais longas quanto mais alta. */
+  caution?: number;
   /** Qualidade tática do treinador (1-20, por omissão 10): quem sabe tira mais partido das opções arrojadas (RZ-249). */
   coach?: number;
   /** Ambiente do estádio, 0-1 (0,5 por omissão): sobe ou desce a vantagem de jogar em casa (RZ-263). */
