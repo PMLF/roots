@@ -1354,3 +1354,5 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 .novo-guardar h2 { margin: 0; }
 .novo-guardar label { display: grid; gap: 4px; margin: 0; }
 .novo-guardar p { margin: 0; }
+
+.staff-gamer { margin: 0 0 8px; }

@@ -1951,5 +1951,17 @@
   "new.save.hint": "O jogo também guarda sozinho neste browser de 7 em 7 dias.",
   "new.save.later": "Podes mudar isto depois em Definições → Guardar.",
   "new.skipHow": "Já sabes como funciona: começa pelo clube.",
-  "new.showHow": "Ver como funciona"
+  "new.showHow": "Ver como funciona",
+  "newsItem.coach_sacked.1.title": "{club} despede {coach}",
+  "newsItem.coach_sacked.1.body": "{club} dispensou o treinador {coach}: {reasonText}.",
+  "newsItem.coach_sacked.reason.results": "a direção perdeu a confiança depois de maus resultados",
+  "newsItem.coach_sacked.reason.relegation": "a equipa desceu de divisão",
+  "newsItem.coach_hired.1.title": "{coach} é o novo treinador de {club}",
+  "newsItem.coach_hired.1.body": "{club} contrata {coach}. {fromText}",
+  "newsItem.coach_hired.from": "Chega vindo de {club}.",
+  "newsItem.coach_hired.free": "Estava sem clube.",
+  "newsItem.staff_retired.1.title": "{name} despede-se de {club}",
+  "newsItem.staff_retired.1.body": "{name}, {fnText} de {club}, termina a carreira aos {age} anos.",
+  "fn.gamerCoach": "Treinador (tu)",
+  "club.gamerCoach": "És o treinador deste clube: não há treinador da IA."
 }

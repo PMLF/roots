@@ -104,4 +104,19 @@ describe("notícias e caixa de entrada", () => {
     expect(after.messages.map((m) => m.type)).toContain("resignation");
     expect(after.messages.some((m) => m.type === "outcome" || m.type === "injury")).toBe(false);
   }, 180000);
+
+  it("despedimentos, contratações e reformas de treinadores só são notícia nas duas primeiras divisões", async () => {
+    const repository = new MemoryRepository();
+    const s: Servicos = { ...servicos(), openRepository: async () => ({ repository, backend: "memory" as const, sqliteVersion: "test" }) };
+    await handle({ id: 1, type: "createWorld", input: { seed: "mexidas" } }, s);
+    const clubs = await handle({ id: 2, type: "clubCatalog", input: null }, s);
+    const big = clubs.find((c) => c.tier === "firstLeague")!;
+    const small = clubs.find((c) => c.tier === "district")!;
+    const coach = (club: string) => repository.roleHolders("coach").find((id) => repository.role(id)?.club === club)!;
+    const emit = (type: "COACH_SACKED" | "COACH_HIRED", club: string) => repository.appendEvent({ type, date: "2026-10-20", season: 1, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: coach(club), roleKind: "coach" }, { k: "club", id: club, roleKind: type === "COACH_SACKED" ? "sacked" : "hirer" }], data: type === "COACH_SACKED" ? { reason: "results" } : { from: "free" } });
+    emit("COACH_SACKED", big.id); emit("COACH_HIRED", big.id); emit("COACH_SACKED", small.id);
+    const world = await handle({ id: 3, type: "news", input: { scope: "world", limit: 500 } }, s);
+    expect(world.filter((n) => n.type === "coach_sacked").map((n) => n.links.find((l) => l.k === "club")?.id)).toEqual([big.id]);
+    expect(world.filter((n) => n.type === "coach_hired")).toHaveLength(1);
+  }, 60000);
 });

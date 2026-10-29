@@ -1951,5 +1951,17 @@
   "new.save.hint": "The game also autosaves in this browser every 7 days.",
   "new.save.later": "You can change this later in Settings → Save.",
   "new.skipHow": "You know how it works: start with the club.",
-  "new.showHow": "How it works"
+  "new.showHow": "How it works",
+  "newsItem.coach_sacked.1.title": "{club} sack {coach}",
+  "newsItem.coach_sacked.1.body": "{club} have dismissed manager {coach}: {reasonText}.",
+  "newsItem.coach_sacked.reason.results": "the board lost confidence after poor results",
+  "newsItem.coach_sacked.reason.relegation": "the team was relegated",
+  "newsItem.coach_hired.1.title": "{coach} is the new {club} manager",
+  "newsItem.coach_hired.1.body": "{club} appoint {coach}. {fromText}",
+  "newsItem.coach_hired.from": "He arrives from {club}.",
+  "newsItem.coach_hired.free": "He was a free agent.",
+  "newsItem.staff_retired.1.title": "{name} bows out at {club}",
+  "newsItem.staff_retired.1.body": "{name}, {fnText} at {club}, retires aged {age}.",
+  "fn.gamerCoach": "Manager (you)",
+  "club.gamerCoach": "You are this club's manager: there is no AI manager."
 }
