@@ -354,7 +354,9 @@ export type Params = {
       /** Dias de vaga antes de o clube contratar (interino). */
       vacancyDays: number;
       /** Aliciar: resultados mínimos (−1 a 1) do clube atual, vantagem de qualidade sobre o que o clube procura, probabilidades de aceitar (escalão acima, muito mais dinheiro, sem vantagem), múltiplo de salário e peso extra na escolha. */
-      poach: { minPerf: number; qualityEdge: number; tierUp: number; wage: number; stay: number; wageRatio: number; attempt: number; bonus: number };
+      poach: { minPerf: number; qualityEdge: number; tierUp: number; wage: number; stay: number; wageRatio: number; attempt: number; bonus: number; /** Quantos dos melhores candidatos empregados o clube tenta convencer. */ tries: number };
+      /** Pressão por escalão: multiplica o desempenho (lugar face ao esperado) no alvo da confiança; no topo qualquer deslize custa mais. */
+      pressure: Record<Tier, number>;
     };
     /** Contrato do gamer (RZ-161): salário de referência, resposta do presidente, pedir aumento. */
     contract: {
@@ -1123,7 +1125,8 @@ export const DEFAULT_PARAMETERS: Params = {
     board: {
       start: 60, rate: 0.12, minMatches: 6, graceDays: 60, sackBelow: 28, patienceEffect: 1.2, sackProbability: 0.5,
       sackRelegated: 0.6, sackBad: 0.3, badPerf: -0.45, vacancyDays: 7,
-      poach: { minPerf: 0.15, qualityEdge: 0.5, tierUp: 0.7, wage: 0.45, stay: 0.03, wageRatio: 1.4, attempt: 0.5, bonus: 0.5 },
+      poach: { minPerf: 0.15, qualityEdge: 0.5, tierUp: 0.7, wage: 0.45, stay: 0.03, wageRatio: 1.4, attempt: 0.4, bonus: 0.5, tries: 3 },
+      pressure: { firstLeague: 3, secondLeague: 1.6, thirdLeague: 1, cp: 0.8, district: 0.5 },
     },
     contract: {
       wageFactor: 2.5, repExponent: 0.8, yearsMin: 1, yearsMax: 3, defaultYears: 2,

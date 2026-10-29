@@ -77,6 +77,8 @@ function fill(repo: Repository, data: BaseData, params: Params, club: BaseClub, 
   const options: { person: string; score: number; from?: BaseClub }[] = [];
   const score = (person: string) => coachQuality(repo, person) - 0.7 * Math.abs(coachQuality(repo, person) - target) + rng.derive(`n/${person}`).float() * 0.5;
   for (const person of freeCoaches(repo)) options.push({ person, score: score(person) });
+  // aliciar: só os melhores candidatos empregados (com bons resultados e qualidade acima do que o clube procura) e só alguns dos que o clube tenta
+  const employed: { person: string; score: number; from: BaseClub }[] = [];
   for (const person of repo.roleHolders("coach")) {
     const at = repo.role(person)?.club;
     if (!at || at === club.id || at === gamerClub) continue;
@@ -85,11 +87,14 @@ function fill(repo: Repository, data: BaseData, params: Params, club: BaseClub, 
     if (coachQuality(repo, person) < target + cfg.qualityEdge) continue;
     const perf = performance(repo, data, params, from, season, cache);
     if (perf === undefined || perf < cfg.minPerf) continue;
-    const tierUp = TIER_ORDER.indexOf(club.tier) < TIER_ORDER.indexOf(from.tier);
-    const wageUp = referenceWage(club, params) >= referenceWage(from, params) * cfg.wageRatio;
+    employed.push({ person, score: score(person) + cfg.bonus, from });
+  }
+  employed.sort((a, b) => b.score - a.score || (a.person < b.person ? -1 : 1));
+  for (const x of employed.slice(0, cfg.tries)) {
+    const tierUp = TIER_ORDER.indexOf(club.tier) < TIER_ORDER.indexOf(x.from.tier);
+    const wageUp = referenceWage(club, params) >= referenceWage(x.from, params) * cfg.wageRatio;
     const accept = tierUp ? cfg.tierUp : wageUp ? cfg.wage : cfg.stay;
-    if (!rng.derive(`a/${person}`).prob(cfg.attempt) || !rng.derive(`o/${person}`).prob(accept)) continue;
-    options.push({ person, score: score(person) + cfg.bonus, from });
+    if (rng.derive(`a/${x.person}`).prob(cfg.attempt) && rng.derive(`o/${x.person}`).prob(accept)) { options.push(x); break; }
   }
   const best = options.sort((a, b) => b.score - a.score || (a.person < b.person ? -1 : 1))[0];
   if (!best) return false;
@@ -124,7 +129,7 @@ export function coachRound(repo: Repository, data: BaseData, params: Params, tod
     const perf = performance(repo, data, params, club, season, cache);
     if (perf === undefined) continue;
     const st = (board[club.id] ??= { conf: cfg.start, since: today });
-    st.conf += cfg.rate * (clamp(50 + 60 * perf, 0, 100) - st.conf);
+    st.conf += cfg.rate * (clamp(50 + 60 * perf * cfg.pressure[club.tier], 0, 100) - st.conf);
     const president = repo.publicRoles({ club: club.id }).find((p) => p.fn === "president");
     const patience = (president ? repo.person(president.id)?.personality.patience : undefined) ?? 10;
     const limit = cfg.sackBelow - cfg.patienceEffect * (patience - 10);
@@ -154,7 +159,7 @@ export function coachSeasonEnd(repo: Repository, data: BaseData, params: Params,
     const coach = club ? coachOf(repo, f.club) : undefined;
     if (!club || !coach) continue;
     if (!expected.has(club.league)) expected.set(club.league, expectedRanks(data, params, club.league));
-    const perf = clamp(((expected.get(club.league)!.get(f.club) ?? f.position) - f.position) / Math.max(1, f.size - 1), -1, 1);
+    const perf = clamp((((expected.get(club.league)!.get(f.club) ?? f.position) - f.position) / Math.max(1, f.size - 1)) * cfg.pressure[f.tier], -1, 1);
     const relegated = TIER_ORDER.indexOf(nextTier.get(f.club) ?? f.tier) > TIER_ORDER.indexOf(f.tier);
     const p = relegated ? cfg.sackRelegated : perf <= cfg.badPerf ? cfg.sackBad : 0;
     if (p > 0 && rng.derive(`s/${f.club}`).prob(p)) release(repo, board, vacancies, f.club, coach, today, season, relegated ? "relegation" : "results", true);
