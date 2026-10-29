@@ -20,7 +20,8 @@ export type WorksQuote = { cost: number; councilShare: number; clubCost: number;
 
 export function quoteWorks(params: Params, club: BaseClub, sector: StadiumSector, seats: number): WorksQuote {
   const w = params.stadium.works;
-  const cost = Math.round((seats * params.stadium.costPerSeat[sector] * params.stadium.tierCost[club.tier]) / 1000) * 1000;
+  const terrain = 1 + w.terrainPenalty * (1 - clamp(club.stadium.location.expansionTerrain, 0, 100) / 100);
+  const cost = Math.round((seats * params.stadium.costPerSeat[sector] * params.stadium.tierCost[club.tier] * terrain) / 1000) * 1000;
   const councilShare = params.stadium.councilShare[club.stadium.ownership];
   const months = Math.max(w.minMonths, Math.ceil(seats / w.seatsPerMonth));
   return { cost, councilShare, clubCost: Math.round(cost * (1 - councilShare)), months, end: (today) => addDays(today, months * 30) };
@@ -41,13 +42,15 @@ export function startWorks(repo: Repository, params: Params, club: BaseClub, sec
   if (seats > total(s) * w.maxGrowth) return { ok: false, reason: "tooBig" };
   if (total(s) + seats > w.maxCapacity) return { ok: false, reason: "full" };
   const q = quoteWorks(params, club, sector, seats);
-  if (clubBalance(repo, club) < (o.ai ? q.clubCost * params.stadium.ai.cashCover : q.clubCost)) return { ok: false, reason: "cash" };
-  post(repo, club, "stadium", -q.clubCost);
+  // clubes do computador: a Câmara paga a sua parte logo; o gamer paga tudo e pede a comparticipação à parte (ver `makeStadiumRequest`)
+  const mine = o.ai ? q.clubCost : q.cost;
+  if (clubBalance(repo, club) < (o.ai ? mine * params.stadium.ai.cashCover : mine)) return { ok: false, reason: "cash" };
+  post(repo, club, "stadium", -mine);
   const end = q.end(today);
-  repo.setMeta(key(club.id), JSON.stringify({ ...s, works: { sector, seats, cost: q.cost, councilPaid: q.cost - q.clubCost, start: today, end } } satisfies StadiumState));
+  repo.setMeta(key(club.id), JSON.stringify({ ...s, works: { sector, seats, cost: q.cost, councilPaid: o.ai ? q.cost - q.clubCost : 0, start: today, end } } satisfies StadiumState));
   markActive(repo, club.id);
-  event(repo, "STADIUM_WORKS_STARTED", today, season, club.id, { sector, seats, cost: q.cost, councilPaid: q.cost - q.clubCost, end });
-  return { ok: true, end, cost: q.cost, clubCost: q.clubCost };
+  event(repo, "STADIUM_WORKS_STARTED", today, season, club.id, { sector, seats, cost: q.cost, councilPaid: o.ai ? q.cost - q.clubCost : 0, end });
+  return { ok: true, end, cost: q.cost, clubCost: mine };
 }
 
 /** Abre os lugares novos das obras que chegaram ao fim. Corre todos os dias (só toca nos clubes com obra). */

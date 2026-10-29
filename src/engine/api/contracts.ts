@@ -378,6 +378,7 @@ export type ViewCityLevel = 1 | 2 | 3 | 4 | 5;
 type CouncilTrend = "up2" | "up1" | "stable" | "down1" | "down2";
 export type CouncilAreaId = "sport" | "health" | "education" | "mobility" | "housing" | "safety" | "leisure";
 export type CouncilKindId = "youth" | "matchday" | "subsidy";
+export type CouncilHistoryKind = CouncilKindId | "stadium";
 export type CouncilReplyView = { approved: boolean; reason: "priority" | "relation" | "visibility" | "generic" | "noBudget" | "notPriority" | "poorRelation" | "expensive"; tone: "vain" | "ambitious" | "humble" | "plain"; amount: number };
 /** A campanha autárquica no concelho do gamer (RZ-236B): quem concorre, o que valoriza cada um e o peso do apoio do gamer. */
 export type CampaignView = {
@@ -409,7 +410,7 @@ export type ViewCouncil = {
   /** Só na cidade do clube do gamer: o que se pode pedir e os pedidos feitos (do mais recente). */
   own?: {
     kinds: { kind: CouncilKindId; area: CouncilAreaId; status: "available" | "open" | "cooldown"; until?: string; cost: number; cofunds: number[] }[];
-    requests: { id: number; kind: CouncilKindId; created: string; due: string; status: "pending" | "approved" | "refused"; cofund: number; reply?: CouncilReplyView }[];
+    requests: { id: number; kind: CouncilHistoryKind; created: string; due: string; status: "pending" | "approved" | "refused"; cofund: number; reply?: CouncilReplyView }[];
   };
 };
 /** Empresas do concelho (RZ-235): só o que é público (setor, escala, dono, patrocínios) e o tamanho em palavras. */
@@ -596,7 +597,7 @@ export type EngineRequests = {
   /** Mercado de staff (RZ-208): profissionais livres de uma função, com a qualidade estimada. */
   staffMarket: { input: { fn: string }; output: StaffCandidate[] };
   stadiumQuote: { input: { sector: StadiumSector; seats: number }; output: { cost: number; clubCost: number; councilShare: number; months: number; maxSeats: number } | null };
-  startStadiumWorks: { input: { sector: StadiumSector; seats: number }; output: WorksResult };
+  startStadiumWorks: { input: { sector: StadiumSector; seats: number; askCouncil?: boolean }; output: WorksResult };
   ownStaff: { input: Record<string, never>; output: OwnStaff[] };
   hireStaff: { input: { person: string }; output: StaffResult };
   dismissStaff: { input: { person: string }; output: StaffResult };

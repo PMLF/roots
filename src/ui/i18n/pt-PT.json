@@ -2001,8 +2001,7 @@
   "stadium.expand": "Ampliar o estádio",
   "stadium.sector": "Setor",
   "stadium.newSeats": "Lugares novos",
-  "stadium.quote": "Custo {cost} (o clube paga {club}); prazo de {months} meses.",
-  "stadium.councilPays": "A Câmara comparticipa {pct}%.",
+  "stadium.quote": "Custo {cost}, pago à cabeça; prazo de {months} meses.",
   "stadium.start": "Encomendar obra",
   "stadium.works.ongoing": "Obra em curso: {seats} lugares novos ({sector}), prontos a {end}. Entretanto parte do setor fica fechada.",
   "stadium.reason.ongoing": "Já há uma obra em curso.",
@@ -2010,5 +2009,8 @@
   "stadium.reason.tooBig": "É demasiado: uma obra não pode aumentar o estádio em mais de metade.",
   "stadium.reason.full": "O estádio não pode passar do limite de capacidade.",
   "stadium.reason.cash": "O clube não tem caixa para a parte que lhe cabe.",
-  "stadium.reason.unknown": "Não foi possível encomendar a obra."
+  "stadium.reason.unknown": "Não foi possível encomendar a obra.",
+  "stadium.askCouncil": "Pedir à Câmara {pct}% ({value}); se aprovar, o valor volta à caixa.",
+  "council.kind.stadium": "Obra no estádio",
+  "council.what.stadium": "A comparticipação na obra do estádio ({amount})"
 }
