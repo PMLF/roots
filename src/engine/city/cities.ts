@@ -13,7 +13,7 @@ import type { IsoDate } from "../persistence/types";
 import { drawLotsIncidents } from "./incidents";
 import { agendaOf, AREA_SERVICE, councilServiceOffsets, mayorOf, type Agenda } from "../council/agenda";
 import { WITHOUT_RESULTS, evolveCity, type ClubsResults } from "./evolution";
-import { CITY_SERVICES, budgetIndexes, cityTargets, sectorEffect, initialState, type CityState } from "./state";
+import { CITY_SERVICES, budgetIndexes, cityTargets, centralityPct, sectorEffect, initialState, type CityState } from "./state";
 import { cityPreHistory } from "../history/preHistory";
 
 export type CityInstant = { season: number; state: CityState };
@@ -107,7 +107,7 @@ export function evolveCities(repo: Repository, base: BaseData, params: Pick<Para
       before,
       {
         targets: cityTargets(c, base.clubs, params, budgetIndexOf(base, c.id), before.population),
-        driftPopulationPct: sectorEffect(c, "populationPct", params),
+        driftPopulationPct: sectorEffect(c, "populationPct", params) + centralityPct(c, params),
         results: results.get(c.id) ?? WITHOUT_RESULTS,
         effects: ownSquad.map((a) => params.city.events.types[a.type].effects),
         ...(mayor ? { council: withPartners(repo, params as Params, c.id, agendaOf(repo.meta("seed") ?? "?", mayor, before, params as Params)) } : { council: withPartners(repo, params as Params, c.id, undefined) }),

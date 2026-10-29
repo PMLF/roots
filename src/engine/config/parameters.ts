@@ -123,6 +123,8 @@ type CityParameters = {
     notoriety: { regression: number; byPride: number };
     culture: { byPride: number; champion: number; promotion: number };
     population: { byEconomy: number; byPride: number; noisePct: number; maxPct: number };
+    /** Atração das cidades grandes (emprego, serviços, imigração; INE: Lisboa e Porto estáveis enquanto o interior perde): % por ano × log10(população de arranque / `ref`), entre `min` e `max` (RZ-270). */
+    centrality: { coefficient: number; ref: number; min: number; max: number };
     /** Efeito de um título, subida ou descida de um clube da terra (RZ-270): população (%), economia, emprego e pontos nos serviços. */
     clubs: Record<"champion" | "promotion" | "relegation", { populationPct: number; economy: number; employment: number; entertainment: number; mobility: number }>;
   };
@@ -1241,6 +1243,7 @@ export const DEFAULT_PARAMETERS: Params = {
       notoriety: { regression: 0.25, byPride: 0.05 },
       culture: { byPride: 0.03, champion: 0.8, promotion: 0.5 },
       population: { byEconomy: 0.012, byPride: 0.015, noisePct: 0.15, maxPct: 3 },
+    centrality: { coefficient: 0.5, ref: 40000, min: -0.6, max: 1 },
       clubs: {
         champion: { populationPct: 0.5, economy: 2, employment: 1, entertainment: 3, mobility: 1 },
         promotion: { populationPct: 0.6, economy: 2.5, employment: 1.5, entertainment: 3, mobility: 2 },

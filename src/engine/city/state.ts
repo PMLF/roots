@@ -68,6 +68,12 @@ export function trendOf(before: number | undefined, now: number, params: Pick<Pa
 }
 
 /** Efeito do setor num campo: o principal a 100 %, o secundário a 50 %, mais o das ilhas. */
+/** Atração própria do tamanho da cidade (% de população por ano): as grandes atraem, as pequenas perdem (RZ-270). */
+export function centralityPct(c: Pick<BaseCity, "population">, params: Pick<Params, "city">): number {
+  const k = params.city.evolution.centrality;
+  return k.coefficient * Math.min(k.max, Math.max(k.min, Math.log10(Math.max(1, c.population) / k.ref)));
+}
+
 export function sectorEffect(c: Pick<BaseCity, "sector" | "tag2" | "island">, pitch: keyof CityEffects, params: Pick<Params, "city">): number {
   const s = params.city.sectors;
   return (s[c.sector]?.[pitch] ?? 0) + 0.5 * (s[c.tag2]?.[pitch] ?? 0) + (c.island ? (s.ILH?.[pitch] ?? 0) : 0);
