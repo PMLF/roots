@@ -33,7 +33,7 @@ import { readLiveMatch, type LiveMatch, type LivePlayer } from "../season/liveMa
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
 import { syncGamerCoach } from "../club/coaches";
-import { acceptOffer, resign, isUnemployed, gamerOffers } from "../season/coachMarket";
+import { acceptOffer, resign, isUnemployed, gamerOffers, startUnemployed } from "../season/coachMarket";
 import { buyHome, causeOffsets, courseLevel, courseTraining, helpClub, homePrice, ownsHome, startCourse, supportCause } from "../personal/spending";
 import { CITY_SERVICES } from "../config/parameters";
 import { decisionStates } from "../news/decisions";
@@ -675,6 +675,10 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       let r!: ReturnType<typeof askRaise>;
       repository.transaction(() => { r = askRaise(repository, data, params, today, m.input.terms); });
       return r;
+    }
+    case "startUnemployed": {
+      const { repository, data, params } = await context(servicos);
+      return startUnemployed(repository, data, params, m.input.region);
     }
     case "chooseClub": {
       const { repository, data, params } = await context(servicos);

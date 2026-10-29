@@ -19,6 +19,10 @@ export type CatalogClub = {
   district: { id: string; name: string };
   locality: { name: string; status: Status };
   city: string;
+  /** Região do concelho (zona do país). */
+  region: string;
+  /** Dados do concelho para a ficha (população, setor de atividade). */
+  cityInfo: { population: number; sector: string; footballCulture: number };
   colours: string;
   levelReputation: LevelReputation;
   /** Bacia de adeptos (população do concelho): 1 pequena, 2 média, 3 grande. */
@@ -63,6 +67,8 @@ export function buildCatalog(data: BaseData, params: Params): CatalogClub[] {
         district: { id: c.district, name: districts.get(c.district)?.name ?? c.district },
         locality: { name: locality?.name ?? c.locality, status: locality?.status ?? "town" },
         city: city?.name ?? c.city,
+        region: city?.hub ?? c.hub,
+        cityInfo: { population, sector: city?.sector ?? c.sector, footballCulture: city?.footballCulture ?? 0 },
         colours: c.colours,
         levelReputation: level,
         basin: population < small ? 1 : population < large ? 2 : 3,

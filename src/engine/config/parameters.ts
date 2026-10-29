@@ -340,6 +340,8 @@ export type Params = {
     offers: number;
     /** Ofertas extra de clubes um pouco acima (a surpresa boa). */
     surprises: number;
+    /** Quem começa o jogo sem clube (RZ-501) tem a reputação de um treinador sem currículo: só recebe ofertas de clubes até aqui (mais a margem das surpresas). */
+    unemployedStartReputation: number;
     /** Até quantos pontos de reputação acima do clube anterior pode vir uma surpresa. */
     surpriseMargin: number;
     /**
@@ -1129,7 +1131,7 @@ export const DEFAULT_PARAMETERS: Params = {
     donation: { min: 100, efficiency: 0.8, maxShare: 1, cooldownDays: 60 },
   },
   coach: {
-    offers: 3, surprises: 1, surpriseMargin: 600,
+    offers: 3, surprises: 1, surpriseMargin: 600, unemployedStartReputation: 1500,
     board: {
       start: 60, rate: 0.12, minMatches: 6, graceDays: 60, sackBelow: 28, patienceEffect: 1.2, sackProbability: 0.5,
       sackRelegated: 0.6, sackBad: 0.3, badPerf: -0.45, vacancyDays: 7,

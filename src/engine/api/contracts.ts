@@ -628,6 +628,8 @@ export type EngineRequests = {
   negotiateRenewal: { input: { person: string; wage: number; years: number; release: number | null }; output: NegotiationResult };
   /** O gamer decide deixar sair um jogador com contrato a expirar. */
   releaseExpiring: { input: { person: string }; output: null };
+  /** Começar sem clube (RZ-501): região onde o gamer vive; recebe as primeiras ofertas dessa zona. */
+  startUnemployed: { input: { region: string }; output: { home: string } };
   chooseClub: { input: { id: string; force?: boolean }; output: { id: string } };
   /** O plano de jogo (tática e onze) do clube do gamer. */
   plan: { input: null; output: ViewPlan | null };
