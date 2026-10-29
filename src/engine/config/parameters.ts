@@ -1127,7 +1127,7 @@ export const DEFAULT_PARAMETERS: Params = {
     bankruptcyDelayWagesMonths: 3,
     wealthPercentiles: [90, 70, 40, 15],
     rivalEstimateErrorProb: 0.25,
-    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.05, wageShareMax: 0.95, overspend: 0.3 },
+    budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.05, wageShareMax: 0.95, overspend: 0.8 },
     surplus: { reserveYears: 2.5, annualRate: 0.35 },
     opening: { firstLeague: 8, secondLeague: 5, thirdLeague: 1.6, cp: 3, district: 5 },
     model: {
