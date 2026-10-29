@@ -26,6 +26,9 @@ export function NewsItemView({ n, unread, compact, onToggleIsRead, action, statu
   const tone = n.type === "bid_agreed" ? "ok" : n.type === "bid_rejected" ? "erro" : undefined;
   if (n.type === "europe_phase") values.zoneText = t(`newsItem.europe_phase.zone.${values.zone}` as Key);
   if (n.type === "europe_qualifier") values.outcomeText = t(values.won === 1 ? "newsItem.europe_qualifier.won" : "newsItem.europe_qualifier.lost", { opponent: String(values.opponent) });
+  if (n.type === "coach_sacked") values.reasonText = t(`newsItem.coach_sacked.reason.${values.reason}` as Key);
+  if (n.type === "coach_hired") values.fromText = values.from ? t("newsItem.coach_hired.from", { club: String(values.from) }) : t("newsItem.coach_hired.free");
+  if (n.type === "staff_retired") values.fnText = t(`fn.${values.fn}` as Key).toLowerCase();
   if (n.type === "council_reply") {
     const money = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
     values.speech = councilSpeech(t, { approved: values.outcome === "yes", reason: String(values.reason), tone: String(values.tone), kind: String(values.kind), amount: Number(values.amount) }, money);

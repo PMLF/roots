@@ -321,7 +321,10 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
           </>
         ),
         staff: d.roles.length > 0 ? (
-          <Table id="staff" columns={staff} lines={d.roles} rowKey={(p) => p.id} cell={{ name: name }} />
+          <>
+            {ownSquad && <p className="staff-gamer" data-testid="staff-gamer"><b>{t("fn.gamerCoach")}</b> <span className="suave">{t("club.gamerCoach")}</span></p>}
+            <Table id="staff" columns={staff} lines={d.roles} rowKey={(p) => p.id} cell={{ name: name }} />
+          </>
         ) : (
           <p className="vazio">{t("club.noWorld")}</p>
         ),

@@ -14,6 +14,7 @@ export type NewsItemType =
   | "hattrick" | "red" | "two_yellows" | "rout" | "comeback_goal" | "stoppage_goal" | "serious_injury"
   | "champion" | "title_clinched" | "cup_upset" | "state_prize" | "promotion" | "relegation" | "second_district" | "district_return" | "locality" | "city_event"
   | "outcome" | "injury" | "resignation" | "sacked" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer" | "loan_offer" | "youth_offer" | "council_reply" | "election_campaign" | "election_result" | "patron_offer" | "bid_agreed" | "bid_rejected" | "bid_progress" | "youth_intake" | "local_talent" | "market_open" | "market_close" | "club_offer"
+  | "coach_sacked" | "coach_hired" | "staff_retired"
   | "europe_qualified" | "europe_draw" | "europe_phase" | "europe_qualifier";
 
 type NewsItemLink = { k: "club" | "person" | "locality" | "competition" | "city"; id: string; name: string };
@@ -37,11 +38,11 @@ export type Message = NewsItem & { isRead: boolean };
 /** Quantas variantes de texto existem por tipo (a interface tem as frases `noticia.<tipo>.<n>.titulo|corpo`). */
 export const VARIANTS: Record<NewsItemType, number> = {
   hattrick: 2, red: 2, two_yellows: 2, rout: 2, comeback_goal: 2, stoppage_goal: 2, serious_injury: 2,
-  champion: 2, title_clinched: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1, loan_offer: 1, youth_offer: 1, council_reply: 1, election_campaign: 1, election_result: 1, patron_offer: 1, bid_agreed: 1, bid_rejected: 1, bid_progress: 1, youth_intake: 1, local_talent: 1, market_open: 1, market_close: 1, club_offer: 1, europe_qualified: 1, europe_draw: 1, europe_phase: 1, europe_qualifier: 1,
+  champion: 2, title_clinched: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1, loan_offer: 1, youth_offer: 1, council_reply: 1, election_campaign: 1, election_result: 1, patron_offer: 1, bid_agreed: 1, bid_rejected: 1, bid_progress: 1, youth_intake: 1, local_talent: 1, market_open: 1, market_close: 1, club_offer: 1, coach_sacked: 1, coach_hired: 1, staff_retired: 1, europe_qualified: 1, europe_draw: 1, europe_phase: 1, europe_qualifier: 1,
 };
 
 /** Tipos de evento que dão notícia para toda a gente. */
-const NEWS_ITEM_EVENTS = ["HATTRICK", "RED_CARD", "ROUT", "NOTABLE_GOAL", "INJURY", "CHAMPION", "CUP_UPSET", "STATE_PRIZE", "SECOND_DISTRICT_RELEGATION", "DISTRICT_RETURN", "PROMOTION", "RELEGATION", "LOCALITY_STATUS", "CITY_EVENT", "TRANSFER", "PLAYER_SIGNED", "EUROPE_QUALIFIED", "EUROPE_DRAW", "EUROPE_LEAGUE_PHASE", "EUROPE_QUALIFIER"] as const;
+const NEWS_ITEM_EVENTS = ["HATTRICK", "RED_CARD", "ROUT", "NOTABLE_GOAL", "INJURY", "CHAMPION", "CUP_UPSET", "STATE_PRIZE", "SECOND_DISTRICT_RELEGATION", "DISTRICT_RETURN", "PROMOTION", "RELEGATION", "LOCALITY_STATUS", "CITY_EVENT", "TRANSFER", "PLAYER_SIGNED", "EUROPE_QUALIFIED", "EUROPE_DRAW", "EUROPE_LEAGUE_PHASE", "EUROPE_QUALIFIER", "COACH_SACKED", "COACH_HIRED", "STAFF_RETIRED"] as const;
 /** A caixa de entrada junta o que é pessoal: o resultado do teu jogo, qualquer lesão do teu plantel, a tua carreira. */
 const INBOX_EVENTS = [...NEWS_ITEM_EVENTS, "MATCH_PLAYED", "GAMER_RESIGNATION", "GAMER_HIRED", "SCOUT_REPORT", "SCOUT_SEARCH", "TRANSFER_OFFER", "COUNCIL_REPLY", "ELECTION_CAMPAIGN", "ELECTION_RESULT", "PATRON_OFFER", "BID_REPLY", "YOUTH_INTAKE", "TALENT_APPEARED", "MARKET_WINDOW", "CLUB_OFFER"] as const;
 /** Lesões a partir desta gravidade são notícia no mundo; no teu plantel, todas. */
@@ -165,6 +166,22 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
       const their = home.id === c.club ? gf : gc;
       const competition = roleKind(e, "competition");
       return base("outcome", { home: c.clubName(home.id), away: c.clubName(away.id), homeGoals: gc, awayGoals: gf, outcome: ownSquad > their ? "win" : ownSquad === their ? "draw" : "defeat", competition: competition?.id ?? "" }, [lc(home.id), lc(away.id)]);
+    }
+    case "COACH_SACKED": case "COACH_HIRED": case "STAFF_RETIRED": {
+      // mexidas de treinadores: notícia no teu clube e nas duas primeiras divisões (as restantes ficam só no histórico)
+      const big = clubs.some((x) => { const t = c.data.clubs.find((b) => b.id === x.id)?.tier; return t === "firstLeague" || t === "secondLeague"; });
+      if (!our && !big) return undefined;
+      if (e.type === "STAFF_RETIRED") {
+        const fn = typeof d.fn === "string" ? d.fn : "";
+        if (!person || !club || (fn !== "coach" && fn !== "president")) return undefined;
+        return base("staff_retired", { name: c.personName(person.id), fn, club: c.clubName(club.id), age: within(d.age) }, [lp(person.id), lc(club.id)]);
+      }
+      if (!person) return undefined;
+      const hirer = clubs.find((x) => x.roleKind === (e.type === "COACH_SACKED" ? "sacked" : "hirer"));
+      if (!hirer) return undefined;
+      if (e.type === "COACH_SACKED") return base("coach_sacked", { coach: c.personName(person.id), club: c.clubName(hirer.id), reason: typeof d.reason === "string" ? d.reason : "results" }, [lp(person.id), lc(hirer.id)]);
+      const from = clubs.find((x) => x.roleKind === "from");
+      return base("coach_hired", { coach: c.personName(person.id), club: c.clubName(hirer.id), from: from ? c.clubName(from.id) : "" }, [lp(person.id), lc(hirer.id), ...(from ? [lc(from.id)] : [])]);
     }
     case "GAMER_RESIGNATION":
       return inboxOnly && club ? base(d.reason === "secondDistrict" ? "sacked" : "resignation", { club: c.clubName(club.id) }, [lc(club.id)]) : undefined;
