@@ -1160,7 +1160,7 @@ export const DEFAULT_PARAMETERS: Params = {
     wealthPercentiles: [90, 70, 40, 15],
     rivalEstimateErrorProb: 0.25,
     budget: { revenueAboutBill: 0.7, monthsReserve: 3, transfersBye: 0.35, wageHeadroom: 0.05, wageShareMax: 0.95, overspend: 0.5 },
-    surplus: { reserveYears: 0.35, annualRate: 0.9 },
+    surplus: { reserveYears: 0.4, annualRate: 0.75 },
     opening: { firstLeague: 4.7, secondLeague: 2.4, thirdLeague: 0.4, cp: 0.55, district: 1.15 },
     model: {
       refReputation: { firstLeague: 5300, secondLeague: 4650, thirdLeague: 3000, cp: 2590, district: 1295 },
@@ -1257,7 +1257,7 @@ export const DEFAULT_PARAMETERS: Params = {
         entertainment: { economy: 0.1, employment: 0, tourism: 0.25 },
       },
       regression: 0.15, noise: 2, strongTrend: 8,
-      population: { byServices: 0.006, byEmployment: 0.006, byHousing: 0.08, affordableFactor: 0.3, shieldFrom: 100000, shieldFull: 500000, shieldMax: 0.85 },
+      population: { byServices: 0.006, byEmployment: 0.006, byHousing: 0.08, affordableFactor: 0.3, shieldFrom: 100000, shieldFull: 500000, shieldMax: 0.4 },
       housingGrowth: -25,
       effects: {
         health: { recoveryPerPoint: 0.004 },
@@ -1273,7 +1273,7 @@ export const DEFAULT_PARAMETERS: Params = {
       notoriety: { regression: 0.25, byPride: 0.05 },
       culture: { byPride: 0.03, champion: 0.8, promotion: 0.5 },
       population: { byEconomy: 0.012, byPride: 0.015, noisePct: 0.15, maxPct: 3 },
-    centrality: { coefficient: 0.7, ref: 40000, min: -0.6, max: 1 },
+    centrality: { coefficient: 0.6, ref: 40000, min: -0.6, max: 1 },
       clubs: {
         champion: { populationPct: 0.5, economy: 2, employment: 1, entertainment: 3, mobility: 1 },
         promotion: { populationPct: 0.6, economy: 2.5, employment: 1.5, entertainment: 3, mobility: 2 },
