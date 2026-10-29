@@ -119,4 +119,24 @@ describe("notícias e caixa de entrada", () => {
     expect(world.filter((n) => n.type === "coach_sacked").map((n) => n.links.find((l) => l.k === "club")?.id)).toEqual([big.id]);
     expect(world.filter((n) => n.type === "coach_hired")).toHaveLength(1);
   }, 60000);
+
+  it("as notícias relevantes vêm por ordem: o teu clube, os rivais, a tua divisão e os melhores do país", async () => {
+    const repository = new MemoryRepository();
+    const s: Servicos = { ...servicos(), openRepository: async () => ({ repository, backend: "memory" as const, sqliteVersion: "test" }) };
+    await handle({ id: 1, type: "createWorld", input: { seed: "relevantes" } }, s);
+    const cat = await handle({ id: 2, type: "clubCatalog", input: null }, s);
+    const mine = cat.find((c) => c.tier === "secondLeague")!;
+    await handle({ id: 3, type: "chooseClub", input: { id: mine.id } }, s);
+    const rivalId = (await handle({ id: 4, type: "clubProfile", input: { id: mine.id } }, s))!.rival!.id;
+    const division = cat.find((c) => c.league === mine.league && c.id !== mine.id && c.id !== rivalId)!;
+    const top = cat.find((c) => c.tier === "firstLeague")!;
+    const other = cat.find((c) => c.tier === "district")!;
+    const coach = (club: string) => repository.roleHolders("coach").find((id) => repository.role(id)?.club === club)!;
+    const emit = (club: string) => repository.appendEvent({ type: "COACH_SACKED", date: "2026-10-20", season: 1, visibility: "exposed", origin: "generated", entities: [{ k: "person", id: coach(club), roleKind: "coach" }, { k: "club", id: club, roleKind: "sacked" }], data: { reason: "results" } });
+    // por ordem inversa de relevância, para o id não ajudar
+    for (const club of [other.id, top.id, division.id, rivalId, mine.id]) emit(club);
+    const list = await handle({ id: 5, type: "news", input: { scope: "relevant", limit: 10 } }, s);
+    const clubs = list.filter((n) => n.type === "coach_sacked").map((n) => n.links.find((l) => l.k === "club")?.id);
+    expect(clubs).toEqual([mine.id, rivalId, division.id, top.id]);
+  }, 60000);
 });

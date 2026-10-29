@@ -10,6 +10,7 @@ import { save, read } from "@/ui/storage";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { useEngine } from "@/ui/EngineProvider";
+import { useOwnClub } from "@/ui/myClub";
 
 const GROUPS: { rowKey: Key; tiers: readonly string[]; columns?: true }[] = [
   { rowKey: "competitions.professionals", tiers: ["firstLeague", "secondLeague", "thirdLeague"] },
@@ -76,6 +77,15 @@ export default function CompetitionsPage() {
   const [pages, setPages] = useState<Record<string, CompetitionPage>>({});
   /** Época escolhida; sem escolha mostra-se a época atual (o momento de agora). */
   const [season, setSeason] = useState<number | undefined>(undefined);
+  // a liga do clube do gamer aparece sempre primeiro (e sem ter de a escolher)
+  const [ownClub] = useOwnClub();
+  const [ownLeague, setOwnLeague] = useState<string | undefined>(undefined);
+  useEffect(() => {
+    if (!engine || !ownClub) { setOwnLeague(undefined); return; }
+    let live = true;
+    engine.call("clubs", null).then((cs) => live && setOwnLeague(cs.find((c) => c.id === ownClub)?.league)).catch(() => undefined);
+    return () => { live = false; };
+  }, [engine, ownClub]);
   const pageKey = (league: string) => `${league}|${season ?? "current"}`;
 
   useEffect(() => {
@@ -101,7 +111,7 @@ export default function CompetitionsPage() {
     if (!engine || !list) return;
     let live = true;
     (async () => {
-      for (const league of chosen) {
+      for (const league of ownLeague && !chosen.includes(ownLeague) ? [ownLeague, ...chosen] : chosen) {
         if (pages[pageKey(league)] || !list.some((c) => c.league === league)) continue;
         const p = await engine.call("competitionPage", season ? { league: league, season: season } : { league: league });
         if (live && p) setPages((before) => ({ ...before, [pageKey(league)]: p }));
@@ -109,7 +119,7 @@ export default function CompetitionsPage() {
     })().catch(() => undefined);
     return () => { live = false; };
     // as páginas já carregadas não voltam a pedir-se
-  }, [engine, list, chosen, season]);
+  }, [engine, list, chosen, season, ownLeague]);
 
   const set = (fresh: string[]) => {
     setChosen(fresh);
@@ -136,7 +146,7 @@ export default function CompetitionsPage() {
   const europeNames = europe.map((c) => c.competition);
   const districtNames = districts.map((c) => c.competition);
   const seasons = Object.values(pages)[0]?.seasons ?? [];
-  const visible = list ? list.filter((c) => chosen.includes(c.league)) : [];
+  const visible = list ? list.filter((c) => chosen.includes(c.league) || c.league === ownLeague).sort((a, b) => Number(b.league === ownLeague) - Number(a.league === ownLeague)) : [];
 
   return (
     <section>
