@@ -33,6 +33,7 @@ import { readLiveMatch, type LiveMatch, type LivePlayer } from "../season/liveMa
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
 import { syncGamerCoach } from "../club/coaches";
+import { makeStadiumRequest } from "../council/requests";
 import { quoteWorks, startWorks, stadiumCapacity, stadiumState, stadiumTotalOf } from "../club/stadium";
 import { dismissStaff, hireStaff, ownStaff, seedStaffMarket, staffCandidates } from "../club/staff";
 import { acceptOffer, resign, isUnemployed, gamerOffers, startUnemployed } from "../season/coachMarket";
@@ -485,7 +486,14 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const club = data.clubs.find((x) => x.id === repository.meta("gamer.club"));
       const today = (repository.meta("date.today") ?? "") as IsoDate;
       if (!club || !today) return { ok: false, reason: "unknown" } as const;
-      return startWorks(repository, params, club, m.input.sector, m.input.seats, today, currentSeason(repository));
+      const season = currentSeason(repository);
+      const r = startWorks(repository, params, club, m.input.sector, m.input.seats, today, season);
+      // pede à Câmara a comparticipação (estádio municipal ou partilhado): o clube já pagou tudo e recebe a parte se for aprovada
+      if (r.ok && m.input.askCouncil) {
+        const share = quoteWorks(params, club, m.input.sector, m.input.seats).councilShare;
+        if (share > 0) makeStadiumRequest(repository, data, params, club, today, season, Math.round(r.cost * share));
+      }
+      return r;
     }
     case "ownStaff": {
       const { repository, data, params } = await context(servicos);

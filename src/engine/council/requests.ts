@@ -17,7 +17,7 @@ import { adjustRelation, relationOf } from "./relation";
 export type ReplyReason = "priority" | "relation" | "visibility" | "generic" | "noBudget" | "notPriority" | "poorRelation" | "expensive";
 export type MayorTone = "vain" | "ambitious" | "humble" | "plain";
 export type CouncilRequest = {
-  id: number; city: string; mayor: string; club: string; kind: CouncilRequestKind; area: CouncilArea;
+  id: number; city: string; mayor: string; club: string; kind: CouncilRequestKind | "stadium"; area: CouncilArea;
   created: IsoDate; due: IsoDate; season: number;
   /** Fração do custo que o clube paga. */
   cofund: number;
@@ -56,7 +56,7 @@ export function costOf(data: BaseData, params: Params, club: BaseClub, kind: Cou
 export type KindStatus = "available" | "open" | "cooldown";
 export function kindStatus(repo: Repository, params: Params, club: BaseClub, kind: CouncilRequestKind, today: IsoDate): { status: KindStatus; until?: IsoDate } {
   const area = params.city.council.requests.areas[kind];
-  const mine = requestsOf(repo).filter((r) => r.club === club.id && r.area === area);
+  const mine = requestsOf(repo).filter((r) => r.club === club.id && r.area === area && r.kind !== "stadium");
   const pending = mine.filter((r) => r.status === "pending").sort((a, b) => a.due.localeCompare(b.due))[0];
   if (pending) return { status: "open", until: pending.due };
   const refused = mine.filter((r) => r.status === "refused" && r.decided).sort((a, b) => (b.decided as string).localeCompare(a.decided as string))[0];
@@ -83,6 +83,25 @@ export function makeRequest(repo: Repository, data: BaseData, params: Params, cl
   const request: CouncilRequest = {
     id: Math.max(0, ...list.map((r) => r.id)) + 1, city: club.city, mayor: mayor.person, club: club.id, kind, area: cfg.areas[kind],
     created: today, due: addDays(today, rng.integer(cfg.replyDays[0], cfg.replyDays[1])), season, cofund, cost, status: "pending",
+  };
+  save(repo, [...list, request]);
+  return { ok: true, request };
+}
+
+/** Comparticipação da Câmara numa obra do estádio: um pedido de cada vez; o clube já pagou tudo e, se aprovado, recebe `cost` de volta. */
+export function makeStadiumRequest(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, cost: number): MakeResult {
+  const cfg = params.city.council.requests;
+  const mayor = mayorOf(repo, data, club.city);
+  if (!mayor) return { ok: false, reason: "noMayor" };
+  const mine = requestsOf(repo).filter((r) => r.club === club.id && r.kind === "stadium");
+  if (mine.some((r) => r.status === "pending")) return { ok: false, reason: "open" };
+  const refused = mine.filter((r) => r.status === "refused" && r.decided).sort((a, b) => (b.decided as string).localeCompare(a.decided as string))[0];
+  if (refused?.decided && addDays(refused.decided, cfg.cooldownDays) > today) return { ok: false, reason: "cooldown" };
+  const list = requestsOf(repo);
+  const rng = new Rng(repo.meta("seed") ?? "?", `council/due/${list.length}/${today}`);
+  const request: CouncilRequest = {
+    id: Math.max(0, ...list.map((r) => r.id)) + 1, city: club.city, mayor: mayor.person, club: club.id, kind: "stadium", area: cfg.stadiumArea,
+    created: today, due: addDays(today, rng.integer(cfg.replyDays[0], cfg.replyDays[1])), season, cofund: 0, cost, status: "pending",
   };
   save(repo, [...list, request]);
   return { ok: true, request };
@@ -119,7 +138,7 @@ function decide(repo: Repository, data: BaseData, params: Params, club: BaseClub
 
 /** Efeitos de um pedido aprovado: subsídio na caixa; o resto fica registado para o jogo ler (`councilYouthBonus`, `councilMatchdayBoost`). */
 function apply(repo: Repository, params: Params, club: BaseClub, r: CouncilRequest, season: number): void {
-  if (r.kind === "subsidy") post(repo, club, "subsidies", r.cost);
+  if (r.kind === "subsidy" || r.kind === "stadium") post(repo, club, "subsidies", r.cost);
   else {
     if (r.cofund > 0) post(repo, club, "fixed", -Math.round(r.cost * r.cofund));
     repo.setMeta(`council.effect.${r.kind}.${club.id}`, String(season));

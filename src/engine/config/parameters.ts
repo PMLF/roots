@@ -55,6 +55,8 @@ type CouncilParameters = {
   relation: { start: number; approved: number; refused: number; prideDrift: number; trend: number; strongTrend: number };
   requests: {
     areas: Record<CouncilRequestKind, CouncilArea>;
+    /** Área do orçamento da Câmara que paga a comparticipação em obras do estádio. */
+    stadiumArea: CouncilArea;
     cost: Record<CouncilRequestKind, number>;
     subsidyRate: number; subsidyTier: Record<Tier, number>;
     youthBonus: number; matchdayBoost: number;
@@ -407,8 +409,8 @@ export type Params = {
     /** Custo por lugar novo (€) em cada setor e fator do escalão. */
     costPerSeat: Record<StadiumSector, number>;
     tierCost: Record<Tier, number>;
-    /** Obra: mínimo de lugares, crescimento máximo da capacidade total por obra, capacidade máxima, lugares construídos por mês, duração mínima (meses) e fração do setor fechada durante a obra. */
-    works: { minSeats: number; maxGrowth: number; maxCapacity: number; seatsPerMonth: number; minMonths: number; closedShare: number };
+    /** Obra: sobrecusto com terreno nulo para expandir (o custo sobe `penalty × (1 − terreno/100)`), mínimo de lugares, crescimento máximo da capacidade total por obra, capacidade máxima, lugares construídos por mês, duração mínima (meses) e fração do setor fechada durante a obra. */
+    works: { terrainPenalty: number; minSeats: number; maxGrowth: number; maxCapacity: number; seatsPerMonth: number; minMonths: number; closedShare: number };
     /** Fração do custo paga pela Câmara conforme a propriedade do estádio. */
     councilShare: Record<"club" | "municipal" | "shared", number>;
     /** Clubes do computador: ocupação esperada a partir da qual podem ampliar, probabilidade por época, crescimento da obra e folga de caixa exigida (múltiplo do custo). */
@@ -1195,7 +1197,7 @@ export const DEFAULT_PARAMETERS: Params = {
     split: { central: 0.38, side: 0.27, north: 0.175, south: 0.175 },
     costPerSeat: { central: 450, side: 300, north: 220, south: 220 },
     tierCost: { firstLeague: 1.3, secondLeague: 1.1, thirdLeague: 1, cp: 0.85, district: 0.7 },
-    works: { minSeats: 100, maxGrowth: 0.5, maxCapacity: 60000, seatsPerMonth: 500, minMonths: 3, closedShare: 0.4 },
+    works: { terrainPenalty: 1, minSeats: 100, maxGrowth: 0.5, maxCapacity: 60000, seatsPerMonth: 500, minMonths: 3, closedShare: 0.4 },
     councilShare: { club: 0, municipal: 0.5, shared: 0.25 },
     ai: { occupancy: 0.7, probability: 0.25, growth: 0.15, cashCover: 2 },
   },
@@ -1253,6 +1255,7 @@ export const DEFAULT_PARAMETERS: Params = {
       relation: { start: 50, approved: 6, refused: -2, prideDrift: 0.1, trend: 3, strongTrend: 8 },
       requests: {
         areas: { youth: "sport", matchday: "mobility", subsidy: "sport" },
+        stadiumArea: "sport",
         cost: { youth: 0.0008, matchday: 0.001, subsidy: 0 },
         subsidyRate: 0.0005, subsidyTier: { firstLeague: 0.15, secondLeague: 0.3, thirdLeague: 0.5, cp: 0.8, district: 1 },
         youthBonus: 12, matchdayBoost: 0.06,

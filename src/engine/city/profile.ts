@@ -17,6 +17,7 @@ const roundedCount = (n: number): number => (n < 20 ? n : Number(n.toPrecision(2
 import { candidateInfo, electionOf, termsOf } from "../council/elections";
 import { costOf, kindStatus, requestsOf } from "../council/requests";
 import { relationOf } from "../council/relation";
+import { stadiumCapacity } from "../club/stadiumState";
 import { COUNCIL_AREAS, COUNCIL_REQUESTS } from "../config/parameters";
 import type { IsoDate } from "../persistence/types";
 
@@ -96,7 +97,7 @@ export function cityProfile(repo: Repository, data: BaseData, base: BaseData, pa
       }),
     clubs: data.clubs
       .filter((x) => x.city === id)
-      .map((x) => ({ ref: { k: "club" as const, id: x.id, name: x.name }, league: x.league, tier: x.tier, stadium: { name: x.stadium.name, capacity: x.stadium.capacity, ownership: x.stadium.ownership } })),
+      .map((x) => ({ ref: { k: "club" as const, id: x.id, name: x.name }, league: x.league, tier: x.tier, stadium: { name: x.stadium.name, capacity: stadiumCapacity(repo, x, params), ownership: x.stadium.ownership } })),
     incidents: repo
       .eventsOf({ k: "city", id }, { type: "CITY_EVENT", publicOnly: true, limit: 10 })
       .map((e) => ({ date: e.date, season: e.season, label: label(e.season), type: String(e.data.event), regional: e.data.regional === true, ...(typeof e.data.hub === "string" ? { hub: e.data.hub } : {}) })),

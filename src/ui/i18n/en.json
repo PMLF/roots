@@ -2001,8 +2001,7 @@
   "stadium.expand": "Expand the stadium",
   "stadium.sector": "Section",
   "stadium.newSeats": "New seats",
-  "stadium.quote": "Cost {cost} (the club pays {club}); takes {months} months.",
-  "stadium.councilPays": "The council covers {pct}%.",
+  "stadium.quote": "Cost {cost}, paid up front; takes {months} months.",
   "stadium.start": "Order works",
   "stadium.works.ongoing": "Works under way: {seats} new seats ({sector}), ready on {end}. Part of the section stays closed meanwhile.",
   "stadium.reason.ongoing": "Works are already under way.",
@@ -2010,5 +2009,8 @@
   "stadium.reason.tooBig": "Too much: one project cannot grow the ground by more than half.",
   "stadium.reason.full": "The ground cannot exceed the capacity limit.",
   "stadium.reason.cash": "The club cannot afford its share.",
-  "stadium.reason.unknown": "The works could not be ordered."
+  "stadium.reason.unknown": "The works could not be ordered.",
+  "stadium.askCouncil": "Ask the council for {pct}% ({value}); if approved, it comes back into the club's cash.",
+  "council.kind.stadium": "Stadium works",
+  "council.what.stadium": "The share of the stadium works ({amount})"
 }

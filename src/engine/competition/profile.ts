@@ -4,6 +4,7 @@
  * (antes do ciclo de dias, RZ-119) mostra uma **prévia** gerada com a semente do mundo, sem gravar nada.
  * Código novo em inglês (CLAUDE.md); os tipos de escalão herdam os nomes antigos até ao RZ-143.
  */
+import { stadiumCapacity } from "../club/stadiumState";
 import { Rng } from "../random/rng";
 import { generateLeagueCalendar, forRepository } from "../calendar/calendar";
 import { reputationLevel } from "../club/reputation";
@@ -201,7 +202,7 @@ export function competitionPage(repo: Repository, data: BaseData, params: Params
     preview,
     clubs: [...clubs]
       .sort((a, b) => b.reputation - a.reputation || a.name.localeCompare(b.name, "pt"))
-      .map((c) => ({ id: c.id, name: c.name, locality: c.locality, reputation: c.reputation, reputationLevel: reputationLevel(c.reputation, params), capacity: c.stadium.capacity })),
+      .map((c) => ({ id: c.id, name: c.name, locality: c.locality, reputation: c.reputation, reputationLevel: reputationLevel(c.reputation, params), capacity: stadiumCapacity(repo, c, params) })),
     table,
     rounds,
     currentRound,

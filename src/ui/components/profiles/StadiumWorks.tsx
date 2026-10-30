@@ -16,6 +16,7 @@ export function StadiumWorks({ club }: { club: string }) {
   const [sector, setSector] = useState<(typeof SECTORS)[number]>("north");
   const [seats, setSeats] = useState(500);
   const [quote, setQuote] = useState<Quote | null>(null);
+  const [ask, setAsk] = useState(true);
   const [message, setMessage] = useState<string | undefined>(undefined);
   const eur = (n: number) => new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 }).format(n);
   const n = new Intl.NumberFormat(locale);
@@ -33,7 +34,7 @@ export function StadiumWorks({ club }: { club: string }) {
   if (!stadium) return null;
   const start = async () => {
     setMessage(undefined);
-    const r = await engine!.call("startStadiumWorks", { sector, seats });
+    const r = await engine!.call("startStadiumWorks", { sector, seats, askCouncil: ask && (quote?.councilShare ?? 0) > 0 });
     if (!r.ok) setMessage(t(`stadium.reason.${r.reason}` as Key));
     load();
   };
@@ -56,7 +57,13 @@ export function StadiumWorks({ club }: { club: string }) {
             <input type="number" min={100} step={100} value={seats} onChange={(e) => setSeats(Math.max(0, Number(e.target.value) || 0))} data-testid="stadium-seats" />
           </label>
           {quote && (
-            <p className="suave">{t("stadium.quote", { cost: eur(quote.cost), club: eur(quote.clubCost), months: quote.months })}{quote.councilShare > 0 ? ` ${t("stadium.councilPays", { pct: Math.round(quote.councilShare * 100) })}` : ""}</p>
+            <p className="suave">{t("stadium.quote", { cost: eur(quote.cost), months: quote.months })}</p>
+          )}
+          {quote && quote.councilShare > 0 && (
+            <label>
+              <input type="checkbox" checked={ask} onChange={(e) => setAsk(e.target.checked)} data-testid="stadium-ask-council" />{" "}
+              {t("stadium.askCouncil", { pct: Math.round(quote.councilShare * 100), value: eur(Math.round(quote.cost * quote.councilShare)) })}
+            </label>
           )}
           <button type="button" onClick={() => void start()} data-testid="stadium-start">{t("stadium.start")}</button>
         </>
