@@ -34,7 +34,7 @@ import { startSession, changeSessionTactic, sessionStep, currentSession, substit
 import { isInSecondDistrict } from "../season/districts";
 import { syncGamerCoach } from "../club/coaches";
 import { makeStadiumRequest } from "../council/requests";
-import { lastFill, priceOf, ringsOf, sectorMax, quoteWorks, sellingSectors, setSectorPrice, startWorks, stadiumCapacity, stadiumState, stadiumTotalOf, treatTurf, turfCosts, turfOf } from "../club/stadium";
+import { lastFill, priceOf, ringsOf, sectorMax, quoteWorks, sellingSectors, setSectorPrice, startWorks, stadiumCapacity, stadiumState, stadiumTotalOf, stadiumNaming, treatTurf, turfCosts, turfOf } from "../club/stadium";
 import { STADIUM_SECTORS } from "../config/parameters";
 import { dismissStaff, hireStaff, ownStaff, seedStaffMarket, staffCandidates } from "../club/staff";
 import { acceptOffer, resign, isUnemployed, gamerOffers, startUnemployed } from "../season/coachMarket";
@@ -482,11 +482,14 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (!club) return null;
       const s = stadiumState(repository, club, params), fill = lastFill(repository, club.id), open = new Map(sellingSectors(repository, club, params).map((x) => [x.id, x.seats]));
       const costs = turfCosts(params, club);
+      const naming = stadiumNaming(repository.clubSponsorships(club.id, repository.meta("date.today") ?? undefined).filter((x) => x.kind === "stadium"));
+      const named = naming.sectors;
+      const stadiumCo = naming.stadium ? repository.company(naming.stadium) : undefined;
       return {
-        club: { id: club.id, name: club.name }, own: club.id === mine, city: { id: club.city, name: data.cities.find((c) => c.id === club.city)?.name ?? club.city }, name: club.stadium.name, ownership: club.stadium.ownership, tier: club.tier,
+        club: { id: club.id, name: club.name }, own: club.id === mine, city: { id: club.city, name: data.cities.find((c) => c.id === club.city)?.name ?? club.city }, name: club.stadium.name, ...(stadiumCo ? { sponsor: { id: stadiumCo.id, name: stadiumCo.name } } : {}), ownership: club.stadium.ownership, tier: club.tier,
         capacity: stadiumCapacity(repository, club, params), built: stadiumTotalOf(s), terrain: club.stadium.location.expansionTerrain,
         basePrice: params.finances.model.ticketPrice[club.tier],
-        sectors: STADIUM_SECTORS.map((id) => ({ id, seats: s.sectors[id], open: open.get(id) ?? s.sectors[id], rings: ringsOf(params, club, id, s.sectors[id]), max: sectorMax(params, club, id, s.sectors[id]), covered: !!s.covered?.[id], price: priceOf(s, id), ...(fill[id] !== undefined ? { fill: fill[id] } : {}), coverCost: quoteWorks(params, club, id, 0, "cover", s.sectors[id]).cost })),
+        sectors: STADIUM_SECTORS.map((id) => ({ id, seats: s.sectors[id], open: open.get(id) ?? s.sectors[id], rings: ringsOf(params, club, id, s.sectors[id]), max: sectorMax(params, club, id, s.sectors[id]), covered: !!s.covered?.[id], price: priceOf(s, id), ...(fill[id] !== undefined ? { fill: fill[id] } : {}), coverCost: quoteWorks(params, club, id, 0, "cover", s.sectors[id]).cost, ...((): { sponsor?: { id: string; name: string } } => { const co = named[id] ? repository.company(named[id] as string) : undefined; return co ? { sponsor: { id: co.id, name: co.name } } : {}; })() })),
         ...(s.works ? { works: { kind: s.works.kind ?? "expand", sector: s.works.sector, seats: s.works.seats, cost: s.works.cost, end: s.works.end } } : {}),
         turf: { value: turfOf(s, params), type: s.turfType ?? "natural", treatCost: costs.treat, replaceCost: costs.replace, syntheticCost: costs.synthetic },
         limits: { priceMin: params.stadium.pricing.min, priceMax: params.stadium.pricing.max, minSeats: params.stadium.works.minSeats },

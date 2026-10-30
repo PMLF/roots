@@ -12,7 +12,7 @@ import type { IsoDate } from "../persistence/types";
 import { addDays } from "../calendar/dates";
 import { clubBalance, factorReputation, post } from "./finances";
 import { saveStadium, sectorMax, stadiumState, stadiumTotalOf as total, turfOf, type StadiumState } from "./stadiumState";
-export { priceOf, sellingSectors, turfOf, ringsOf, ringSeats, sectorMax, defaultSectors, stadiumCapacity, stadiumState, stadiumTotal, stadiumTotalOf, type StadiumState, type StadiumWorks } from "./stadiumState";
+export { priceOf, sellingSectors, turfOf, ringsOf, ringSeats, sectorMax, defaultSectors, stadiumCapacity, stadiumState, stadiumTotal, stadiumTotalOf, sectorSponsors, stadiumNaming, type StadiumState, type StadiumWorks } from "./stadiumState";
 
 export type WorksQuote = { cost: number; councilShare: number; clubCost: number; months: number; end: (today: IsoDate) => IsoDate };
 

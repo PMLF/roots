@@ -14,12 +14,16 @@ export function StadiumTab({ club, clubName, cityName, name, capacity, ownership
   const { t, locale } = useT();
   return (
     <div className="estadio-aba" data-testid="stadium-tab">
-      <header className="estadio-cabeca">
-        <h2>{name}</h2>
-        <p className="suave">{t("stadium.owner", { owner: stadiumOwner(t, ownership, clubName, cityName) })}</p>
-        <p className="suave">{t("stadium.ownership")}: {t(`ownership.${ownership}` as Key)} · {t("stadium.capacity")}: {new Intl.NumberFormat(locale).format(capacity)} {t("stadium.places")}</p>
-      </header>
-      <Card className="estadio-planta"><StadiumPlan club={club} /></Card>
+      <Card className="estadio-planta">
+        <StadiumPlan club={club} header={(d) => (
+          <header className="estadio-cabeca">
+            <h2>{d.sponsor ? t("stadium.named", { name: d.sponsor.name }) : name}</h2>
+            {d.sponsor && <p className="suave">{t("stadium.originalName", { name })}</p>}
+            <p className="suave">{t("stadium.owner", { owner: stadiumOwner(t, ownership, clubName, cityName) })}</p>
+            <p className="suave">{t("stadium.ownership")}: {t(`ownership.${ownership}` as Key)} · {t("stadium.capacity")}: {new Intl.NumberFormat(locale).format(capacity)} {t("stadium.places")}</p>
+          </header>
+        )} />
+      </Card>
     </div>
   );
 }

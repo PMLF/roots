@@ -1,3 +1,4 @@
+import { sectorSponsors, stadiumNaming } from "./stadiumState";
 import { describe, expect, it } from "vitest";
 import { DEFAULT_PARAMETERS as P } from "../config/parameters";
 import type { Tier } from "../config/parameters";
@@ -149,4 +150,28 @@ describe("estádio (RZ-116)", () => {
     if (!back.ok) throw new Error(back.reason);
     expect(stadiumState(repo, club, P).turfType).toBe("natural");
   }, 60000);
+});
+
+describe("sectorSponsors", () => {
+  it("dá a cada empresa um setor diferente e não muda quando outra sai", () => {
+    const all = sectorSponsors(["co-a", "co-b", "co-c"]);
+    expect(new Set(Object.values(all)).size).toBe(3);
+    expect(sectorSponsors(["co-c", "co-a", "co-b"])).toEqual(all);
+    const sector = (Object.keys(all) as (keyof typeof all)[]).find((k) => all[k] === "co-a");
+    expect(sectorSponsors(["co-a"])[sector as keyof typeof all]).toBe("co-a");
+  });
+  it("deixa de fora o que não cabe nos quatro setores", () => {
+    expect(Object.keys(sectorSponsors(["a", "b", "c", "d", "e"]))).toHaveLength(4);
+  });
+});
+
+describe("stadiumNaming", () => {
+  it("o patrocínio de maior valor dá o nome ao estádio e os outros às bancadas", () => {
+    const n = stadiumNaming([{ company: "co-a", annualValue: 10 }, { company: "co-b", annualValue: 50 }, { company: "co-c", annualValue: 20 }]);
+    expect(n.stadium).toBe("co-b");
+    expect(Object.values(n.sectors).sort()).toEqual(["co-a", "co-c"]);
+  });
+  it("sem patrocínios não há nomes", () => {
+    expect(stadiumNaming([])).toEqual({ sectors: {} });
+  });
 });

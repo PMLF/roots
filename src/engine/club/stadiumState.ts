@@ -66,3 +66,26 @@ export function sectorMax(params: Params, club: BaseClub, sector: StadiumSector,
   const r = params.stadium.rings, terrain = Math.min(100, Math.max(0, club.stadium.location.expansionTerrain)) / 100;
   return Math.max(current, Math.round((ringSeats(params, club, sector) * r.max * (r.terrainFloor + (1 - r.terrainFloor) * terrain)) / 100) * 100);
 }
+
+/**
+ * Quem dá o nome a cada setor: cada patrocínio do estádio escolhe um setor (determinístico pelo id da empresa, sem repetir; os que
+ * não cabem ficam sem setor), por isso o nome de uma bancada não muda quando outro patrocínio acaba.
+ */
+export function sectorSponsors(companies: string[]): Partial<Record<StadiumSector, string>> {
+  const out: Partial<Record<StadiumSector, string>> = {};
+  for (const id of [...new Set(companies)].sort()) {
+    let h = 0;
+    for (const ch of id) h = (h * 31 + ch.charCodeAt(0)) >>> 0;
+    for (let i = 0; i < STADIUM_SECTORS.length; i++) {
+      const sector = STADIUM_SECTORS[(h + i) % STADIUM_SECTORS.length] as StadiumSector;
+      if (!out[sector]) { out[sector] = id; break; }
+    }
+  }
+  return out;
+}
+
+/** Os patrocínios do estádio: o de maior valor dá o nome ao estádio (o original nunca se perde) e os outros às bancadas. */
+export function stadiumNaming(sponsorships: { company: string; annualValue: number }[]): { stadium?: string; sectors: Partial<Record<StadiumSector, string>> } {
+  const [first, ...rest] = [...sponsorships].sort((a, b) => b.annualValue - a.annualValue || a.company.localeCompare(b.company));
+  return { ...(first ? { stadium: first.company } : {}), sectors: sectorSponsors(rest.map((x) => x.company)) };
+}

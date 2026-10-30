@@ -10,6 +10,8 @@ import { useT } from "@/ui/i18n/LocaleProvider";
 
 type Sector = StadiumPageData["sectors"][number];
 type SectorId = Sector["id"];
+/** Nome da bancada: «Bancada Este», ou «Bancada Martins Digital» se uma empresa lhe dá o nome. */
+const nameOf = (t: ReturnType<typeof useT>["t"], s: Sector) => (s.sponsor ? t(`stadium.sectorNamed.${s.id}` as Key, { name: s.sponsor.name }) : t(`stadium.sector.${s.id}` as Key));
 type Quote = { cost: number; clubCost: number; councilShare: number; months: number; maxSeats: number };
 
 const W = 880, H = 600, CX = 440, CY = 300;
@@ -37,7 +39,7 @@ type Open = SectorId | "pitch" | undefined;
  * cobertura e a expansibilidade que ainda resta. Qualquer clube se vê; só o clube do gamer tem os tracejados (a área de expansão) e o «+»
  * que abrem o pedido de obra, preço e cobertura.
  */
-export function StadiumPlan({ club, compact = false }: { club: string; compact?: boolean }) {
+export function StadiumPlan({ club, compact = false, header }: { club: string; compact?: boolean; /** Cabeçalho que precisa dos dados do estádio (nome, patrocinador). */ header?: (d: StadiumPageData) => React.ReactNode }) {
   const { t, locale } = useT();
   const engine = useEngine();
   const [data, setData] = useState<StadiumPageData | null | undefined>(undefined);
@@ -116,6 +118,7 @@ export function StadiumPlan({ club, compact = false }: { club: string; compact?:
 
   return (
     <div className={`estadio-plano${compact ? " compacto" : ""}`} data-testid="stadium-plan">
+      {header?.(d)}
       <div className="planta-rolagem"><div className="planta" role="group" aria-label={t("stadium.plan")}>
         <svg viewBox={`0 0 ${W} ${H}`} className="planta-svg" aria-hidden="true">
           <defs>
@@ -179,7 +182,7 @@ export function StadiumPlan({ club, compact = false }: { club: string; compact?:
           const at = TEXT_AT[id], room = Math.max(0, s.max - s.seats);
           return (
             <div key={`t-${id}`} className="planta-bancada-texto" style={{ left: pctX(at.x), top: pctY(at.y) }} data-testid={`planta-texto-${id}`}>
-              <b>{t(`stadium.sector.${id}` as Key)}</b>
+              <b>{nameOf(t, s)}</b>
               <span>{s.rings === 1 ? t("stadium.seatsRing1", { seats: num.format(s.seats) }) : t("stadium.seatsRings", { seats: num.format(s.seats), rings: s.rings })}</span>
               <span>{`${eur2(d.basePrice * s.price)} · ${t(s.covered ? "stadium.coveredShort" : "stadium.uncoveredShort")}`}</span>
               <small className="suave">{room > 0 ? t("stadium.expandability") : t("stadium.atMax")}</small>
@@ -201,7 +204,7 @@ export function StadiumPlan({ club, compact = false }: { club: string; compact?:
       {d.works && <p className="suave">{t(d.works.kind === "cover" ? "stadium.works.cover" : "stadium.works.ongoing", { seats: num.format(d.works.seats), sector: t(`stadium.sector.${d.works.sector}` as Key).toLowerCase(), end: day(d.works.end) })}</p>}
 
       {own && open && (
-        <PlanDialog onClose={() => setOpen(undefined)} title={sector ? t("stadium.popup.order", { sector: t(`stadium.sector.${sector.id}` as Key) }) : t("stadium.turf")}>
+        <PlanDialog onClose={() => setOpen(undefined)} title={sector ? t("stadium.popup.order", { sector: nameOf(t, sector) }) : t("stadium.turf")}>
           {sector ? (
             <form className="formulario coluna" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
               <label>
