@@ -7,7 +7,8 @@ import { isInSecondDistrict } from "./districts";
 /** Id de `ScheduledMatch.venue` para o Estádio Nacional (os outros são ids de clubes, cujo estádio recebe o jogo). */
 export const NATIONAL_STADIUM = "national";
 
-export type Stadium = { name: string; locality: string; capacity: number };
+/** `name` é sempre o original; `sponsor` é a empresa que lhe dá o nome (se houver). */
+export type Stadium = { name: string; locality: string; capacity: number; sponsor?: string };
 
 const nationalStadium = (params: Params): Stadium => params.cups.nationalStadium;
 

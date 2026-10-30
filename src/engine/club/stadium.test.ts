@@ -47,6 +47,21 @@ describe("estádio (RZ-116)", () => {
     aiStadiums(repo, data, rich, 1, "2027-06-30", new Map<string, Tier>(data.clubs.map((c) => [c.id, c.tier])));
     expect(repo.recentEvents({ types: ["STADIUM_WORKS_STARTED"] }).length).toBeGreaterThan(10);
   }, 60000);
+  it("os clubes do computador sobem o preço de setores cheios, baixam o dos vazios e também fazem coberturas", () => {
+    const repo = fresh("estadio-ia-preco");
+    const other = data.clubs.find((c) => c.id !== club.id)!;
+    repo.setMeta(`stadium.fill.${other.id}`, JSON.stringify({ north: 1, south: 0.2, side: 0.7 }));
+    const rich = { ...P, stadium: { ...P.stadium, ai: { ...P.stadium.ai, occupancy: 99 } } };
+    aiStadiums(repo, data, rich, 1, "2027-06-30", new Map<string, Tier>(data.clubs.map((c) => [c.id, c.tier])));
+    const s = stadiumState(repo, other, P);
+    expect(s.price?.north).toBeCloseTo(1 + P.stadium.ai.price.step, 5);
+    expect(s.price?.south).toBeCloseTo(1 - P.stadium.ai.price.step, 5);
+    expect(s.price?.side ?? 1).toBe(1);
+    const eager = { ...P, stadium: { ...P.stadium, ai: { ...P.stadium.ai, occupancy: 0, probability: 1, cashCover: 0, cover: 1 } } };
+    for (const c of data.clubs) repo.setMeta(`balance.${c.id}`, "100000000");
+    aiStadiums(repo, data, eager, 2, "2028-06-30", new Map<string, Tier>(data.clubs.map((c) => [c.id, c.tier])));
+    expect(stadiumState(repo, other, P).works?.kind).toBe("cover");
+  }, 60000);
   it("terreno apertado encarece a obra", () => {
     const tight = { ...club, stadium: { ...club.stadium, location: { ...club.stadium.location, expansionTerrain: 0 } } };
     const roomy = { ...club, stadium: { ...club.stadium, location: { ...club.stadium.location, expansionTerrain: 100 } } };

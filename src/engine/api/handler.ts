@@ -34,7 +34,7 @@ import { startSession, changeSessionTactic, sessionStep, currentSession, substit
 import { isInSecondDistrict } from "../season/districts";
 import { syncGamerCoach } from "../club/coaches";
 import { makeStadiumRequest } from "../council/requests";
-import { lastFill, priceOf, ringsOf, sectorMax, quoteWorks, sellingSectors, setSectorPrice, startWorks, stadiumCapacity, stadiumState, stadiumTotalOf, stadiumNaming, treatTurf, turfCosts, turfOf } from "../club/stadium";
+import { lastFill, priceOf, ringsOf, sectorMax, quoteWorks, sellingSectors, setSectorPrice, startWorks, stadiumCapacity, stadiumState, stadiumTotalOf, stadiumNaming, stadiumSponsor, treatTurf, turfCosts, turfOf } from "../club/stadium";
 import { STADIUM_SECTORS } from "../config/parameters";
 import { dismissStaff, hireStaff, ownStaff, seedStaffMarket, staffCandidates } from "../club/staff";
 import { acceptOffer, resign, isUnemployed, gamerOffers, startUnemployed } from "../season/coachMarket";
@@ -260,7 +260,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         city: { k: "city", id: c.city, name: city?.name ?? c.city },
         district: c.district, colours: c.colours, nickname: c.nickname, mascot: c.mascot, reputation: c.reputation,
         ...(rival ? { rival: { k: "club", id: rival.id, name: rival.name } as EntityRef } : {}),
-        stadium: (() => { const st = stadiumState(repository, c, params); return { name: c.stadium.name, capacity: stadiumCapacity(repository, c, params), ownership: c.stadium.ownership, sectors: st.sectors, ...(st.works ? { works: { sector: st.works.sector, seats: st.works.seats, cost: st.works.cost, councilPaid: st.works.councilPaid, end: st.works.end } } : {}) }; })(),
+        stadium: (() => { const st = stadiumState(repository, c, params); const sponsor = stadiumSponsor(repository, c.id, repository.meta("date.today") ?? undefined); return { name: c.stadium.name, ...(sponsor ? { sponsor } : {}), capacity: stadiumCapacity(repository, c, params), ownership: c.stadium.ownership, sectors: st.sectors, ...(st.works ? { works: { sector: st.works.sector, seats: st.works.seats, cost: st.works.cost, councilPaid: st.works.councilPaid, end: st.works.end } } : {}) }; })(),
         squad: view.squad(c.id),
         roles: view.roles({ club: c.id }),
         tier: c.tier,

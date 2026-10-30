@@ -124,7 +124,7 @@ export type LiveMeeting = { id: string; date: IsoDate; competition: string; seas
 
 /** O que se sabe do jogo além do que acontece em campo. Árbitro e transmissão entram quando existirem (RZ-218, RZ-222). */
 export type MatchInfo = {
-  stadium: { name: string; locality: string; capacity: number };
+  stadium: { name: string; locality: string; capacity: number; sponsor?: string };
   /** Adeptos no estádio (pré-visualização determinística; o valor registado é o mesmo). */
   attendance: number;
   referee?: string;

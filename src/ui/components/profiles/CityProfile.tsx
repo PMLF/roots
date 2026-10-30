@@ -10,6 +10,7 @@ import { CompanyCards } from "@/ui/components/profiles/CompanyCards";
 import { CouncilBudget } from "@/ui/components/profiles/CouncilBudget";
 import { LocalTalent } from "@/ui/components/profiles/LocalTalent";
 import { StadiumPlan } from "@/ui/components/profiles/StadiumPlan";
+import { stadiumLabel } from "@/ui/stadiumName";
 import { stadiumOwner } from "@/ui/components/profiles/StadiumTab";
 import { profileHref, TAB_URL } from "@/ui/links";
 import { EntityLink } from "@/ui/components/Link";
@@ -213,7 +214,7 @@ export function CityProfile({ d, locality }: { d: CityProfileData; locality?: Lo
   const clubColumns: Column<CityProfileData["clubs"][number]>[] = [
     { id: "club", title: t("column.club"), value: (c) => c.ref.name },
     { id: "league", title: t("club.division"), value: (c) => c.league },
-    { id: "stadium", title: t("card.stadium"), value: (c) => c.stadium.name },
+    { id: "stadium", title: t("card.stadium"), value: (c) => stadiumLabel(t, c.stadium.name, c.stadium.sponsor) },
     { id: "capacity", title: t("stadium.capacity"), value: (c) => c.stadium.capacity, numeric: true },
     { id: "ownership", title: t("stadium.ownership"), value: (c) => t(`ownership.${c.stadium.ownership}` as Key) },
   ];
@@ -259,7 +260,7 @@ export function CityProfile({ d, locality }: { d: CityProfileData; locality?: Lo
   const stadiums = (
     <div className="cartoes">
       {d.clubs.length > 0 ? d.clubs.map((c) => (
-        <Card key={c.ref.id} title={<EntityLink k="club" id={c.ref.id}>{c.stadium.name}</EntityLink>} wide={d.clubs.length === 1}>
+        <Card key={c.ref.id} title={<EntityLink k="club" id={c.ref.id}>{stadiumLabel(t, c.stadium.name, c.stadium.sponsor)}</EntityLink>} wide={d.clubs.length === 1}>
           <p className="suave">{t("stadium.owner", { owner: stadiumOwner(t, c.stadium.ownership, c.ref.name, d.name) })} · {n.format(c.stadium.capacity)} {t("stadium.places")}</p>
           <StadiumPlan club={c.ref.id} compact />
           <p><Link href={`${profileHref("club", c.ref.id)}&tab=${TAB_URL.stadium}`}>{t("stadium.openTab")}</Link></p>
