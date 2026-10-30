@@ -4,7 +4,8 @@ import type { Tier } from "../config/parameters";
 import { data, fresh } from "../squad/testWorld.testlib";
 import { clubBalance } from "./finances";
 import { dailyCouncil, makeStadiumRequest, requestsOf } from "../council/requests";
-import { aiStadiums, dailyStadium, defaultSectors, quoteWorks, stadiumCapacity, stadiumState, startWorks } from "./stadium";
+import { matchAttendance } from "./attendance";
+import { aiStadiums, dailyStadium, defaultSectors, quoteWorks, sellingSectors, setSectorPrice, stadiumCapacity, stadiumState, startWorks, summerTurf, treatTurf, turfOf, wearTurf } from "./stadium";
 
 const club = data.clubs.find((c) => c.stadium.ownership === "municipal" && c.tier === "firstLeague") ?? data.clubs.find((c) => c.stadium.ownership === "municipal")!;
 
@@ -62,5 +63,63 @@ describe("estádio (RZ-116)", () => {
     const done = requestsOf(repo).find((x) => x.id === asked.request.id)!;
     expect(done.status).not.toBe("pending");
     expect(clubBalance(repo, club)).toBe(done.status === "approved" ? cash + asked.request.cost : cash);
+  }, 60000);
+  it("por setor, a preço normal e sem coberturas, vende-se o mesmo que no modelo simples", () => {
+    const repo = fresh("estadio-setores");
+    const away = data.clubs.find((c) => c.id !== club.id && c.tier === club.tier)!;
+    const simple = matchAttendance({ home: club, away, footballCulture: 50 }, P);
+    const sectors = matchAttendance({ home: club, away, footballCulture: 50, sectors: sellingSectors(repo, club, P), month: 4 }, P);
+    expect(Math.abs(sectors.attendance - simple.attendance) / simple.attendance).toBeLessThan(0.03);
+    expect(Math.abs(sectors.revenue - simple.revenue) / simple.revenue).toBeLessThan(0.03);
+  }, 60000);
+  it("preço mais alto afasta gente; o coberto aguenta mais e enche mais no inverno", () => {
+    const repo = fresh("estadio-precos");
+    const away = data.clubs.find((c) => c.id !== club.id && c.tier === club.tier)!;
+    const base = sellingSectors(repo, club, P);
+    const at = (sectors: typeof base, month = 4) => matchAttendance({ home: club, away, footballCulture: 50, sectors, month }, P);
+    const dear = base.map((x) => ({ ...x, price: 1.8 }));
+    expect(at(dear).attendance).toBeLessThan(at(base).attendance);
+    const roofed = base.map((x) => ({ ...x, covered: true }));
+    expect(at(roofed, 12).attendance).toBeGreaterThan(at(base, 12).attendance);
+    expect(at(roofed.map((x) => ({ ...x, price: 1.2 }))).attendance).toBeGreaterThanOrEqual(at(base.map((x) => ({ ...x, price: 1.2 }))).attendance);
+    expect(setSectorPrice(repo, P, club, "north", 9)).toBe(P.stadium.pricing.max);
+    expect(sellingSectors(repo, club, P).find((x) => x.id === "north")!.price).toBe(P.stadium.pricing.max);
+  }, 60000);
+  it("a cobertura é uma obra que não fecha lugares e no fim cobre o setor", () => {
+    const repo = fresh("estadio-cobertura");
+    const r = startWorks(repo, P, club, "central", 0, "2026-08-01", 1, { kind: "cover" });
+    if (!r.ok) throw new Error(r.reason);
+    expect(stadiumCapacity(repo, club, P)).toBe(club.stadium.capacity);
+    expect(startWorks(repo, P, club, "side", 0, "2026-08-02", 1, { kind: "cover" })).toEqual({ ok: false, reason: "ongoing" });
+    dailyStadium(repo, data, P, r.end, 1);
+    expect(stadiumState(repo, club, P).covered?.central).toBe(true);
+    expect(startWorks(repo, P, club, "central", 0, "2027-01-01", 1, { kind: "cover" })).toEqual({ ok: false, reason: "covered" });
+  }, 60000);
+  it("o relvado do gamer desgasta em casa (mais no inverno), trata-se com dinheiro e recupera no verão", () => {
+    const repo = fresh("estadio-relvado");
+    repo.setMeta("gamer.club", club.id);
+    expect(turfOf(stadiumState(repo, club, P), P)).toBe(P.stadium.turf.start);
+    wearTurf(repo, club, P, 4);
+    const spring = turfOf(stadiumState(repo, club, P), P);
+    wearTurf(repo, club, P, 12);
+    const winter = turfOf(stadiumState(repo, club, P), P);
+    expect(spring).toBeLessThan(P.stadium.turf.start);
+    expect(spring - winter).toBeGreaterThan(P.stadium.turf.wearPerMatch);
+    const cash = clubBalance(repo, club);
+    const t = treatTurf(repo, P, club, "treat");
+    if (!t.ok) throw new Error(t.reason);
+    expect(turfOf(stadiumState(repo, club, P), P)).toBeGreaterThan(winter);
+    expect(clubBalance(repo, club)).toBe(cash - t.cost);
+    const r = treatTurf(repo, P, club, "replace");
+    if (!r.ok) throw new Error(r.reason);
+    expect(turfOf(stadiumState(repo, club, P), P)).toBe(P.stadium.turf.replaceTo);
+    expect(treatTurf(repo, P, club, "replace")).toEqual({ ok: false, reason: "perfect" });
+    repo.setMeta(`stadium.${club.id}`, JSON.stringify({ ...stadiumState(repo, club, P), turf: 0.1 }));
+    summerTurf(repo, data, P, club.id);
+    expect(turfOf(stadiumState(repo, club, P), P)).toBe(P.stadium.turf.start);
+    // outros clubes não gastam o relvado
+    const other = data.clubs.find((c) => c.id !== club.id)!;
+    wearTurf(repo, other, P, 12);
+    expect(turfOf(stadiumState(repo, other, P), P)).toBe(P.stadium.turf.start);
   }, 60000);
 });

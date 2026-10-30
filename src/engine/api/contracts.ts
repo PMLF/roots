@@ -10,7 +10,7 @@ import type { ClubSeason } from "../competition/clubSeason";
 import type { FormationId, Tactic } from "../match/types";
 import type { Decision } from "../news/decisions";
 import type { StadiumSector } from "../config/parameters";
-import type { WorksResult } from "../club/stadium";
+import type { TurfResult, WorksResult } from "../club/stadium";
 import type { OwnStaff, StaffCandidate, StaffResult } from "../club/staff";
 import type { NewsScope, Message as InboxMessage, NewsItem } from "../news/news";
 import type { LiveMatch } from "../season/liveMatch";
@@ -377,6 +377,23 @@ export type LocalityProfileData = {
 export type ViewCityLevel = 1 | 2 | 3 | 4 | 5;
 type CouncilTrend = "up2" | "up1" | "stable" | "down1" | "down2";
 export type CouncilAreaId = "sport" | "health" | "education" | "mobility" | "housing" | "safety" | "leisure";
+/** Página do estádio do clube do gamer (RZ-116): planta por setores, relvado e obra em curso. */
+export type StadiumPageData = {
+  club: { id: string; name: string };
+  name: string;
+  ownership: "club" | "municipal" | "shared";
+  tier: string;
+  capacity: number;
+  built: number;
+  /** 0-100: quanto terreno há para expandir. */
+  terrain: number;
+  /** Preço do bilhete do escalão (€), antes do múltiplo de cada setor. */
+  basePrice: number;
+  sectors: { id: StadiumSector; seats: number; open: number; covered: boolean; price: number; fill?: number; coverCost: number }[];
+  works?: { kind: "expand" | "cover"; sector: StadiumSector; seats: number; cost: number; end: string };
+  turf: { value: number; treatCost: number; replaceCost: number };
+  limits: { priceMin: number; priceMax: number; minSeats: number; maxSeats: number };
+};
 export type CouncilKindId = "youth" | "matchday" | "subsidy";
 export type CouncilHistoryKind = CouncilKindId | "stadium";
 export type CouncilReplyView = { approved: boolean; reason: "priority" | "relation" | "visibility" | "generic" | "noBudget" | "notPriority" | "poorRelation" | "expensive"; tone: "vain" | "ambitious" | "humble" | "plain"; amount: number };
@@ -596,8 +613,11 @@ export type EngineRequests = {
   resign: { input: null; output: { club: string } };
   /** Mercado de staff (RZ-208): profissionais livres de uma função, com a qualidade estimada. */
   staffMarket: { input: { fn: string }; output: StaffCandidate[] };
-  stadiumQuote: { input: { sector: StadiumSector; seats: number }; output: { cost: number; clubCost: number; councilShare: number; months: number; maxSeats: number } | null };
-  startStadiumWorks: { input: { sector: StadiumSector; seats: number; askCouncil?: boolean }; output: WorksResult };
+  stadiumPage: { input: null; output: StadiumPageData | null };
+  setStadiumPrice: { input: { sector: StadiumSector; price: number }; output: { price: number } };
+  treatTurf: { input: { kind: "treat" | "replace" }; output: TurfResult };
+  stadiumQuote: { input: { sector: StadiumSector; seats: number; kind?: "expand" | "cover" }; output: { cost: number; clubCost: number; councilShare: number; months: number; maxSeats: number } | null };
+  startStadiumWorks: { input: { sector: StadiumSector; seats: number; kind?: "expand" | "cover"; askCouncil?: boolean }; output: WorksResult };
   ownStaff: { input: Record<string, never>; output: OwnStaff[] };
   hireStaff: { input: { person: string }; output: StaffResult };
   dismissStaff: { input: { person: string }; output: StaffResult };

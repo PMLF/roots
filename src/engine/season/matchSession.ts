@@ -15,7 +15,7 @@ import type { Position } from "../world/types";
 import type { IsoDate } from "../persistence/types";
 import { matchReferee } from "../match/matchContext";
 import { europeSlots, type EuropeSlots } from "../europe/access";
-import { matchTicket, postTicketing, matchContext, coloursOf, teamForMatch, beforeTable, zonesOf, flagsOf, inputFlags, carryFor } from "./advance";
+import { turfFor, matchTicket, postTicketing, matchContext, coloursOf, teamForMatch, beforeTable, zonesOf, flagsOf, inputFlags, carryFor } from "./advance";
 import { SESSION_KEY, xgCurve, matchTeams, type LiveMeeting, type MatchInfo, saveLiveMatch, matchLines, type LiveMatch, type LiveTableLine, type OtherLiveMatch } from "./liveMatch";
 import { seasonData } from "./seasonPyramid";
 import { rivalEvent, rivalReason } from "./rivals";
@@ -139,7 +139,7 @@ export function startSession(repo: Repository, base: BaseData, params: Params, g
     if (o.id === g.id || o.competition !== g.competition || repo.match(o.id)) continue;
     const ec = teamForMatch(repo, o.home, o.competition, season, o.round, today, seed, params, undefined, data);
     const ef = teamForMatch(repo, o.away, o.competition, season, o.round, today, seed, params, undefined, data);
-    const r = playMatch({ seed, id: o.id, home: ec, away: ef, ...inputFlags(o), ...carryFor(repo, o) }, 1, { id: o.id, competition: o.competition, season, round: o.round, date: today }, params);
+    const r = playMatch({ seed, id: o.id, home: ec, away: ef, ...inputFlags(o), ...carryFor(repo, o), ...turfFor(repo, data, params, o) }, 1, { id: o.id, competition: o.competition, season, round: o.round, date: today }, params);
     others.push({ id: o.id, home: { id: o.home, name: names.get(o.home) ?? o.home }, away: { id: o.away, name: names.get(o.away) ?? o.away }, duration: r.report.duration, goals: r.report.goals.map((x) => ({ minute: x.minute, side: x.side })), homeGoals: r.report.homeGoals, awayGoals: r.report.awayGoals, ...(r.report.extraTime ? { extraTime: true } : {}), ...(r.report.shootout ? { shootout: { home: r.report.shootout.home, away: r.report.shootout.away } } : {}) });
   }
   // as taças não têm tabela (a 1.ª mão das meias-finais não é «knockout» mas também não tem classificação)
@@ -147,7 +147,7 @@ export function startSession(repo: Repository, base: BaseData, params: Params, g
   const shown = [g.home, g.away, ...table.map((l) => l.club), ...others.flatMap((o) => [o.home.id, o.away.id])];
   const flags = flagsOf(g);
   const s: SavedSession = {
-    match: g.id, competition: g.competition, round: g.round, season, date: today, side, input: { seed, id: g.id, home, away, ...inputFlags(g), ...carryFor(repo, g) }, changes: [], minute: 0, ...(Object.keys(flags).length > 0 ? { flags } : {}),
+    match: g.id, competition: g.competition, round: g.round, season, date: today, side, input: { seed, id: g.id, home, away, ...inputFlags(g), ...carryFor(repo, g), ...turfFor(repo, data, params, g) }, changes: [], minute: 0, ...(Object.keys(flags).length > 0 ? { flags } : {}),
     table, others, winPoints: params.standings.winPoints, drawPoints: params.standings.drawPoints, colours: coloursOf(data, shown), tiers: tiersOf(data, shown), zones: zonesOf(data, params, gamerClub, europeSlots(repo, data, params, season)),
     ...matchContext(repo, data, params, g.home, g.away, g.competition, g.id, flags),
   };
@@ -253,7 +253,7 @@ function finish(repo: Repository, data: BaseData, params: Params, s: SavedSessio
     const rival = gamer ? rivalReason(repo, data, params, s.competition, s.season, gamer, s.input.home.club === gamer ? s.input.away.club : s.input.home.club) : undefined;
     const ticket = matchTicket(data, params, s.input.home.club, s.input.away.club, s.competition, s.flags ?? {}, { repo, date: s.date });
     const { event } = repo.recordMatch({ ...r.record.match, referee: matchReferee(s.input.seed, s.match), ...(ticket ? { attendance: ticket.attendance, revenue: ticket.revenue } : {}) }, r.record.facts, r.record.appearances);
-    if (ticket) postTicketing(repo, ticket);
+    if (ticket) postTicketing(repo, ticket, params, s.date);
     if (rival) repo.appendEvent(rivalEvent(s.match, s.input.home.club, s.input.away.club, s.date, s.season, s.round, event, rival));
     for (const l of r.record.injuries) repo.appendEvent({ ...adjustInjury(repo, data, params, l), cause: event });
     for (const h of r.stories) repo.appendEvent({ ...h, cause: event });

@@ -198,6 +198,7 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
     case "STADIUM_WORKS_STARTED": case "STADIUM_WORKS_DONE": {
       // obras: notícia no teu clube e, quando ficam prontas, também na Primeira Liga
       const top = club ? c.data.clubs.find((b) => b.id === club.id)?.tier === "firstLeague" : false;
+      if (d.kind === "cover") return undefined;
       if (!club || (!our && !(top && e.type === "STADIUM_WORKS_DONE"))) return undefined;
       return base(e.type === "STADIUM_WORKS_STARTED" ? "stadium_works" : "stadium_opened", { club: c.clubName(club.id), seats: within(d.seats), sector: String(d.sector ?? ""), cost: within(d.cost), capacity: within(d.capacity) }, [lc(club.id)]);
     }
