@@ -4,7 +4,7 @@ Fatia fina do motor. Código em `src/engine/company/`; parâmetros em `companies
 
 ## Entidades
 - **Empresa** (`company`): id `coNNNNN`, nome fictício, `sector` (construction, banking, retail, food, industry, technology, tourism, media, energy, transport, agriculture, health), `scale` (local, regional, national, international), cidade, dono (pessoa com cargo `businessperson`), `capital` (verdade oculta: capacidade de negócio), ano de fundação, estado `active|closed`.
-- **Patrocínio** (`sponsorship`): empresa ↔ clube, tipo `shirt|stadium|youth`, valor anual, início, fim (30 de junho), `ended` se rescindido.
+- **Patrocínio** (`sponsorship`): empresa ↔ clube, tipo `shirt|stadium|stand|youth` (`stadium` dá o nome ao estádio, `stand` dá o nome a uma bancada; os extras de estádio também nomeiam bancadas), valor anual, início, fim (30 de junho), `ended` se rescindido.
 
 ## Geração
 - Nº de empresas por cidade = `base + porDécada × log10(população / 15 000)`; setor pesado pelo setor da cidade (`CITY_BIAS`), escala pelo tamanho da cidade.

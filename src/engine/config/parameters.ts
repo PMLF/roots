@@ -855,8 +855,8 @@ export type Params = {
     evolution: { growth: number; economyEffect: number; sigma: number; closureProbability: number; lowCapitalShare: number; lowCapitalClosure: number; foundingRate: number };
     sponsorship: {
       /** Tipos de patrocínio que o clube de cada escalão oferece e a quota de cada um no total do escalão. */
-      slots: Record<Tier, ("shirt" | "stadium" | "youth")[]>;
-      kindShare: Record<"shirt" | "stadium" | "youth", number>;
+      slots: Record<Tier, ("shirt" | "stadium" | "stand" | "youth")[]>;
+      kindShare: Record<"shirt" | "stadium" | "stand" | "youth", number>;
       /** Desvio do logaritmo do valor negociado. */
       valueSigma: number;
       extra: { startRatio: number; perRatio: number; max: Record<Tier, number>; valueShare: number };
@@ -1515,8 +1515,9 @@ export const DEFAULT_PARAMETERS: Params = {
     },
     evolution: { growth: 0.03, economyEffect: 0.06, sigma: 0.18, closureProbability: 0.012, lowCapitalShare: 0.15, lowCapitalClosure: 0.15, foundingRate: 0.5 },
     sponsorship: {
-      slots: { firstLeague: ["shirt", "stadium", "youth"], secondLeague: ["shirt", "stadium", "youth"], thirdLeague: ["shirt", "stadium"], cp: ["shirt", "stadium"], district: ["shirt"] },
-      kindShare: { shirt: 0.6, stadium: 0.25, youth: 0.15 },
+      slots: { firstLeague: ["shirt", "stadium", "stand", "youth"], secondLeague: ["shirt", "stadium", "stand", "youth"], thirdLeague: ["shirt", "stadium", "stand"], cp: ["shirt", "stadium", "stand"], district: ["shirt"] },
+      /** «stand» = patrocínio de uma bancada (dá-lhe o nome); sai da quota do resto, o total do escalão não muda. */
+      kindShare: { shirt: 0.52, stadium: 0.2, stand: 0.13, youth: 0.15 },
       valueSigma: 0.15,
       /** Contratos extra por reputação acima da normal do escalão (RZ-311): um a partir de `startRatio`, mais um por cada `perRatio`; cada extra vale `valueShare` do valor de referência do tipo. */
       extra: { startRatio: 1, perRatio: 0.45, max: { firstLeague: 4, secondLeague: 3, thirdLeague: 2, cp: 2, district: 1 }, valueShare: 0.4 },

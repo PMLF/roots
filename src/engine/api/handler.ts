@@ -482,7 +482,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (!club) return null;
       const s = stadiumState(repository, club, params), fill = lastFill(repository, club.id), open = new Map(sellingSectors(repository, club, params).map((x) => [x.id, x.seats]));
       const costs = turfCosts(params, club);
-      const naming = stadiumNaming(repository.clubSponsorships(club.id, repository.meta("date.today") ?? undefined).filter((x) => x.kind === "stadium"));
+      const naming = stadiumNaming(repository.clubSponsorships(club.id, repository.meta("date.today") ?? undefined).filter((x) => x.kind === "stadium" || x.kind === "stand"));
       const named = naming.sectors;
       const stadiumCo = naming.stadium ? repository.company(naming.stadium) : undefined;
       return {
