@@ -16,11 +16,13 @@ export type StadiumState = {
   price?: Partial<Record<StadiumSector, number>>;
   /** Estado do relvado, 0-1 (`params.stadium.turf.start` por omissão). */
   turf?: number;
+  /** Relvado natural (por omissão) ou sintético (valor fixo, sem desgaste). */
+  turfType?: "natural" | "synthetic";
 };
 
 export const saveStadium = (repo: Repository, club: string, s: StadiumState): void => repo.setMeta(key(club), JSON.stringify(s));
 export const priceOf = (s: StadiumState, sector: StadiumSector): number => s.price?.[sector] ?? 1;
-export const turfOf = (s: StadiumState, params: Params): number => s.turf ?? params.stadium.turf.start;
+export const turfOf = (s: StadiumState, params: Params): number => (s.turfType === "synthetic" ? params.stadium.turf.syntheticValue : (s.turf ?? params.stadium.turf.start));
 
 /** Os setores tal como se vendem num jogo em casa deste mês: lugares abertos, preço, cobertura e procura relativa. */
 export function sellingSectors(repo: Repository, club: BaseClub, params: Params): { id: StadiumSector; seats: number; price: number; covered: boolean }[] {
@@ -51,3 +53,16 @@ export function stadiumCapacity(repo: Repository, club: BaseClub, params: Params
 
 /** Lugares construídos (mesmo com a obra em curso a fechar parte deles): é o que se paga de manutenção. */
 export const stadiumTotal = (repo: Repository, club: BaseClub, params: Params): number => stadiumTotalOf(stadiumState(repo, club, params));
+
+/** Lugares de um anel desta bancada: o valor normal, ou metade do que o setor tinha ao início se o estádio já era grande (parte-se de dois anéis). */
+export const ringSeats = (params: Params, club: BaseClub, sector: StadiumSector): number =>
+  Math.max(params.stadium.rings.seatsPerRing[sector], Math.ceil(defaultSectors(club.stadium.capacity, params)[sector] / 2));
+
+/** Anéis de uma bancada com estes lugares (pelo menos um). */
+export const ringsOf = (params: Params, club: BaseClub, sector: StadiumSector, seats: number): number => Math.max(1, Math.ceil(seats / ringSeats(params, club, sector)));
+
+/** Máximo de lugares que o setor pode ter: anéis máximos × lugares por anel, reduzido pelo pouco terreno (nunca abaixo do que já tem). */
+export function sectorMax(params: Params, club: BaseClub, sector: StadiumSector, current: number): number {
+  const r = params.stadium.rings, terrain = Math.min(100, Math.max(0, club.stadium.location.expansionTerrain)) / 100;
+  return Math.max(current, Math.round((ringSeats(params, club, sector) * r.max * (r.terrainFloor + (1 - r.terrainFloor) * terrain)) / 100) * 100);
+}

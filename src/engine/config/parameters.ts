@@ -411,8 +411,10 @@ export type Params = {
     tierCost: Record<Tier, number>;
     /** Obra: sobrecusto com terreno nulo para expandir (o custo sobe `penalty × (1 − terreno/100)`), mínimo de lugares, crescimento máximo da capacidade total por obra, capacidade máxima, lugares construídos por mês, duração mínima (meses) e fração do setor fechada durante a obra. */
     works: { terrainPenalty: number; minSeats: number; maxGrowth: number; maxCapacity: number; seatsPerMonth: number; minMonths: number; closedShare: number };
-    /** Relvado (0-1): valor inicial (0,5 = neutro para as lesões), desgaste por jogo em casa (×`winter` nos meses de inverno), recuperação natural no verão até ao valor inicial, tratamento (ganho e custo) e substituição (valor final e custo). Só o relvado do clube do gamer desgasta (os outros mantêm-se no valor inicial). Custos são do escalão mais alto e escalam com `tierCost`. */
-    turf: { start: number; wearPerMatch: number; winter: number; winterMonths: number[]; treatGain: number; treatCost: number; replaceTo: number; replaceCost: number };
+    /** Relvado (0-1): valor inicial (0,5 = neutro para as lesões), desgaste por jogo em casa (×`winter` nos meses de inverno), recuperação natural no verão até ao valor inicial, tratamento (ganho e custo) e substituição (valor final e custo). Relvado sintético: valor fixo e sem desgaste, e custo de o instalar. Só o relvado do clube do gamer desgasta (os outros mantêm-se no valor inicial). Custos são do escalão mais alto e escalam com `tierCost`. */
+    turf: { start: number; wearPerMatch: number; winter: number; winterMonths: number[]; treatGain: number; treatCost: number; replaceTo: number; replaceCost: number; syntheticValue: number; syntheticCost: number };
+    /** Anéis (níveis) das bancadas: lugares por anel de cada setor, máximo de anéis e fração do máximo que sobra com terreno nulo (o terreno 100 dá o máximo). Define quanto cada setor ainda pode crescer. */
+    rings: { seatsPerRing: Record<StadiumSector, number>; max: number; terrainFloor: number };
     /** Cobertura e preço por setor: custo da cobertura por lugar, bónus de ocupação do coberto (e extra nos meses de mau tempo), prémio de preço que o coberto aguenta, elasticidade da procura ao preço, limites do preço (múltiplo do preço do escalão) e procura relativa de cada setor. */
     pricing: { coverCostPerSeat: number; coverMonths: number; coverBoost: number; badWeatherMonths: number[]; badWeatherLoss: number; coverPremium: number; elasticity: number; min: number; max: number; demand: Record<StadiumSector, number> };
     /** Fração do custo paga pela Câmara conforme a propriedade do estádio. */
@@ -1202,7 +1204,8 @@ export const DEFAULT_PARAMETERS: Params = {
     costPerSeat: { central: 450, side: 300, north: 220, south: 220 },
     tierCost: { firstLeague: 1.3, secondLeague: 1.1, thirdLeague: 1, cp: 0.85, district: 0.7 },
     works: { terrainPenalty: 1, minSeats: 100, maxGrowth: 0.5, maxCapacity: 60000, seatsPerMonth: 500, minMonths: 3, closedShare: 0.4 },
-    turf: { start: 0.5, wearPerMatch: 0.015, winter: 1.5, winterMonths: [11, 12, 1, 2, 3], treatGain: 0.15, treatCost: 4000, replaceTo: 0.95, replaceCost: 60000 },
+    turf: { start: 0.5, wearPerMatch: 0.015, winter: 1.5, winterMonths: [11, 12, 1, 2, 3], treatGain: 0.15, treatCost: 4000, replaceTo: 0.95, replaceCost: 60000, syntheticValue: 0.6, syntheticCost: 150000 },
+    rings: { seatsPerRing: { central: 4000, side: 3000, north: 2500, south: 2500 }, max: 3, terrainFloor: 0.6 },
     pricing: { coverCostPerSeat: 160, coverMonths: 2, coverBoost: 0.05, badWeatherMonths: [11, 12, 1, 2, 3], badWeatherLoss: 0.12, coverPremium: 1.2, elasticity: 1.3, min: 0.5, max: 2, demand: { central: 1.1, side: 1, north: 0.95, south: 0.95 } },
     councilShare: { club: 0, municipal: 0.5, shared: 0.25 },
     ai: { occupancy: 0.7, probability: 0.25, growth: 0.15, cashCover: 2 },

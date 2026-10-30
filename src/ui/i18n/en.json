@@ -2042,5 +2042,22 @@
   "stadium.turf.replace": "Replace ({cost})",
   "stadium.turf.reason.cash": "The club cannot afford it.",
   "stadium.turf.reason.perfect": "The pitch is already as good as it gets.",
-  "stadium.reason.covered": "That section is already covered."
+  "stadium.reason.covered": "That section is already covered.",
+  "stadium.seatsRings": "{seats} seats · {rings} tiers",
+  "stadium.coveredShort": "covered",
+  "stadium.uncoveredShort": "uncovered",
+  "stadium.canGrow": "Can grow +{seats}",
+  "stadium.atMax": "At the maximum",
+  "stadium.maxSeats": "max {seats} seats",
+  "stadium.legend.rings": "Tiers",
+  "stadium.price": "Ticket price",
+  "stadium.roof": "Roof",
+  "stadium.ticketNow": "Now {price} ({factor}× the tier's); fill at the last match: {fill}.",
+  "stadium.turf.natural": "Natural pitch",
+  "stadium.turf.synthetic": "Synthetic pitch",
+  "stadium.turf.state": "Condition: {label} ({value})",
+  "stadium.turf.backNatural": "Back to natural ({cost})",
+  "stadium.turf.installSynthetic": "Install synthetic ({cost})",
+  "stadium.turf.reason.synthetic": "The pitch is already synthetic: it needs no treatment.",
+  "stadium.turf.reason.natural": "The pitch is already natural."
 }

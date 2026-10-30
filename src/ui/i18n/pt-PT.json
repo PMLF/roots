@@ -2042,5 +2042,22 @@
   "stadium.turf.replace": "Substituir ({cost})",
   "stadium.turf.reason.cash": "O clube não tem caixa para isso.",
   "stadium.turf.reason.perfect": "O relvado já está no máximo possível.",
-  "stadium.reason.covered": "Esse setor já está coberto."
+  "stadium.reason.covered": "Esse setor já está coberto.",
+  "stadium.seatsRings": "{seats} lugares · {rings} anéis",
+  "stadium.coveredShort": "coberta",
+  "stadium.uncoveredShort": "descoberta",
+  "stadium.canGrow": "Pode crescer +{seats}",
+  "stadium.atMax": "No máximo",
+  "stadium.maxSeats": "máximo {seats} lugares",
+  "stadium.legend.rings": "Anéis",
+  "stadium.price": "Preço do bilhete",
+  "stadium.roof": "Cobertura",
+  "stadium.ticketNow": "Agora {price} ({factor}× o do escalão); ocupação no último jogo: {fill}.",
+  "stadium.turf.natural": "Relvado natural",
+  "stadium.turf.synthetic": "Relvado sintético",
+  "stadium.turf.state": "Estado: {label} ({value})",
+  "stadium.turf.backNatural": "Voltar ao natural ({cost})",
+  "stadium.turf.installSynthetic": "Instalar sintético ({cost})",
+  "stadium.turf.reason.synthetic": "O relvado já é sintético: não precisa de tratamento.",
+  "stadium.turf.reason.natural": "O relvado já é natural."
 }

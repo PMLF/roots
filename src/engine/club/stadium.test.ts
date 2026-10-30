@@ -5,7 +5,7 @@ import { data, fresh } from "../squad/testWorld.testlib";
 import { clubBalance } from "./finances";
 import { dailyCouncil, makeStadiumRequest, requestsOf } from "../council/requests";
 import { matchAttendance } from "./attendance";
-import { aiStadiums, dailyStadium, defaultSectors, quoteWorks, sellingSectors, setSectorPrice, stadiumCapacity, stadiumState, startWorks, summerTurf, treatTurf, turfOf, wearTurf } from "./stadium";
+import { aiStadiums, dailyStadium, defaultSectors, quoteWorks, sellingSectors, setSectorPrice, ringSeats, ringsOf, sectorMax, stadiumCapacity, stadiumState, startWorks, summerTurf, treatTurf, turfOf, wearTurf } from "./stadium";
 
 const club = data.clubs.find((c) => c.stadium.ownership === "municipal" && c.tier === "firstLeague") ?? data.clubs.find((c) => c.stadium.ownership === "municipal")!;
 
@@ -121,5 +121,32 @@ describe("estádio (RZ-116)", () => {
     const other = data.clubs.find((c) => c.id !== club.id)!;
     wearTurf(repo, other, P, 12);
     expect(turfOf(stadiumState(repo, other, P), P)).toBe(P.stadium.turf.start);
+  }, 60000);
+  it("os anéis e o máximo de cada bancada limitam as obras", () => {
+    const repo = fresh("estadio-aneis");
+    const s = stadiumState(repo, club, P);
+    expect(ringsOf(P, club, "central", 1)).toBe(1);
+    expect(ringsOf(P, club, "central", ringSeats(P, club, "central") + 1)).toBe(2);
+    const max = sectorMax(P, club, "north", s.sectors.north);
+    expect(max).toBeGreaterThanOrEqual(s.sectors.north);
+    const room = max - s.sectors.north;
+    if (room >= P.stadium.works.minSeats) expect(startWorks(repo, P, club, "north", room + 1000, "2026-08-01", 1)).toEqual({ ok: false, reason: "tooBig" });
+    const tight = { ...club, stadium: { ...club.stadium, location: { ...club.stadium.location, expansionTerrain: 0 } } };
+    const roomy = { ...club, stadium: { ...club.stadium, location: { ...club.stadium.location, expansionTerrain: 100 } } };
+    expect(sectorMax(P, tight, "side", 0)).toBeLessThan(sectorMax(P, roomy, "side", 0));
+  }, 60000);
+  it("o relvado sintético não desgasta nem se trata, e volta-se ao natural a pagar", () => {
+    const repo = fresh("estadio-sintetico");
+    repo.setMeta("gamer.club", club.id);
+    const r = treatTurf(repo, P, club, "synthetic");
+    if (!r.ok) throw new Error(r.reason);
+    expect(turfOf(stadiumState(repo, club, P), P)).toBe(P.stadium.turf.syntheticValue);
+    wearTurf(repo, club, P, 12);
+    expect(turfOf(stadiumState(repo, club, P), P)).toBe(P.stadium.turf.syntheticValue);
+    expect(treatTurf(repo, P, club, "treat")).toEqual({ ok: false, reason: "synthetic" });
+    expect(treatTurf(repo, P, club, "synthetic")).toEqual({ ok: false, reason: "synthetic" });
+    const back = treatTurf(repo, P, club, "replace");
+    if (!back.ok) throw new Error(back.reason);
+    expect(stadiumState(repo, club, P).turfType).toBe("natural");
   }, 60000);
 });

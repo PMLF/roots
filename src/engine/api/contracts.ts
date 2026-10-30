@@ -389,10 +389,10 @@ export type StadiumPageData = {
   terrain: number;
   /** Preço do bilhete do escalão (€), antes do múltiplo de cada setor. */
   basePrice: number;
-  sectors: { id: StadiumSector; seats: number; open: number; covered: boolean; price: number; fill?: number; coverCost: number }[];
+  sectors: { id: StadiumSector; seats: number; open: number; rings: number; /** Máximo de lugares que o setor pode ter. */ max: number; covered: boolean; price: number; fill?: number; coverCost: number }[];
   works?: { kind: "expand" | "cover"; sector: StadiumSector; seats: number; cost: number; end: string };
-  turf: { value: number; treatCost: number; replaceCost: number };
-  limits: { priceMin: number; priceMax: number; minSeats: number; maxSeats: number };
+  turf: { value: number; type: "natural" | "synthetic"; treatCost: number; replaceCost: number; syntheticCost: number };
+  limits: { priceMin: number; priceMax: number; minSeats: number };
 };
 export type CouncilKindId = "youth" | "matchday" | "subsidy";
 export type CouncilHistoryKind = CouncilKindId | "stadium";
@@ -615,7 +615,7 @@ export type EngineRequests = {
   staffMarket: { input: { fn: string }; output: StaffCandidate[] };
   stadiumPage: { input: null; output: StadiumPageData | null };
   setStadiumPrice: { input: { sector: StadiumSector; price: number }; output: { price: number } };
-  treatTurf: { input: { kind: "treat" | "replace" }; output: TurfResult };
+  treatTurf: { input: { kind: "treat" | "replace" | "synthetic" }; output: TurfResult };
   stadiumQuote: { input: { sector: StadiumSector; seats: number; kind?: "expand" | "cover" }; output: { cost: number; clubCost: number; councilShare: number; months: number; maxSeats: number } | null };
   startStadiumWorks: { input: { sector: StadiumSector; seats: number; kind?: "expand" | "cover"; askCouncil?: boolean }; output: WorksResult };
   ownStaff: { input: Record<string, never>; output: OwnStaff[] };
