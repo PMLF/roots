@@ -322,6 +322,7 @@ Prioridade para lançar depressa uma versão para amigos. Ordem de trabalho: **R
 
 ## 11. Parking lot (ideias por entrar)
 
+- Tempo atmosférico real (chuva, calor) a mexer na assistência e no relvado, em vez de usar só os meses (RZ-116, 30-10-2026).
 - **Profissão como estado do jogador (22-10-2026).** O RZ-318 deriva a profissão por função estável; falta guardá-la (`occupation` na pessoa), deixar o jogador mudar de emprego ou perdê-lo, e ligá-la a lesões (trabalho físico), tempo disponível e vontade de subir de escalão (largar o emprego).
 - **Assistente de nova save: mapa e filtro por rivalidade (22-10-2026).** O RZ-138 escolhe o clube por lista, filtros e ficha-resumo; falta o mapa do país com os clubes e um filtro «tem rival forte na mesma região».
 - **Cidade em 3D (prova de conceito; 22-10-2026, a explorar depois do MVP).** «A minha cidade» como cena three.js simples e *blocky* (React Three Fiber): Câmara, estádio, campo de treinos, autocarro do clube e sede como edifícios clicáveis que abrem os painéis da UI atual; os outros clubes num quadro de parede ou num ecrã (HTML sobreposto com scroll). A UI 2D mantém-se para tudo o que é denso (caixa de entrada, mercado, tática); o mundo 3D é uma camada de navegação sobre a mesma `View`, sem tocar no motor. Estimativa: protótipo ~1-3 semanas (Câmara + estádio + campo, clique abre painel), versão sólida 6-8 semanas, mundo vivo (pessoas, jogadores a treinar, conversas) 3-4 meses. Riscos: mobile (bateria, toque), testes sobre canvas, sistema de conversa que ainda não existe. Decidir primeiro o que o 3D ganha (descoberta/emoção) com o protótipo.
@@ -404,4 +405,3 @@ Prioridade para lançar depressa uma versão para amigos. Ordem de trabalho: **R
 | Guardar, autosave, exportar/importar saves | RZ-134 |
 | Escolha do local de um novo estádio (mesmo local, perto, periferia) e jogar noutro estádio durante a obra | RZ-314, `docs/CITY.md` §5 |
 | Propriedade do estádio e papel da Câmara | RZ-315, `docs/CITY.md` §4 |
-- Tempo atmosférico real (chuva, calor) a mexer na assistência e no relvado, em vez de usar só os meses (RZ-116, 30-10-2026).
