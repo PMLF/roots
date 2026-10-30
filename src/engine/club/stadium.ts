@@ -11,8 +11,8 @@ import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { addDays } from "../calendar/dates";
 import { clubBalance, factorReputation, post } from "./finances";
-import { saveStadium, stadiumState, stadiumTotalOf as total, turfOf } from "./stadiumState";
-export { priceOf, sellingSectors, turfOf, defaultSectors, stadiumCapacity, stadiumState, stadiumTotal, stadiumTotalOf, type StadiumState, type StadiumWorks } from "./stadiumState";
+import { saveStadium, sectorMax, stadiumState, stadiumTotalOf as total, turfOf, type StadiumState } from "./stadiumState";
+export { priceOf, sellingSectors, turfOf, ringsOf, ringSeats, sectorMax, defaultSectors, stadiumCapacity, stadiumState, stadiumTotal, stadiumTotalOf, type StadiumState, type StadiumWorks } from "./stadiumState";
 
 export type WorksQuote = { cost: number; councilShare: number; clubCost: number; months: number; end: (today: IsoDate) => IsoDate };
 
@@ -42,7 +42,7 @@ export function startWorks(repo: Repository, params: Params, club: BaseClub, sec
   if (kind === "cover") { if (s.covered?.[sector]) return { ok: false, reason: "covered" }; }
   else {
     if (seats < w.minSeats) return { ok: false, reason: "tooSmall" };
-    if (seats > total(s) * w.maxGrowth) return { ok: false, reason: "tooBig" };
+    if (seats > total(s) * w.maxGrowth || seats > sectorMax(params, club, sector, s.sectors[sector]) - s.sectors[sector]) return { ok: false, reason: "tooBig" };
     if (total(s) + seats > w.maxCapacity) return { ok: false, reason: "full" };
   }
   const q = quoteWorks(params, club, sector, seats, kind, s.sectors[sector]);
@@ -101,7 +101,7 @@ export function aiStadiums(repo: Repository, data: BaseData, params: Params, sea
     if (!rng.prob(cfg.probability)) continue;
     const s = stadiumState(repo, club, params);
     const sector = (["north", "south", "side", "central"] as const)[rng.integer(0, 3)]!;
-    startWorks(repo, params, { ...club, tier }, sector, clamp(Math.round((total(s) * cfg.growth) / 100) * 100, params.stadium.works.minSeats, total(s) * params.stadium.works.maxGrowth), today, season, { ai: true });
+    startWorks(repo, params, { ...club, tier }, sector, Math.min(clamp(Math.round((total(s) * cfg.growth) / 100) * 100, params.stadium.works.minSeats, total(s) * params.stadium.works.maxGrowth), sectorMax(params, club, sector, s.sectors[sector]) - s.sectors[sector]), today, season, { ai: true });
   }
 }
 
@@ -111,27 +111,38 @@ export function aiStadiums(repo: Repository, data: BaseData, params: Params, sea
 export function wearTurf(repo: Repository, club: BaseClub, params: Params, month: number): void {
   if (repo.meta("gamer.club") !== club.id) return;
   const t = params.stadium.turf, s = stadiumState(repo, club, params);
+  if (s.turfType === "synthetic") return;
   const value = Math.max(0, turfOf(s, params) - t.wearPerMatch * (t.winterMonths.includes(month) ? t.winter : 1));
   saveStadium(repo, club.id, { ...s, turf: Math.round(value * 1000) / 1000 });
 }
 
-export type TurfResult = { ok: true; turf: number; cost: number } | { ok: false; reason: "cash" | "perfect" };
+export type TurfResult = { ok: true; turf: number; cost: number } | { ok: false; reason: "cash" | "perfect" | "synthetic" | "natural" };
 
-/** O gamer trata o relvado (ganho pequeno, barato) ou substitui-o (fica quase perfeito, caro). */
-export function treatTurf(repo: Repository, params: Params, club: BaseClub, kind: "treat" | "replace"): TurfResult {
+/** O gamer trata o relvado natural (ganho pequeno, barato), substitui-o (fica quase perfeito, caro; volta ao natural se era sintético) ou instala relvado sintético. */
+export function treatTurf(repo: Repository, params: Params, club: BaseClub, kind: "treat" | "replace" | "synthetic"): TurfResult {
   const t = params.stadium.turf, s = stadiumState(repo, club, params), now = turfOf(s, params);
-  const target = kind === "treat" ? Math.min(1, now + t.treatGain) : t.replaceTo;
-  if (target <= now + 0.001) return { ok: false, reason: "perfect" };
-  const cost = Math.round(((kind === "treat" ? t.treatCost : t.replaceCost) * params.stadium.tierCost[club.tier]) / 100) * 100;
+  const costs = turfCosts(params, club);
+  let next: StadiumState, cost: number;
+  if (kind === "synthetic") {
+    if (s.turfType === "synthetic") return { ok: false, reason: "synthetic" };
+    cost = costs.synthetic;
+    next = { ...s, turfType: "synthetic" };
+  } else {
+    if (s.turfType === "synthetic" && kind === "treat") return { ok: false, reason: "synthetic" };
+    const target = kind === "treat" ? Math.min(1, now + t.treatGain) : t.replaceTo;
+    if (target <= now + 0.001) return { ok: false, reason: "perfect" };
+    cost = kind === "treat" ? costs.treat : costs.replace;
+    next = { ...s, turfType: "natural", turf: Math.round(target * 1000) / 1000 };
+  }
   if (clubBalance(repo, club) < cost) return { ok: false, reason: "cash" };
   post(repo, club, "stadium", -cost);
-  saveStadium(repo, club.id, { ...s, turf: Math.round(target * 1000) / 1000 });
-  return { ok: true, turf: target, cost };
+  saveStadium(repo, club.id, next);
+  return { ok: true, turf: turfOf(next, params), cost };
 }
 
-export function turfCosts(params: Params, club: BaseClub): { treat: number; replace: number } {
+export function turfCosts(params: Params, club: BaseClub): { treat: number; replace: number; synthetic: number } {
   const f = params.stadium.tierCost[club.tier], t = params.stadium.turf;
-  return { treat: Math.round((t.treatCost * f) / 100) * 100, replace: Math.round((t.replaceCost * f) / 100) * 100 };
+  return { treat: Math.round((t.treatCost * f) / 100) * 100, replace: Math.round((t.replaceCost * f) / 100) * 100, synthetic: Math.round((t.syntheticCost * f) / 100) * 100 };
 }
 
 /** Preço do bilhete de um setor (múltiplo do preço do escalão), dentro dos limites. */

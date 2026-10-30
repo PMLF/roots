@@ -1361,29 +1361,41 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 .staff-gestao label { display: inline-flex; gap: 6px; align-items: center; margin-bottom: 8px; }
 
 /* Estádio: planta e planeamento (RZ-116) */
-.estadio-layout { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 14px; align-items: stretch; }
-.estadio-planta { grid-row: span 2; display: flex; flex-direction: column; }
-.planta-svg { width: 100%; height: auto; max-height: 440px; flex: 1; }
+.estadio-centro { max-width: 940px; margin: 0 auto; display: grid; gap: 14px; }
+.estadio-planta { display: flex; flex-direction: column; }
+.planta-svg { width: 100%; height: auto; display: block; }
 .planta-relvado { fill: #2f7d4f; }
-.planta-linha { stroke: rgba(255, 255, 255, 0.65); stroke-width: 1.5; }
+.planta-relvado.sintetico { fill: #3f8f5f; }
+.planta-linha { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.5; }
+.planta-campo { fill: #fff; font-size: 14px; pointer-events: none; }
+.planta-campo.titulo { font-size: 16px; font-weight: 650; }
 .planta-bancada { fill: var(--painel-2); stroke: var(--linha-forte); stroke-width: 1.5; }
-.planta-ocupacao { fill: var(--destaque); }
-.planta-cobertura { fill: var(--texto); }
-.planta-texto { fill: var(--texto); font-size: 13px; font-weight: 650; pointer-events: none; }
+.planta-ocupacao { fill: var(--destaque); pointer-events: none; }
+.planta-anel { stroke: var(--linha-forte); stroke-width: 1; stroke-dasharray: 4 3; pointer-events: none; }
+.planta-cobertura { fill: var(--texto); pointer-events: none; }
+.planta-texto { fill: var(--texto); font-size: 13px; pointer-events: none; }
+.planta-texto.titulo { font-size: 15px; font-weight: 650; }
 .planta-setor { cursor: pointer; }
-.planta-setor:hover .planta-bancada { stroke: var(--destaque); }
-.planta-setor.ativo .planta-bancada { stroke: var(--destaque); stroke-width: 3; }
+.planta-setor:hover .planta-bancada, .planta-setor:hover .planta-relvado { stroke: var(--destaque); stroke-width: 2; }
+.planta-setor.ativo .planta-bancada, .planta-setor.ativo .planta-relvado { stroke: var(--destaque); stroke-width: 3.5; }
 .planta-setor:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+.planta-nota { cursor: pointer; }
+.planta-nota-texto { fill: var(--texto); font-size: 14px; font-weight: 600; }
+.planta-nota-texto.cheio { fill: var(--suave); font-weight: 500; }
+.planta-nota-sub { fill: var(--suave); font-size: 12px; }
+.planta-barra-fundo { fill: var(--linha); }
+.planta-barra-cheia { fill: var(--destaque); }
+.planta-barra-campo { fill: #fff; }
 .planta-legenda { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; margin: 6px 0 0; padding: 0; color: var(--suave); font-size: 13px; }
 .planta-legenda li { display: inline-flex; align-items: center; gap: 6px; }
 .planta-amostra { display: inline-block; width: 14px; height: 10px; border-radius: 2px; border: 1px solid var(--linha-forte); }
 .planta-amostra.ocupacao { background: var(--destaque); opacity: 0.6; }
 .planta-amostra.cobertura { background: var(--texto); height: 4px; }
+.planta-amostra.anel { border-style: dashed; }
 .planta-amostra.obra { background: repeating-linear-gradient(45deg, var(--atencao) 0 3px, transparent 3px 6px); }
-.estadio-preco { display: grid; gap: 4px; margin-top: 10px; }
-.estadio-preco input[type="range"] { width: 100%; accent-color: var(--destaque); }
+.estadio-painel-grelha { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 28px; }
+.estadio-painel-grelha h3:first-child { margin-top: 0; }
+.estadio-slider { width: 100%; accent-color: var(--destaque); }
+.estadio-campo { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
 .estadio-acoes { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 8px; }
-.estadio-acoes p { flex-basis: 100%; margin: 0; }
-.estadio-relvado { display: flex; align-items: center; gap: 12px; }
-.estadio-relvado .barra-medida { flex: 1; }
-@media (max-width: 900px) { .estadio-layout { grid-template-columns: 1fr; } .estadio-planta { grid-row: auto; } }
+@media (max-width: 700px) { .estadio-painel-grelha { grid-template-columns: 1fr; } }
