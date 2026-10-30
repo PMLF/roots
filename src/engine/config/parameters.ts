@@ -1525,7 +1525,7 @@ export const DEFAULT_PARAMETERS: Params = {
       valueSigma: 0.15,
       /** Contratos extra por reputação acima da normal do escalão (RZ-311): um a partir de `startRatio`, mais um por cada `perRatio`; cada extra vale `valueShare` do valor de referência do tipo. */
       extra: { startRatio: 1, perRatio: 0.45, max: { firstLeague: 4, secondLeague: 3, thirdLeague: 2, cp: 2, district: 1 }, valueShare: 0.4 },
-      maxShareOfCapital: 0.08,
+      maxShareOfCapital: 0.15,
       boost: { tier: { firstLeague: 1.12, secondLeague: 1.06, thirdLeague: 1, cp: 1, district: 1 }, champion: 0.15, promoted: 0.08 },
       yearsMin: 1,
       yearsMax: 3,
