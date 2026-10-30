@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { StadiumPageData } from "@/engine/api/contracts";
 import { Data } from "@/ui/components/Card";
 import { CloseButton } from "@/ui/components/CloseButton";
+import { Icon } from "@/ui/components/Icon";
 import { useEngine } from "@/ui/EngineProvider";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -110,7 +111,8 @@ export function StadiumPlan({ club, compact = false }: { club: string; compact?:
   };
   const synthetic = d.turf.type === "synthetic";
   const turfLabel = d.turf.value >= 0.8 ? "excellent" : d.turf.value >= 0.55 ? "good" : d.turf.value >= 0.35 ? "worn" : "bad";
-  const canOrder = !d.works && (cover || headroom >= d.limits.minSeats);
+  const tooBig = !cover && !!quote && seats > quote.maxSeats;
+  const canOrder = !d.works && !tooBig && (cover || headroom >= d.limits.minSeats);
 
   return (
     <div className={`estadio-plano${compact ? " compacto" : ""}`} data-testid="stadium-plan">
@@ -215,14 +217,15 @@ export function StadiumPlan({ club, compact = false }: { club: string; compact?:
                 <span>{t("stadium.popup.price")} (€)</span>
                 <input type="number" min={0.5} step={0.5} value={price} onChange={(e) => setPrice(e.target.value)} onBlur={() => void savePrice()} data-testid="stadium-price" />
               </label>
-              {quote && canOrder && <Data lines={[{ label: t("stadium.popup.cost"), value: eur(quote.cost) }, { label: t("stadium.popup.term"), value: t("stadium.popup.months", { months: quote.months }) }]} />}
+              {tooBig && <Notice tone="aviso" title={t("stadium.notice.tooBig")}>{t("stadium.notice.tooBigBody", { max: num.format(quote?.maxSeats ?? 0) })}</Notice>}
+              {quote && canOrder && !tooBig && <Data lines={[{ label: t("stadium.popup.cost"), value: eur(quote.cost) }, { label: t("stadium.popup.term"), value: t("stadium.popup.months", { months: quote.months }) }]} />}
               {(quote?.councilShare ?? 0) > 0 && canOrder && (
                 <label className="opcao">
                   <input type="checkbox" checked={ask} onChange={(e) => setAsk(e.target.checked)} data-testid="stadium-ask-council" />
                   <span>{t("stadium.askCouncil", { pct: Math.round((quote?.councilShare ?? 0) * 100), value: eur(Math.round((quote?.cost ?? 0) * (quote?.councilShare ?? 0))) })}</span>
                 </label>
               )}
-              {message && <p className="erro" role="status">{message}</p>}
+              {message && <Notice tone="erro" title={t("stadium.notice.failed")}>{message}</Notice>}
               <div className="acoes">
                 <button type="submit" className="primario" disabled={!canOrder} data-testid="stadium-start">{t("stadium.start")}</button>
                 <button type="button" onClick={() => setOpen(undefined)}>{t("stadium.popup.close")}</button>
@@ -236,7 +239,7 @@ export function StadiumPlan({ club, compact = false }: { club: string; compact?:
                 <button type="button" onClick={() => void turf("replace")} data-testid="turf-replace">{t(synthetic ? "stadium.turf.backNatural" : "stadium.turf.replace", { cost: eur(d.turf.replaceCost) })}</button>
                 {!synthetic && <button type="button" onClick={() => void turf("synthetic")} data-testid="turf-synthetic">{t("stadium.turf.installSynthetic", { cost: eur(d.turf.syntheticCost) })}</button>}
               </div>
-              {message && <p className="erro" role="status">{message}</p>}
+              {message && <Notice tone="erro" title={t("stadium.notice.failed")}>{message}</Notice>}
               <div className="acoes"><button type="button" onClick={() => setOpen(undefined)}>{t("stadium.popup.close")}</button></div>
             </div>
           )}
@@ -256,5 +259,12 @@ function PlanDialog({ title, onClose, children }: { title: string; onClose: () =
       <h2>{title}</h2>
       {children}
     </dialog>
+  );
+}
+
+/** Aviso com ícone e cor (como o resultado de uma negociação): para o que impede ou corrige um pedido. */
+function Notice({ tone, title, children }: { tone: "aviso" | "erro"; title: string; children: React.ReactNode }) {
+  return (
+    <div className={`resultado-negocio ${tone}`} role="alert"><Icon name="warning" /><div><b>{title}</b><span>{children}</span></div></div>
   );
 }

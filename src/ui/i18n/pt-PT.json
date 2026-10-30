@@ -2077,5 +2077,11 @@
   "stadium.legend.full": "Sem espaço para crescer",
   "stadium.popup.cost": "Custo",
   "stadium.popup.term": "Prazo",
-  "stadium.popup.months": "{months} meses"
+  "stadium.popup.months": "{months} meses",
+  "stadium.notice.failed": "Não foi possível",
+  "stadium.notice.tooBig": "Obra demasiado grande",
+  "stadium.notice.tooBigBody": "Esta obra só pode ter até {max} lugares. Reduz os lugares novos.",
+  "advance.loading": "A carregar o jogo…",
+  "advance.loadingHint": "O tempo está a passar.",
+  "advance.recentNews": "Notícia recente"
 }

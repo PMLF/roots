@@ -2077,5 +2077,11 @@
   "stadium.legend.full": "No room to grow",
   "stadium.popup.cost": "Cost",
   "stadium.popup.term": "Time",
-  "stadium.popup.months": "{months} months"
+  "stadium.popup.months": "{months} months",
+  "stadium.notice.failed": "Couldn't do it",
+  "stadium.notice.tooBig": "Works too big",
+  "stadium.notice.tooBigBody": "These works can have up to {max} seats. Reduce the new seats.",
+  "advance.loading": "Loading the game…",
+  "advance.loadingHint": "Time is passing.",
+  "advance.recentNews": "Recent news"
 }

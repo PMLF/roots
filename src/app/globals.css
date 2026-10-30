@@ -827,6 +827,9 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 .resultado-negocio.ok .icone { background: var(--destaque); color: #fff; stroke: #fff; }
 .resultado-negocio.erro { background: var(--aviso-fundo); border-color: var(--aviso); color: var(--aviso); }
 .resultado-negocio.erro .icone { background: var(--aviso); stroke: #fff; }
+.resultado-negocio.aviso { background: var(--atencao-fundo); border-color: var(--atencao); color: var(--atencao); }
+.resultado-negocio.aviso .icone { background: var(--atencao); stroke: #fff; }
+.resultado-negocio b, .resultado-negocio span { color: inherit; }
 .lista-olheiros { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 4px; }
 .lista-olheiros li { display: flex; align-items: center; gap: 8px; }
 .lista-olheiros .icone { width: 18px; height: 18px; flex: none; color: var(--suave); }
@@ -868,9 +871,15 @@ button.perigo:hover:not(:disabled) { filter: brightness(1.1); }
 @media (prefers-reduced-motion: reduce) { .rodar { animation-duration: 2s; } }
 
 /* Tempo a passar: véu suave sobre o ecrã todo enquanto o avanço decorre */
-.tempo-passa { position: fixed; inset: 0; z-index: 90; pointer-events: none; background: color-mix(in srgb, var(--fundo) 55%, #000); opacity: 0; transition: opacity .35s ease; }
-.tempo-passa.ativo { opacity: .55; transition-duration: .15s; }
-@media (prefers-reduced-motion: reduce) { .tempo-passa, .tempo-passa.ativo { transition: none; } .tempo-passa.ativo { opacity: .25; } }
+.tempo-passa { position: fixed; inset: 0; z-index: 90; pointer-events: none; display: grid; place-items: center; opacity: 0; transition: opacity .35s ease; }
+.tempo-passa.ativo { opacity: 1; pointer-events: auto; cursor: progress; transition-duration: .15s; }
+.tempo-passa::before { content: ""; position: absolute; inset: 0; background: color-mix(in srgb, var(--fundo) 55%, #000); opacity: .55; }
+.tempo-caixa { position: relative; width: min(88vw, 360px); display: grid; gap: 10px; padding: 18px 20px; background: var(--painel); border: 1px solid var(--linha-forte); border-radius: var(--r-m); box-shadow: 0 8px 24px rgba(0, 0, 0, .25); opacity: 0; animation: tempo-caixa .2s ease .25s forwards; }
+.tempo-caixa b { display: flex; align-items: center; gap: 0; font-size: 15px; }
+.tempo-caixa p { margin: 0; }
+.tempo-noticia { display: grid; gap: 4px; padding-top: 10px; border-top: 1px solid var(--linha); pointer-events: none; }
+@keyframes tempo-caixa { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .tempo-passa, .tempo-passa.ativo { transition: none; } .tempo-caixa { animation-duration: .01s; } }
 
 /* Resultados de taça: escalão colado a cada lado do cartão e nota do prolongamento/penáltis */
 .outros-jogos li.com-escalao { grid-template-columns: 2.6rem minmax(0, 1fr) 4.6rem minmax(0, 1fr) 2.6rem; }
@@ -1412,8 +1421,8 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 .estadio-plano.compacto .planta { max-width: 100%; }
 .popup-estadio { width: min(92vw, 380px); }
 .formulario.coluna { grid-template-columns: minmax(0, 1fr); }
-.formulario label.opcao { display: flex; align-items: flex-start; gap: 8px; color: var(--texto); font-size: 14px; }
-.formulario label.opcao input { margin: 2px 0 0; flex: none; }
+.formulario label.opcao { display: flex; align-items: flex-start; gap: 8px; color: var(--texto); font-size: 14px; line-height: 20px; }
+.formulario label.opcao input { margin: 2px 0 0; flex: none; width: 16px; height: 16px; min-height: 0; padding: 0; }
 .formulario input[type="range"] { width: 100%; accent-color: var(--destaque); padding: 0; min-height: 0; border: 0; }
 .estadio-opcoes { display: grid; gap: 8px; }
 .estadio-opcoes button { text-align: left; }
