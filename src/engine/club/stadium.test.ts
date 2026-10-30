@@ -167,7 +167,7 @@ describe("sectorSponsors", () => {
 
 describe("stadiumNaming", () => {
   it("o patrocínio de maior valor dá o nome ao estádio e os outros às bancadas", () => {
-    const n = stadiumNaming([{ company: "co-a", annualValue: 10 }, { company: "co-b", annualValue: 50 }, { company: "co-c", annualValue: 20 }]);
+    const n = stadiumNaming([{ company: "co-a", annualValue: 10, kind: "stadium" }, { company: "co-b", annualValue: 50, kind: "stadium" }, { company: "co-c", annualValue: 20, kind: "stand" }, { company: "co-d", annualValue: 90, kind: "shirt" }]);
     expect(n.stadium).toBe("co-b");
     expect(Object.values(n.sectors).sort()).toEqual(["co-a", "co-c"]);
   });

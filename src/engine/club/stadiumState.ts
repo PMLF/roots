@@ -84,8 +84,13 @@ export function sectorSponsors(companies: string[]): Partial<Record<StadiumSecto
   return out;
 }
 
-/** Os patrocínios do estádio: o de maior valor dá o nome ao estádio (o original nunca se perde) e os outros às bancadas. */
-export function stadiumNaming(sponsorships: { company: string; annualValue: number }[]): { stadium?: string; sectors: Partial<Record<StadiumSector, string>> } {
-  const [first, ...rest] = [...sponsorships].sort((a, b) => b.annualValue - a.annualValue || a.company.localeCompare(b.company));
-  return { ...(first ? { stadium: first.company } : {}), sectors: sectorSponsors(rest.map((x) => x.company)) };
+/**
+ * Quem dá o nome ao estádio e às bancadas: o patrocínio de estádio de maior valor dá o nome ao estádio (o original nunca se perde);
+ * os patrocínios de bancada e os restantes de estádio dão o nome às bancadas.
+ */
+export function stadiumNaming(sponsorships: { company: string; annualValue: number; kind: string }[]): { stadium?: string; sectors: Partial<Record<StadiumSector, string>> } {
+  const byValue = (a: { company: string; annualValue: number }, b: { company: string; annualValue: number }) => b.annualValue - a.annualValue || a.company.localeCompare(b.company);
+  const [first, ...rest] = sponsorships.filter((x) => x.kind === "stadium").sort(byValue);
+  const stands = sponsorships.filter((x) => x.kind === "stand").sort(byValue);
+  return { ...(first ? { stadium: first.company } : {}), sectors: sectorSponsors([...stands, ...rest].map((x) => x.company)) };
 }

@@ -223,7 +223,7 @@ export type CompanyState = "active" | "closed";
 export type CompanyRecord = { id: string; name: string; sector: string; scale: CompanyScale; city: string; owner?: string; capital: number; founded: number; state: CompanyState };
 export type CompanyPatch = { capital?: number; state?: CompanyState; scale?: CompanyScale; owner?: string | null };
 /** `broadcast` = parte do clube num pacote de direitos de transmissão (um contrato por clube e época, RZ-218). */
-export type SponsorshipKind = "shirt" | "stadium" | "youth" | "broadcast";
+export type SponsorshipKind = "shirt" | "stadium" | "stand" | "youth" | "broadcast";
 /** Contrato de patrocínio: vigente entre `start` e `end`, a não ser que tenha `ended` (rescindido antes). */
 export type SponsorshipRecord = { id: number; company: string; club: string; kind: SponsorshipKind; annualValue: number; start: IsoDate; end: IsoDate; ended?: IsoDate };
 /** Tipos de patrocínio propriamente ditos (sem direitos de transmissão). */
