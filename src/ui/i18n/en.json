@@ -2044,6 +2044,7 @@
   "stadium.turf.reason.perfect": "The pitch is already as good as it gets.",
   "stadium.reason.covered": "That section is already covered.",
   "stadium.seatsRings": "{seats} seats · {rings} tiers",
+  "stadium.seatsRing1": "{seats} seats · 1 tier",
   "stadium.coveredShort": "covered",
   "stadium.uncoveredShort": "uncovered",
   "stadium.canGrow": "Can grow +{seats}",
@@ -2059,5 +2060,17 @@
   "stadium.turf.backNatural": "Back to natural ({cost})",
   "stadium.turf.installSynthetic": "Install synthetic ({cost})",
   "stadium.turf.reason.synthetic": "The pitch is already synthetic: it needs no treatment.",
-  "stadium.turf.reason.natural": "The pitch is already natural."
+  "stadium.turf.reason.natural": "The pitch is already natural.",
+  "stadium.owner": "Owner: {owner}",
+  "stadium.owner.council": "{city} council",
+  "stadium.owner.shared": "{club} and {city} council",
+  "stadium.expandability": "Room to expand",
+  "stadium.orderFor": "Order works: {sector}",
+  "stadium.popup.title": "Order works",
+  "stadium.popup.close": "Close",
+  "stadium.popup.order": "Order works: {sector}",
+  "stadium.popup.seats": "New seats: {seats}",
+  "stadium.popup.cover": "Add a roof ({cost})",
+  "stadium.popup.price": "Price",
+  "stadium.openTab": "See the club's stadium"
 }

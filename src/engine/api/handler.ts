@@ -477,12 +477,13 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     }
     case "stadiumPage": {
       const { repository, data, params } = await context(servicos);
-      const club = data.clubs.find((x) => x.id === repository.meta("gamer.club"));
+      const mine = repository.meta("gamer.club") ?? "";
+      const club = data.clubs.find((x) => x.id === (m.input.club ?? mine));
       if (!club) return null;
       const s = stadiumState(repository, club, params), fill = lastFill(repository, club.id), open = new Map(sellingSectors(repository, club, params).map((x) => [x.id, x.seats]));
       const costs = turfCosts(params, club);
       return {
-        club: { id: club.id, name: club.name }, name: club.stadium.name, ownership: club.stadium.ownership, tier: club.tier,
+        club: { id: club.id, name: club.name }, own: club.id === mine, city: { id: club.city, name: data.cities.find((c) => c.id === club.city)?.name ?? club.city }, name: club.stadium.name, ownership: club.stadium.ownership, tier: club.tier,
         capacity: stadiumCapacity(repository, club, params), built: stadiumTotalOf(s), terrain: club.stadium.location.expansionTerrain,
         basePrice: params.finances.model.ticketPrice[club.tier],
         sectors: STADIUM_SECTORS.map((id) => ({ id, seats: s.sectors[id], open: open.get(id) ?? s.sectors[id], rings: ringsOf(params, club, id, s.sectors[id]), max: sectorMax(params, club, id, s.sectors[id]), covered: !!s.covered?.[id], price: priceOf(s, id), ...(fill[id] !== undefined ? { fill: fill[id] } : {}), coverCost: quoteWorks(params, club, id, 0, "cover", s.sectors[id]).cost })),

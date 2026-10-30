@@ -9,7 +9,6 @@ import { Card, Data, Top } from "@/ui/components/Card";
 import { Profile } from "@/ui/components/Profile";
 import { ClubMatches } from "@/ui/components/ClubMatches";
 import { DivisionsChart } from "@/ui/components/DivisionsChart";
-import Link from "next/link";
 import { EntityLink } from "@/ui/components/Link";
 import { ClubCompetitions } from "@/ui/components/profiles/ClubCompetitions";
 import { ClubBudget } from "@/ui/components/profiles/ClubBudget";
@@ -26,6 +25,7 @@ import { abbreviationPosition, rankPosition } from "@/ui/i18n/position";
 import type { Column } from "@/ui/table/logic";
 import { useCountries } from "@/ui/useCountries";
 import { useOwnClub } from "@/ui/myClub";
+import { StadiumTab } from "@/ui/components/profiles/StadiumTab";
 import { StaffManager } from "@/ui/components/profiles/StaffManager";
 
 /** Barra 0-100 (qualidade de um aspeto do estádio). */
@@ -280,7 +280,6 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
             { label: t("stadium.expansion"), value: <Bar value={e.expansionTerrain} /> },
           ]}
         />
-        {ownSquad && <p><Link href="/stadium/" data-testid="stadium-link">{t("stadium.openPage")}</Link></p>}
       </Card>
       <Card title={t("card.technicalTeam")}>
         {technicalTeam.length === 0 ? (
@@ -313,6 +312,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
         ) : (
           <p className="vazio">{t("club.noWorld")}</p>
         ),
+        stadium: <StadiumTab club={d.id} clubName={d.name} cityName={d.city.name} name={d.stadium.name} capacity={d.stadium.capacity} ownership={d.stadium.ownership} />,
         matches: <ClubMatches club={d.id} league={d.league} />,
         story: (
           <>
