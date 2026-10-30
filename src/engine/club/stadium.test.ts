@@ -166,12 +166,20 @@ describe("sectorSponsors", () => {
 });
 
 describe("stadiumNaming", () => {
-  it("o patrocínio de maior valor dá o nome ao estádio e os outros às bancadas", () => {
+  it("o patrocínio de estádio de maior valor dá o nome ao estádio e só os de bancada às bancadas", () => {
     const n = stadiumNaming([{ company: "co-a", annualValue: 10, kind: "stadium" }, { company: "co-b", annualValue: 50, kind: "stadium" }, { company: "co-c", annualValue: 20, kind: "stand" }, { company: "co-d", annualValue: 90, kind: "shirt" }]);
     expect(n.stadium).toBe("co-b");
-    expect(Object.values(n.sectors).sort()).toEqual(["co-a", "co-c"]);
+    expect(Object.values(n.sectors)).toEqual(["co-c"]);
   });
   it("sem patrocínios não há nomes", () => {
     expect(stadiumNaming([])).toEqual({ sectors: {} });
+  });
+});
+
+describe("stadiumNaming independente", () => {
+  it("bancadas patrocinadas sem nome de estádio", () => {
+    const n = stadiumNaming([{ company: "co-a", annualValue: 10, kind: "stand" }, { company: "co-b", annualValue: 5, kind: "stand" }]);
+    expect(n.stadium).toBeUndefined();
+    expect(Object.values(n.sectors).sort()).toEqual(["co-a", "co-b"]);
   });
 });
