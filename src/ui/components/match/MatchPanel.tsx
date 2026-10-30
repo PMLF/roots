@@ -1,4 +1,5 @@
 "use client";
+import { stadiumLabel } from "@/ui/stadiumName";
 import type { LivePlayer, LiveMatch, LiveLine } from "@/engine/season/liveMatch";
 import { useEffect, useRef, useState } from "react";
 import { predominantColour } from "@/ui/colours";
@@ -384,7 +385,7 @@ export function HeaderInfo({ match }: { match: LiveMatch }) {
   return (
     <div className="info-cabecalho">
       <p>
-        <span>{i.stadium.name} · {i.stadium.locality}</span>
+        <span title={i.stadium.sponsor ? i.stadium.name : undefined}>{stadiumLabel(t, i.stadium.name, i.stadium.sponsor)} · {i.stadium.locality}</span>
         <span className="info-adeptos" title={t("match.info.attendance")}>
           <b>{i.attendance.toLocaleString("pt-PT")}</b> / {i.stadium.capacity.toLocaleString("pt-PT")}
           <span className="barra-ocupacao" role="img" aria-label={`${t("match.info.attendance")}: ${pct}%`}><i style={{ width: `${pct}%` }} /></span>

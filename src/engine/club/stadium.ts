@@ -11,7 +11,7 @@ import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { addDays } from "../calendar/dates";
 import { clubBalance, factorReputation, post } from "./finances";
-import { saveStadium, sectorMax, stadiumState, stadiumTotalOf as total, turfOf, type StadiumState } from "./stadiumState";
+import { priceOf, saveStadium, sectorMax, stadiumNaming, stadiumState, stadiumTotalOf as total, turfOf, type StadiumState } from "./stadiumState";
 export { priceOf, sellingSectors, turfOf, ringsOf, ringSeats, sectorMax, defaultSectors, stadiumCapacity, stadiumState, stadiumTotal, stadiumTotalOf, sectorSponsors, stadiumNaming, type StadiumState, type StadiumWorks } from "./stadiumState";
 
 export type WorksQuote = { cost: number; councilShare: number; clubCost: number; months: number; end: (today: IsoDate) => IsoDate };
@@ -95,13 +95,32 @@ export function aiStadiums(repo: Repository, data: BaseData, params: Params, sea
   for (const club of data.clubs) {
     if (club.id === gamerClub) continue;
     const tier = tiers.get(club.id) ?? club.tier;
+    aiPrices(repo, params, { ...club, tier });
     const occupancy = m.occupancy[tier] * factorReputation({ ...club, tier }, params) ** 0.5;
     if (occupancy < cfg.occupancy) continue;
     const rng = new Rng(repo.meta("seed") ?? "?", `stadium/ai/${season}/${club.id}`);
     if (!rng.prob(cfg.probability)) continue;
     const s = stadiumState(repo, club, params);
+    // parte das obras são coberturas de um setor ainda descoberto
+    const open = STADIUM_SECTORS.filter((id) => !s.covered?.[id]);
+    if (open.length > 0 && rng.prob(cfg.cover)) {
+      startWorks(repo, params, { ...club, tier }, open[rng.integer(0, open.length - 1)]!, 0, today, season, { ai: true, kind: "cover" });
+      continue;
+    }
     const sector = (["north", "south", "side", "central"] as const)[rng.integer(0, 3)]!;
     startWorks(repo, params, { ...club, tier }, sector, Math.min(clamp(Math.round((total(s) * cfg.growth) / 100) * 100, params.stadium.works.minSeats, total(s) * params.stadium.works.maxGrowth), sectorMax(params, club, sector, s.sectors[sector]) - s.sectors[sector]), today, season, { ai: true });
+  }
+}
+
+/** Fim de época: os clubes do computador sobem o preço dos setores que encheram e baixam o dos que ficaram vazios (um passo por época). */
+function aiPrices(repo: Repository, params: Params, club: BaseClub): void {
+  const cfg = params.stadium.ai, fill = lastFill(repo, club.id);
+  for (const id of STADIUM_SECTORS) {
+    const f = fill[id];
+    if (f === undefined) continue;
+    const now = priceOf(stadiumState(repo, club, params), id);
+    if (f >= cfg.price.high) setSectorPrice(repo, params, club, id, now + cfg.price.step);
+    else if (f <= cfg.price.low) setSectorPrice(repo, params, club, id, now - cfg.price.step);
   }
 }
 
@@ -165,4 +184,10 @@ export function summerTurf(repo: Repository, data: BaseData, params: Params, gam
   if (!club) return;
   const s = stadiumState(repo, club, params), now = turfOf(s, params);
   if (now < params.stadium.turf.start) saveStadium(repo, club.id, { ...s, turf: params.stadium.turf.start });
+}
+
+/** Nome da empresa que dá o nome ao estádio (o patrocínio de estádio de maior valor), se houver; o nome original nunca muda. */
+export function stadiumSponsor(repo: Repository, club: string, today?: IsoDate): string | undefined {
+  const { stadium } = stadiumNaming(repo.clubSponsorships(club, today).filter((x) => x.kind === "stadium" || x.kind === "stand"));
+  return stadium ? repo.company(stadium)?.name : undefined;
 }

@@ -420,7 +420,8 @@ export type Params = {
     /** Fração do custo paga pela Câmara conforme a propriedade do estádio. */
     councilShare: Record<"club" | "municipal" | "shared", number>;
     /** Clubes do computador: ocupação esperada a partir da qual podem ampliar, probabilidade por época, crescimento da obra e folga de caixa exigida (múltiplo do custo). */
-    ai: { occupancy: number; probability: number; growth: number; cashCover: number };
+    /** Clubes do computador: ocupação a partir da qual ampliam, probabilidade anual, crescimento, folga de caixa; `cover` = parte das obras que são coberturas; `price` = preço sobe se o setor encheu (`high`) e desce se ficou vazio (`low`), em passos de `step` dentro dos limites. */
+    ai: { occupancy: number; probability: number; growth: number; cashCover: number; cover: number; price: { high: number; low: number; step: number } };
   };
   attendance: {
     finalMult: number;
@@ -1210,7 +1211,7 @@ export const DEFAULT_PARAMETERS: Params = {
     rings: { seatsPerRing: { central: 4000, side: 3000, north: 2500, south: 2500 }, max: 3, terrainFloor: 0.6 },
     pricing: { coverCostPerSeat: 160, coverMonths: 2, coverBoost: 0.05, badWeatherMonths: [11, 12, 1, 2, 3], badWeatherLoss: 0.12, coverPremium: 1.2, elasticity: 1.3, min: 0.5, max: 2, demand: { central: 1.1, side: 1, north: 0.95, south: 0.95 } },
     councilShare: { club: 0, municipal: 0.5, shared: 0.25 },
-    ai: { occupancy: 0.7, probability: 0.25, growth: 0.15, cashCover: 2 },
+    ai: { occupancy: 0.7, probability: 0.25, growth: 0.15, cashCover: 2, cover: 0.3, price: { high: 0.92, low: 0.5, step: 0.05 } },
   },
   attendance: {
     finalMult: 2.5,
@@ -1524,7 +1525,7 @@ export const DEFAULT_PARAMETERS: Params = {
       valueSigma: 0.15,
       /** Contratos extra por reputação acima da normal do escalão (RZ-311): um a partir de `startRatio`, mais um por cada `perRatio`; cada extra vale `valueShare` do valor de referência do tipo. */
       extra: { startRatio: 1, perRatio: 0.45, max: { firstLeague: 4, secondLeague: 3, thirdLeague: 2, cp: 2, district: 1 }, valueShare: 0.4 },
-      maxShareOfCapital: 0.08,
+      maxShareOfCapital: 0.15,
       boost: { tier: { firstLeague: 1.12, secondLeague: 1.06, thirdLeague: 1, cp: 1, district: 1 }, champion: 0.15, promoted: 0.08 },
       yearsMin: 1,
       yearsMax: 3,

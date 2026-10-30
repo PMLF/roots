@@ -25,6 +25,7 @@ import { abbreviationPosition, rankPosition } from "@/ui/i18n/position";
 import type { Column } from "@/ui/table/logic";
 import { useCountries } from "@/ui/useCountries";
 import { useOwnClub } from "@/ui/myClub";
+import { stadiumLabel } from "@/ui/stadiumName";
 import { StadiumTab } from "@/ui/components/profiles/StadiumTab";
 import { StaffManager } from "@/ui/components/profiles/StaffManager";
 
@@ -270,7 +271,7 @@ export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileDa
       <Card title={t("card.stadium")}>
         <Data
           lines={[
-            { label: d.stadium.name, value: `${n.format(d.stadium.capacity)} ${t("stadium.places")}` },
+            { label: stadiumLabel(t, d.stadium.name, d.stadium.sponsor), value: `${n.format(d.stadium.capacity)} ${t("stadium.places")}` },
             ...(["central", "side", "north", "south"] as const).map((s) => ({ label: t(`stadium.sector.${s}` as Key), value: n.format(d.stadium.sectors[s]) })),
             { label: t("stadium.ownership"), value: t(`ownership.${e.ownership}` as Key) },
             { label: t("stadium.distance"), value: t("stadium.km", { n: e.centreDistanceKm }) },

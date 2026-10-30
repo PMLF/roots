@@ -333,7 +333,7 @@ export type ClubProfileData = {
   mascot: string;
   rival?: EntityRef;
   reputation: number;
-  stadium: { name: string; capacity: number; ownership: "club" | "municipal" | "shared"; sectors: Record<StadiumSector, number>; works?: { sector: StadiumSector; seats: number; cost: number; councilPaid: number; end: string } };
+  stadium: { name: string; /** Empresa que dá o nome ao estádio. */ sponsor?: string; capacity: number; ownership: "club" | "municipal" | "shared"; sectors: Record<StadiumSector, number>; works?: { sector: StadiumSector; seats: number; cost: number; councilPaid: number; end: string } };
   squad: ViewPerson[];
   roles: ViewPerson[];
   tier: Tier;
@@ -494,7 +494,7 @@ export type CityProfileData = {
   localities: { ref: EntityRef; status: LocalityStatus; population: number }[];
   /** A sede do concelho: `type=city` redireciona para a ficha desta localidade (RZ-238). */
   seat: EntityRef;
-  clubs: { ref: EntityRef; league: string; tier: string; stadium: { name: string; capacity: number; ownership: "club" | "municipal" | "shared" } }[];
+  clubs: { ref: EntityRef; league: string; tier: string; stadium: { name: string; sponsor?: string; capacity: number; ownership: "club" | "municipal" | "shared" } }[];
   /** Acontecimentos que marcaram a cidade, do mais recente para o mais antigo. */
   incidents: { date: string; season: number; label: string; type: string; regional: boolean; hub?: string }[];
 };

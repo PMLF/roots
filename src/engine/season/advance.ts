@@ -22,7 +22,7 @@ import type { MatchTeam, MatchSummary } from "../match/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { matchAttendance } from "../club/attendance";
-import { dailyStadium, stadiumCapacity, wearTurf, recordFill } from "../club/stadium";
+import { dailyStadium, stadiumCapacity, stadiumSponsor, wearTurf, recordFill } from "../club/stadium";
 import { sellingSectors, stadiumState, turfOf } from "../club/stadiumState";
 import { cityStateNow } from "../city/cities";
 import { adjustInjury, attendanceFactor, clubCityState, nightlifeFormLoss } from "../city/effects";
@@ -170,7 +170,8 @@ export function matchTicket(data: BaseData, params: Params, home: string, away: 
   if (!cc || !cf) return undefined;
   const neutral = flags.neutral && flags.venue ? venueStadium(data, params, flags.venue) : undefined;
   const capacity = live && !isForeignClub(home) ? stadiumCapacity(live.repo, cc, params) : cc.stadium.capacity;
-  const stadium: Stadium = neutral ?? { name: cc.stadium.name, locality: cc.locality || cc.name, capacity };
+  const sponsor = !neutral && live && !isForeignClub(home) ? stadiumSponsor(live.repo, home, live.date) : undefined;
+  const stadium: Stadium = neutral ?? { name: cc.stadium.name, locality: cc.locality || cc.name, capacity, ...(sponsor ? { sponsor } : {}) };
   const hostCity = flags.neutral && flags.venue && flags.venue !== NATIONAL_STADIUM ? data.clubs.find((x) => x.id === flags.venue)?.city : cc.city;
   const b = matchAttendance({ home: neutral ? { ...cc, stadium: { ...cc.stadium, name: neutral.name, capacity: neutral.capacity } } : { ...cc, stadium: { ...cc.stadium, capacity } }, away: cf, footballCulture: data.cities.find((x) => x.id === hostCity)?.footballCulture ?? 50, ...(live && hostCity ? { cityFactor: attendanceFactor(cityStateNow(live.repo, data, params, hostCity), Number(live.date.slice(5, 7)), params) * (1 + councilMatchdayBoost(live.repo, params, home, Number(live.repo.meta("season") ?? 1))) } : {}), final: competition === CP_FINAL_COMPETITION || !!flags.neutral, ...(live && !neutral && !isForeignClub(home) ? { sectors: sellingSectors(live.repo, cc, params), month: Number(live.date.slice(5, 7)) } : {}) }, params);
   return { ...b, club: cc, stadium, ...(flags.neutral ? { shared: [cc, cf] as [BaseClub, BaseClub] } : {}) };
@@ -194,7 +195,7 @@ export function matchContext(repo: Repository, data: BaseData, params: Params, h
   if (!b) return { meetings };
   const e = b.stadium;
   const seed = repo.meta("seed") ?? "?";
-  return { meetings, info: { stadium: { name: e.name, locality: e.locality, capacity: e.capacity }, attendance: b.attendance, referee: matchReferee(seed, except), channels: matchChannels(b.club.tier, competition, seed, except) } };
+  return { meetings, info: { stadium: { name: e.name, locality: e.locality, capacity: e.capacity, ...(e.sponsor ? { sponsor: e.sponsor } : {}) }, attendance: b.attendance, referee: matchReferee(seed, except), channels: matchChannels(b.club.tier, competition, seed, except) } };
 }
 
 /** Joga os jogos de `hoje` e passa ao dia seguinte. Tudo numa transação. */
