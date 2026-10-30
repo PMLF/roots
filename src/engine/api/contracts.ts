@@ -383,7 +383,10 @@ export type StadiumPageData = {
   /** É o clube do gamer: só então se pedem obras e se mexe em preços e relvado. */
   own: boolean;
   city: { id: string; name: string };
+  /** Nome original do estádio: nunca muda. */
   name: string;
+  /** Empresa que dá o nome ao estádio (patrocínio de maior valor); o nome mostrado junta-a ao original. */
+  sponsor?: { id: string; name: string };
   ownership: "club" | "municipal" | "shared";
   tier: string;
   capacity: number;
@@ -392,7 +395,7 @@ export type StadiumPageData = {
   terrain: number;
   /** Preço do bilhete do escalão (€), antes do múltiplo de cada setor. */
   basePrice: number;
-  sectors: { id: StadiumSector; seats: number; open: number; rings: number; /** Máximo de lugares que o setor pode ter. */ max: number; covered: boolean; price: number; fill?: number; coverCost: number }[];
+  sectors: { id: StadiumSector; seats: number; open: number; rings: number; /** Máximo de lugares que o setor pode ter. */ max: number; covered: boolean; price: number; fill?: number; coverCost: number; /** Empresa que dá o nome à bancada (patrocínio do estádio). */ sponsor?: { id: string; name: string } }[];
   works?: { kind: "expand" | "cover"; sector: StadiumSector; seats: number; cost: number; end: string };
   turf: { value: number; type: "natural" | "synthetic"; treatCost: number; replaceCost: number; syntheticCost: number };
   limits: { priceMin: number; priceMax: number; minSeats: number };

@@ -1994,10 +1994,10 @@
   "newsItem.stadium_works.1.body": "As obras de {seats} lugares novos ({sectorText}) vão custar {costText}.",
   "newsItem.stadium_opened.1.title": "Estádio do {club} ganha {seats} lugares",
   "newsItem.stadium_opened.1.body": "As obras ficaram concluídas ({sectorText}) e o estádio passa a ter {capacity} lugares.",
-  "stadium.sector.central": "Bancada central",
-  "stadium.sector.side": "Bancada lateral",
-  "stadium.sector.north": "Topo norte",
-  "stadium.sector.south": "Topo sul",
+  "stadium.sector.central": "Bancada Oeste",
+  "stadium.sector.side": "Bancada Este",
+  "stadium.sector.north": "Topo Norte",
+  "stadium.sector.south": "Topo Sul",
   "stadium.expand": "Ampliar o estádio",
   "stadium.sector": "Setor",
   "stadium.newSeats": "Lugares novos",
@@ -2083,5 +2083,11 @@
   "stadium.notice.tooBigBody": "Esta obra só pode ter até {max} lugares. Reduz os lugares novos.",
   "advance.loading": "A carregar o jogo…",
   "advance.loadingHint": "O tempo está a passar.",
-  "advance.recentNews": "Notícia recente"
+  "advance.recentNews": "Notícia recente",
+  "stadium.sectorNamed.central": "Bancada {name}",
+  "stadium.sectorNamed.side": "Bancada {name}",
+  "stadium.sectorNamed.north": "Topo {name}",
+  "stadium.sectorNamed.south": "Topo {name}",
+  "stadium.named": "Estádio {name}",
+  "stadium.originalName": "Nome original: {name}"
 }

@@ -1994,10 +1994,10 @@
   "newsItem.stadium_works.1.body": "Works on {seats} new seats ({sectorText}) will cost {costText}.",
   "newsItem.stadium_opened.1.title": "{club} stadium gains {seats} seats",
   "newsItem.stadium_opened.1.body": "The works are complete ({sectorText}) and the ground now holds {capacity}.",
-  "stadium.sector.central": "Main stand",
-  "stadium.sector.side": "Side stand",
-  "stadium.sector.north": "North end",
-  "stadium.sector.south": "South end",
+  "stadium.sector.central": "West Stand",
+  "stadium.sector.side": "East Stand",
+  "stadium.sector.north": "North End",
+  "stadium.sector.south": "South End",
   "stadium.expand": "Expand the stadium",
   "stadium.sector": "Section",
   "stadium.newSeats": "New seats",
@@ -2083,5 +2083,11 @@
   "stadium.notice.tooBigBody": "These works can have up to {max} seats. Reduce the new seats.",
   "advance.loading": "Loading the game…",
   "advance.loadingHint": "Time is passing.",
-  "advance.recentNews": "Recent news"
+  "advance.recentNews": "Recent news",
+  "stadium.sectorNamed.central": "{name} Stand",
+  "stadium.sectorNamed.side": "{name} Stand",
+  "stadium.sectorNamed.north": "{name} End",
+  "stadium.sectorNamed.south": "{name} End",
+  "stadium.named": "{name} Stadium",
+  "stadium.originalName": "Original name: {name}"
 }
