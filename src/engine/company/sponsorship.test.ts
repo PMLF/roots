@@ -19,7 +19,7 @@ describe("patrocínios por dimensão e reputação (RZ-311)", { timeout: 120000 
   });
 
   it("os contratos fechados correspondem ao alvo do clube", () => {
-    for (const r of rows) expect(r.n).toBeLessThanOrEqual([...sponsorTargets(r.club, r.club.tier, P).values()].reduce((a, b) => a + b, 0));
+    for (const r of rows) expect(r.n).toBeLessThanOrEqual([...sponsorTargets(r.club, r.club.tier, P, repo.meta("seed") ?? "?").values()].reduce((a, b) => a + b, 0));
   });
 
   it("mais reputação dentro do escalão: mais contratos e mais dinheiro", () => {
@@ -38,5 +38,23 @@ describe("patrocínios por dimensão e reputação (RZ-311)", { timeout: 120000 
     expect(m("firstLeague")).toBeGreaterThan(m("secondLeague") * 1.5);
     expect(m("cp")).toBeGreaterThan(m("district") * 2);
     console.log("PATROCÍNIOS", Object.fromEntries(["firstLeague", "secondLeague", "thirdLeague", "cp", "district"].map((t) => { const x = rows.filter((r) => r.club.tier === t); return [t, { clubes: x.length, contratosMedia: +(x.reduce((s, r) => s + r.n, 0) / x.length).toFixed(2), eurosMedia: Math.round(x.reduce((s, r) => s + r.total, 0) / x.length), maxContratos: Math.max(...x.map((r) => r.n)) }]; })));
+  });
+});
+
+describe("nome do estádio e das bancadas (RZ-311)", () => {
+  const share = (tier: "firstLeague" | "secondLeague" | "thirdLeague" | "cp" | "district", kind: "stadium" | "stand") => {
+    const clubs = data.clubs.filter((c) => c.tier === tier);
+    return clubs.filter((c) => (sponsorTargets(c, tier, P, "naming-test").get(kind) ?? 0) > 0).length / Math.max(1, clubs.length);
+  };
+  it("os clubes pequenos são patrocinados menos vezes que os grandes", () => {
+    expect(share("firstLeague", "stadium")).toBeGreaterThan(share("cp", "stadium"));
+    expect(share("firstLeague", "stand")).toBeGreaterThan(share("cp", "stand"));
+    expect(share("district", "stadium")).toBe(0);
+    expect(share("district", "stand")).toBe(0);
+  });
+  it("há estádios com bancadas patrocinadas e o nome original, e o contrário", () => {
+    const targets = data.clubs.map((c) => sponsorTargets(c, c.tier, P, "naming-test"));
+    expect(targets.some((t) => t.has("stand") && !t.has("stadium"))).toBe(true);
+    expect(targets.some((t) => t.has("stadium") && !t.has("stand"))).toBe(true);
   });
 });

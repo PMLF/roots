@@ -34,10 +34,11 @@ function performanceFactor(repo: Repository, club: BaseClub, tier: Tier, ctx: Sp
 const TIER_ORDER: Tier[] = ["firstLeague", "secondLeague", "thirdLeague", "cp", "district"];
 
 /** Valor anual de referência de um tipo de patrocínio num clube (sem ruído). */
-function referenceValue(club: BaseClub, tier: Tier, kind: SponsorSlot, params: Params): number {
+function referenceValue(club: BaseClub, tier: Tier, kind: SponsorSlot, params: Params, active: readonly SponsorSlot[]): number {
   const s = params.companies.sponsorship;
   const total = annualFixedRevenues({ ...club, tier }, params).sponsorships;
-  const shareSum = s.slots[tier].reduce((t, k) => t + s.kindShare[k], 0);
+  // o total do clube reparte-se só pelos tipos que ele tem: sem nome de estádio ou bancadas, a camisola e a formação valem mais
+  const shareSum = active.reduce((t, k) => t + s.kindShare[k], 0);
   return (total * s.kindShare[kind]) / shareSum;
 }
 
@@ -46,16 +47,24 @@ function referenceValue(club: BaseClub, tier: Tier, kind: SponsorSlot, params: P
  * ultrapassa a normal do escalão (clubes maiores e com mais ambição têm mais patrocinadores). Os extras repartem-se
  * pelos tipos por ordem (camisola, estádio, formação…).
  */
-export function sponsorTargets(club: BaseClub, tier: Tier, params: Params): Map<SponsorSlot, number> {
+export function sponsorTargets(club: BaseClub, tier: Tier, params: Params, seed = "?"): Map<SponsorSlot, number> {
   const s = params.companies.sponsorship;
-  const kinds = s.slots[tier];
-  const targets = new Map<SponsorSlot, number>(kinds.map((k) => [k, 1] as const));
   const ratio = club.reputation / params.finances.model.refReputation[tier];
+  const kinds = s.slots[tier].filter((k) => k !== "stadium" && k !== "stand");
+  const targets = new Map<SponsorSlot, number>(kinds.map((k) => [k, 1] as const));
   const extra = Math.min(s.extra.max[tier], Math.max(0, Math.floor((ratio - s.extra.startRatio) / s.extra.perRatio) + (ratio >= s.extra.startRatio ? 1 : 0)));
   for (let i = 0; i < extra; i++) {
     const k = kinds[i % kinds.length]!;
     targets.set(k, (targets.get(k) ?? 0) + 1);
   }
+  // nome do estádio e das bancadas: as empresas preferem os clubes grandes; o sorteio é estável por clube (sobe e desce com a reputação)
+  const rng = new Rng(seed, `sponsorship/naming/${club.id}`);
+  const p = (factor: number) => clamp(s.naming.byTier[tier] * ratio * factor, 0, s.naming.max);
+  const stadium = s.slots[tier].includes("stadium") && rng.prob(p(s.naming.stadium)) ? 1 : 0;
+  let stands = 0;
+  for (let i = 0; i < 4; i++) if (s.slots[tier].includes("stand") && rng.prob(p(s.naming.stand))) stands++;
+  if (stadium) targets.set("stadium", 1);
+  if (stands) targets.set("stand", stands);
   return targets;
 }
 
@@ -88,9 +97,9 @@ function weightOf(pool: Pool, company: CompanyRecord, club: BaseClub, tier: Tier
 
 const roundValue = (x: number) => Math.max(500, Math.round(x / 100) * 100);
 
-function sign(pool: Pool, rng: Rng, club: BaseClub, tier: Tier, kind: SponsorSlot, ctx: SponsorContext, already: Set<string>, keep?: CompanyRecord, isExtra = false, kindCount = 1): SponsorshipRecord | undefined {
+function sign(pool: Pool, rng: Rng, club: BaseClub, tier: Tier, kind: SponsorSlot, ctx: SponsorContext, active: readonly SponsorSlot[], already: Set<string>, keep?: CompanyRecord, isExtra = false, kindCount = 1): SponsorshipRecord | undefined {
   const s = pool.params.companies.sponsorship;
-  const desired = performanceFactor(pool.repo, club, tier, ctx, pool.params) * (referenceValue(club, tier, kind, pool.params) / (1 + (kindCount - 1) * s.extra.valueShare)) * (isExtra ? s.extra.valueShare : 1) * Math.exp(rng.gauss(0, s.valueSigma));
+  const desired = performanceFactor(pool.repo, club, tier, ctx, pool.params) * (referenceValue(club, tier, kind, pool.params, active) / (1 + (kindCount - 1) * s.extra.valueShare)) * (isExtra ? s.extra.valueShare : 1) * Math.exp(rng.gauss(0, s.valueSigma));
   const company = keep ?? (pool.companies.length === 0 ? undefined : rng.weighted(pool.companies, (c) => weightOf(pool, c, club, tier, desired, already)));
   if (!company || already.has(company.id)) return undefined;
   const room = Math.max(0, company.capital * s.maxShareOfCapital - (pool.committed.get(company.id) ?? 0));
@@ -119,10 +128,12 @@ export function fillSponsorships(repo: Repository, data: BaseData, params: Param
     const current = repo.clubSponsorships(club.id, ctx.start).filter((x) => x.kind !== "broadcast");
     const already = new Set(current.map((x) => x.company));
     const rng = new Rng(seed, `sponsorship/${ctx.season}/${club.id}`);
-    for (const [kind, target] of sponsorTargets(club, tier, params)) {
+    const targets = sponsorTargets(club, tier, params, seed);
+    const active = [...targets.keys()];
+    for (const [kind, target] of targets) {
       let n = current.filter((x) => x.kind === kind).length;
       while (n < target) {
-        if (!sign(pool, rng, club, tier, kind, ctx, already, undefined, n >= 1, target)) break;
+        if (!sign(pool, rng, club, tier, kind, ctx, active, already, undefined, n >= 1, target)) break;
         n++;
         signed++;
       }
@@ -156,9 +167,10 @@ export function renewSponsorships(repo: Repository, data: BaseData, params: Para
     const rng = new Rng(seed, `sponsorship/renew/${ctx.season}/${old.id}`);
     const current = repo.clubSponsorships(club.id, ctx.start).filter((x) => x.kind !== "broadcast");
     const sameKind = current.filter((x) => x.kind === old.kind).length;
-    const offered = sameKind < (sponsorTargets(club, tier, params).get(old.kind) ?? 0);
+    const targets = sponsorTargets(club, tier, params, seed);
+    const offered = sameKind < (targets.get(old.kind) ?? 0);
     const already = new Set(current.filter((x) => x.kind !== old.kind || x.company !== old.company).map((x) => x.company));
-    if (company.state === "active" && offered && rng.prob(p) && sign(pool, rng, club, tier, old.kind, ctx, already, company, sameKind >= 1, sponsorTargets(club, tier, params).get(old.kind) ?? 1)) {
+    if (company.state === "active" && offered && rng.prob(p) && sign(pool, rng, club, tier, old.kind, ctx, [...targets.keys()], already, company, sameKind >= 1, targets.get(old.kind) ?? 1)) {
       renewed++;
     } else {
       lapsed++;

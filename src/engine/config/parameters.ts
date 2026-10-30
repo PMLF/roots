@@ -857,6 +857,8 @@ export type Params = {
       /** Tipos de patrocínio que o clube de cada escalão oferece e a quota de cada um no total do escalão. */
       slots: Record<Tier, ("shirt" | "stadium" | "stand" | "youth")[]>;
       kindShare: Record<"shirt" | "stadium" | "stand" | "youth", number>;
+      /** Quem dá o nome ao estádio e às bancadas: probabilidade base por escalão (a reputação acima ou abaixo da normal sobe ou desce) e fator de cada tipo; sorteio estável por clube. */
+      naming: { byTier: Record<Tier, number>; stadium: number; stand: number; max: number };
       /** Desvio do logaritmo do valor negociado. */
       valueSigma: number;
       extra: { startRatio: number; perRatio: number; max: Record<Tier, number>; valueShare: number };
@@ -1518,6 +1520,7 @@ export const DEFAULT_PARAMETERS: Params = {
       slots: { firstLeague: ["shirt", "stadium", "stand", "youth"], secondLeague: ["shirt", "stadium", "stand", "youth"], thirdLeague: ["shirt", "stadium", "stand"], cp: ["shirt", "stadium", "stand"], district: ["shirt"] },
       /** «stand» = patrocínio de uma bancada (dá-lhe o nome); sai da quota do resto, o total do escalão não muda. */
       kindShare: { shirt: 0.52, stadium: 0.2, stand: 0.13, youth: 0.15 },
+      naming: { byTier: { firstLeague: 0.8, secondLeague: 0.55, thirdLeague: 0.35, cp: 0.2, district: 0 }, stadium: 1, stand: 0.6, max: 0.95 },
       valueSigma: 0.15,
       /** Contratos extra por reputação acima da normal do escalão (RZ-311): um a partir de `startRatio`, mais um por cada `perRatio`; cada extra vale `valueShare` do valor de referência do tipo. */
       extra: { startRatio: 1, perRatio: 0.45, max: { firstLeague: 4, secondLeague: 3, thirdLeague: 2, cp: 2, district: 1 }, valueShare: 0.4 },
