@@ -2018,7 +2018,6 @@
   "stadium.page.sub": "{club} · {capacity} lugares · {ownership}",
   "stadium.plan": "Planta",
   "stadium.openPage": "Ver a planta e planear obras",
-  "stadium.legend.fill": "Ocupação no último jogo",
   "stadium.legend.covered": "Coberto",
   "stadium.legend.works": "Em obra",
   "stadium.seats": "Lugares",
@@ -2072,5 +2071,11 @@
   "stadium.popup.seats": "Lugares novos: {seats}",
   "stadium.popup.cover": "Pedir cobertura ({cost})",
   "stadium.popup.price": "Preço",
-  "stadium.openTab": "Ver o estádio do clube"
+  "stadium.openTab": "Ver o estádio do clube",
+  "stadium.legend": "Legenda",
+  "stadium.legend.expand": "Pode crescer",
+  "stadium.legend.full": "Sem espaço para crescer",
+  "stadium.popup.cost": "Custo",
+  "stadium.popup.term": "Prazo",
+  "stadium.popup.months": "{months} meses"
 }

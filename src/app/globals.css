@@ -1362,51 +1362,58 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 
 /* Estádio: planta fechada e planeamento (RZ-116) */
 .estadio-aba { display: grid; gap: 12px; }
-.estadio-cabeca h2 { margin: 0 0 2px; }
+.estadio-cabeca h2 { margin: 0 0 2px; font-size: 18px; }
 .estadio-cabeca p { margin: 0 0 2px; }
-.estadio-plano { display: grid; gap: 8px; }
-.estadio-svg-caixa { position: relative; }
-.planta-svg { width: 100%; height: auto; display: block; }
+.estadio-plano { display: grid; gap: 12px; }
+/* A planta escala como imagem; o texto é HTML (selecionável) com tamanho de interface, só encolhe em larguras pequenas. */
+.planta-rolagem { overflow-x: auto; }
+.planta { position: relative; min-width: 560px; width: 100%; max-width: 760px; margin: 0 auto; aspect-ratio: 880 / 600; container-type: inline-size; font-size: clamp(11px, 1.85cqw, 14px); }
+.planta-svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.planta-svg [role="button"] { outline: none; }
 .planta-bancada { fill: var(--painel-2); }
-.planta-ocupacao { fill: var(--destaque); pointer-events: none; }
-.planta-anel { stroke: var(--linha-forte); stroke-width: 1.2; stroke-dasharray: 5 4; pointer-events: none; }
-.planta-divisoria { stroke: var(--texto); stroke-width: 3; stroke-linecap: square; pointer-events: none; }
-.planta-contorno { fill: none; stroke: var(--texto); stroke-width: 3.5; pointer-events: none; }
-.planta-cobertura { stroke: var(--atencao); stroke-width: 6; pointer-events: none; }
-.planta-relvado { fill: #2f7d4f; stroke: var(--texto); stroke-width: 3; }
-.planta-relvado.sintetico { fill: #3f8f5f; }
-.planta-linha { stroke: rgba(255, 255, 255, 0.7); stroke-width: 1.5; }
-.planta-campo { fill: #fff; font-size: 17px; pointer-events: none; }
-.planta-campo.titulo { font-size: 21px; font-weight: 650; }
-.planta-campo-grupo.clicavel { cursor: pointer; }
-.planta-campo-grupo.clicavel:hover .planta-relvado, .planta-campo-grupo.ativo .planta-relvado { stroke: var(--destaque); stroke-width: 5; }
-.planta-texto { fill: var(--texto); font-size: 16px; }
-.planta-texto.titulo { font-size: 19px; font-weight: 650; }
-.planta-nota-sub { fill: var(--suave); font-size: 14px; }
-.planta-barra-fundo { fill: var(--linha); }
-.planta-barra-cheia { fill: var(--destaque); }
-.planta-barra-campo { fill: #fff; }
+.planta-anel { stroke: var(--linha-forte); stroke-width: 1.2; stroke-dasharray: 5 4; }
+.planta-divisoria { stroke: var(--linha-forte); stroke-width: 2; }
+.planta-contorno { fill: none; stroke: var(--suave); stroke-width: 2.5; pointer-events: none; }
+.planta-cobertura { stroke: var(--atencao); stroke-width: 5; }
 .planta-expansao { cursor: pointer; }
-.planta-exp-zona { fill: var(--destaque-fundo); fill-opacity: 0.35; stroke: var(--destaque); stroke-width: 2.5; stroke-dasharray: 10 9; }
-.planta-expansao:hover .planta-exp-zona, .planta-expansao.ativo .planta-exp-zona { fill-opacity: 0.8; stroke-width: 3.5; }
+.planta-exp-zona { fill: var(--destaque-fundo); fill-opacity: 0.3; stroke: var(--destaque); stroke-width: 2; stroke-dasharray: 9 8; transition: fill-opacity .12s, stroke-width .12s; }
+.planta-expansao:hover .planta-exp-zona, .planta-expansao.ativo .planta-exp-zona, .planta-expansao:focus-visible .planta-exp-zona { fill-opacity: 0.75; stroke-width: 3; }
 .planta-expansao.cheio { pointer-events: none; }
 .planta-expansao.cheio .planta-exp-zona { fill: none; stroke: var(--linha-forte); }
-.planta-expansao:focus-visible { outline: none; }
-.planta-expansao:focus-visible .planta-exp-zona { stroke-width: 5; }
 .planta-mais { cursor: pointer; }
-.planta-mais circle { fill: var(--painel); stroke: var(--destaque); stroke-width: 2.5; }
-.planta-mais path { stroke: var(--destaque-texto); stroke-width: 3; stroke-linecap: round; fill: none; }
-.planta-mais:hover circle { fill: var(--destaque-fundo); }
-.estadio-popup { position: absolute; right: 0; bottom: 0; width: min(300px, 100%); background: var(--painel); border: 1px solid var(--linha-forte); border-radius: var(--r-m); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22); padding: 12px 14px; display: grid; gap: 8px; z-index: 5; }
-.estadio-popup h3 { margin: 0; padding-right: 24px; }
-.estadio-popup p { margin: 0; }
-.estadio-fechar { position: absolute; top: 6px; right: 8px; border: 0; background: transparent; font-size: 20px; line-height: 1; cursor: pointer; color: var(--suave); }
-.estadio-campo { display: flex; gap: 8px; align-items: center; }
-.estadio-campo.coluna { flex-direction: column; align-items: stretch; gap: 2px; }
-.estadio-campo input[type="number"] { width: 90px; }
-.estadio-campo input[type="range"] { width: 100%; accent-color: var(--destaque); }
-.estadio-acoes { display: flex; flex-wrap: wrap; gap: 8px; }
-.estadio-camadas { display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--suave); font-size: 13px; }
-.estadio-camadas label { display: inline-flex; gap: 6px; align-items: center; }
-.estadio-plano.compacto .planta-texto { font-size: 17px; }
-@media (max-width: 700px) { .estadio-popup { position: static; width: 100%; margin-top: 8px; } }
+.planta-mais circle { fill: var(--painel); stroke: var(--destaque); stroke-width: 2; transition: fill .12s; }
+.planta-mais path { stroke: var(--destaque-texto); stroke-width: 2.5; stroke-linecap: round; fill: none; }
+.planta-mais:hover circle, .planta-mais:focus-visible circle { fill: var(--destaque-fundo); }
+.planta-bancada-texto { position: absolute; transform: translateX(-50%); width: 24%; display: grid; justify-items: center; gap: 1px; text-align: center; line-height: 1.35; user-select: text; }
+.planta-bancada-texto b { font-size: 1.07em; }
+.planta-bancada-texto small { margin-top: 4px; font-size: .93em; }
+.planta-barra { display: block; width: 80%; max-width: 110px; height: 6px; border-radius: 3px; background: var(--linha); overflow: hidden; }
+.planta-barra i { display: block; height: 100%; background: var(--destaque); border-radius: 3px; }
+.planta-campo { position: absolute; border-radius: 3px; overflow: hidden; display: grid; place-items: center; color: #fff; text-align: center; outline: none; }
+.planta-relva { position: absolute; inset: 0; background: #2f7d4f; transition: filter .12s; }
+.planta-relva.sintetico { background: #3f8f5f; }
+.planta-linhas { position: absolute; inset: 6%; border: 1.5px solid rgb(255 255 255 / .6); pointer-events: none; }
+.planta-linhas::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; border-left: 1.5px solid rgb(255 255 255 / .6); }
+.planta-campo-texto { position: relative; display: grid; justify-items: center; gap: 2px; line-height: 1.35; user-select: text; }
+.planta-campo-texto b { font-size: 1.07em; }
+.planta-campo .planta-barra { background: rgb(255 255 255 / .3); margin-top: 4px; }
+.planta-campo .planta-barra i { background: #fff; }
+.planta-campo.clicavel { cursor: pointer; }
+.planta-campo.clicavel:hover .planta-relva, .planta-campo.clicavel.ativo .planta-relva, .planta-campo.clicavel:focus-visible .planta-relva { filter: brightness(1.18); }
+.planta-campo.clicavel:focus-visible { box-shadow: 0 0 0 2px var(--destaque); }
+.estadio-legenda { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0; padding: 0; list-style: none; color: var(--suave); font-size: 13px; }
+.estadio-legenda li { display: inline-flex; align-items: center; gap: 6px; }
+.amostra { display: inline-block; width: 18px; height: 10px; box-sizing: border-box; border-radius: 2px; }
+.amostra.cobertura { height: 0; border-top: 4px solid var(--atencao); border-radius: 0; }
+.amostra.obra { background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--atencao) 55%, transparent) 0 3px, transparent 3px 6px); border: 1px solid var(--linha-forte); }
+.amostra.aneis { height: 0; border-top: 1.5px dashed var(--suave); border-radius: 0; }
+.amostra.expansao { border: 1.5px dashed var(--destaque); background: color-mix(in srgb, var(--destaque-fundo) 40%, transparent); }
+.amostra.cheio { border: 1.5px dashed var(--linha-forte); }
+.estadio-plano.compacto .planta { max-width: 100%; }
+.popup-estadio { width: min(92vw, 380px); }
+.formulario.coluna { grid-template-columns: minmax(0, 1fr); }
+.formulario label.opcao { display: flex; align-items: flex-start; gap: 8px; color: var(--texto); font-size: 14px; }
+.formulario label.opcao input { margin: 2px 0 0; flex: none; }
+.formulario input[type="range"] { width: 100%; accent-color: var(--destaque); padding: 0; min-height: 0; border: 0; }
+.estadio-opcoes { display: grid; gap: 8px; }
+.estadio-opcoes button { text-align: left; }
