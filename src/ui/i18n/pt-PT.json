@@ -2044,6 +2044,7 @@
   "stadium.turf.reason.perfect": "O relvado já está no máximo possível.",
   "stadium.reason.covered": "Esse setor já está coberto.",
   "stadium.seatsRings": "{seats} lugares · {rings} anéis",
+  "stadium.seatsRing1": "{seats} lugares · 1 anel",
   "stadium.coveredShort": "coberta",
   "stadium.uncoveredShort": "descoberta",
   "stadium.canGrow": "Pode crescer +{seats}",
@@ -2059,5 +2060,17 @@
   "stadium.turf.backNatural": "Voltar ao natural ({cost})",
   "stadium.turf.installSynthetic": "Instalar sintético ({cost})",
   "stadium.turf.reason.synthetic": "O relvado já é sintético: não precisa de tratamento.",
-  "stadium.turf.reason.natural": "O relvado já é natural."
+  "stadium.turf.reason.natural": "O relvado já é natural.",
+  "stadium.owner": "Dono: {owner}",
+  "stadium.owner.council": "Câmara de {city}",
+  "stadium.owner.shared": "{club} e Câmara de {city}",
+  "stadium.expandability": "Expansibilidade",
+  "stadium.orderFor": "Pedir obra: {sector}",
+  "stadium.popup.title": "Pedir obra",
+  "stadium.popup.close": "Fechar",
+  "stadium.popup.order": "Pedir obra: {sector}",
+  "stadium.popup.seats": "Lugares novos: {seats}",
+  "stadium.popup.cover": "Pedir cobertura ({cost})",
+  "stadium.popup.price": "Preço",
+  "stadium.openTab": "Ver o estádio do clube"
 }

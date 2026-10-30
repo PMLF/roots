@@ -380,6 +380,9 @@ export type CouncilAreaId = "sport" | "health" | "education" | "mobility" | "hou
 /** Página do estádio do clube do gamer (RZ-116): planta por setores, relvado e obra em curso. */
 export type StadiumPageData = {
   club: { id: string; name: string };
+  /** É o clube do gamer: só então se pedem obras e se mexe em preços e relvado. */
+  own: boolean;
+  city: { id: string; name: string };
   name: string;
   ownership: "club" | "municipal" | "shared";
   tier: string;
@@ -613,7 +616,7 @@ export type EngineRequests = {
   resign: { input: null; output: { club: string } };
   /** Mercado de staff (RZ-208): profissionais livres de uma função, com a qualidade estimada. */
   staffMarket: { input: { fn: string }; output: StaffCandidate[] };
-  stadiumPage: { input: null; output: StadiumPageData | null };
+  stadiumPage: { input: { club?: string }; output: StadiumPageData | null };
   setStadiumPrice: { input: { sector: StadiumSector; price: number }; output: { price: number } };
   treatTurf: { input: { kind: "treat" | "replace" | "synthetic" }; output: TurfResult };
   stadiumQuote: { input: { sector: StadiumSector; seats: number; kind?: "expand" | "cover" }; output: { cost: number; clubCost: number; councilShare: number; months: number; maxSeats: number } | null };

@@ -1,5 +1,6 @@
 "use client";
 import type { CityProfileData, LocalityProfileData, ViewCityLevel } from "@/engine/api/contracts";
+import Link from "next/link";
 import { Chip } from "@/ui/components/Attributes";
 import { Card, Data, Top } from "@/ui/components/Card";
 import { Table } from "@/ui/components/Table";
@@ -8,6 +9,9 @@ import { Profile } from "@/ui/components/Profile";
 import { CompanyCards } from "@/ui/components/profiles/CompanyCards";
 import { CouncilBudget } from "@/ui/components/profiles/CouncilBudget";
 import { LocalTalent } from "@/ui/components/profiles/LocalTalent";
+import { StadiumPlan } from "@/ui/components/profiles/StadiumPlan";
+import { stadiumOwner } from "@/ui/components/profiles/StadiumTab";
+import { profileHref, TAB_URL } from "@/ui/links";
 import { EntityLink } from "@/ui/components/Link";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -252,6 +256,18 @@ export function CityProfile({ d, locality }: { d: CityProfileData; locality?: Lo
     </div>
   );
 
+  const stadiums = (
+    <div className="cartoes">
+      {d.clubs.length > 0 ? d.clubs.map((c) => (
+        <Card key={c.ref.id} title={<EntityLink k="club" id={c.ref.id}>{c.stadium.name}</EntityLink>} wide={d.clubs.length === 1}>
+          <p className="suave">{t("stadium.owner", { owner: stadiumOwner(t, c.stadium.ownership, c.ref.name, d.name) })} · {n.format(c.stadium.capacity)} {t("stadium.places")}</p>
+          <StadiumPlan club={c.ref.id} compact />
+          <p><Link href={`${profileHref("club", c.ref.id)}&tab=${TAB_URL.stadium}`}>{t("stadium.openTab")}</Link></p>
+        </Card>
+      )) : <p className="vazio">{t("city.noClubs")}</p>}
+    </div>
+  );
+
   const story = (
     <div className="cartoes">
       {locality && <Card title={t("locality.statusHistory")} wide><StatusHistory d={locality} /></Card>}
@@ -267,5 +283,5 @@ export function CityProfile({ d, locality }: { d: CityProfileData; locality?: Lo
     </div>
   );
 
-  return <Profile type="locality" title={locality?.name ?? d.name} top={<Top title={locality?.name ?? d.name} labels={labels} card={identity} />} tabs={{ summary, clubs, services: servicesTab, ...(companiesTab ? { companies: companiesTab } : {}), council: councilTab, talent: <LocalTalent city={d.id} />, story }} />;
+  return <Profile type="locality" title={locality?.name ?? d.name} top={<Top title={locality?.name ?? d.name} labels={labels} card={identity} />} tabs={{ summary, clubs, services: servicesTab, stadium: stadiums, ...(companiesTab ? { companies: companiesTab } : {}), council: councilTab, talent: <LocalTalent city={d.id} />, story }} />;
 }

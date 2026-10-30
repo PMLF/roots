@@ -25,7 +25,7 @@ export function readProfile(params: { get(name: string): string | null }): { k: 
  * aparecem na mesma na ordem certa, marcados como "em breve", para a estrutura não mudar com o jogo.
  */
 export const TABS: Record<ProfileEntityType, readonly string[]> = {
-  club: ["summary", "squad", "staff", "matches", "story"],
+  club: ["summary", "squad", "staff", "stadium", "matches", "story"],
   person: ["summary", "contract", "career", "story"],
   city: ["summary", "clubs", "services", "talent", "companies", "council", "stadium", "story"],
   locality: ["summary", "clubs", "services", "talent", "companies", "council", "stadium", "story"],
