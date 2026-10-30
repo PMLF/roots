@@ -2018,7 +2018,6 @@
   "stadium.page.sub": "{club} · {capacity} seats · {ownership}",
   "stadium.plan": "Plan",
   "stadium.openPage": "See the plan and plan works",
-  "stadium.legend.fill": "Fill at the last match",
   "stadium.legend.covered": "Covered",
   "stadium.legend.works": "Under works",
   "stadium.seats": "Seats",
@@ -2072,5 +2071,11 @@
   "stadium.popup.seats": "New seats: {seats}",
   "stadium.popup.cover": "Add a roof ({cost})",
   "stadium.popup.price": "Price",
-  "stadium.openTab": "See the club's stadium"
+  "stadium.openTab": "See the club's stadium",
+  "stadium.legend": "Legend",
+  "stadium.legend.expand": "Room to grow",
+  "stadium.legend.full": "No room to grow",
+  "stadium.popup.cost": "Cost",
+  "stadium.popup.term": "Time",
+  "stadium.popup.months": "{months} months"
 }
