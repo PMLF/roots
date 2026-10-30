@@ -9,6 +9,7 @@ import { DevSimulate } from "@/ui/components/DevSimulate";
 import { useDevMode, useSeeAll } from "@/ui/dev";
 import { useInboxUnread } from "@/ui/useCash";
 import { AdvanceButton } from "@/ui/components/AdvanceButton";
+import { TimePassing } from "@/ui/components/TimePassing";
 import { Icon, type IconName } from "@/ui/components/Icon";
 import { Search } from "@/ui/components/Search";
 import { CelebrationDialog } from "@/ui/components/CelebrationDialog";
@@ -166,7 +167,7 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
         <Settings theme={theme} onTheme={toggleTheme} density={density} onDensity={toggleDensity} locale={locale} aoLocale={setLocale} />
       </nav>
-      <div className={`tempo-passa${passing ? " ativo" : ""}`} aria-hidden="true" />
+      <TimePassing active={passing} />
       {drawer && <div className="menu-fundo" onClick={() => setDrawer(false)} aria-hidden="true" />}
       {!matchInProgress && (
         <header className="topo">
