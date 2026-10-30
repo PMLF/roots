@@ -8,6 +8,7 @@ import { completeOrders } from "../scouting/scouting";
 import { zoneSizes } from "../competition/profile";
 import type { EuropeSlots } from "../europe/access";
 import { weekDay, addDays } from "../calendar/dates";
+import type { StadiumSector } from "../config/parameters";
 import type { Params } from "../config/parameters";
 import type { BaseClub, BaseData } from "../data/types";
 import { matchReferee, matchChannels } from "../match/matchContext";
@@ -21,7 +22,8 @@ import type { MatchTeam, MatchSummary } from "../match/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { matchAttendance } from "../club/attendance";
-import { dailyStadium, stadiumCapacity } from "../club/stadium";
+import { dailyStadium, stadiumCapacity, wearTurf, recordFill } from "../club/stadium";
+import { sellingSectors, stadiumState, turfOf } from "../club/stadiumState";
 import { cityStateNow } from "../city/cities";
 import { adjustInjury, attendanceFactor, clubCityState, nightlifeFormLoss } from "../city/effects";
 import { ensureBudgets } from "../club/budget";
@@ -149,13 +151,19 @@ export function carryFor(repo: Repository, g: MatchFlags & { home: string }): { 
   return first.home === g.home ? { carry: { home: first.homeGoals, away: first.awayGoals } } : { carry: { home: first.awayGoals, away: first.homeGoals } };
 }
 /** O que entra na simulação do jogo (`MatchInput`) a partir das marcas. */
+/** Relvado do estádio da casa para a simulação (RZ-116); sem a marca, vale o neutro (0,5). */
+export function turfFor(repo: Repository, base: BaseData, params: Params, g: { home: string; neutral?: boolean }): { turf?: number } {
+  const club = base.clubs.find((c) => c.id === g.home);
+  return club && !g.neutral && !isForeignClub(g.home) ? { turf: turfOf(stadiumState(repo, club, params), params) } : {};
+}
+
 export const inputFlags = (g: MatchFlags): { knockout?: true; neutral?: true } => ({ ...(g.knockout ? { knockout: true as const } : {}), ...(g.neutral ? { neutral: true as const } : {}) });
 
 /**
  * Assistência e bilheteira do jogo (RZ-114/115). A receita fica com o clube da casa; em campo neutro joga-se no estádio do
  * clube `venue` e a receita reparte-se pelos dois clubes (`shared`).
  */
-export function matchTicket(data: BaseData, params: Params, home: string, away: string, competition: string, flags: MatchFlags = {}, live?: { repo: Repository; date: IsoDate }): { attendance: number; revenue: number; club: BaseClub; /** O estádio onde se joga. */ stadium: Stadium; shared?: [BaseClub, BaseClub] } | undefined {
+export function matchTicket(data: BaseData, params: Params, home: string, away: string, competition: string, flags: MatchFlags = {}, live?: { repo: Repository; date: IsoDate }): { attendance: number; revenue: number; club: BaseClub; /** O estádio onde se joga. */ stadium: Stadium; shared?: [BaseClub, BaseClub]; /** Ocupação de cada setor. */ bySector?: Partial<Record<StadiumSector, number>> } | undefined {
   const club = (id: string) => data.clubs.find((x) => x.id === id) ?? data.foreignClubs?.find((x) => x.id === id);
   const cc = club(home);
   const cf = club(away);
@@ -164,15 +172,15 @@ export function matchTicket(data: BaseData, params: Params, home: string, away: 
   const capacity = live && !isForeignClub(home) ? stadiumCapacity(live.repo, cc, params) : cc.stadium.capacity;
   const stadium: Stadium = neutral ?? { name: cc.stadium.name, locality: cc.locality || cc.name, capacity };
   const hostCity = flags.neutral && flags.venue && flags.venue !== NATIONAL_STADIUM ? data.clubs.find((x) => x.id === flags.venue)?.city : cc.city;
-  const b = matchAttendance({ home: neutral ? { ...cc, stadium: { ...cc.stadium, name: neutral.name, capacity: neutral.capacity } } : { ...cc, stadium: { ...cc.stadium, capacity } }, away: cf, footballCulture: data.cities.find((x) => x.id === hostCity)?.footballCulture ?? 50, ...(live && hostCity ? { cityFactor: attendanceFactor(cityStateNow(live.repo, data, params, hostCity), Number(live.date.slice(5, 7)), params) * (1 + councilMatchdayBoost(live.repo, params, home, Number(live.repo.meta("season") ?? 1))) } : {}), final: competition === CP_FINAL_COMPETITION || !!flags.neutral }, params);
+  const b = matchAttendance({ home: neutral ? { ...cc, stadium: { ...cc.stadium, name: neutral.name, capacity: neutral.capacity } } : { ...cc, stadium: { ...cc.stadium, capacity } }, away: cf, footballCulture: data.cities.find((x) => x.id === hostCity)?.footballCulture ?? 50, ...(live && hostCity ? { cityFactor: attendanceFactor(cityStateNow(live.repo, data, params, hostCity), Number(live.date.slice(5, 7)), params) * (1 + councilMatchdayBoost(live.repo, params, home, Number(live.repo.meta("season") ?? 1))) } : {}), final: competition === CP_FINAL_COMPETITION || !!flags.neutral, ...(live && !neutral && !isForeignClub(home) ? { sectors: sellingSectors(live.repo, cc, params), month: Number(live.date.slice(5, 7)) } : {}) }, params);
   return { ...b, club: cc, stadium, ...(flags.neutral ? { shared: [cc, cf] as [BaseClub, BaseClub] } : {}) };
 }
 
 /** Lança a receita de bilheteira nas tesourarias: tudo ao clube da casa ou, em campo neutro, metade a cada um. */
-export function postTicketing(repo: Repository, ticket: NonNullable<ReturnType<typeof matchTicket>>): void {
+export function postTicketing(repo: Repository, ticket: NonNullable<ReturnType<typeof matchTicket>>, params: Params, date: IsoDate): void {
   // os clubes estrangeiros não têm finanças no jogo
   if (isForeignClub(ticket.club.id)) return;
-  if (!ticket.shared) return post(repo, ticket.club, "ticketing", ticket.revenue);
+  if (!ticket.shared) { wearTurf(repo, ticket.club, params, Number(date.slice(5, 7))); if (ticket.bySector) recordFill(repo, ticket.club.id, ticket.bySector); return post(repo, ticket.club, "ticketing", ticket.revenue); }
   const half = Math.floor(ticket.revenue / 2);
   post(repo, ticket.shared[0], "ticketing", ticket.revenue - half);
   post(repo, ticket.shared[1], "ticketing", half);
@@ -212,11 +220,11 @@ function advanceDay(repo: Repository, base: BaseData, params: Params, gamerClub?
       const level = matchLevel(g.home, g.away, gamerClub);
       const home = teamForMatch(repo, g.home, g.competition, season, g.round, today, seed, params, g.home === gamerClub ? readPlan(repo, g.home) : undefined, data);
       const away = teamForMatch(repo, g.away, g.competition, season, g.round, today, seed, params, g.away === gamerClub ? readPlan(repo, g.away) : undefined, data);
-      const r = playMatch({ seed, id: g.id, home, away, ...inputFlags(g), ...carryFor(repo, g) }, level, { id: g.id, competition: g.competition, season, round: g.round, date: today }, params);
+      const r = playMatch({ seed, id: g.id, home, away, ...inputFlags(g), ...carryFor(repo, g), ...turfFor(repo, data, params, g) }, level, { id: g.id, competition: g.competition, season, round: g.round, date: today }, params);
       const rival = gamerClub && level === 0 ? rivalReason(repo, data, params, g.competition, season, gamerClub, g.home === gamerClub ? g.away : g.home) : undefined;
       const ticket = matchTicket(data, params, g.home, g.away, g.competition, g, { repo, date: today });
       const { event } = repo.recordMatch({ ...r.record.match, referee: matchReferee(seed, g.id), ...(ticket ? { attendance: ticket.attendance, revenue: ticket.revenue } : {}) }, r.record.facts, r.record.appearances);
-      if (ticket) postTicketing(repo, ticket);
+      if (ticket) postTicketing(repo, ticket, params, today);
       postBroadcast(repo, data, params, season, g);
       if (rival) repo.appendEvent(rivalEvent(g.id, g.home, g.away, today, season, g.round, event, rival));
       for (const l of r.record.injuries) repo.appendEvent({ ...adjustInjury(repo, data, params, l), cause: event });

@@ -1359,3 +1359,31 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 
 .staff-gestao h3 { margin: 16px 0 6px; }
 .staff-gestao label { display: inline-flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+
+/* Estádio: planta e planeamento (RZ-116) */
+.estadio-layout { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 14px; align-items: stretch; }
+.estadio-planta { grid-row: span 2; display: flex; flex-direction: column; }
+.planta-svg { width: 100%; height: auto; max-height: 440px; flex: 1; }
+.planta-relvado { fill: #2f7d4f; }
+.planta-linha { stroke: rgba(255, 255, 255, 0.65); stroke-width: 1.5; }
+.planta-bancada { fill: var(--painel-2); stroke: var(--linha-forte); stroke-width: 1.5; }
+.planta-ocupacao { fill: var(--destaque); }
+.planta-cobertura { fill: var(--texto); }
+.planta-texto { fill: var(--texto); font-size: 13px; font-weight: 650; pointer-events: none; }
+.planta-setor { cursor: pointer; }
+.planta-setor:hover .planta-bancada { stroke: var(--destaque); }
+.planta-setor.ativo .planta-bancada { stroke: var(--destaque); stroke-width: 3; }
+.planta-setor:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+.planta-legenda { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; margin: 6px 0 0; padding: 0; color: var(--suave); font-size: 13px; }
+.planta-legenda li { display: inline-flex; align-items: center; gap: 6px; }
+.planta-amostra { display: inline-block; width: 14px; height: 10px; border-radius: 2px; border: 1px solid var(--linha-forte); }
+.planta-amostra.ocupacao { background: var(--destaque); opacity: 0.6; }
+.planta-amostra.cobertura { background: var(--texto); height: 4px; }
+.planta-amostra.obra { background: repeating-linear-gradient(45deg, var(--atencao) 0 3px, transparent 3px 6px); }
+.estadio-preco { display: grid; gap: 4px; margin-top: 10px; }
+.estadio-preco input[type="range"] { width: 100%; accent-color: var(--destaque); }
+.estadio-acoes { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; margin-top: 8px; }
+.estadio-acoes p { flex-basis: 100%; margin: 0; }
+.estadio-relvado { display: flex; align-items: center; gap: 12px; }
+.estadio-relvado .barra-medida { flex: 1; }
+@media (max-width: 900px) { .estadio-layout { grid-template-columns: 1fr; } .estadio-planta { grid-row: auto; } }

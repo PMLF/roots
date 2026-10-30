@@ -34,7 +34,8 @@ import { startSession, changeSessionTactic, sessionStep, currentSession, substit
 import { isInSecondDistrict } from "../season/districts";
 import { syncGamerCoach } from "../club/coaches";
 import { makeStadiumRequest } from "../council/requests";
-import { quoteWorks, startWorks, stadiumCapacity, stadiumState, stadiumTotalOf } from "../club/stadium";
+import { lastFill, priceOf, quoteWorks, sellingSectors, setSectorPrice, startWorks, stadiumCapacity, stadiumState, stadiumTotalOf, treatTurf, turfCosts, turfOf } from "../club/stadium";
+import { STADIUM_SECTORS } from "../config/parameters";
 import { dismissStaff, hireStaff, ownStaff, seedStaffMarket, staffCandidates } from "../club/staff";
 import { acceptOffer, resign, isUnemployed, gamerOffers, startUnemployed } from "../season/coachMarket";
 import { buyHome, causeOffsets, courseLevel, courseTraining, helpClub, homePrice, ownsHome, startCourse, supportCause } from "../personal/spending";
@@ -474,11 +475,38 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (club && today) seedStaffMarket(repository, data, params, today);
       return club && today ? staffCandidates(repository, params, m.input.fn, club, today) : [];
     }
+    case "stadiumPage": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((x) => x.id === repository.meta("gamer.club"));
+      if (!club) return null;
+      const s = stadiumState(repository, club, params), fill = lastFill(repository, club.id), open = new Map(sellingSectors(repository, club, params).map((x) => [x.id, x.seats]));
+      const costs = turfCosts(params, club);
+      return {
+        club: { id: club.id, name: club.name }, name: club.stadium.name, ownership: club.stadium.ownership, tier: club.tier,
+        capacity: stadiumCapacity(repository, club, params), built: stadiumTotalOf(s), terrain: club.stadium.location.expansionTerrain,
+        basePrice: params.finances.model.ticketPrice[club.tier],
+        sectors: STADIUM_SECTORS.map((id) => ({ id, seats: s.sectors[id], open: open.get(id) ?? s.sectors[id], covered: !!s.covered?.[id], price: priceOf(s, id), ...(fill[id] !== undefined ? { fill: fill[id] } : {}), coverCost: quoteWorks(params, club, id, 0, "cover", s.sectors[id]).cost })),
+        ...(s.works ? { works: { kind: s.works.kind ?? "expand", sector: s.works.sector, seats: s.works.seats, cost: s.works.cost, end: s.works.end } } : {}),
+        turf: { value: turfOf(s, params), treatCost: costs.treat, replaceCost: costs.replace },
+        limits: { priceMin: params.stadium.pricing.min, priceMax: params.stadium.pricing.max, minSeats: params.stadium.works.minSeats, maxSeats: Math.floor(stadiumTotalOf(s) * params.stadium.works.maxGrowth) },
+      };
+    }
+    case "setStadiumPrice": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((x) => x.id === repository.meta("gamer.club"));
+      return { price: club ? setSectorPrice(repository, params, club, m.input.sector, m.input.price) : 1 };
+    }
+    case "treatTurf": {
+      const { repository, data, params } = await context(servicos);
+      const club = data.clubs.find((x) => x.id === repository.meta("gamer.club"));
+      return club ? treatTurf(repository, params, club, m.input.kind) : ({ ok: false, reason: "cash" } as const);
+    }
     case "stadiumQuote": {
       const { repository, data, params } = await context(servicos);
       const club = data.clubs.find((x) => x.id === repository.meta("gamer.club"));
       if (!club) return null;
-      const q = quoteWorks(params, club, m.input.sector, m.input.seats);
+      const kind = m.input.kind ?? "expand";
+      const q = quoteWorks(params, club, m.input.sector, m.input.seats, kind, stadiumState(repository, club, params).sectors[m.input.sector]);
       return { cost: q.cost, clubCost: q.clubCost, councilShare: q.councilShare, months: q.months, maxSeats: Math.floor(stadiumTotalOf(stadiumState(repository, club, params)) * params.stadium.works.maxGrowth) };
     }
     case "startStadiumWorks": {
@@ -487,10 +515,11 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const today = (repository.meta("date.today") ?? "") as IsoDate;
       if (!club || !today) return { ok: false, reason: "unknown" } as const;
       const season = currentSeason(repository);
-      const r = startWorks(repository, params, club, m.input.sector, m.input.seats, today, season);
+      const kind = m.input.kind ?? "expand";
+      const r = startWorks(repository, params, club, m.input.sector, m.input.seats, today, season, { kind });
       // pede à Câmara a comparticipação (estádio municipal ou partilhado): o clube já pagou tudo e recebe a parte se for aprovada
       if (r.ok && m.input.askCouncil) {
-        const share = quoteWorks(params, club, m.input.sector, m.input.seats).councilShare;
+        const share = quoteWorks(params, club, m.input.sector, m.input.seats, kind).councilShare;
         if (share > 0) makeStadiumRequest(repository, data, params, club, today, season, Math.round(r.cost * share));
       }
       return r;
