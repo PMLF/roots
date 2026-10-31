@@ -29,8 +29,10 @@ describe("calibração das finanças (RZ-114)", () => {
       expect(closes.length).toBeGreaterThanOrEqual(11);
       // as transferências (RZ-205) são capital que muda de mãos, não resultado operacional: ficam de fora da calibração
       const transfers = (e: (typeof closes)[number]) => Number((e.data.month as Record<string, number>).transfers ?? 0);
-      const net = closes.reduce((t, e) => t + Number(e.data.revenues) + Number(e.data.expenses) - transfers(e), 0);
-      const costs = closes.reduce((t, e) => t - Number(e.data.expenses) + Math.min(0, transfers(e)), 0);
+      // o excedente de caixa investido pelos clubes de IA também não é custo de exploração
+      const invested = (e: (typeof closes)[number]) => Number((e.data.month as Record<string, number>).investment ?? 0);
+      const net = closes.reduce((t, e) => t + Number(e.data.revenues) + Number(e.data.expenses) - transfers(e) - invested(e), 0);
+      const costs = closes.reduce((t, e) => t - Number(e.data.expenses) + Math.min(0, transfers(e)) + invested(e), 0);
       const tier = c.league.includes("Primeira") ? "PL" : c.league.includes("Segunda") ? "SL" : c.league.includes("Terceira") ? "TL" : c.league.startsWith("CP") ? "CP" : "D";
       const x = por.get(tier) ?? { net: [], pct: [], neg: 0 };
       x.net.push(net); x.pct.push(net / costs);
