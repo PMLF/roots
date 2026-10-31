@@ -78,17 +78,72 @@ export function Contract() {
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); } finally { setBusy(false); }
   };
 
+  const done = answer?.result === "accepted";
+  const view = setup.mode === "raise" ? setup.view : undefined;
+
   return (
     <section className="pagina-clube" data-testid="contrato">
       <h1>{t("contract.title")}</h1>
       <p className="suave">{setup.mode === "offer" ? t("contract.introOffer", { club: clubName }) : t("contract.introRaise", { club: clubName })}</p>
-      {setup.mode === "raise" && (
-        <div className="cartao">
-          <p><b>{t("contract.current")}</b>: {money.format(setup.view.monthlyWage)} {t("contract.perMonth")} · {t("contract.until", { date: day(setup.view.end) })}</p>
-        </div>
+      {view?.expiring && (
+        <div className="resultado-negocio aviso" role="status" data-testid="contrato-a-acabar"><Icon name="warning" /><span>{t(view.daysLeft > 0 ? "contract.expiring" : "contract.expired", { days: Math.max(0, view.daysLeft) })}</span></div>
       )}
-      {setup.mode === "raise" && setup.view.expiring && (
-        <p className="resultado-negocio aviso" role="status" data-testid="contrato-a-acabar"><Icon name="warning" /> {t(setup.view.daysLeft > 0 ? "contract.expiring" : "contract.expired", { days: Math.max(0, setup.view.daysLeft) })}</p>
+      <div className="cartao" data-testid="contrato-atual">
+        <h2>{t("contract.current")}</h2>
+        <dl className="dados">
+          {view && <div><dt>{t("contract.wage")}</dt><dd><b>{money.format(view.monthlyWage)}</b> {t("contract.perMonth")}</dd></div>}
+          {view && <div><dt>{t("contract.endsOn")}</dt><dd>{day(view.end)}{view.daysLeft > 0 && <span className="suave"> · {t("contract.daysLeft", { n: view.daysLeft })}</span>}</dd></div>}
+          <div><dt>{t("contract.referenceLabel")}</dt><dd>{money.format(reference)} {t("contract.perMonth")}</dd></div>
+        </dl>
+      </div>
+      <div className="cartao contrato-form" data-testid="contrato-propostas">
+        <h2>{t("contract.proposeTitle")}</h2>
+        <div className="formulario">
+          <label>
+            <span>{t("contract.wageField")}</span>
+            <input type="number" min={100} step={50} value={wage} onChange={(e) => setWage(Number(e.target.value))} disabled={busy || locked || done} data-testid="contrato-salario" />
+          </label>
+          <label>
+            <span>{t("contract.years")}</span>
+            <select value={years} onChange={(e) => setYears(Number(e.target.value))} disabled={busy || locked || done} data-testid="contrato-anos">
+              {Array.from({ length: range[1]! - range[0]! + 1 }, (_, i) => range[0]! + i).map((y) => <option key={y} value={y}>{t("contract.yearsCount", { n: y })}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="contrato-acoes">
+          {locked && view?.askFrom ? <span className="suave" data-testid="contrato-cedo">{t("contract.askFrom", { date: day(view.askFrom) })}</span> : <span />}
+          {setup.mode === "offer" && !done && <Link href="/" className="botao">{t("contract.back")}</Link>}
+          <button type="button" className="primario" disabled={busy || locked || wage < 100 || done} onClick={() => void send({ monthlyWage: wage, years })} data-testid="contrato-propor">
+            {setup.mode === "offer" ? t("contract.propose") : t("contract.askRaise")}
+          </button>
+        </div>
+      </div>
+      {answer && (
+        <div className={`resultado-negocio ${answer.result === "accepted" ? "ok" : answer.result === "counter" ? "aviso" : "erro"} contrato-resposta`} role="status" data-testid={`contrato-${answer.result}`}>
+          <Icon name={answer.result === "accepted" ? "check" : "warning"} />
+          <div>
+            {answer.result === "accepted" && (
+              <>
+                <b>{t(setup.mode === "offer" ? "contract.accepted.offer" : "contract.accepted.raise")}</b>
+                <span>{t("contract.terms", { wage: money.format(answer.terms.monthlyWage), years: answer.terms.years })}</span>
+              </>
+            )}
+            {answer.result === "counter" && (
+              <>
+                <b>{t("contract.counter")}</b>
+                <span>{t("contract.terms", { wage: money.format(answer.terms.monthlyWage), years: answer.terms.years })} {t(`contract.reason.${answer.reason}` as Key)}</span>
+              </>
+            )}
+            {answer.result === "refused" && (
+              <>
+                <b>{t("contract.refused")}</b>
+                <span>{t(`contract.reason.${answer.reason}` as Key)}</span>
+              </>
+            )}
+          </div>
+          {answer.result === "accepted" && <Link href="/club/" className="primario botao">{t("contract.goClub")}</Link>}
+          {answer.result === "counter" && <button type="button" className="primario" disabled={busy} onClick={() => void send(answer.terms)} data-testid="contrato-aceitar-contra">{t("contract.acceptCounter")}</button>}
+        </div>
       )}
       {setup.mode === "raise" && bank && (
         <div className="cartao" data-testid="conta-pessoal">
@@ -101,41 +156,6 @@ export function Contract() {
           </dl>
           <p className="suave">{t("bank.hint")}</p>
           <Link href="/personal/" data-testid="ir-pessoal">{t("personal.link")}</Link>
-        </div>
-      )}
-      <div className="cartao contrato-form">
-        <label>
-          <span>{t("contract.wage")}</span>
-          <input type="number" min={100} step={50} value={wage} onChange={(e) => setWage(Number(e.target.value))} disabled={busy || locked || answer?.result === "accepted"} data-testid="contrato-salario" />
-          <span className="suave">{t("contract.reference", { value: money.format(reference) })}</span>
-        </label>
-        <label>
-          <span>{t("contract.years")}</span>
-          <select value={years} onChange={(e) => setYears(Number(e.target.value))} disabled={busy || locked || answer?.result === "accepted"} data-testid="contrato-anos">
-            {Array.from({ length: range[1]! - range[0]! + 1 }, (_, i) => range[0]! + i).map((y) => <option key={y} value={y}>{t("contract.yearsCount", { n: y })}</option>)}
-          </select>
-        </label>
-        <button type="button" className="primario" disabled={busy || locked || wage < 100 || answer?.result === "accepted"} onClick={() => void send({ monthlyWage: wage, years })} data-testid="contrato-propor">
-          {setup.mode === "offer" ? t("contract.propose") : t("contract.askRaise")}
-        </button>
-        {setup.mode === "offer" && answer?.result !== "accepted" && <Link href="/" className="suave">{t("contract.back")}</Link>}
-      </div>
-      {locked && setup.mode === "raise" && setup.view.askFrom && <p className="suave" data-testid="contrato-cedo">{t("contract.askFrom", { date: day(setup.view.askFrom) })}</p>}
-      {answer && (
-        <div className={`cartao contrato-resposta resposta-${answer.result}`} role="status" data-testid={`contrato-${answer.result}`}>
-          {answer.result === "accepted" && (
-            <>
-              <p><b>{t(setup.mode === "offer" ? "contract.accepted.offer" : "contract.accepted.raise")}</b> {t("contract.terms", { wage: money.format(answer.terms.monthlyWage), years: answer.terms.years })}</p>
-              <Link href="/club/" className="primario">{t("contract.goClub")}</Link>
-            </>
-          )}
-          {answer.result === "counter" && (
-            <>
-              <p><b>{t("contract.counter")}</b> {t("contract.terms", { wage: money.format(answer.terms.monthlyWage), years: answer.terms.years })} <span className="suave">{t(`contract.reason.${answer.reason}` as Key)}</span></p>
-              <button type="button" className="primario" disabled={busy} onClick={() => void send(answer.terms)} data-testid="contrato-aceitar-contra">{t("contract.acceptCounter")}</button>
-            </>
-          )}
-          {answer.result === "refused" && <p><b>{t("contract.refused")}</b> <span className="suave">{t(`contract.reason.${answer.reason}` as Key)}</span></p>}
         </div>
       )}
       {error && <p className="erro">{error}</p>}

@@ -1205,11 +1205,13 @@ body {
 /* Contrato do gamer (RZ-161) */
 a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; color: inherit; background: var(--painel); border: 1px solid var(--linha-forte); border-radius: var(--r-s); padding: 5px 12px; text-decoration: none; }
 .contrato-resposta a.primario { color: #fff; background: var(--destaque); border-color: var(--destaque); font-weight: 600; }
-.cartao.contrato-form { flex-direction: row; gap: 12px; align-items: end; flex-wrap: wrap; margin: 12px 0; }
-.contrato-form label { display: grid; gap: 4px; font-size: 13px; color: var(--suave); flex: 1 1 200px; }
-.contrato-form input, .contrato-form select { width: 100%; }
-.contrato-resposta { display: grid; gap: 8px; margin: 12px 0; }
-@media (max-width: 700px) { .cartao.contrato-form { flex-direction: column; align-items: stretch; } }
+.pagina-clube > .resultado-negocio { margin: 0 0 12px; }
+.cartao.contrato-form { margin: 12px 0; }
+.contrato-acoes { display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap; margin-top: 14px; }
+.contrato-acoes > .suave { margin-right: auto; }
+.resultado-negocio.contrato-resposta { margin: 12px 0; }
+.contrato-resposta > div { flex: 1; min-width: 0; }
+.contrato-resposta a.botao, .contrato-resposta button { flex: none; }
 
 /* Cidade › Câmara: cartões lado a lado com linhas distribuídas, pedidos em linhas alinhadas */
 .camara-par .dados { flex: 1; grid-auto-rows: 1fr; }
