@@ -398,6 +398,8 @@ export type Params = {
       grudgeStep: number; grudgeDecayPerMonth: number;
       /** Dias entre pedidos de aumento e dias mínimos no clube para o poder pedir. */
       raiseCooldownDays: number; raiseMinTenureDays: number;
+      /** Fim do contrato: se a aceitação do presidente (em múltiplos do salário de referência) chegar a `renewMinRatio` renova sozinho, senão o gamer fica livre; `noticeDays` = antecedência do aviso. */
+      expiry: { renewMinRatio: number; noticeDays: number };
     };
   };
   /** Percentagem média de estrangeiros nos plantéis, por escalão (GERACAO_MUNDO §4). */
@@ -1201,6 +1203,7 @@ export const DEFAULT_PARAMETERS: Params = {
       accept: { base: 1.0, trust: 0.15, results: 0.25, finances: 0.15, loyalty: 0.1, greed: 0.15, roots: 0.06, course: 0.04, min: 0.7, max: 1.8 },
       trustDays: 365, counterSlack: 1.35, grudgeStep: 0.08, grudgeDecayPerMonth: 0.02,
       raiseCooldownDays: 120, raiseMinTenureDays: 90,
+      expiry: { renewMinRatio: 1.0, noticeDays: 180 },
     },
   },
   foreigners: { firstLeague: 0.55, secondLeague: 0.3, thirdLeague: 0.15, cp: 0.08, district: 0.03 },

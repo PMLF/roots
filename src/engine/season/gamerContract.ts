@@ -99,7 +99,7 @@ export function reply(repo: Repository, data: BaseData, params: Params, club: Ba
   return { result: "refused", reason: weakest };
 }
 
-function sign(repo: Repository, club: string, today: IsoDate, terms: Terms, kind: "hired" | "raise" | "initial"): void {
+function sign(repo: Repository, club: string, today: IsoDate, terms: Terms, kind: "hired" | "raise" | "initial" | "renewed"): void {
   const end = addYears(today, terms.years);
   repo.setMeta("gamer.contract", JSON.stringify({ club, monthlyWage: terms.monthlyWage, start: today, end } satisfies GamerContract));
   repo.appendEvent({ type: "GAMER_CONTRACT", date: today, season: currentSeason(repo), visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "contratou" }], data: { kind, monthlyWage: terms.monthlyWage, years: terms.years } });
@@ -133,13 +133,17 @@ export function askRaise(repo: Repository, data: BaseData, params: Params, today
   if (!club || !contract) throw new Error("Sem contrato para renegociar");
   if (dayNumber(today) - dayNumber(contract.start) < ct.raiseMinTenureDays) return { result: "refused", reason: "tenure" };
   const last = grudgeRaw(repo)?.lastAsk;
-  if (last && dayNumber(today) - dayNumber(last) < ct.raiseCooldownDays) return { result: "refused", reason: "cooldown" };
+  const expiring = dayNumber(contract.end) - dayNumber(today) <= ct.expiry.noticeDays; // perto do fim renegociar não espera pelo intervalo
+  if (last && !expiring && dayNumber(today) - dayNumber(last) < ct.raiseCooldownDays) return { result: "refused", reason: "cooldown" };
   const r = reply(repo, data, params, club, today, true, ask);
   if (r.result === "accepted") { sign(repo, club.id, today, r.terms, "raise"); }
   else if (r.result === "refused") addGrudge(repo, params, today, today);
   else { const g = grudgeRaw(repo); repo.setMeta("gamer.grudge", JSON.stringify({ value: g?.value ?? 0, date: g?.date ?? today, lastAsk: today } satisfies Grudge)); }
   return r;
 }
+
+/** Renovação automática no fim do contrato: mantém o salário (ou sobe até ao que o presidente aceita, no máximo ao de referência × `max`). */
+export function signRenewal(repo: Repository, club: string, today: IsoDate, terms: Terms): void { sign(repo, club, today, terms, "renewed"); }
 
 /** Fecha o contrato de um clube novo depois de o presidente aceitar (chamado por `acceptOffer`). */
 export function signHired(repo: Repository, club: string, today: IsoDate, terms: Terms): void { sign(repo, club, today, terms, "hired"); }

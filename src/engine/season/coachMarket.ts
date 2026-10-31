@@ -12,6 +12,7 @@ import type { IsoDate } from "../persistence/types";
 import { isInSecondDistrict } from "./districts";
 import { currentSeason } from "./seasonPyramid";
 import { prepareSeason } from "./prepare";
+import { acceptableRatio, contractOf, referenceWage, signRenewal } from "./gamerContract";
 
 export type Offer = { club: string; since: IsoDate };
 
@@ -88,6 +89,32 @@ export function sackByRelegation(repo: Repository, data: BaseData, params: Param
     repo.setMeta("gamer.club", "");
     updateOffers(repo, data, params, date);
   });
+}
+
+/**
+ * Fim do contrato do gamer (RZ-161): no dia em que acaba, o presidente renova se a aceitação chega a `expiry.renewMinRatio` (mantém o
+ * salário ou sobe até ao que aceita, nunca abaixo do atual); senão o contrato caduca, o gamer fica sem clube e recebe ofertas.
+ * Devolve o que aconteceu (`undefined` se o contrato ainda não acabou).
+ */
+export function endOfContract(repo: Repository, data: BaseData, params: Params, today: IsoDate): "renewed" | "left" | undefined {
+  const clubId = repo.meta("gamer.club");
+  const contract = contractOf(repo);
+  const club = clubId ? data.clubs.find((c) => c.id === clubId) : undefined;
+  if (!club || !contract || contract.club !== club.id || today < contract.end) return undefined;
+  const ex = params.coach.contract.expiry;
+  const { max } = acceptableRatio(repo, data, params, club, today, true);
+  if (max >= ex.renewMinRatio) {
+    const wage = Math.max(contract.monthlyWage, Math.floor((Math.min(max, 1.15) * referenceWage(club, params)) / 10) * 10);
+    repo.transaction(() => signRenewal(repo, club.id, today, { monthlyWage: wage, years: params.coach.contract.defaultYears }));
+    return "renewed";
+  }
+  repo.transaction(() => {
+    repo.appendEvent({ type: "GAMER_RESIGNATION", date: today, season: currentSeason(repo), visibility: "exposed", origin: "match", entities: [{ k: "club", id: club.id, roleKind: "deixado" }], data: { reason: "contractEnd" } });
+    repo.setMeta("gamer.previous", club.id);
+    repo.setMeta("gamer.club", "");
+    updateOffers(repo, data, params, today);
+  });
+  return "left";
 }
 
 /** Começar o jogo sem clube (RZ-501): diz-se a região onde se vive, que dá a cidade de casa e as primeiras ofertas. */

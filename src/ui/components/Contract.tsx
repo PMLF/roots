@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { ClubOffer, ContractReply, ContractTerms, GamerContractView, PersonalBankView } from "@/engine/api/contracts";
+import { Icon } from "@/ui/components/Icon";
 import { useEngine } from "@/ui/EngineProvider";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
@@ -85,6 +86,9 @@ export function Contract() {
         <div className="cartao">
           <p><b>{t("contract.current")}</b>: {money.format(setup.view.monthlyWage)} {t("contract.perMonth")} · {t("contract.until", { date: day(setup.view.end) })}</p>
         </div>
+      )}
+      {setup.mode === "raise" && setup.view.expiring && (
+        <p className="resultado-negocio aviso" role="status" data-testid="contrato-a-acabar"><Icon name="warning" /> {t(setup.view.daysLeft > 0 ? "contract.expiring" : "contract.expired", { days: Math.max(0, setup.view.daysLeft) })}</p>
       )}
       {setup.mode === "raise" && bank && (
         <div className="cartao" data-testid="conta-pessoal">
