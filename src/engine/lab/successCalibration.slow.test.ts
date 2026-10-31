@@ -55,9 +55,13 @@ describe("calibração de várias épocas (RZ-237)", () => {
       }
       const free = repository.playersByState("free");
       const freeQ = free.map((j) => currentQuality(j.attributes as Parameters<typeof currentQuality>[0], (j.positions[0]?.pos ?? "CM") as Parameters<typeof currentQuality>[1]));
+      // campeão da 1.ª Liga (concentração de títulos)
+      const plLeague = clubs.find((c) => tierOf(c.league) === "PL")?.league ?? "";
+      const table = repository.standings(plLeague, season);
+      const champion = [...table].sort((a, b) => b.points - a.points || (b.scoredGoals - b.concededGoals) - (a.scoredGoals - a.concededGoals) || (a.club < b.club ? -1 : 1))[0]?.club ?? "";
       const active = repository.companies({ state: "active" }).length;
       report.push({
-        season, moved, movedShare: moved / clubs.length,
+        season, champion, moved, movedShare: moved / clubs.length,
         cash: Object.fromEntries([...byTier].map(([t, v]) => [t, { p10: quantile(v, 0.1), p50: quantile(v, 0.5), p90: quantile(v, 0.9), negative: v.filter((x) => x < 0).length / v.length }])),
         population: { min: Math.min(...ratios), p50: quantile(ratios, 0.5), max: Math.max(...ratios) },
         companies: active,
@@ -69,6 +73,9 @@ describe("calibração de várias épocas (RZ-237)", () => {
       if (process.env.CALIB_OUT) writeFileSync(process.env.CALIB_OUT, JSON.stringify(report, null, 1));
     }
     if (process.env.CALIB_OUT) writeFileSync(process.env.CALIB_OUT, JSON.stringify(report, null, 1));
+    const titles = new Map<string, number>();
+    for (const r of report as { champion?: string }[]) if (r.champion) titles.set(r.champion, (titles.get(r.champion) ?? 0) + 1);
+    if (process.env.CALIB_OUT) writeFileSync(`${process.env.CALIB_OUT}.titles`, JSON.stringify([...titles].sort((a, b) => b[1] - a[1])));
     const last = report.at(-1) as { population: { min: number; max: number }; cash: Record<string, { negative: number }> };
     expect(last.population.min).toBeGreaterThan(0.4);
     expect(last.population.max).toBeLessThan(3);
