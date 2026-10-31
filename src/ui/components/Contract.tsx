@@ -19,6 +19,7 @@ export function Contract() {
   const [setup, setSetup] = useState<Setup | null | undefined>(undefined);
   const [wage, setWage] = useState(0);
   const [years, setYears] = useState(2);
+  const [clause, setClause] = useState(6);
   const [answer, setAnswer] = useState<ContractReply | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [bank, setBank] = useState<PersonalBankView | null>(null);
@@ -39,6 +40,7 @@ export function Contract() {
         setSetup({ mode: "offer", offer });
         setWage(offer.wage);
         setYears(offer.defaultYears);
+        setClause(offer.clause.default);
       } else {
         const view = await engine.call("gamerContract", null);
         if (!live) return;
@@ -48,6 +50,7 @@ export function Contract() {
         if (live) setBank(b);
         setWage(Math.round((view.monthlyWage * 1.1) / 10) * 10);
         setYears(Math.min(view.yearsMax, Math.max(view.yearsMin, 2)));
+        setClause(view.clause.months);
       }
     })().catch((e) => live && setError(e instanceof Error ? e.message : String(e)));
     return () => { live = false; };
@@ -59,6 +62,7 @@ export function Contract() {
   const range = setup.mode === "offer" ? [setup.offer.yearsMin, setup.offer.yearsMax] : [setup.view.yearsMin, setup.view.yearsMax];
   const reference = setup.mode === "offer" ? setup.offer.wage : setup.view.reference;
   const clubName = setup.mode === "offer" ? setup.offer.name : setup.view.clubName;
+  const clauseRange = setup.mode === "offer" ? setup.offer.clause : setup.view.clause;
   const locked = setup.mode === "raise" && !setup.view.canAsk;
 
   const send = async (terms: ContractTerms) => {
@@ -88,11 +92,15 @@ export function Contract() {
       {view?.expiring && (
         <div className="resultado-negocio aviso" role="status" data-testid="contrato-a-acabar"><Icon name="warning" /><span>{t(view.daysLeft > 0 ? "contract.expiring" : "contract.expired", { days: Math.max(0, view.daysLeft) })}</span></div>
       )}
+      {view && view.trust !== "good" && (
+        <div className={`resultado-negocio ${view.trust === "danger" ? "erro" : "aviso"}`} role="status" data-testid="contrato-confianca"><Icon name="warning" /><span>{t(view.trust === "danger" ? "contract.trust.danger" : "contract.trust.concerned")}</span></div>
+      )}
       <div className="cartao" data-testid="contrato-atual">
         <h2>{t("contract.current")}</h2>
         <dl className="dados">
           {view && <div><dt>{t("contract.wage")}</dt><dd><b>{money.format(view.monthlyWage)}</b> {t("contract.perMonth")}</dd></div>}
           {view && <div><dt>{t("contract.endsOn")}</dt><dd>{day(view.end)}{view.daysLeft > 0 && <span className="suave"> · {t("contract.daysLeft", { n: view.daysLeft })}</span>}</dd></div>}
+          {view && <div><dt>{t("contract.clause")}</dt><dd>{money.format(view.clause.amount)} <span className="suave">· {t("contract.clauseMonths", { n: view.clause.months })}</span></dd></div>}
           {view?.objective && <div><dt>{t("contract.objective")}</dt><dd>{t(view.objective.rank === 1 ? "contract.objectiveChampion" : "contract.objectiveValue", { rank: view.objective.rank, of: view.objective.of })}</dd></div>}
           {view?.objective && <div><dt>{t("contract.objectiveBonus")}</dt><dd>{money.format(view.objective.bonus)}</dd></div>}
           <div><dt>{t("contract.referenceLabel")}</dt><dd>{money.format(reference)} {t("contract.perMonth")}</dd></div>
@@ -111,11 +119,18 @@ export function Contract() {
               {Array.from({ length: range[1]! - range[0]! + 1 }, (_, i) => range[0]! + i).map((y) => <option key={y} value={y}>{t("contract.yearsCount", { n: y })}</option>)}
             </select>
           </label>
+          <label>
+            <span>{t("contract.clauseField")}</span>
+            <select value={clause} onChange={(e) => setClause(Number(e.target.value))} disabled={busy || locked || done} data-testid="contrato-clausula">
+              {Array.from({ length: clauseRange.max - clauseRange.min + 1 }, (_, i) => clauseRange.min + i).map((m) => <option key={m} value={m}>{t("contract.clauseMonths", { n: m })}</option>)}
+            </select>
+          </label>
         </div>
+        <p className="suave">{t("contract.clauseHint")}</p>
         <div className="contrato-acoes">
           {locked && view?.askFrom ? <span className="suave" data-testid="contrato-cedo">{t("contract.askFrom", { date: day(view.askFrom) })}</span> : <span />}
           {setup.mode === "offer" && !done && <Link href="/" className="botao">{t("contract.back")}</Link>}
-          <button type="button" className="primario" disabled={busy || locked || wage < 100 || done} onClick={() => void send({ monthlyWage: wage, years })} data-testid="contrato-propor">
+          <button type="button" className="primario" disabled={busy || locked || wage < 100 || done} onClick={() => void send({ monthlyWage: wage, years, clauseMonths: clause })} data-testid="contrato-propor">
             {setup.mode === "offer" ? t("contract.propose") : t("contract.askRaise")}
           </button>
         </div>
@@ -127,13 +142,13 @@ export function Contract() {
             {answer.result === "accepted" && (
               <>
                 <b>{t(setup.mode === "offer" ? "contract.accepted.offer" : "contract.accepted.raise")}</b>
-                <span>{t("contract.terms", { wage: money.format(answer.terms.monthlyWage), years: answer.terms.years })}</span>
+                <span>{t("contract.terms", { wage: money.format(answer.terms.monthlyWage), years: answer.terms.years, clause: answer.terms.clauseMonths ?? clause })}</span>
               </>
             )}
             {answer.result === "counter" && (
               <>
                 <b>{t("contract.counter")}</b>
-                <span>{t("contract.terms", { wage: money.format(answer.terms.monthlyWage), years: answer.terms.years })} {t(`contract.reason.${answer.reason}` as Key)}</span>
+                <span>{t("contract.terms", { wage: money.format(answer.terms.monthlyWage), years: answer.terms.years, clause: answer.terms.clauseMonths ?? clause })} {t(`contract.reason.${answer.reason}` as Key)}</span>
               </>
             )}
             {answer.result === "refused" && (

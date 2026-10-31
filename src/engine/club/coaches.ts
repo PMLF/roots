@@ -12,7 +12,8 @@ import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { dayNumber } from "../calendar/dates";
 import { isInSecondDistrict } from "../season/districts";
-import { referenceWage } from "../season/gamerContract";
+import { contractOf, referenceWage } from "../season/gamerContract";
+import { sackByResults } from "../season/coachMarket";
 import { post } from "./finances";
 import { standingIn } from "../world/standing";
 import { currentSeason } from "../season/seasonPyramid";
@@ -110,6 +111,38 @@ function fill(repo: Repository, data: BaseData, params: Params, club: BaseClub, 
   return true;
 }
 
+/** Limite de confiança abaixo do qual a direção despede (depende da paciência do presidente). */
+export function sackLimit(repo: Repository, params: Params, club: string): number {
+  const cfg = params.coach.board;
+  const president = repo.publicRoles({ club }).find((p) => p.fn === "president");
+  const patience = (president ? repo.person(president.id)?.personality.patience : undefined) ?? 10;
+  return cfg.sackBelow - cfg.patienceEffect * (patience - 10);
+}
+
+/** Confiança da direção no gamer (0–100), ou `undefined` sem contrato no clube. */
+export function gamerConfidence(repo: Repository, club: string): number | undefined { return readBoard(repo)[club]?.conf; }
+
+/**
+ * Confiança da direção no gamer (RZ-210): sobe e desce com os resultados como a dos treinadores da IA, contada desde o início do
+ * contrato. Devolve `true` se o despediu (a cláusula de rescisão é paga pelo clube).
+ */
+function gamerBoard(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate, season: number, cache: Parameters<typeof performance>[5], board: Board, rng: Rng): boolean {
+  const cfg = params.coach.board;
+  const contract = contractOf(repo);
+  const start = contract && contract.club === club.id ? contract.start : today;
+  let st = board[club.id];
+  if (!st || st.since < start) st = board[club.id] = { conf: cfg.start, since: start };
+  const perf = performance(repo, data, params, club, season, cache);
+  if (perf === undefined) return false;
+  st.conf += cfg.rate * (clamp(50 + 60 * perf * cfg.pressure[club.tier], 0, 100) - st.conf);
+  if (st.conf < sackLimit(repo, params, club.id) && dayNumber(today) - dayNumber(st.since) >= cfg.graceDays && rng.derive(`sack/${club.id}`).prob(cfg.sackProbability)) {
+    sackByResults(repo, data, params, club.id, today, season);
+    delete board[club.id];
+    return true;
+  }
+  return false;
+}
+
 /**
  * Ronda semanal (às segundas): o clube do gamer fica sem treinador da IA; a direção avalia cada treinador, despede quem perdeu a
  * confiança e os clubes sem treinador contratam um (depois de alguns dias de interinidade).
@@ -121,12 +154,15 @@ export function coachRound(repo: Repository, data: BaseData, params: Params, tod
   const vacancies = readVacancies(repo);
   const cache: Parameters<typeof performance>[5] = new Map();
   const clubs = data.clubs.filter((c) => !isInSecondDistrict(c.league)).sort((a, b) => (a.id < b.id ? -1 : 1));
+  let sacked: string | undefined;
   for (const club of clubs) {
     const coach = coachOf(repo, club.id);
     if (club.id === gamerClub) {
       // o treinador do clube do gamer é o gamer
       if (coach) release(repo, data, params, board, vacancies, club.id, coach, today, season, "gamer", false);
       delete vacancies[club.id];
+      // despedido por resultados: o clube fica à procura de treinador como os outros
+      if (gamerBoard(repo, data, params, club, today, season, cache, board, rng)) { vacancies[club.id] = today; sacked = club.id; }
       continue;
     }
     if (!coach) { vacancies[club.id] ??= today; continue; }
@@ -143,7 +179,7 @@ export function coachRound(repo: Repository, data: BaseData, params: Params, tod
   }
   for (const club of clubs) {
     const since = vacancies[club.id];
-    if (since === undefined || club.id === gamerClub || dayNumber(today) - dayNumber(since) < cfg.vacancyDays) continue;
+    if (since === undefined || (club.id === gamerClub && club.id !== sacked) || dayNumber(today) - dayNumber(since) < cfg.vacancyDays) continue;
     fill(repo, data, params, club, season, today, gamerClub, rng.derive(`fill/${club.id}`), cache, board, vacancies);
   }
   repo.setMeta("coach.board", JSON.stringify(board));
