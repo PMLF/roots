@@ -68,6 +68,17 @@ export function retirementProbability(age: number, position: string, free: boole
   return clamp((r.baseProbability + r.perYear * (effective - r.fromAge)) * (free ? r.freeMultiplier : 1), 0, 1);
 }
 
+/**
+ * Um jogador sem clube há mais de `years` épocas reforma-se. Sem contrato nenhum (jogadores livres do arranque) conta desde o início do mundo,
+ * isto é, a partir da época `years + 1`.
+ */
+export function freeTooLong(lastContractEnd: IsoDate | undefined, today: IsoDate, season: number, years: number): boolean {
+  if (lastContractEnd === undefined) return season > years;
+  const limit = new Date(`${today}T00:00:00Z`);
+  limit.setUTCFullYear(limit.getUTCFullYear() - years);
+  return lastContractEnd < limit.toISOString().slice(0, 10);
+}
+
 export function renewalProbability(quality: number, tierMean: number, age: number, params: Params, focus = 1): number {
   const c = params.squadCycle.contracts;
   const y = params.squadCycle.youth;
@@ -105,6 +116,10 @@ export function rolloverSquads(repo: Repository, data: BaseData, params: Params,
     const rng = rngOf(`player/${j.person}`);
     const a = age(j);
     const free = j.club === undefined;
+    if (free && j.state === "free" && freeTooLong(repo.contract(j.person)?.end, date, o.season, sc.retirement.freeYears)) {
+      retire(j, undefined); // sem clube há anos a fio: assume-se que se reformou (quem é bom arranja sempre clube)
+      return undefined;
+    }
     if (rng.derive("retire").prob(retirementProbability(a, j.positions[0]?.pos ?? "CM", free, params))) {
       retire(j, j.club);
       return undefined;

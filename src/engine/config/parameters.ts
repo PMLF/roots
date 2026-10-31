@@ -749,6 +749,8 @@ export type Params = {
       maxAge: number;
       /** Multiplicador para jogadores sem clube. */
       freeMultiplier: number;
+      /** Anos sem clube ao fim dos quais o jogador se reforma (assume-se que quem é bom arranja sempre clube). */
+      freeYears: number;
     };
     /** Reforma do staff e dos autarcas por idade: probabilidade anual = base + porAno × (idade − desde), 1 a partir de `maxAge`; por função pode mudar desde/maxAge e a idade média de quem entra. */
     staffRetirement: {
@@ -1078,12 +1080,12 @@ export const DEFAULT_PARAMETERS: Params = {
     ],
     dynamics: {
       position: { firstLeague: 180, secondLeague: 140, thirdLeague: 110, cp: 80, district: 55 },
-      champion: { firstLeague: 350, secondLeague: 300, thirdLeague: 220, cp: 160, district: 110 },
+      champion: { firstLeague: 300, secondLeague: 300, thirdLeague: 220, cp: 160, district: 110 },
       promotion: 220, relegation: 260,
       cup: 120, europe: 140, europeWinner: 500,
-      bands: { firstLeague: [3800, 8800], secondLeague: [3000, 6500], thirdLeague: [2200, 4300], cp: [1500, 3200], district: [500, 2000] },
+      bands: { firstLeague: [3800, 8300], secondLeague: [3000, 6500], thirdLeague: [2200, 4300], cp: [1500, 3200], district: [500, 2000] },
       bandPull: 0.35,
-      meanReversion: 0.06,
+      meanReversion: 0.09,
       min: 300, max: 10000,
     },
   },
@@ -1396,7 +1398,7 @@ export const DEFAULT_PARAMETERS: Params = {
     onTarget: { base: 0.28, porXg: 1.4, max: 0.95 },
     corners: { pIfBlocked: 0.25, pIfSaved: 0.2, shotP: 0.35, xgFactor: 0.65 },
     fouls: { byTeam: 12, shotFreeP: 0.06 },
-    cards: { yellowP: 0.17, penaltyYellowP: 0.5, directRedP: 0.003, penaltyRedP: 0.06, alreadyYellow: { foul: 0.4, card: 0.55 }, sentOffPenalty: { attack: 1.6, control: 1.8, defence: 1.4 } },
+    cards: { yellowP: 0.17, penaltyYellowP: 0.5, directRedP: 0.0025, penaltyRedP: 0.06, alreadyYellow: { foul: 0.4, card: 0.3 }, sentOffPenalty: { attack: 1.6, control: 1.8, defence: 1.4 } },
     assistedP: 0.72,
     shotWeight: { GK: 0, RB: 0.4, CB: 0.5, LB: 0.4, DM: 0.5, CM: 1.4, AM: 3, RW: 3, LW: 3, ST: 5 },
     attendanceWeight: { GK: 0.05, RB: 1.5, CB: 0.4, LB: 1.5, DM: 1, CM: 3, AM: 3, RW: 2.5, LW: 2.5, ST: 1.2 },
@@ -1488,7 +1490,7 @@ export const DEFAULT_PARAMETERS: Params = {
   },
   squadCycle: {
     development: { growthShare: 0.4, yearlyNoise: 0.45, declineAge: 30, declineBase: 0.2, declinePerYear: 0.12, physicalExtra: 0.25, mentalGain: 0.1, offPositionWeight: 0.7 },
-    retirement: { fromAge: 33, baseProbability: 0.06, perYear: 0.14, goalkeeperExtraYears: 3, maxAge: 40, freeMultiplier: 1.6 },
+    retirement: { fromAge: 33, baseProbability: 0.06, perYear: 0.14, goalkeeperExtraYears: 3, maxAge: 40, freeMultiplier: 1.6, freeYears: 2 },
     staffRetirement: {
       baseProbability: 0.05,
       perYear: 0.12,
@@ -1600,7 +1602,7 @@ export const DEFAULT_PARAMETERS: Params = {
     loans: { actProbability: 0.5, maxPerClub: 4, wageShares: [0.5, 0.75, 1], proposalShares: [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.75, 0.8, 0.9, 1], offerChance: 0.01, feeRate: 0.04, prospectAgeMax: 23, prospectGap: 2, lenderMinSquad: 3, recallProbability: 0.5 },
     decision: {
       tier: { firstLeague: 1, secondLeague: 0.72, thirdLeague: 0.48, cp: 0.25, district: 0.08 },
-      club: { tier: 0.5, reputation: 0.35, stadium: 0.15 },
+      club: { tier: 0.6, reputation: 0.3, stadium: 0.1 },
       city: { economy: 0.2, employment: 0.12, tourism: 0.12, pride: 0.1, footballCulture: 0.14, notoriety: 0.1, population: 0.22, safety: 0.12, entertainment: 0.08, health: 0.05, mobility: 0.04, housing: 0.06 },
       cityShare: 0.3, byLoyaltyCity: 0.015,
       scale: 5, bias: 0.4, wage: 1.6, home: 0.9, leavingHome: 0.4, playingTime: 0.7, free: 0.9,

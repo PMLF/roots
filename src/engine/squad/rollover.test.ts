@@ -5,7 +5,7 @@ import { currentQuality } from "../world/player";
 import type { Attributes, Position } from "../world/types";
 import { developPlayer, expectedChange } from "./development";
 import { createYouth } from "./youth";
-import { renewalProbability, retirementProbability, rolloverSquads } from "./rollover";
+import { freeTooLong, renewalProbability, retirementProbability, rolloverSquads } from "./rollover";
 import { MemoryRepository } from "../persistence/repositoryMemory";
 import { foreignClubList } from "./foreign";
 import { data, fresh, run, tiers } from "./testWorld.testlib";
@@ -41,6 +41,18 @@ describe("desenvolvimento", () => {
     expect(retirementProbability(P.squadCycle.retirement.maxAge, "GK", false, P)).toBe(1);
     expect(renewalProbability(14, 10, 25, P)).toBeGreaterThan(renewalProbability(8, 10, 25, P));
     expect(renewalProbability(10, 10, 35, P)).toBeLessThan(renewalProbability(10, 10, 28, P));
+  });
+});
+
+describe("jogadores sem clube", () => {
+  it("reformam-se ao fim de dois anos sem clube (contando desde o fim do último contrato)", () => {
+    expect(freeTooLong("2027-06-30", "2029-07-01", 3, 2)).toBe(true);
+    expect(freeTooLong("2027-06-30", "2029-06-30", 3, 2)).toBe(false);
+    expect(freeTooLong("2028-06-30", "2029-07-01", 3, 2)).toBe(false);
+  });
+  it("sem contrato nenhum (livres do arranque) contam desde o início do mundo", () => {
+    expect(freeTooLong(undefined, "2027-07-01", 2, 2)).toBe(false);
+    expect(freeTooLong(undefined, "2028-07-01", 3, 2)).toBe(true);
   });
 });
 
