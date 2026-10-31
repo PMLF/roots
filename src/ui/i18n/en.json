@@ -1805,6 +1805,7 @@
   "contract.endsOn": "Ends on",
   "contract.objective": "Season objective",
   "contract.objectiveValue": "Finish {rank} or better ({of} clubs)",
+  "contract.objectiveChampion": "Win the league ({of} clubs)",
   "contract.objectiveBonus": "Bonus if you meet it",
   "contract.daysLeft": "{n, plural, one {# day left} other {# days left}}",
   "contract.referenceLabel": "Club reference",

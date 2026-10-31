@@ -1805,6 +1805,7 @@
   "contract.endsOn": "Termina em",
   "contract.objective": "Objetivo da época",
   "contract.objectiveValue": "Terminar em {rank}.º ou melhor ({of} clubes)",
+  "contract.objectiveChampion": "Ser campeão ({of} clubes)",
   "contract.objectiveBonus": "Bónus se cumprires",
   "contract.daysLeft": "{n, plural, one {falta # dia} other {faltam # dias}}",
   "contract.referenceLabel": "Referência do clube",
