@@ -618,7 +618,7 @@ export class SqliteRepository implements Repository {
       for (const f of facts)
         this.d.run("INSERT INTO match_fact (match, minute, type, player, club, extra) VALUES (?,?,?,?,?,?)", [j.id, f.minute, f.type, f.player, f.club, f.extra ?? ""]);
       for (const p of appearances)
-        this.d.run("INSERT INTO appearance (match, player, club, starter, minutes, rating) VALUES (?,?,?,?,?,?)", [j.id, p.player, p.club, p.starter ? 1 : 0, p.minutes, p.rating ?? null]);
+        this.d.run("INSERT INTO appearance (match, player, club, starter, minutes, rating, date) VALUES (?,?,?,?,?,?,?)", [j.id, p.player, p.club, p.starter ? 1 : 0, p.minutes, p.rating ?? null, j.date]);
       this.updateDerived(j, facts, appearances);
       return { event };
     });
@@ -720,8 +720,8 @@ export class SqliteRepository implements Repository {
     const out = new Map<string, number>();
     if (players.length === 0) return out;
     for (const r of this.d.all(
-      `SELECT p.player, SUM(p.minutes) AS minutes FROM appearance p JOIN match j ON j.id = p.match
-       WHERE p.player IN (${players.map(() => "?").join(",")}) AND j.date >= ? AND j.date < ? AND p.minutes > 0 GROUP BY p.player`,
+      `SELECT p.player, SUM(p.minutes) AS minutes FROM appearance p
+       WHERE p.player IN (${players.map(() => "?").join(",")}) AND p.date >= ? AND p.date < ? AND p.minutes > 0 GROUP BY p.player`,
       [...players, since, until],
     )) out.set(txt(r.player), within(r.minutes));
     return out;
