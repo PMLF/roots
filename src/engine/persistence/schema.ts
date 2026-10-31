@@ -194,8 +194,18 @@ const V9 = `
 ALTER TABLE player ADD COLUMN trained_at TEXT;
 `;
 
+const V10 = `
+-- Data denormalizada nas participações: minutos jogados numa janela sem varrer o histórico (RZ-270).
+ALTER TABLE appearance ADD COLUMN date TEXT;
+-- O preenchimento único tem de passar pelo trigger de imutabilidade; recria-se logo a seguir.
+DROP TRIGGER appearance_no_update;
+UPDATE appearance SET date = (SELECT j.date FROM match j WHERE j.id = appearance.match);
+CREATE TRIGGER appearance_no_update BEFORE UPDATE ON appearance BEGIN SELECT RAISE(ABORT, 'match is immutable'); END;
+CREATE INDEX ix_appearance_player_date ON appearance(player, date);
+`;
+
 /** A posição no array + 1 é o número da versão do esquema. */
-export const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8, V9];
+export const MIGRATIONS: readonly string[] = [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10];
 export const SCHEMA_VERSION = MIGRATIONS.length;
 
 export function fileVersion(d: DriverSql): number {

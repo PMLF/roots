@@ -19,7 +19,7 @@ import type { IsoDate } from "../persistence/types";
  * entra e o que sai no mesmo mês somam-se. Os patrocínios passam a vir de contratos de patrocínio reais (RZ-311/RZ-219); até lá
  * vêm da fórmula por escalão e reputação.
  */
-export type FinancialCategory = "ticketing" | "sponsorships" | "commercial" | "broadcasting" | "prizes" | "subsidies" | "donations" | "transfers" | "compensations" | "wages" | "staff" | "stadium" | "fixed";
+export type FinancialCategory = "ticketing" | "sponsorships" | "commercial" | "broadcasting" | "prizes" | "subsidies" | "donations" | "transfers" | "compensations" | "wages" | "staff" | "stadium" | "fixed" | "investment";
 export type Month = Partial<Record<FinancialCategory, number>>;
 
 
@@ -124,7 +124,7 @@ function closeMonth(repo: Repository, data: BaseData, params: Params, date: IsoD
     if (repo.meta("gamer.club") !== c.id) {
       const sp = params.finances.surplus;
       const extra = clubBalance(repo, c) - sp.reserveYears * 12 * (costs.wages + costs.staff + costs.stadium + costs.fixed);
-      if (extra > 0) post(repo, c, "stadium", -Math.round((extra * sp.annualRate) / 12));
+      if (extra > 0) post(repo, c, "investment", -Math.round((extra * sp.annualRate) / 12)); // excedente de caixa investido: não é custo de exploração
     }
     const month = clubMonth(repo, c.id);
     const revenues = Object.values(month).reduce((t, v) => t + Math.max(0, v as number), 0);

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { handle, type Servicos } from "../api/handler";
 import { cityHistoryWithPast } from "../city/cities";
 import { DEFAULT_PARAMETERS as P } from "../config/parameters";
+import { currentQuality } from "../world/player";
 import { importData } from "../data/importData";
 import { openSqliteBetter } from "../../node/driverBetterSqlite";
 import { MemoryRepository } from "../persistence/repositoryMemory";
@@ -45,12 +46,23 @@ describe("calibração de várias épocas (RZ-237)", () => {
       for (const c of clubs) { const t = tierOf(c.league); byTier.set(t, [...(byTier.get(t) ?? []), Number(repository.meta(`balance.${c.id}`) ?? 0)]); }
       const moved = [...after].filter(([c, t]) => before.get(c) !== t).length;
       const ratios = data.cities.map((c) => (cityHistoryWithPast(repository, data, P, c.id).at(-1)?.state.population ?? 0) / (start.get(c.id) ?? 1));
+      // Qualidade dos plantéis por escalão: média dos 16 melhores de cada clube (currentQuality); e jogadores livres.
+      const strength = new Map<string, number[]>();
+      for (const c of clubs) {
+        const q = repository.clubPlayers(c.id).filter((j) => j.state === "active").map((j) => currentQuality(j.attributes as Parameters<typeof currentQuality>[0], (j.positions[0]?.pos ?? "CM") as Parameters<typeof currentQuality>[1])).sort((a, b) => b - a).slice(0, 16);
+        const t = tierOf(c.league);
+        strength.set(t, [...(strength.get(t) ?? []), q.reduce((a, b) => a + b, 0) / Math.max(1, q.length)]);
+      }
+      const free = repository.playersByState("free");
+      const freeQ = free.map((j) => currentQuality(j.attributes as Parameters<typeof currentQuality>[0], (j.positions[0]?.pos ?? "CM") as Parameters<typeof currentQuality>[1]));
       const active = repository.companies({ state: "active" }).length;
       report.push({
         season, moved, movedShare: moved / clubs.length,
         cash: Object.fromEntries([...byTier].map(([t, v]) => [t, { p10: quantile(v, 0.1), p50: quantile(v, 0.5), p90: quantile(v, 0.9), negative: v.filter((x) => x < 0).length / v.length }])),
         population: { min: Math.min(...ratios), p50: quantile(ratios, 0.5), max: Math.max(...ratios) },
         companies: active,
+        quality: Object.fromEntries([...strength].map(([t, v]) => [t, { p10: quantile(v, 0.1), p50: quantile(v, 0.5), p90: quantile(v, 0.9) }])),
+        free: { count: free.length, meanQuality: freeQ.reduce((a, b) => a + b, 0) / Math.max(1, freeQ.length), p90Quality: quantile(freeQ, 0.9) },
       });
       before = after;
       repository.setMeta("calib.report", JSON.stringify(report));

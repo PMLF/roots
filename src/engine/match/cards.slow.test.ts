@@ -12,7 +12,7 @@ type Card = Extract<MatchEvent, { type: "card" }>;
 const cards = (e: readonly MatchEvent[]) => e.filter((x): x is Card => x.type === "card");
 
 describe("cartões", () => {
-  it("calibração: ≈4 amarelos e ≈0,15 vermelhos por jogo", () => {
+  it("calibração: ≈4 amarelos e ≈0,12 vermelhos por jogo", () => {
     let am = 0, see = 0, seconds = 0, matchesWithRed = 0;
     const N = 3000;
     for (let i = 0; i < N; i++) {
