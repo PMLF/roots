@@ -93,6 +93,8 @@ export function Contract() {
         <dl className="dados">
           {view && <div><dt>{t("contract.wage")}</dt><dd><b>{money.format(view.monthlyWage)}</b> {t("contract.perMonth")}</dd></div>}
           {view && <div><dt>{t("contract.endsOn")}</dt><dd>{day(view.end)}{view.daysLeft > 0 && <span className="suave"> · {t("contract.daysLeft", { n: view.daysLeft })}</span>}</dd></div>}
+          {view?.objective && <div><dt>{t("contract.objective")}</dt><dd>{t("contract.objectiveValue", { rank: view.objective.rank, of: view.objective.of })}</dd></div>}
+          {view?.objective && <div><dt>{t("contract.objectiveBonus")}</dt><dd>{money.format(view.objective.bonus)}</dd></div>}
           <div><dt>{t("contract.referenceLabel")}</dt><dd>{money.format(reference)} {t("contract.perMonth")}</dd></div>
         </dl>
       </div>

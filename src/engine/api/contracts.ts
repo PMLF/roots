@@ -192,7 +192,7 @@ export type ContractReply =
   | { result: "accepted"; terms: ContractTerms }
   | { result: "counter"; terms: ContractTerms; reason: ContractReason }
   | { result: "refused"; reason: ContractReason };
-export type GamerContractView = { club: string; clubName: string; monthlyWage: number; start: string; end: string; reference: number; yearsMin: number; yearsMax: number; canAsk: boolean; askFrom?: string; /** Dias até o contrato acabar. */ daysLeft: number; /** O contrato acaba dentro do prazo de aviso: renegociar já. */ expiring: boolean };
+export type GamerContractView = { club: string; clubName: string; monthlyWage: number; start: string; end: string; reference: number; yearsMin: number; yearsMax: number; canAsk: boolean; askFrom?: string; /** Dias até o contrato acabar. */ daysLeft: number; /** O contrato acaba dentro do prazo de aviso: renegociar já. */ expiring: boolean; /** Objetivo da época em curso (RZ-161). */ objective?: { rank: number; of: number; bonus: number } };
 
 export type PersonalBankView = { balance: number; monthlyNet: number; living: number; savings: number; city: string; employed: boolean; minDonation: number };
 export type PersonalSpendingView = {
