@@ -400,6 +400,8 @@ export type Params = {
       raiseCooldownDays: number; raiseMinTenureDays: number;
       /** Fim do contrato: se a aceitação do presidente (em múltiplos do salário de referência) chegar a `renewMinRatio` renova sozinho, senão o gamer fica livre; `noticeDays` = antecedência do aviso. */
       expiry: { renewMinRatio: number; noticeDays: number };
+      /** Objetivo da época (classificação na liga): `stretch` × posição esperada pela reputação; bónus de `bonusMonths` salários se cumprido (conta pessoal) e `trustGain` de ressentimento a menos; falhar soma `missGrudge`. */
+      objective: { stretch: number; bonusMonths: number; trustGain: number; missGrudge: number };
     };
   };
   /** Percentagem média de estrangeiros nos plantéis, por escalão (GERACAO_MUNDO §4). */
@@ -1204,6 +1206,7 @@ export const DEFAULT_PARAMETERS: Params = {
       trustDays: 365, counterSlack: 1.35, grudgeStep: 0.08, grudgeDecayPerMonth: 0.02,
       raiseCooldownDays: 120, raiseMinTenureDays: 90,
       expiry: { renewMinRatio: 1.0, noticeDays: 180 },
+      objective: { stretch: 0.85, bonusMonths: 2, trustGain: 0.1, missGrudge: 0.05 },
     },
   },
   foreigners: { firstLeague: 0.55, secondLeague: 0.3, thirdLeague: 0.15, cp: 0.08, district: 0.03 },

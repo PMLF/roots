@@ -20,6 +20,7 @@ import { saveParameters } from "./saveYear";
 import { cpChampionOf } from "./cpFinalPhase";
 import { blockedSundays, planNextSeasonCups, promotionDates } from "./competitions";
 import { sackByRelegation } from "./coachMarket";
+import { settleObjective } from "./gamerObjective";
 import { adjustDistricts, isInSecondDistrict, type SecondDistrict } from "./districts";
 import { closeUntilMonths, post } from "../club/finances";
 import { districtFactors, prizeValue, type PrizeType } from "./competitionPrizes";
@@ -218,6 +219,8 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
   prepareSeason(repo, seasonData(repo, data), paramsBase);
   // os meses sem jogos (junho, julho) também pagam custos
   closeUntilMonths(repo, seasonData(repo, data), params, repo.meta("date.today") as IsoDate, season + 1, (c) => !isInSecondDistrict(c.league));
+  // objetivo da época do gamer (RZ-161): bónus e confiança se cumpriu, ressentimento se falhou
+  settleObjective(repo, params, repo.meta("date.today") as IsoDate, season);
   // o clube do gamer que desceu à segunda distrital é despedido (deixa de ser jogável até voltar à pirâmide)
   const gamer = repo.meta("gamer.club");
   if (gamer && adjustment.adjustments.some((a) => a.type === "relegation" && a.club === gamer)) sackByRelegation(repo, seasonData(repo, data), params, gamer, repo.meta("date.today") as IsoDate, season);

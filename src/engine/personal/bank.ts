@@ -30,6 +30,12 @@ export function livingCost(repo: Repository, data: BaseData, params: Params, cit
   return Math.round((p.base * Math.max(0.6, size) * housing * own) / 10) * 10;
 }
 
+/** Entra dinheiro na conta pessoal (bónus). */
+export function deposit(repo: Repository, params: Params, today: IsoDate, amount: number): void {
+  const bank = bankOf(repo, params, today);
+  repo.setMeta("gamer.bank", JSON.stringify({ ...bank, balance: Math.round(bank.balance + amount) } satisfies Bank));
+}
+
 /** Poupança mensal de quem tem este ordenado: líquido menos o custo de vida, nunca negativa. */
 export const monthlySavings = (wage: number, living: number, params: Params): number => Math.max(0, Math.round((wage * params.personal.netShare - living) / 10) * 10);
 

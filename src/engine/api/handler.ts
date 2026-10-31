@@ -43,6 +43,7 @@ import { CITY_SERVICES } from "../config/parameters";
 import { decisionStates } from "../news/decisions";
 import { bankOf, donate, livingCost, monthlySavings } from "../personal/bank";
 import { askRaise, contractOf, negotiateOffer, referenceWage, signHired, signInitial } from "../season/gamerContract";
+import { ensureObjective } from "../season/gamerObjective";
 import { advance, timeState } from "../season/advance";
 import { saveParameters, seasonYearContaining, saveInitialYear, seasonName } from "../season/saveYear";
 import { foreignClubs } from "../world/foreign";
@@ -665,6 +666,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const days = (d: string) => Math.floor(Date.parse(`${d}T00:00:00Z`) / 86400000);
       const raw = repository.meta("gamer.grudge");
       const lastAsk = raw ? (JSON.parse(raw) as { lastAsk?: string }).lastAsk : undefined;
+      const objective = ensureObjective(repository, data, params);
       const daysLeft = days(contract.end) - days(today);
       const expiring = daysLeft <= ct.expiry.noticeDays;
       // perto do fim do contrato renegociar é sempre possível (depois do tempo mínimo no clube), sem esperar pelo intervalo entre pedidos
@@ -672,7 +674,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const canAsk = days(today) >= from;
       return {
         club: club.id, clubName: club.name, monthlyWage: contract.monthlyWage, start: contract.start, end: contract.end, reference: referenceWage(club, params),
-        yearsMin: ct.yearsMin, yearsMax: ct.yearsMax, canAsk, daysLeft, expiring, ...(canAsk ? {} : { askFrom: new Date(from * 86400000).toISOString().slice(0, 10) }),
+        yearsMin: ct.yearsMin, yearsMax: ct.yearsMax, canAsk, daysLeft, expiring, ...(objective ? { objective: { rank: objective.rank, of: objective.of, bonus: objective.bonus } } : {}), ...(canAsk ? {} : { askFrom: new Date(from * 86400000).toISOString().slice(0, 10) }),
       };
     }
     case "negotiateOffer": {

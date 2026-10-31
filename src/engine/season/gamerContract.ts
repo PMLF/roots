@@ -105,8 +105,8 @@ function sign(repo: Repository, club: string, today: IsoDate, terms: Terms, kind
   repo.appendEvent({ type: "GAMER_CONTRACT", date: today, season: currentSeason(repo), visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "contratou" }], data: { kind, monthlyWage: terms.monthlyWage, years: terms.years } });
 }
 
-const addGrudge = (repo: Repository, params: Params, today: IsoDate, lastAsk?: IsoDate) => {
-  const g: Grudge = { value: grudgeNow(repo, params, today) + params.coach.contract.grudgeStep, date: today, ...(lastAsk ? { lastAsk } : grudgeRaw(repo)?.lastAsk ? { lastAsk: grudgeRaw(repo)!.lastAsk! } : {}) };
+export const addGrudge = (repo: Repository, params: Params, today: IsoDate, lastAsk?: IsoDate, step: number = params.coach.contract.grudgeStep) => {
+  const g: Grudge = { value: grudgeNow(repo, params, today) + step, date: today, ...(lastAsk ? { lastAsk } : grudgeRaw(repo)?.lastAsk ? { lastAsk: grudgeRaw(repo)!.lastAsk! } : {}) };
   repo.setMeta("gamer.grudge", JSON.stringify(g));
 };
 
