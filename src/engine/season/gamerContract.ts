@@ -15,8 +15,8 @@ import type { IsoDate } from "../persistence/types";
 import { currentSeason } from "./seasonPyramid";
 import { courseLevel, ownsHome } from "../personal/spending";
 
-export type GamerContract = { club: string; monthlyWage: number; start: IsoDate; end: IsoDate };
-export type Terms = { monthlyWage: number; years: number };
+export type GamerContract = { club: string; monthlyWage: number; start: IsoDate; end: IsoDate; /** Meses de salário da cláusula de rescisão (saves antigos: o valor por omissão). */ clauseMonths?: number };
+export type Terms = { monthlyWage: number; years: number; clauseMonths?: number };
 export type Reply =
   | { result: "accepted"; terms: Terms }
   | { result: "counter"; terms: Terms; reason: Reason }
@@ -25,6 +25,10 @@ export type Reason = "budget" | "results" | "trust" | "greed" | "grudge" | "gene
 
 const dayNumber = (d: string): number => Math.floor(Date.parse(`${d}T00:00:00Z`) / 86400000);
 const addYears = (d: IsoDate, years: number): IsoDate => createDate(Number(d.slice(0, 4)) + years, Number(d.slice(5, 7)), Math.min(28, Number(d.slice(8, 10)))) as IsoDate;
+
+export const clauseMonthsOf = (params: Params, c: { clauseMonths?: number } | undefined): number => c?.clauseMonths ?? params.coach.contract.clause.defaultMonths;
+/** Valor da cláusula de rescisão do contrato atual. */
+export const clauseAmount = (params: Params, c: GamerContract): number => c.monthlyWage * clauseMonthsOf(params, c);
 
 export const contractOf = (repo: Repository): GamerContract | undefined => {
   const raw = repo.meta("gamer.contract");
@@ -93,16 +97,19 @@ export function reply(repo: Repository, data: BaseData, params: Params, club: Ba
   const years = clamp(Math.round(ask.years), ct.yearsMin, ct.yearsMax);
   const ref = referenceWage(club, params);
   const { max, weakest } = acceptableRatio(repo, data, params, club, today, current);
-  const ratio = ask.monthlyWage / ref;
-  if (ratio <= max + 1e-9) return { result: "accepted", terms: { monthlyWage: Math.round(ask.monthlyWage / 10) * 10, years } };
-  if (ratio <= max * ct.counterSlack) return { result: "counter", terms: { monthlyWage: Math.floor((max * ref) / 10) * 10, years }, reason: weakest };
+  const cl = ct.clause;
+  const months = clamp(Math.round(ask.clauseMonths ?? cl.defaultMonths), cl.min, cl.max);
+  // uma cláusula maior que a habitual pesa no que o presidente aceita pagar de salário (e uma menor alivia)
+  const ratio = ask.monthlyWage / ref + cl.weight * (months - cl.defaultMonths);
+  if (ratio <= max + 1e-9) return { result: "accepted", terms: { monthlyWage: Math.round(ask.monthlyWage / 10) * 10, years, clauseMonths: months } };
+  if (ratio <= max * ct.counterSlack) return { result: "counter", terms: { monthlyWage: Math.floor(((max - cl.weight * (months - cl.defaultMonths)) * ref) / 10) * 10, years, clauseMonths: months }, reason: weakest };
   return { result: "refused", reason: weakest };
 }
 
-function sign(repo: Repository, club: string, today: IsoDate, terms: Terms, kind: "hired" | "raise" | "initial" | "renewed"): void {
+function sign(repo: Repository, params: Params, club: string, today: IsoDate, terms: Terms, kind: "hired" | "raise" | "initial" | "renewed"): void {
   const end = addYears(today, terms.years);
-  repo.setMeta("gamer.contract", JSON.stringify({ club, monthlyWage: terms.monthlyWage, start: today, end } satisfies GamerContract));
-  repo.appendEvent({ type: "GAMER_CONTRACT", date: today, season: currentSeason(repo), visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "contratou" }], data: { kind, monthlyWage: terms.monthlyWage, years: terms.years } });
+  repo.setMeta("gamer.contract", JSON.stringify({ club, monthlyWage: terms.monthlyWage, start: today, end, clauseMonths: terms.clauseMonths ?? params.coach.contract.clause.defaultMonths } satisfies GamerContract));
+  repo.appendEvent({ type: "GAMER_CONTRACT", date: today, season: currentSeason(repo), visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "contratou" }], data: { kind, monthlyWage: terms.monthlyWage, years: terms.years, clauseMonths: terms.clauseMonths ?? params.coach.contract.clause.defaultMonths } });
 }
 
 export const addGrudge = (repo: Repository, params: Params, today: IsoDate, lastAsk?: IsoDate, step: number = params.coach.contract.grudgeStep) => {
@@ -112,7 +119,7 @@ export const addGrudge = (repo: Repository, params: Params, today: IsoDate, last
 
 /** Contrato inicial (novo save): salário de referência e duração por omissão, sem negociação. */
 export function signInitial(repo: Repository, params: Params, club: BaseClub, today: IsoDate): void {
-  sign(repo, club.id, today, { monthlyWage: referenceWage(club, params), years: params.coach.contract.defaultYears }, "initial");
+  sign(repo, params, club.id, today, { monthlyWage: referenceWage(club, params), years: params.coach.contract.defaultYears }, "initial");
 }
 
 /** Propor condições a um clube que fez oferta: se o presidente aceita, o gamer fica contratado; senão devolve contraproposta ou recusa. */
@@ -136,14 +143,14 @@ export function askRaise(repo: Repository, data: BaseData, params: Params, today
   const expiring = dayNumber(contract.end) - dayNumber(today) <= ct.expiry.noticeDays; // perto do fim renegociar não espera pelo intervalo
   if (last && !expiring && dayNumber(today) - dayNumber(last) < ct.raiseCooldownDays) return { result: "refused", reason: "cooldown" };
   const r = reply(repo, data, params, club, today, true, ask);
-  if (r.result === "accepted") { sign(repo, club.id, today, r.terms, "raise"); }
+  if (r.result === "accepted") { sign(repo, params, club.id, today, r.terms, "raise"); }
   else if (r.result === "refused") addGrudge(repo, params, today, today);
   else { const g = grudgeRaw(repo); repo.setMeta("gamer.grudge", JSON.stringify({ value: g?.value ?? 0, date: g?.date ?? today, lastAsk: today } satisfies Grudge)); }
   return r;
 }
 
 /** Renovação automática no fim do contrato: mantém o salário (ou sobe até ao que o presidente aceita, no máximo ao de referência × `max`). */
-export function signRenewal(repo: Repository, club: string, today: IsoDate, terms: Terms): void { sign(repo, club, today, terms, "renewed"); }
+export function signRenewal(repo: Repository, params: Params, club: string, today: IsoDate, terms: Terms): void { sign(repo, params, club, today, terms, "renewed"); }
 
 /** Fecha o contrato de um clube novo depois de o presidente aceitar (chamado por `acceptOffer`). */
-export function signHired(repo: Repository, club: string, today: IsoDate, terms: Terms): void { sign(repo, club, today, terms, "hired"); }
+export function signHired(repo: Repository, params: Params, club: string, today: IsoDate, terms: Terms): void { sign(repo, params, club, today, terms, "hired"); }

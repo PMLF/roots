@@ -147,9 +147,16 @@ export function ContractLink() {
 
 /** Demitir-se do clube (pede confirmação). */
 export function ResignButton() {
-  const { t } = useT();
+  const { t, locale } = useT();
   const engine = useEngine();
   const [confirm, setConfirm] = useState(false);
+  const [cost, setCost] = useState(0);
+  const money = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  const ask = async () => {
+    const c = await engine?.call("gamerContract", null);
+    setCost(c?.resignCost ?? 0);
+    setConfirm(true);
+  };
   const resign = async () => {
     await engine?.call("resign", null);
     setConfirm(false);
@@ -158,12 +165,12 @@ export function ResignButton() {
   };
   return confirm ? (
     <span className="acoes">
-      <span className="suave">{t("myClub.confirmResign")}</span>
+      <span className="suave">{t("myClub.confirmResign")}{cost > 0 && ` ${t("myClub.resignCost", { amount: money.format(cost) })}`}</span>
       <button type="button" onClick={() => void resign()}>{t("myClub.resignYes")}</button>
       <button type="button" onClick={() => setConfirm(false)}>{t("myClub.cancel")}</button>
     </span>
   ) : (
-    <button type="button" onClick={() => setConfirm(true)}>{t("myClub.resign")}</button>
+    <button type="button" onClick={() => void ask()}>{t("myClub.resign")}</button>
   );
 }
 

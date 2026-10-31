@@ -398,6 +398,8 @@ export type Params = {
       grudgeStep: number; grudgeDecayPerMonth: number;
       /** Dias entre pedidos de aumento e dias mínimos no clube para o poder pedir. */
       raiseCooldownDays: number; raiseMinTenureDays: number;
+      /** Cláusula de rescisão (RZ-210): meses de salário pagos a quem sai antes do fim (o clube se despede o gamer por resultados; o gamer se se demite). Cada mês acima do por omissão custa `weight` ao salário aceite; `warnMargin` = pontos de confiança acima do limite a partir dos quais avisa. */
+      clause: { defaultMonths: number; min: number; max: number; weight: number; warnMargin: number };
       /** Fim do contrato: se a aceitação do presidente (em múltiplos do salário de referência) chegar a `renewMinRatio` renova sozinho, senão o gamer fica livre; `noticeDays` = antecedência do aviso. */
       expiry: { renewMinRatio: number; noticeDays: number };
       /** Objetivo da época (classificação na liga): `stretch` × posição esperada pela reputação; bónus de `bonusMonths` salários se cumprido (conta pessoal) e `trustGain` de ressentimento a menos; falhar soma `missGrudge`. */
@@ -1207,6 +1209,7 @@ export const DEFAULT_PARAMETERS: Params = {
       raiseCooldownDays: 120, raiseMinTenureDays: 90,
       expiry: { renewMinRatio: 1.0, noticeDays: 180 },
       objective: { stretch: 0.85, bonusMonths: 2, trustGain: 0.1, missGrudge: 0.05 },
+      clause: { defaultMonths: 6, min: 1, max: 12, weight: 0.02, warnMargin: 15 },
     },
   },
   foreigners: { firstLeague: 0.55, secondLeague: 0.3, thirdLeague: 0.15, cp: 0.08, district: 0.03 },

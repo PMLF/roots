@@ -12,7 +12,9 @@ import type { IsoDate } from "../persistence/types";
 import { isInSecondDistrict } from "./districts";
 import { currentSeason } from "./seasonPyramid";
 import { prepareSeason } from "./prepare";
-import { acceptableRatio, contractOf, referenceWage, signRenewal } from "./gamerContract";
+import { acceptableRatio, clauseAmount, contractOf, referenceWage, signRenewal } from "./gamerContract";
+import { bankOf, deposit } from "../personal/bank";
+import { post } from "../club/finances";
 
 export type Offer = { club: string; since: IsoDate };
 
@@ -52,18 +54,55 @@ export function updateOffers(repo: Repository, data: BaseData, params: Params, t
   return offers;
 }
 
-/** O gamer demite-se do clube atual: fica sem clube e recebe as primeiras ofertas. */
-export function resign(repo: Repository, data: BaseData, params: Params): { club: string } {
+/**
+ * Quanto custa ao gamer demitir-se agora: a cláusula de rescisão do contrato (paga da conta pessoal, no máximo o saldo), ou nada
+ * se o contrato já acabou ou não existe.
+ */
+export function resignCost(repo: Repository, params: Params, today: IsoDate): number {
+  const contract = contractOf(repo);
+  if (!contract || contract.club !== repo.meta("gamer.club") || today >= contract.end) return 0;
+  return Math.min(clauseAmount(params, contract), Math.max(0, bankOf(repo, params, today).balance));
+}
+
+/** O gamer demite-se do clube atual: paga a cláusula de rescisão, fica sem clube e recebe as primeiras ofertas. */
+export function resign(repo: Repository, data: BaseData, params: Params): { club: string; paid: number } {
   const club = repo.meta("gamer.club");
   if (!club) throw new Error("Não tens clube de que te demitir");
   const { today } = prepareSeason(repo, data, params);
+  const paid = resignCost(repo, params, today);
   repo.transaction(() => {
-    repo.appendEvent({ type: "GAMER_RESIGNATION", date: today, season: currentSeason(repo), visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "deixado" }], data: {} });
+    if (paid > 0) {
+      deposit(repo, params, today, -paid);
+      const base = data.clubs.find((c) => c.id === club);
+      if (base) post(repo, base, "compensations", paid);
+    }
+    repo.appendEvent({ type: "GAMER_RESIGNATION", date: today, season: currentSeason(repo), visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "deixado" }], data: { paid } });
     repo.setMeta("gamer.previous", club);
     repo.setMeta("gamer.club", "");
     updateOffers(repo, data, params, today);
   });
-  return { club };
+  return { club, paid };
+}
+
+/**
+ * A direção perdeu a confiança no gamer (RZ-210): despede-o e paga a cláusula de rescisão (do clube para a conta pessoal do gamer).
+ * O gamer fica sem clube, com ofertas, e a direção guarda a data.
+ */
+export function sackByResults(repo: Repository, data: BaseData, params: Params, club: string, date: IsoDate, season: number): void {
+  if (repo.meta("gamer.club") !== club) return;
+  const contract = contractOf(repo);
+  const amount = contract && contract.club === club && date < contract.end ? clauseAmount(params, contract) : 0;
+  repo.transaction(() => {
+    const base = data.clubs.find((c) => c.id === club);
+    if (amount > 0) {
+      deposit(repo, params, date, amount);
+      if (base) post(repo, base, "compensations", -amount);
+    }
+    repo.appendEvent({ type: "GAMER_RESIGNATION", date, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: club, roleKind: "deixado" }], data: { reason: "results", compensation: amount } });
+    repo.setMeta("gamer.previous", club);
+    repo.setMeta("gamer.club", "");
+    updateOffers(repo, data, params, date);
+  });
 }
 
 /** Aceita uma das ofertas em vigor. */
@@ -105,7 +144,7 @@ export function endOfContract(repo: Repository, data: BaseData, params: Params, 
   const { max } = acceptableRatio(repo, data, params, club, today, true);
   if (max >= ex.renewMinRatio) {
     const wage = Math.max(contract.monthlyWage, Math.floor((Math.min(max, 1.15) * referenceWage(club, params)) / 10) * 10);
-    repo.transaction(() => signRenewal(repo, club.id, today, { monthlyWage: wage, years: params.coach.contract.defaultYears }));
+    repo.transaction(() => signRenewal(repo, params, club.id, today, { monthlyWage: wage, years: params.coach.contract.defaultYears }));
     return "renewed";
   }
   repo.transaction(() => {

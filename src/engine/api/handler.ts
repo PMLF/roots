@@ -32,17 +32,17 @@ import { clubSeason } from "../competition/clubSeason";
 import { readLiveMatch, type LiveMatch, type LivePlayer } from "../season/liveMatch";
 import { startSession, changeSessionTactic, sessionStep, currentSession, substituteSession } from "../season/matchSession";
 import { isInSecondDistrict } from "../season/districts";
-import { syncGamerCoach } from "../club/coaches";
+import { gamerConfidence, sackLimit, syncGamerCoach } from "../club/coaches";
 import { makeStadiumRequest } from "../council/requests";
 import { lastFill, priceOf, ringsOf, sectorMax, quoteWorks, sellingSectors, setSectorPrice, startWorks, stadiumCapacity, stadiumState, stadiumTotalOf, stadiumNaming, stadiumSponsor, treatTurf, turfCosts, turfOf } from "../club/stadium";
 import { STADIUM_SECTORS } from "../config/parameters";
 import { dismissStaff, hireStaff, ownStaff, seedStaffMarket, staffCandidates } from "../club/staff";
-import { acceptOffer, resign, isUnemployed, gamerOffers, startUnemployed } from "../season/coachMarket";
+import { acceptOffer, resign, resignCost, isUnemployed, gamerOffers, startUnemployed } from "../season/coachMarket";
 import { buyHome, causeOffsets, courseLevel, courseTraining, helpClub, homePrice, ownsHome, startCourse, supportCause } from "../personal/spending";
 import { CITY_SERVICES } from "../config/parameters";
 import { decisionStates } from "../news/decisions";
 import { bankOf, donate, livingCost, monthlySavings } from "../personal/bank";
-import { askRaise, contractOf, negotiateOffer, referenceWage, signHired, signInitial } from "../season/gamerContract";
+import { askRaise, clauseAmount, clauseMonthsOf, contractOf, negotiateOffer, referenceWage, signHired, signInitial } from "../season/gamerContract";
 import { ensureObjective } from "../season/gamerObjective";
 import { advance, timeState } from "../season/advance";
 import { saveParameters, seasonYearContaining, saveInitialYear, seasonName } from "../season/saveYear";
@@ -641,7 +641,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         ...(previous ? { previous: name(previous) ?? previous } : {}),
         offers: unemployed ? gamerOffers(repository).flatMap((o) => {
           const c = data.clubs.find((x) => x.id === o.club);
-          return c ? [{ id: c.id, name: c.name, league: c.league, tier: c.tier, levelReputation: reputationLevel(c.reputation, params), since: o.since, wage: referenceWage(c, params), yearsMin: params.coach.contract.yearsMin, yearsMax: params.coach.contract.yearsMax, defaultYears: params.coach.contract.defaultYears }] : [];
+          return c ? [{ id: c.id, name: c.name, league: c.league, tier: c.tier, levelReputation: reputationLevel(c.reputation, params), since: o.since, wage: referenceWage(c, params), yearsMin: params.coach.contract.yearsMin, yearsMax: params.coach.contract.yearsMax, defaultYears: params.coach.contract.defaultYears, clause: { min: params.coach.contract.clause.min, max: params.coach.contract.clause.max, default: params.coach.contract.clause.defaultMonths } }] : [];
         }) : [],
       };
     }
@@ -668,13 +668,17 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const lastAsk = raw ? (JSON.parse(raw) as { lastAsk?: string }).lastAsk : undefined;
       const objective = ensureObjective(repository, data, params);
       const daysLeft = days(contract.end) - days(today);
+      const cl = ct.clause;
+      const conf = gamerConfidence(repository, club.id);
+      const limit = sackLimit(repository, params, club.id);
+      const trust = conf === undefined || conf >= limit + 2 * cl.warnMargin ? "good" : conf >= limit + cl.warnMargin ? "concerned" : "danger";
       const expiring = daysLeft <= ct.expiry.noticeDays;
       // perto do fim do contrato renegociar é sempre possível (depois do tempo mínimo no clube), sem esperar pelo intervalo entre pedidos
       const from = Math.max(days(contract.start) + ct.raiseMinTenureDays, !expiring && lastAsk ? days(lastAsk) + ct.raiseCooldownDays : 0);
       const canAsk = days(today) >= from;
       return {
         club: club.id, clubName: club.name, monthlyWage: contract.monthlyWage, start: contract.start, end: contract.end, reference: referenceWage(club, params),
-        yearsMin: ct.yearsMin, yearsMax: ct.yearsMax, canAsk, daysLeft, expiring, ...(objective ? { objective: { rank: objective.rank, of: objective.of, bonus: objective.bonus } } : {}), ...(canAsk ? {} : { askFrom: new Date(from * 86400000).toISOString().slice(0, 10) }),
+        yearsMin: ct.yearsMin, yearsMax: ct.yearsMax, canAsk, daysLeft, expiring, trust, clause: { months: clauseMonthsOf(params, contract), amount: clauseAmount(params, contract), min: cl.min, max: cl.max, default: cl.defaultMonths }, resignCost: resignCost(repository, params, today), ...(objective ? { objective: { rank: objective.rank, of: objective.of, bonus: objective.bonus } } : {}), ...(canAsk ? {} : { askFrom: new Date(from * 86400000).toISOString().slice(0, 10) }),
       };
     }
     case "negotiateOffer": {
@@ -685,7 +689,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       let r!: ReturnType<typeof negotiateOffer>;
       repository.transaction(() => {
         r = negotiateOffer(repository, data, params, m.input.id, today, m.input.terms);
-        if (r.result === "accepted") { acceptOffer(repository, m.input.id); signHired(repository, m.input.id, today, r.terms); syncGamerCoach(repository, data, params); }
+        if (r.result === "accepted") { acceptOffer(repository, m.input.id); signHired(repository, params, m.input.id, today, r.terms); syncGamerCoach(repository, data, params); }
       });
       return r;
     }

@@ -184,15 +184,15 @@ type OfferAction = { id: number; action: "accept" | "reject" } | { id: number; a
 export type OfferAnswer = { ok: true; status: "done" | "counter" | "refused" | "withdrawn" | "rejected" | "expired"; offer?: OfferView } | { ok: false };
 export type RenewalsData = { season: number; nextSeasonStart: string; lines: RenewalLine[] };
 
-export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string; /** Salário mensal de referência que o clube oferece. */ wage: number; yearsMin: number; yearsMax: number; defaultYears: number };
+export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string; /** Salário mensal de referência que o clube oferece. */ wage: number; yearsMin: number; yearsMax: number; defaultYears: number; clause: { min: number; max: number; default: number } };
 /** Condições de um contrato do gamer e a resposta do presidente (RZ-161). */
-export type ContractTerms = { monthlyWage: number; years: number };
+export type ContractTerms = { monthlyWage: number; years: number; /** Meses de salário da cláusula de rescisão. */ clauseMonths?: number };
 export type ContractReason = "budget" | "results" | "trust" | "greed" | "grudge" | "generic" | "cooldown" | "tenure";
 export type ContractReply =
   | { result: "accepted"; terms: ContractTerms }
   | { result: "counter"; terms: ContractTerms; reason: ContractReason }
   | { result: "refused"; reason: ContractReason };
-export type GamerContractView = { club: string; clubName: string; monthlyWage: number; start: string; end: string; reference: number; yearsMin: number; yearsMax: number; canAsk: boolean; askFrom?: string; /** Dias até o contrato acabar. */ daysLeft: number; /** O contrato acaba dentro do prazo de aviso: renegociar já. */ expiring: boolean; /** Objetivo da época em curso (RZ-161). */ objective?: { rank: number; of: number; bonus: number } };
+export type GamerContractView = { club: string; clubName: string; monthlyWage: number; start: string; end: string; reference: number; yearsMin: number; yearsMax: number; canAsk: boolean; askFrom?: string; /** Dias até o contrato acabar. */ daysLeft: number; /** O contrato acaba dentro do prazo de aviso: renegociar já. */ expiring: boolean; /** Objetivo da época em curso (RZ-161). */ objective?: { rank: number; of: number; bonus: number }; /** Cláusula de rescisão (RZ-210): meses, valor e limites. */ clause: { months: number; amount: number; min: number; max: number; default: number }; /** O que custa demitires-te agora (a cláusula, no máximo o saldo da conta pessoal). */ resignCost: number; /** Confiança da direção no gamer: com «perigo» o despedimento é provável. */ trust: "good" | "concerned" | "danger" };
 
 export type PersonalBankView = { balance: number; monthlyNet: number; living: number; savings: number; city: string; employed: boolean; minDonation: number };
 export type PersonalSpendingView = {
@@ -616,7 +616,7 @@ export type EngineRequests = {
   substitutionsInMatch: { input: { substitutions: { playerOut: string; playerIn: string }[]; /** Quem em campo passa a jogar onde (RZ-255); não gasta substituições nem pausas. */ positions?: { player: string; position: Position }[] }; output: LiveMatch };
   /** Marca uma mensagem como lida ou por ler. */
   markMessage: { input: { id: number; isRead: boolean }; output: null };
-  resign: { input: null; output: { club: string } };
+  resign: { input: null; output: { club: string; paid: number } };
   /** Mercado de staff (RZ-208): profissionais livres de uma função, com a qualidade estimada. */
   staffMarket: { input: { fn: string }; output: StaffCandidate[] };
   stadiumPage: { input: { club?: string }; output: StadiumPageData | null };

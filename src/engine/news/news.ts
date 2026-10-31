@@ -15,7 +15,7 @@ import type { IsoDate } from "../persistence/types";
 export type NewsItemType =
   | "hattrick" | "red" | "two_yellows" | "rout" | "comeback_goal" | "stoppage_goal" | "serious_injury"
   | "champion" | "title_clinched" | "cup_upset" | "state_prize" | "promotion" | "relegation" | "second_district" | "district_return" | "locality" | "city_event"
-  | "outcome" | "injury" | "resignation" | "sacked" | "contract_end" | "objective_met" | "objective_missed" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer" | "loan_offer" | "youth_offer" | "council_reply" | "election_campaign" | "election_result" | "patron_offer" | "bid_agreed" | "bid_rejected" | "bid_progress" | "youth_intake" | "local_talent" | "market_open" | "market_close" | "club_offer"
+  | "outcome" | "injury" | "resignation" | "resignation_paid" | "sacked" | "sacked_results" | "contract_end" | "objective_met" | "objective_missed" | "signed" | "scout_report" | "scout_search" | "transfer" | "transfer_free" | "transfer_offer" | "loan_offer" | "youth_offer" | "council_reply" | "election_campaign" | "election_result" | "patron_offer" | "bid_agreed" | "bid_rejected" | "bid_progress" | "youth_intake" | "local_talent" | "market_open" | "market_close" | "club_offer"
   | "coach_sacked" | "coach_hired" | "staff_retired" | "staff_hired" | "staff_dismissed" | "staff_moved" | "stadium_works" | "stadium_opened"
   | "europe_qualified" | "europe_draw" | "europe_phase" | "europe_qualifier";
 
@@ -40,7 +40,7 @@ export type Message = NewsItem & { isRead: boolean };
 /** Quantas variantes de texto existem por tipo (a interface tem as frases `noticia.<tipo>.<n>.titulo|corpo`). */
 export const VARIANTS: Record<NewsItemType, number> = {
   hattrick: 2, red: 2, two_yellows: 2, rout: 2, comeback_goal: 2, stoppage_goal: 2, serious_injury: 2,
-  champion: 2, title_clinched: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, sacked: 1, contract_end: 1, objective_met: 1, objective_missed: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1, loan_offer: 1, youth_offer: 1, council_reply: 1, election_campaign: 1, election_result: 1, patron_offer: 1, bid_agreed: 1, bid_rejected: 1, bid_progress: 1, youth_intake: 1, local_talent: 1, market_open: 1, market_close: 1, club_offer: 1, coach_sacked: 1, coach_hired: 1, staff_retired: 1, staff_hired: 1, staff_dismissed: 1, staff_moved: 1, stadium_works: 1, stadium_opened: 1, europe_qualified: 1, europe_draw: 1, europe_phase: 1, europe_qualifier: 1,
+  champion: 2, title_clinched: 2, cup_upset: 2, state_prize: 2, promotion: 2, relegation: 2, second_district: 1, district_return: 1, locality: 1, city_event: 1, outcome: 2, injury: 2, resignation: 1, resignation_paid: 1, sacked: 1, sacked_results: 1, contract_end: 1, objective_met: 1, objective_missed: 1, signed: 1, scout_report: 1, scout_search: 1, transfer: 2, transfer_free: 1, transfer_offer: 1, loan_offer: 1, youth_offer: 1, council_reply: 1, election_campaign: 1, election_result: 1, patron_offer: 1, bid_agreed: 1, bid_rejected: 1, bid_progress: 1, youth_intake: 1, local_talent: 1, market_open: 1, market_close: 1, club_offer: 1, coach_sacked: 1, coach_hired: 1, staff_retired: 1, staff_hired: 1, staff_dismissed: 1, staff_moved: 1, stadium_works: 1, stadium_opened: 1, europe_qualified: 1, europe_draw: 1, europe_phase: 1, europe_qualifier: 1,
 };
 
 /** Tipos de evento que dão notícia para toda a gente. */
@@ -203,7 +203,10 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
       return base(e.type === "STADIUM_WORKS_STARTED" ? "stadium_works" : "stadium_opened", { club: c.clubName(club.id), seats: within(d.seats), sector: String(d.sector ?? ""), cost: within(d.cost), capacity: within(d.capacity) }, [lc(club.id)]);
     }
     case "GAMER_RESIGNATION":
-      return inboxOnly && club ? base(d.reason === "secondDistrict" ? "sacked" : d.reason === "contractEnd" ? "contract_end" : "resignation", { club: c.clubName(club.id) }, [lc(club.id)]) : undefined;
+      if (!inboxOnly || !club) return undefined;
+      if (d.reason === "results") return base("sacked_results", { club: c.clubName(club.id), amount: within(d.compensation) }, [lc(club.id)]);
+      if (!d.reason && Number(d.paid) > 0) return base("resignation_paid", { club: c.clubName(club.id), amount: within(d.paid) }, [lc(club.id)]);
+      return base(d.reason === "secondDistrict" ? "sacked" : d.reason === "contractEnd" ? "contract_end" : "resignation", { club: c.clubName(club.id) }, [lc(club.id)]);
     case "GAMER_OBJECTIVE":
       return inboxOnly && club ? base(d.met ? "objective_met" : "objective_missed", { club: c.clubName(club.id), rank: within(d.rank), target: within(d.target), bonus: within(d.bonus) }, [lc(club.id)]) : undefined;
     case "GAMER_HIRED":
