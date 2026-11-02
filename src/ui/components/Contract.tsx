@@ -20,6 +20,8 @@ export function Contract() {
   const [wage, setWage] = useState(0);
   const [years, setYears] = useState(2);
   const [clause, setClause] = useState(6);
+  const [wageBudget, setWageBudget] = useState(0);
+  const [transfers, setTransfers] = useState(0);
   const [answer, setAnswer] = useState<ContractReply | undefined>(undefined);
   const [busy, setBusy] = useState(false);
   const [bank, setBank] = useState<PersonalBankView | null>(null);
@@ -41,6 +43,8 @@ export function Contract() {
         setWage(offer.wage);
         setYears(offer.defaultYears);
         setClause(offer.clause.default);
+        setWageBudget(offer.budget.wageBillMax);
+        setTransfers(offer.budget.transfers);
       } else {
         const view = await engine.call("gamerContract", null);
         if (!live) return;
@@ -51,6 +55,8 @@ export function Contract() {
         setWage(Math.round((view.monthlyWage * 1.1) / 10) * 10);
         setYears(Math.min(view.yearsMax, Math.max(view.yearsMin, 2)));
         setClause(view.clause.months);
+        setWageBudget(Math.round((view.budget.defaultWageBillMax * view.budget.mult.wage) / 1000) * 1000);
+        setTransfers(Math.round((view.budget.defaultTransfers * view.budget.mult.transfers) / 1000) * 1000);
       }
     })().catch((e) => live && setError(e instanceof Error ? e.message : String(e)));
     return () => { live = false; };
@@ -63,6 +69,9 @@ export function Contract() {
   const reference = setup.mode === "offer" ? setup.offer.wage : setup.view.reference;
   const clubName = setup.mode === "offer" ? setup.offer.name : setup.view.clubName;
   const clauseRange = setup.mode === "offer" ? setup.offer.clause : setup.view.clause;
+  const budgetBase = setup.mode === "offer" ? setup.offer.budget : { wageBillMax: setup.view.budget.defaultWageBillMax, transfers: setup.view.budget.defaultTransfers, min: setup.view.budget.min };
+  /** Múltiplos do orçamento por defeito que os campos representam (1 = o do clube). */
+  const budgetMult = { wage: budgetBase.wageBillMax > 0 ? wageBudget / budgetBase.wageBillMax : 1, transfers: budgetBase.transfers > 0 ? transfers / budgetBase.transfers : 1 };
   const locked = setup.mode === "raise" && !setup.view.canAsk;
 
   const send = async (terms: ContractTerms) => {
@@ -72,6 +81,7 @@ export function Contract() {
     try {
       const r = setup.mode === "offer" ? await engine.call("negotiateOffer", { id: setup.offer.id, terms }) : await engine.call("askRaise", { terms });
       setAnswer(r);
+      if (r.result === "counter" && r.terms.budget) { setWageBudget(Math.round((budgetBase.wageBillMax * r.terms.budget.wage) / 1000) * 1000); setTransfers(Math.round((budgetBase.transfers * r.terms.budget.transfers) / 1000) * 1000); }
       if (r.result === "accepted") {
         window.dispatchEvent(new Event("raizes:meuClube"));
         window.dispatchEvent(new Event("raizes:tempo"));
@@ -101,6 +111,8 @@ export function Contract() {
           {view && <div><dt>{t("contract.wage")}</dt><dd><b>{money.format(view.monthlyWage)}</b> {t("contract.perMonth")}</dd></div>}
           {view && <div><dt>{t("contract.endsOn")}</dt><dd>{day(view.end)}{view.daysLeft > 0 && <span className="suave"> · {t("contract.daysLeft", { n: view.daysLeft })}</span>}</dd></div>}
           {view && <div><dt>{t("contract.clause")}</dt><dd>{money.format(view.clause.amount)} <span className="suave">· {t("contract.clauseMonths", { n: view.clause.months })}</span></dd></div>}
+          {view && <div><dt>{t("contract.budgetWage")}</dt><dd>{money.format(view.budget.wageBillMax)} {t("contract.perYear")}</dd></div>}
+          {view && <div><dt>{t("contract.budgetTransfers")}</dt><dd>{money.format(view.budget.transfers)}</dd></div>}
           {view?.objective && <div><dt>{t("contract.objective")}</dt><dd>{t(view.objective.rank === 1 ? "contract.objectiveChampion" : "contract.objectiveValue", { rank: view.objective.rank, of: view.objective.of })}</dd></div>}
           {view?.objective && <div><dt>{t("contract.objectiveBonus")}</dt><dd>{money.format(view.objective.bonus)}</dd></div>}
           <div><dt>{t("contract.referenceLabel")}</dt><dd>{money.format(reference)} {t("contract.perMonth")}</dd></div>
@@ -108,7 +120,7 @@ export function Contract() {
       </div>
       <div className="cartao contrato-form" data-testid="contrato-propostas">
         <h2>{t("contract.proposeTitle")}</h2>
-        <div className="formulario">
+        <div className="formulario formulario-3">
           <label>
             <span>{t("contract.wageField")}</span>
             <input type="number" min={100} step={50} value={wage} onChange={(e) => setWage(Number(e.target.value))} disabled={busy || locked || done} data-testid="contrato-salario" />
@@ -127,10 +139,22 @@ export function Contract() {
           </label>
         </div>
         <p className="suave">{t("contract.clauseHint")}</p>
+        <h3 className="contrato-sub">{t("contract.budgetTitle")}</h3>
+        <div className="formulario">
+          <label>
+            <span>{t("contract.budgetWageField")}</span>
+            <input type="number" min={0} step={10000} value={wageBudget} onChange={(e) => setWageBudget(Number(e.target.value))} disabled={busy || locked || done} data-testid="contrato-orcamento-salarios" />
+          </label>
+          <label>
+            <span>{t("contract.budgetTransfersField")}</span>
+            <input type="number" min={0} step={10000} value={transfers} onChange={(e) => setTransfers(Number(e.target.value))} disabled={busy || locked || done} data-testid="contrato-orcamento-transferencias" />
+          </label>
+        </div>
+        <p className="suave">{t("contract.budgetHint")}</p>
         <div className="contrato-acoes">
           {locked && view?.askFrom ? <span className="suave" data-testid="contrato-cedo">{t("contract.askFrom", { date: day(view.askFrom) })}</span> : <span />}
           {setup.mode === "offer" && !done && <Link href="/" className="botao">{t("contract.back")}</Link>}
-          <button type="button" className="primario" disabled={busy || locked || wage < 100 || done} onClick={() => void send({ monthlyWage: wage, years, clauseMonths: clause })} data-testid="contrato-propor">
+          <button type="button" className="primario" disabled={busy || locked || wage < 100 || done} onClick={() => void send({ monthlyWage: wage, years, clauseMonths: clause, budget: budgetMult })} data-testid="contrato-propor">
             {setup.mode === "offer" ? t("contract.propose") : t("contract.askRaise")}
           </button>
         </div>
@@ -142,13 +166,13 @@ export function Contract() {
             {answer.result === "accepted" && (
               <>
                 <b>{t(setup.mode === "offer" ? "contract.accepted.offer" : "contract.accepted.raise")}</b>
-                <span>{t("contract.terms", { wage: money.format(answer.terms.monthlyWage), years: answer.terms.years, clause: answer.terms.clauseMonths ?? clause })}</span>
+                <span>{t("contract.terms", { wage: money.format(answer.terms.monthlyWage), years: answer.terms.years, clause: answer.terms.clauseMonths ?? clause })} {answer.terms.budget && t("contract.termsBudget", { wage: money.format(budgetBase.wageBillMax * answer.terms.budget.wage), transfers: money.format(budgetBase.transfers * answer.terms.budget.transfers) })}</span>
               </>
             )}
             {answer.result === "counter" && (
               <>
                 <b>{t("contract.counter")}</b>
-                <span>{t("contract.terms", { wage: money.format(answer.terms.monthlyWage), years: answer.terms.years, clause: answer.terms.clauseMonths ?? clause })} {t(`contract.reason.${answer.reason}` as Key)}</span>
+                <span>{t("contract.terms", { wage: money.format(answer.terms.monthlyWage), years: answer.terms.years, clause: answer.terms.clauseMonths ?? clause })} {answer.terms.budget && t("contract.termsBudget", { wage: money.format(budgetBase.wageBillMax * answer.terms.budget.wage), transfers: money.format(budgetBase.transfers * answer.terms.budget.transfers) })} {t(`contract.reason.${answer.reason}` as Key)}</span>
               </>
             )}
             {answer.result === "refused" && (
@@ -168,6 +192,7 @@ export function Contract() {
           <dl className="dados">
             <div><dt>{t("bank.balance")}</dt><dd><b>{money.format(bank.balance)}</b></dd></div>
             <div><dt>{t("bank.net")}</dt><dd>{money.format(bank.monthlyNet)} {t("contract.perMonth")}</dd></div>
+            {bank.sideIncome > 0 && <div><dt>{t("bank.side")}</dt><dd>{money.format(bank.sideIncome)} {t("contract.perMonth")}</dd></div>}
             <div><dt>{t("bank.living", { city: bank.city })}</dt><dd>{money.format(bank.living)} {t("contract.perMonth")}</dd></div>
             <div><dt>{t("bank.savings")}</dt><dd><b>{money.format(bank.savings)}</b> {t("contract.perMonth")}</dd></div>
           </dl>

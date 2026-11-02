@@ -748,7 +748,7 @@ button.dev { border-style: dashed; }
   input, select, textarea { font-size: 16px; } /* evita o zoom automático do iOS ao focar */
 }
 @media (max-width: 480px) {
-  .formulario { grid-template-columns: minmax(0, 1fr); }
+  .formulario, .formulario.formulario-3 { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 720px) {
   .separadores button { flex: 1 1 0; min-width: 0; padding: 8px 4px; font-size: 13px; text-align: center; min-height: 44px; }
@@ -1207,6 +1207,8 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 .contrato-resposta a.primario { color: #fff; background: var(--destaque); border-color: var(--destaque); font-weight: 600; }
 .pagina-clube > .resultado-negocio { margin: 0 0 12px; }
 .cartao.contrato-form { margin: 12px 0; }
+.formulario.formulario-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.contrato-sub { margin: 16px 0 8px; font-size: 14px; }
 .contrato-acoes { display: flex; gap: 12px; align-items: center; justify-content: flex-end; flex-wrap: wrap; margin-top: 14px; }
 .contrato-acoes > .suave { margin-right: auto; }
 .resultado-negocio.contrato-resposta { margin: 12px 0; }

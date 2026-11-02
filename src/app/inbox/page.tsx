@@ -50,6 +50,14 @@ function Inbox() {
       loadDecisions();
     } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
   };
+  const answerRenewal = async (accept: boolean) => {
+    try {
+      await engine?.call("answerRenewal", { accept });
+      window.dispatchEvent(new Event("raizes:caixa"));
+      window.dispatchEvent(new Event("raizes:tempo"));
+      loadDecisions();
+    } catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+  };
   const openCampaign = () => { engine?.call("campaign", null).then(setCampaign).catch(() => undefined); };
   const loadOffers = useCallback(() => { engine?.call("transferOffers", null).then(setOffers).catch(() => undefined); }, [engine]);
   useEffect(loadOffers, [loadOffers]);
@@ -117,6 +125,12 @@ function Inbox() {
               </>
             ) : dec.kind === "campaign" ? (
               <button type="button" className="primario" onClick={openCampaign}>{t("decision.decide")}</button>
+            ) : dec.kind === "renewal" ? (
+              <>
+                <button type="button" className="primario" onClick={() => void answerRenewal(true)} data-testid="renovacao-aceitar">{t("decision.accept")}</button>
+                <Link href="/contract/" className="ligacao-botao">{t("decision.negotiate")}</Link>
+                <button type="button" onClick={() => void answerRenewal(false)} data-testid="renovacao-recusar">{t("decision.decline")}</button>
+              </>
             ) : dec.kind === "clubOffer" ? (
               <>
                 <button type="button" className="primario" onClick={() => void acceptClub(dec.ref)}>{t("decision.accept")}</button>

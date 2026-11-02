@@ -8,6 +8,7 @@ import type { BaseClub, BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import { readManagement } from "../squad/management";
 import { stadiumTotal } from "./stadiumState";
+import { budgetOf, contractOf } from "../season/gamerContract";
 import { monthlyCosts, monthlyWageBill, estimatedAnnualRevenue, clubBalance } from "./finances";
 
 export type Budget = { season: number; wageBillMax: number; transfers: number };
@@ -44,6 +45,10 @@ export function ensureBudgets(repo: Repository, data: BaseData, params: Params, 
   if (repo.meta("budget.season") === String(season)) return;
   for (const c of data.clubs) repo.setMeta(`budget.${c.id}`, JSON.stringify(defaultBudget(repo, c, params, season)));
   repo.setMeta("budget.season", String(season));
+  // o orçamento de plantel acordado no contrato do gamer vale em todas as épocas do contrato
+  const mine = repo.meta("gamer.club");
+  const club = mine ? data.clubs.find((c) => c.id === mine) : undefined;
+  if (club) applyContractBudget(repo, club, params, season);
 }
 
 export type BudgetRequest = { wageBillMax: number; transfers: number };
@@ -61,4 +66,15 @@ export function setBudget(repo: Repository, c: BaseClub, params: Params, season:
 export function adjustTransfers(repo: Repository, c: BaseClub, params: Params, season: number, delta: number): void {
   const b = clubBudget(repo, c, params, season);
   repo.setMeta(`budget.${c.id}`, JSON.stringify({ ...b, transfers: Math.max(0, Math.round(b.transfers + delta)) }));
+}
+
+/** O orçamento do clube do gamer segundo o contrato: o por defeito vezes os múltiplos acordados (a verba de transferências nunca passa do que há em caixa). */
+export function applyContractBudget(repo: Repository, c: BaseClub, params: Params, season: number): void {
+  const contract = contractOf(repo);
+  if (!contract || contract.club !== c.id) return;
+  const m = budgetOf(contract);
+  if (m.wage === 1 && m.transfers === 1) return;
+  const base = defaultBudget(repo, c, params, season);
+  const o: Budget = { season, wageBillMax: round(base.wageBillMax * m.wage), transfers: round(Math.min(base.transfers * m.transfers, Math.max(0, clubBalance(repo, c)))) };
+  repo.setMeta(`budget.${c.id}`, JSON.stringify(o));
 }

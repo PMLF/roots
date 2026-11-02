@@ -6,13 +6,13 @@
  */
 import { Rng } from "../random/rng";
 import type { Params } from "../config/parameters";
-import type { BaseData } from "../data/types";
+import type { BaseClub, BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
 import { isInSecondDistrict } from "./districts";
 import { currentSeason } from "./seasonPyramid";
 import { prepareSeason } from "./prepare";
-import { acceptableRatio, clauseAmount, contractOf, referenceWage, signRenewal } from "./gamerContract";
+import { acceptableRatio, budgetOf, clauseAmount, clauseMonthsOf, contractOf, referenceWage, signRenewal, type Terms } from "./gamerContract";
 import { bankOf, deposit } from "../personal/bank";
 import { post } from "../club/finances";
 
@@ -130,6 +130,53 @@ export function sackByRelegation(repo: Repository, data: BaseData, params: Param
   });
 }
 
+/** Condições em que o presidente renovava hoje (mantém o salário ou sobe até ao que aceita; a cláusula e o orçamento ficam), ou `undefined` se não quer renovar. */
+export function renewalTerms(repo: Repository, data: BaseData, params: Params, club: BaseClub, today: IsoDate): Terms | undefined {
+  const contract = contractOf(repo);
+  if (!contract || contract.club !== club.id) return undefined;
+  const { max } = acceptableRatio(repo, data, params, club, today, true);
+  if (max < params.coach.contract.expiry.renewMinRatio) return undefined;
+  const wage = Math.max(contract.monthlyWage, Math.floor((Math.min(max, 1.15) * referenceWage(club, params)) / 10) * 10);
+  return { monthlyWage: wage, years: params.coach.contract.defaultYears, clauseMonths: clauseMonthsOf(params, contract), budget: budgetOf(contract) };
+}
+
+/** Proposta de renovação do presidente (RZ-164): feita no aviso de fim do contrato; o gamer aceita, negocia ou recusa. */
+export type Renewal = { date: IsoDate; contractStart: IsoDate; terms: Terms; status: "pending" | "accepted" | "declined" };
+/** A última proposta guardada (mesmo que seja de um contrato anterior). */
+export const lastRenewal = (repo: Repository): Renewal | undefined => { const raw = repo.meta("gamer.renewal"); return raw ? (JSON.parse(raw) as Renewal) : undefined; };
+/** A proposta do contrato em vigor. */
+export const renewalOf = (repo: Repository): Renewal | undefined => { const r = lastRenewal(repo); const c = contractOf(repo); return r && c && r.contractStart === c.start ? r : undefined; };
+
+/** Dentro do prazo de aviso o presidente propõe a renovação (uma vez por contrato), se a quer fazer: aparece na caixa de entrada. */
+export function ensureRenewalProposal(repo: Repository, data: BaseData, params: Params, today: IsoDate): Renewal | undefined {
+  const clubId = repo.meta("gamer.club");
+  const contract = contractOf(repo);
+  const club = clubId ? data.clubs.find((c) => c.id === clubId) : undefined;
+  if (!club || !contract || contract.club !== club.id) return undefined;
+  const existing = renewalOf(repo);
+  if (existing && existing.contractStart === contract.start) return existing;
+  const days = (d: string) => Math.floor(Date.parse(`${d}T00:00:00Z`) / 86400000);
+  if (days(contract.end) - days(today) > params.coach.contract.expiry.noticeDays || today >= contract.end) return undefined;
+  const terms = renewalTerms(repo, data, params, club, today);
+  if (!terms) return undefined;
+  const r: Renewal = { date: today, contractStart: contract.start, terms, status: "pending" };
+  repo.setMeta("gamer.renewal", JSON.stringify(r));
+  repo.appendEvent({ type: "CONTRACT_PROPOSAL", date: today, season: currentSeason(repo), visibility: "exposed", origin: "match", entities: [{ k: "club", id: club.id, roleKind: "proposta" }], data: { monthlyWage: terms.monthlyWage, years: terms.years, until: contract.end } });
+  return r;
+}
+
+/** O gamer responde à proposta de renovação: aceitar renova já nas condições propostas; recusar deixa o contrato caducar no fim. */
+export function answerRenewal(repo: Repository, data: BaseData, params: Params, today: IsoDate, accept: boolean): void {
+  const r = renewalOf(repo);
+  const clubId = repo.meta("gamer.club");
+  const club = clubId ? data.clubs.find((c) => c.id === clubId) : undefined;
+  if (!r || r.status !== "pending" || !club) throw new Error("Não há proposta de renovação por responder");
+  repo.transaction(() => {
+    if (accept) signRenewal(repo, params, club, today, r.terms);
+    repo.setMeta("gamer.renewal", JSON.stringify({ ...r, status: accept ? "accepted" : "declined" } satisfies Renewal));
+  });
+}
+
 /**
  * Fim do contrato do gamer (RZ-161): no dia em que acaba, o presidente renova se a aceitação chega a `expiry.renewMinRatio` (mantém o
  * salário ou sobe até ao que aceita, nunca abaixo do atual); senão o contrato caduca, o gamer fica sem clube e recebe ofertas.
@@ -140,11 +187,10 @@ export function endOfContract(repo: Repository, data: BaseData, params: Params, 
   const contract = contractOf(repo);
   const club = clubId ? data.clubs.find((c) => c.id === clubId) : undefined;
   if (!club || !contract || contract.club !== club.id || today < contract.end) return undefined;
-  const ex = params.coach.contract.expiry;
-  const { max } = acceptableRatio(repo, data, params, club, today, true);
-  if (max >= ex.renewMinRatio) {
-    const wage = Math.max(contract.monthlyWage, Math.floor((Math.min(max, 1.15) * referenceWage(club, params)) / 10) * 10);
-    repo.transaction(() => signRenewal(repo, params, club.id, today, { monthlyWage: wage, years: params.coach.contract.defaultYears }));
+  const renewal = renewalTerms(repo, data, params, club, today);
+  // o gamer recusou a proposta de renovação (RZ-164): o contrato caduca
+  if (renewal && renewalOf(repo)?.status !== "declined") {
+    repo.transaction(() => signRenewal(repo, params, club, today, renewal));
     return "renewed";
   }
   repo.transaction(() => {

@@ -46,7 +46,7 @@ import { closeSeason, generatePromotionPhase, type SeasonSummary } from "./close
 import { playersForm } from "./fitness";
 import { rivalEvent, rivalReason } from "./rivals";
 import { SESSION_KEY, xgCurve, matchTeams, saveLiveMatch, matchLines, type LiveMeeting, type XgCurve, type LiveTeams, type MatchInfo, type LiveTableLine } from "./liveMatch";
-import { updateOffers, isUnemployed, endOfContract } from "./coachMarket";
+import { updateOffers, isUnemployed, endOfContract, ensureRenewalProposal } from "./coachMarket";
 import { ensureObjective } from "./gamerObjective";
 import { seasonData, currentSeason } from "./seasonPyramid";
 import { clinchTitles } from "./titles";
@@ -337,7 +337,7 @@ export function advance(repo: Repository, base: BaseData, params: Params, mode: 
     // o contrato do gamer acabou hoje: renova ou fica sem clube (RZ-161); sem clube o dia seguinte já é outra história
     if (gamerClub && !repo.meta("gamer.club")) break; // despedido pela direção
     if (gamerClub && endOfContract(repo, seasonData(repo, base), params, repo.meta("date.today") as IsoDate) === "left") break;
-    if (gamerClub) ensureObjective(repo, seasonData(repo, base), params);
+    if (gamerClub) { ensureObjective(repo, seasonData(repo, base), params); ensureRenewalProposal(repo, seasonData(repo, base), params, repo.meta("date.today") as IsoDate); }
     if (mode === "nextMatch" && ofTodayGamer.length > 0 && !alreadyBeforePlayed) break;
   }
   // A época fecha logo depois da última jornada, sem esperar por outro pedido.

@@ -7,9 +7,10 @@ import type { IsoDate } from "../persistence/types";
 import { patronOffers } from "../company/patrons";
 import { electionOf } from "../council/elections";
 import { offers as transferOffers } from "../market/offers";
-import { gamerOffers, isUnemployed } from "../season/coachMarket";
+import { gamerOffers, isUnemployed, lastRenewal } from "../season/coachMarket";
+import { contractOf } from "../season/gamerContract";
 
-export type DecisionKind = "patron" | "transfer" | "campaign" | "clubOffer";
+export type DecisionKind = "patron" | "transfer" | "campaign" | "clubOffer" | "renewal";
 export type DecisionAnswer = "accepted" | "declined";
 export type Decision = {
   kind: DecisionKind;
@@ -21,7 +22,7 @@ export type Decision = {
   ref: string;
 };
 
-const TYPES = ["PATRON_OFFER", "TRANSFER_OFFER", "ELECTION_CAMPAIGN", "CLUB_OFFER"] as const;
+const TYPES = ["PATRON_OFFER", "TRANSFER_OFFER", "ELECTION_CAMPAIGN", "CLUB_OFFER", "CONTRACT_PROPOSAL"] as const;
 
 export function decisionStates(repo: Repository, limit = 200): Record<number, Decision> {
   const out: Record<number, Decision> = {};
@@ -54,6 +55,13 @@ export function decisionStates(repo: Repository, limit = 200): Record<number, De
       if (same && election.stage === "campaign" && election.choice === undefined && today <= election.date) out[e.id] = { kind: "campaign", state: "pending", until: election.date, ref: city };
       else if (same && election.choice !== undefined) out[e.id] = { kind: "campaign", state: "answered", answer: election.choice === "neutral" ? "declined" : "accepted", ref: city };
       else out[e.id] = { kind: "campaign", state: "expired", ref: city };
+    } else if (e.type === "CONTRACT_PROPOSAL") {
+      const r = lastRenewal(repo);
+      const contract = contractOf(repo);
+      const mine = r && r.date === e.date;
+      if (mine && r.status === "pending" && contract && contract.start === r.contractStart && today < contract.end) out[e.id] = { kind: "renewal", state: "pending", until: contract.end, ref: contract.club };
+      else if (mine && r.status !== "pending") out[e.id] = { kind: "renewal", state: "answered", answer: r.status === "accepted" ? "accepted" : "declined", ref: contract?.club ?? "" };
+      else out[e.id] = { kind: "renewal", state: "expired", ref: contract?.club ?? "" };
     } else if (e.type === "CLUB_OFFER") {
       const offering = e.entities.find((x) => x.k === "club" && x.roleKind === "offer")?.id ?? "";
       if (unemployed && pendingClubs.has(`${offering}|${e.date}`)) out[e.id] = { kind: "clubOffer", state: "pending", ref: offering };

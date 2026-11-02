@@ -6,7 +6,7 @@
  */
 import { addDays } from "../calendar/dates";
 import { cityHistoryWithPast } from "../city/cities";
-import type { Params } from "../config/parameters";
+import type { Params, Tier } from "../config/parameters";
 import type { BaseData } from "../data/types";
 import type { Repository } from "../persistence/repository";
 import type { IsoDate } from "../persistence/types";
@@ -37,7 +37,8 @@ export function deposit(repo: Repository, params: Params, today: IsoDate, amount
 }
 
 /** Poupança mensal de quem tem este ordenado: líquido menos o custo de vida, nunca negativa. */
-export const monthlySavings = (wage: number, living: number, params: Params): number => Math.max(0, Math.round((wage * params.personal.netShare - living) / 10) * 10);
+export const sideIncomeOf = (params: Params, tier: Tier): number => params.personal.sideIncome[tier];
+export const monthlySavings = (wage: number, living: number, params: Params, side = 0): number => Math.max(0, Math.round((wage * params.personal.netShare + side - living) / 10) * 10);
 
 const nextMonth = (m: string): string => { const [a, mm] = m.split("-").map(Number) as [number, number]; return mm === 12 ? `${a + 1}-01` : `${a}-${String(mm + 1).padStart(2, "0")}`; };
 
@@ -59,7 +60,7 @@ export function accrueBank(repo: Repository, data: BaseData, params: Params, tod
   let { balance, upTo } = bank;
   while (upTo < target) {
     upTo = nextMonth(upTo);
-    balance = employed ? balance + monthlySavings(contract!.monthlyWage, living, params) : Math.max(0, balance - living);
+    balance = employed ? balance + monthlySavings(contract!.monthlyWage, living, params, homeClub ? sideIncomeOf(params, homeClub.tier) : 0) : Math.max(0, balance - living);
   }
   repo.setMeta("gamer.bank", JSON.stringify({ balance: Math.round(balance), upTo } satisfies Bank));
 }
