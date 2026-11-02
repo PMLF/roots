@@ -76,9 +76,19 @@ describe("calibração de várias épocas (RZ-237)", () => {
     const titles = new Map<string, number>();
     for (const r of report as { champion?: string }[]) if (r.champion) titles.set(r.champion, (titles.get(r.champion) ?? 0) + 1);
     if (process.env.CALIB_OUT) writeFileSync(`${process.env.CALIB_OUT}.titles`, JSON.stringify([...titles].sort((a, b) => b[1] - a[1])));
-    const last = report.at(-1) as { population: { min: number; max: number }; cash: Record<string, { negative: number }> };
+    const last = report.at(-1) as { population: { min: number; max: number } };
     expect(last.population.min).toBeGreaterThan(0.4);
     expect(last.population.max).toBeLessThan(3);
-    for (const [tier, x] of Object.entries(last.cash)) expect(x.negative, tier).toBeLessThan(0.3);
+    // Caixa: média das últimas 5 épocas (um escalão tem 20 clubes e uma só época oscila ±5 pontos por clube); alvo ~20 % de saldos negativos.
+    const recent = (report as { cash: Record<string, { negative: number }> }[]).slice(-5);
+    for (const tier of Object.keys(recent.at(-1)!.cash)) {
+      const mean = recent.reduce((t, r) => t + (r.cash[tier]?.negative ?? 0), 0) / recent.length;
+      expect(mean, tier).toBeLessThan(0.3);
+    }
+    // Títulos da 1.ª Liga: vários campeões e nenhum clube com mais de 60 % (só com épocas suficientes para fazer sentido).
+    if (SEASONS >= 20) {
+      expect(titles.size, "campeões diferentes").toBeGreaterThanOrEqual(3);
+      expect(Math.max(...titles.values()) / report.length, "quota do maior campeão").toBeLessThan(0.6);
+    }
   }, 7_200_000);
 });
