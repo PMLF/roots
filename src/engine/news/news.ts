@@ -128,7 +128,7 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
       if (!club) return undefined;
       const council = e.entities.find((x) => x.k === "city");
       const city = council ? c.data.cities.find((x) => x.id === council.id)?.name ?? council.id : "";
-      return base("state_prize", { club: c.clubName(club.id), district: String(d.district ?? ""), value: within(d.clubValue), consecutive: within(d.consecutive), city }, [lc(club.id), ...(council ? [{ k: "city" as const, id: council.id, name: city }] : [])]);
+      return base("state_prize", { club: c.clubName(club.id), district: String(d.district ?? ""), value: within(d.clubValue), consecutive: within(d.consecutive), city, choice: String(d.choice ?? "") }, [lc(club.id), ...(council ? [{ k: "city" as const, id: council.id, name: city }] : [])]);
     }
     case "SECOND_DISTRICT_RELEGATION": case "DISTRICT_RETURN":
       return club ? base(e.type === "DISTRICT_RETURN" ? "district_return" : "second_district", { club: c.clubName(club.id), district: String(d.district ?? "") }, [lc(club.id)]) : undefined;

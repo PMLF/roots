@@ -8,7 +8,7 @@ describe("parâmetros padrão", () => {
 
   it("batem com o Clubs_Raizes.xlsx › Parâmetros (prémios, distritais, CP, promoção)", () => {
     const p = DEFAULT_PARAMETERS;
-    expect({ club: p.prizes.club, city: p.prizes.city }).toEqual({ club: 2_000_000, city: 1_000_000 });
+    expect({ club: p.prizes.club, city: p.prizes.city }).toEqual({ club: 5_000_000, city: 1_000_000 });
     expect([p.districtLeagues.target, p.districtLeagues.min, p.districtLeagues.max]).toEqual([10, 8, 14]);
     expect([p.pyramid.cp.series, p.pyramid.cp.clubsPerSeries, p.pyramid.promotion.promotedPerGroup, p.pyramid.districts]).toEqual([4, 10, 2, 20]);
   });
@@ -29,7 +29,7 @@ describe("createParams", () => {
     expect(p.prizes.city).toBe(1_000_000);
     expect(p.saves.daysAutosave).toBe(14);
     expect(p.saves.rotatingAutosaves).toBe(3);
-    expect(DEFAULT_PARAMETERS.prizes.club).toBe(2_000_000);
+    expect(DEFAULT_PARAMETERS.prizes.club).toBe(5_000_000);
   });
 
   it("recusa configurações incoerentes", () => {
