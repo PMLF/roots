@@ -76,6 +76,8 @@
   "profile.notFound": "Profile not found. If this person belongs to a world that has not been created yet, create it under World.",
   "table.filter": "Filter…",
   "table.lines": "{n} of {total}",
+  "table.showing": "Showing {n} of {total}",
+  "table.more": "Show {n} more",
   "table.columns": "Columns",
   "table.allColumns": "All",
   "table.reset": "Reset",

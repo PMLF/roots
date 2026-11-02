@@ -81,6 +81,8 @@ export interface Repository {
   // --- metadados do save (seed, versão do motor, …)
   meta(rowKey: string): string | undefined;
   setMeta(rowKey: string, value: string): void;
+  /** Todas as entradas de meta cuja chave começa por `prefix` (uma só leitura, em vez de uma consulta por chave). */
+  metaWithPrefix(prefix: string): Map<string, string>;
 
   // --- história
   appendEvent(e: NewEvent): number;
@@ -163,6 +165,8 @@ export interface Repository {
   /** Cargos (presidente, treinador…) públicos de um clube ou cidade. */
   publicRoles(filter: { club?: string; city?: string }): PublicPerson[];
   // verdade oculta (só o motor: simulação, geração, observações)
+  /** Nome, nascimento, nacionalidade e fim do contrato vigente de todos os jogadores (uma só leitura para tabelas grandes). */
+  playerFacts(): Map<string, { sportingName: string; birth: string; nationality: string; contractEnd?: string }>;
   person(id: string): PersonRecord | undefined;
   player(person: string): PlayerRecord | undefined;
   contract(person: string): ContractRecord | undefined;

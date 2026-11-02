@@ -123,6 +123,19 @@ export class MemoryRepository implements Repository {
   meta(rowKey: string): string | undefined {
     return this.metaMap.get(rowKey);
   }
+  playerFacts(): Map<string, { sportingName: string; birth: string; nationality: string; contractEnd?: string }> {
+    const out = new Map<string, { sportingName: string; birth: string; nationality: string; contractEnd?: string }>();
+    for (const id of this.mapPlayers.keys()) {
+      const p = this.person(id);
+      if (!p) continue;
+      const ct = this.contract(id);
+      out.set(id, { sportingName: p.sportingName, birth: p.birth, nationality: p.nationality, ...(ct ? { contractEnd: ct.end } : {}) });
+    }
+    return out;
+  }
+  metaWithPrefix(prefix: string): Map<string, string> {
+    return new Map([...this.metaMap].filter(([k]) => k.startsWith(prefix)));
+  }
   setMeta(rowKey: string, value: string): void {
     const before = this.metaMap.get(rowKey);
     this.metaMap.set(rowKey, value);

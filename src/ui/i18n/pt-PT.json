@@ -76,6 +76,8 @@
   "profile.notFound": "Não encontrei esta ficha. Se a pessoa é de um mundo ainda não criado, cria-o em Mundo.",
   "table.filter": "Filtrar…",
   "table.lines": "{n} de {total}",
+  "table.showing": "A mostrar {n} de {total}",
+  "table.more": "Mostrar mais {n}",
   "table.columns": "Colunas",
   "table.allColumns": "Todas",
   "table.reset": "Repor",

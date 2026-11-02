@@ -47,7 +47,7 @@ import { ensureObjective } from "../season/gamerObjective";
 import { advance, timeState } from "../season/advance";
 import { saveParameters, seasonYearContaining, saveInitialYear, seasonName } from "../season/saveYear";
 import { foreignClubs } from "../world/foreign";
-import { foundBySearch, isVisible, orders, placeOrder, scoutedLevel, scoutsOf, worldPlayers } from "../scouting/scouting";
+import { foundBySearch, isVisible, orders, placeOrder, scoutedLevel, scoutedLevels, scoutsOf, worldPlayers } from "../scouting/scouting";
 import { foreignClubList } from "../squad/foreign";
 import { personHistory } from "./personHistory";
 import { seasonData, pyramidData, currentSeason } from "../season/seasonPyramid";
@@ -943,19 +943,20 @@ function playerRating(r: Repository, id: string, level: EstimatedLevel | undefin
 }
 
 /** Uma linha de jogador para o gamer: só o que ele sabe (estrelas só depois de observar). */
-function scoutRowOf(r: Repository, data: BaseData, params: Params, tier: Tier, view: ReturnType<typeof gamerView>, foreignName: Map<string, string>, j: PlayerRecord, today: string, level: "week" | "month" | undefined, isFound: boolean, busy: Map<string, "week" | "month">): ScoutRow | undefined {
-  const p = r.person(j.person);
+function scoutRowOf(r: Repository, data: BaseData, params: Params, tier: Tier, view: ReturnType<typeof gamerView>, foreignName: Map<string, string>, j: PlayerRecord, today: string, level: "week" | "month" | undefined, isFound: boolean, busy: Map<string, "week" | "month">, facts?: ReturnType<Repository["playerFacts"]>): ScoutRow | undefined {
+  const p = facts?.get(j.person) ?? r.person(j.person);
   if (!p) return undefined;
   const pos = j.positions[0]?.pos ?? "";
-  const profile = view.profile(j.person);
+  // só quem foi observado (ou apareceu numa pesquisa) tem estrelas: ler a ficha dos outros 3000 jogadores custava ~10 consultas por linha
+  const profile = level || isFound ? view.profile(j.person) : undefined;
   const lvl = playerLevel(r, j.person, pos, profile?.attributes?.fields, false);
   const rating = playerRating(r, j.person, lvl, profile?.potential?.fields.potential, tier, params, false);
-  const ct = r.contract(j.person);
+  const contractEnd = facts ? facts.get(j.person)?.contractEnd : r.contract(j.person)?.end;
   const dataClub = j.club ? data.clubs.find((c) => c.id === j.club) : undefined;
   return {
     id: j.person, name: p.sportingName, age: ageAt(p.birth, today), position: pos, nationality: p.nationality,
     ...(j.club ? { club: { id: j.club, name: dataClub?.name ?? foreignName.get(j.club) ?? j.club, foreign: !dataClub } } : {}),
-    ...(ct ? { contractEnd: ct.end } : {}),
+    ...(contractEnd ? { contractEnd } : {}),
     ...(rating ? { rating } : {}),
     knowledge: level ?? "none",
     ...(isFound ? { found: true } : {}),
@@ -999,13 +1000,16 @@ function scoutingData(r: Repository, data: BaseData, params: Params): ScoutingDa
   const list = orders(r);
   const busy = new Map(list.filter((o) => !o.done && o.person).map((o) => [o.person as string, o.kind as "week" | "month"] as const));
   const rows: ScoutRow[] = [];
+  const scouted = scoutedLevels(r);
+  const facts = r.playerFacts();
   if (club) {
-    for (const j of worldPlayers(r, data, foreign.map((c) => c.id))) {
+    const ps = worldPlayers(r, data, foreign.map((c) => c.id));
+    for (const j of ps) {
       if (j.club === club.id) continue;
-      const level = scoutedLevel(r, j.person);
+      const level = scouted.get(j.person);
       const isFound = found.has(j.person);
       if (!level && !isFound && !isVisible(seed, season, club.id, scouts.count, j, params)) continue;
-      const row = scoutRowOf(r, data, params, club.tier, view, foreignName, j, today, level, isFound, busy);
+      const row = scoutRowOf(r, data, params, club.tier, view, foreignName, j, today, level, isFound, busy, facts);
       if (row) rows.push(row);
     }
   }

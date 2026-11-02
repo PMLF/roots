@@ -113,6 +113,16 @@ export class SqliteRepository implements Repository {
     const r = this.d.all("SELECT value FROM meta WHERE key = ?", [rowKey])[0];
     return r ? txt(r.value) : undefined;
   }
+  playerFacts(): Map<string, { sportingName: string; birth: string; nationality: string; contractEnd?: string }> {
+    const rows = this.d.all(
+      "SELECT p.id, p.sporting_name, p.birth, p.nationality, (SELECT c.end_date FROM contract c WHERE c.person = p.id ORDER BY c.id DESC LIMIT 1) AS contract_end FROM person p JOIN player j ON j.person = p.id",
+    );
+    return new Map(rows.map((r) => [txt(r.id), { sportingName: txt(r.sporting_name), birth: txt(r.birth), nationality: txt(r.nationality), ...(r.contract_end !== null ? { contractEnd: txt(r.contract_end) } : {}) }] as const));
+  }
+  metaWithPrefix(prefix: string): Map<string, string> {
+    const rows = this.d.all("SELECT key, value FROM meta WHERE substr(key, 1, ?) = ?", [prefix.length, prefix]);
+    return new Map(rows.map((r) => [txt(r.key), txt(r.value)] as const));
+  }
   setMeta(rowKey: string, value: string): void {
     this.d.run("INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", [rowKey, value]);
   }
