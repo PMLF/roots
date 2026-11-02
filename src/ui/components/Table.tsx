@@ -5,6 +5,9 @@ import { save, read } from "@/ui/storage";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { presetColumns, filter, sort, nextOrder, type Column, type Order } from "@/ui/table/logic";
 
+/** Linhas desenhadas de cada vez. */
+const PAGE = 100;
+
 type Props<L> = {
   /** Identifica a tabela para guardar as colunas escolhidas. */
   id: string;
@@ -105,6 +108,11 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initi
   const visibleColumns = useMemo(() => presetColumns(columns, visible ? { name: "saved", columns: visible } : undefined), [columns, visible]);
   const shown = useMemo(() => sort(filter(lines, visibleColumns, text), visibleColumns, order), [lines, visibleColumns, text, order]);
 
+  // tabelas grandes (ex.: olheiros, 3000+ linhas) mostram-se por páginas: desenhar tudo de uma vez bloqueia o ecrã durante segundos
+  const [limit, setLimit] = useState(PAGE);
+  useEffect(() => { setLimit(PAGE); }, [text, order, id]);
+  const page = useMemo(() => shown.slice(0, limit), [shown, limit]);
+
   const toggle = (columnId: string) => {
     const current = visibleColumns.map((c) => c.id);
     const fresh = current.includes(columnId) ? current.filter((x) => x !== columnId) : columns.map((c) => c.id).filter((x) => x === columnId || current.includes(x));
@@ -167,7 +175,7 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initi
           </tr>
         </thead>
         <tbody ref={body} onKeyDown={hotkeys}>
-          {shown.map((l) => (
+          {page.map((l) => (
             <tr key={rowKey(l)} tabIndex={0} className={lineClass?.(l)}>
               {visibleColumns.map((c) => (
                 <td key={c.id} className={c.numeric ? "within" : undefined}>{cell[c.id] ? cell[c.id]!(l) : c.value(l)}</td>
@@ -179,6 +187,12 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initi
           )}
         </tbody>
       </table>
+      {shown.length > page.length && (
+        <div className="tabela-mais">
+          <span className="suave">{t("table.showing", { n: page.length, total: shown.length })}</span>
+          <button type="button" onClick={() => setLimit((n) => n + PAGE)} data-testid="tabela-mais">{t("table.more", { n: Math.min(PAGE, shown.length - page.length) })}</button>
+        </div>
+      )}
     </div>
   );
 }

@@ -49,6 +49,9 @@ export const orders = (repo: Repository): ScoutOrder[] => {
 const saveOrders = (repo: Repository, list: ScoutOrder[]) => repo.setMeta(ORDERS, JSON.stringify(list));
 export const foundBySearch = (repo: Repository): Set<string> => new Set(repo.meta(FOUND) ? (JSON.parse(repo.meta(FOUND) as string) as string[]) : []);
 /** Nível do que se sabe do jogador por observação paga do olheiro: «week», «month» ou nada. */
+/** Todos os jogadores já observados (id → nível), numa só leitura. */
+export const scoutedLevels = (repo: Repository): Map<string, "week" | "month"> =>
+  new Map([...repo.metaWithPrefix("scouted.")].map(([k, v]) => [k.slice("scouted.".length), v as "week" | "month"] as const));
 export const scoutedLevel = (repo: Repository, person: string): "week" | "month" | undefined => (repo.meta(SCOUTED(person)) as "week" | "month" | null | undefined) ?? undefined;
 
 /** Olheiros do clube: quantos e a melhor qualidade de olheiro (1-20). */
