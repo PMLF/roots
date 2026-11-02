@@ -4,12 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { save, read } from "@/ui/storage";
-import { useOwnClub } from "@/ui/myClub";
 import { useEngine } from "@/ui/EngineProvider";
 import { useTime } from "@/ui/useTime";
 import { requestHomeFocus } from "@/ui/focusHome";
 
-const MODES = ["day", "week", "nextMatch"] as const;
+const MODES = ["day", "week"] as const;
 type AdvanceMode = (typeof MODES)[number];
 const isMode = (v: unknown): v is AdvanceMode => MODES.includes(v as AdvanceMode);
 
@@ -18,14 +17,13 @@ const WHERE_SPACE_IS_ELEMENT = "input, textarea, select, button, a, summary, [co
 
 /**
  * «Avançar» (RZ-166): botão dividido, em baixo à direita em todas as páginas. Por defeito passa um dia; a seta deixa escolher
- * um dia, uma semana ou até ao próximo jogo (fica guardado). A barra de espaço conta como clicar. Quando há jogo do teu clube
+ * um dia ou uma semana (fica guardado). A barra de espaço conta como clicar. Quando há jogo do teu clube
  * por jogar, o botão leva ao ecrã pré-jogo (ou ao jogo a decorrer) em vez de avançar: o tempo nunca passa por cima de uma decisão.
  */
 export function AdvanceButton() {
   const { t } = useT();
   const time = useTime();
   const engine = useEngine();
-  const [mine] = useOwnClub();
   const router = useRouter();
   const path = usePathname() ?? "/";
   const [mode, setMode] = useState<AdvanceMode>("day");
@@ -34,8 +32,7 @@ export function AdvanceButton() {
 
   useEffect(() => { setMode(read("raizes.advance", isMode) ?? "day"); }, []);
   const choose = (m: AdvanceMode) => { setMode(m); save("raizes.advance", m); setIsOpen(false); };
-  // sem clube não há «próximo jogo»: avança-se por dias
-  const effective: AdvanceMode = mode === "nextMatch" && !mine ? "day" : mode;
+  const effective: AdvanceMode = mode;
 
   const withoutWorld = !time.state;
   const ended = time.state?.byPlay === 0;
@@ -132,9 +129,8 @@ export function AdvanceButton() {
       {isOpen && !simple && (
         <div className="avancar-menu" role="menu" aria-label={t("advance.options")}>
           {MODES.map((m) => {
-            const withoutMatch = m === "nextMatch" && !mine;
             return (
-              <button key={m} type="button" role="menuitemradio" aria-checked={effective === m} disabled={withoutMatch} title={withoutMatch ? t("advance.noClub") : undefined} onClick={() => choose(m)}>
+              <button key={m} type="button" role="menuitemradio" aria-checked={effective === m} onClick={() => choose(m)}>
                 <span className="avancar-visto" aria-hidden="true">{effective === m ? "✓" : ""}</span>
                 {modeLabel(m)}
               </button>
