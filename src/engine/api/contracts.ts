@@ -222,6 +222,11 @@ export type HistoryRow =
   | { profession: "businessperson"; season: number; place: EntityRef; company: string; employees: number; sponsored: EntityRef[] }
   | { profession: "staff"; fn: string; season: number; club: EntityRef; wins: number; draws: number; losses: number };
 
+/** Máximo de linhas que qualquer pedido de lista devolve de uma vez: o front-end pede páginas, nunca a lista toda. */
+export const MAX_PAGE = 100;
+/** Pedido de uma página de uma lista: ordem, texto e janela. O motor aplica sempre o teto `MAX_PAGE`. */
+export type PageQuery = { offset?: number; limit?: number; sort?: { column: string; direction: "asc" | "desc" }; text?: string };
+
 /** Uma linha da tabela de scouting (RZ-230): só o que o gamer sabe do jogador. */
 export type ScoutRow = {
   id: string;
@@ -246,8 +251,12 @@ export type ScoutRow = {
 /** Talento local de um concelho (RZ-234): jovens sem clube e jovens da terra noutros clubes. */
 export type LocalTalentData = { city: string; mine?: string; unsigned: ScoutRow[]; atClubs: ScoutRow[] };
 export type ScoutOrderView = { id: number; kind: "week" | "month" | "search"; person?: EntityRef; position?: string; start: string; end: string; cost: number; done: boolean; results?: number };
+export type ScoutingQuery = PageQuery & { position?: string; origin?: "all" | "domestic" | "foreign" | "free"; onlyKnown?: boolean; /** Só este jogador (para saber o que já se sabe dele). */ person?: string; /** Só os que apareceram numa pesquisa. */ foundOnly?: boolean };
 export type ScoutingData = {
+  /** Só a página pedida (no máximo `MAX_PAGE`). */
   rows: ScoutRow[];
+  /** Quantas linhas cumprem o pedido, em todas as páginas. */
+  total: number;
   orders: ScoutOrderView[];
   scouts: { count: number; quality: number };
   /** Os olheiros do clube, por nome. */
@@ -545,7 +554,7 @@ export type EngineRequests = {
   exportSave: { input: { id?: string }; output: { filename: string; bytes: Uint8Array } };
   importSave: { input: { bytes: Uint8Array }; output: { ok: true } };
   /** Pesquisa de jogadores com o alcance dos olheiros (RZ-230). */
-  scouting: { input: null; output: ScoutingData };
+  scouting: { input: ScoutingQuery | null; output: ScoutingData };
   localTalent: { input: { city: string }; output: LocalTalentData | null };
   /** Pede ao olheiro uma observação (semana/mês) ou uma pesquisa por posição. */
   scoutOrder: { input: ScoutOrderInput; output: ScoutOrderOutput };

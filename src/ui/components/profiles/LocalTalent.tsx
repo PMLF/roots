@@ -27,7 +27,7 @@ export function LocalTalent({ city }: { city: string }) {
   const [busy, setBusy] = useState(false);
   const load = useCallback(() => {
     engine?.call("localTalent", { city }).then(setD);
-    engine?.call("scouting", null).then(setScouting);
+    engine?.call("scouting", { limit: 1 }).then(setScouting);
   }, [engine, city]);
   useEffect(load, [load]);
   if (d === undefined) return <p>{t("profile.loading")}</p>;

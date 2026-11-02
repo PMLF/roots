@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ScoutRow, ScoutingData } from "@/engine/api/contracts";
 import { POSITIONS } from "@/engine/world/types";
 import { Card, Data } from "@/ui/components/Card";
@@ -14,8 +14,9 @@ import { useEngine } from "@/ui/EngineProvider";
 import type { Key } from "@/ui/i18n";
 import { useT } from "@/ui/i18n/LocaleProvider";
 import { abbreviationPosition, namePosition } from "@/ui/i18n/position";
-import type { Column } from "@/ui/table/logic";
+import type { Column, Order } from "@/ui/table/logic";
 
+const PAGE = 50;
 type Origin = "all" | "domestic" | "foreign" | "free";
 
 export function Scouting() {
@@ -30,14 +31,29 @@ export function Scouting() {
   const [showBusy, setShowBusy] = useState(false);
   const [bidTarget, setBidTarget] = useState<ScoutRow | undefined>(undefined);
   const [showRequest, setShowRequest] = useState(false);
-  const load = useCallback(() => { engine?.call("scouting", null).then(setD); }, [engine]);
-  useEffect(load, [load]);
+  // a tabela vem do motor às páginas: aqui ficam só as páginas já pedidas; filtros, ordem e texto vão no pedido
+  const [rows, setRows] = useState<ScoutRow[]>([]);
+  const [query, setQuery] = useState<{ order: Order; text: string } | undefined>(undefined);
+  const latest = useRef(0);
+  const fetchPage = useCallback((from: number) => {
+    if (!engine || !query) return;
+    const mine = ++latest.current;
+    void engine.call("scouting", {
+      offset: from, limit: PAGE,
+      ...(query.order ? { sort: query.order } : {}), ...(query.text ? { text: query.text } : {}),
+      ...(pos ? { position: pos } : {}), origin, ...(onlyKnown ? { onlyKnown: true } : {}),
+    }).then((r) => {
+      if (mine !== latest.current) return;
+      setD(r);
+      setRows((old) => (from === 0 ? r.rows : [...old, ...r.rows]));
+    });
+  }, [engine, query, pos, origin, onlyKnown]);
+  useEffect(() => { fetchPage(0); }, [fetchPage]);
+  const load = useCallback(() => fetchPage(0), [fetchPage]);
+  const onMore = useCallback(() => fetchPage(rows.length), [fetchPage, rows.length]);
+  const onQuery = useCallback((q: { order: Order; text: string }) => setQuery((old) => (old && old.text === q.text && old.order?.column === q.order?.column && old.order?.direction === q.order?.direction ? old : q)), []);
+  const remote = { total: d?.total ?? 0, onQuery, onMore };
   if (!d) return <p>{t("profile.loading")}</p>;
-
-  const rows = d.rows.filter((r) =>
-    (!pos || r.position === pos) &&
-    (origin === "all" || (origin === "free" ? !r.club : origin === "foreign" ? r.club?.foreign === true : r.club !== undefined && !r.club.foreign)) &&
-    (!onlyKnown || r.knowledge !== "none"));
   const free = d.orders.filter((o) => !o.done).length < d.capacity;
 
   const columns: Column<ScoutRow>[] = [
@@ -97,9 +113,9 @@ export function Scouting() {
           </>
         )}
       </Card>
-      <Card title={t("scouting.players", { n: rows.length })} wide>
+      <Card title={t("scouting.players", { n: d.total })} wide>
         <Table
-          id="scouting" columns={columns} lines={rows} rowKey={(r) => r.id} toolbar={toolbar} initialOrder={{ column: "stars", direction: "desc" }}
+          id="scouting" columns={columns} lines={rows} remote={remote} rowKey={(r) => r.id} toolbar={toolbar} initialOrder={{ column: "stars", direction: "desc" }}
           cell={{
             name: (r) => <><EntityLink k="person" id={r.id}>{r.name}</EntityLink>{r.found && <small className="suave"> · {t("scouting.fromSearch")}</small>}</>,
             pos: (r) => <abbr title={namePosition(t, r.position)}>{abbreviationPosition(t, r.position)}</abbr>,

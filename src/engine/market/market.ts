@@ -21,7 +21,7 @@ import { distributePositions } from "../world/generateWorld";
 import type { Attributes, Position } from "../world/types";
 import { contractDates, wageFor } from "../squad/youth";
 import { isInSecondDistrict } from "../season/districts";
-import { localBlock, readLocks } from "../squad/localPriority";
+import { localBlockWith, readLocks } from "../squad/localPriority";
 import { marketValue } from "./value";
 import { releaseClause } from "./clauses";
 import { isImportantFee } from "./newsworthy";
@@ -162,6 +162,8 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
   const districtOfCity = new Map(data.cities.map((c) => [c.id, c.district] as const));
   const birthOf = new Map<string, string | undefined>();
   const birthCityOf = (id: string) => (birthOf.has(id) ? birthOf.get(id) : birthOf.set(id, repo.person(id)?.birthCity).get(id));
+  // a terra de cada candidato lê-se uma vez por ronda (e o estado vem do registo já carregado), em vez de duas consultas por candidato e por clube
+  const blockedFor = (e: Entry, buyer: BaseClub) => localBlockWith(e.record.person, birthCityOf(e.record.person), e.record.state, buyer, date, locks);
   const slotsOf = (tier: Tier): Map<Position, number> => {
     const m = new Map<Position, number>();
     for (const q of distributePositions(world.squad[tier], world.placesByPosition)) m.set(q, (m.get(q) ?? 0) + 1);
@@ -244,7 +246,7 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
     const wageScale = clamp((club.finances / st.medianFinances) ** 0.4, 0.4, 2.5);
 
     // candidatos: qualidade acima do piso e não muito acima do que o clube pode querer
-    const pool = (byPos.get(position) ?? []).filter((e) => e.club !== club.id && !onLoan.has(e.record.person) && (o.gamerClub === undefined || e.club !== o.gamerClub) && e.quality >= floor && e.quality <= desired + mk.qualityCeiling && !localBlock(repo, e.record.person, club, date, locks));
+    const pool = (byPos.get(position) ?? []).filter((e) => e.club !== club.id && !onLoan.has(e.record.person) && (o.gamerClub === undefined || e.club !== o.gamerClub) && e.quality >= floor && e.quality <= desired + mk.qualityCeiling && !blockedFor(e, club));
     let best: { e: Entry; fee: number; wage: number; commission: number; compensation: number; trainer: BaseClub | undefined; years: number; score: number; will: number } | undefined;
     for (const e of crng.shuffle(pool).slice(0, 80)) {
       const ct = repo.contract(e.record.person);
@@ -431,7 +433,7 @@ export function marketRound(repo: Repository, data: BaseData, params: Params, da
       const ct = repo.contract(e.record.person);
       if (!ct || ct.end <= end) continue; // o contrato tem de ir além do empréstimo
       if ((byClub.get(from.id) ?? []).length - 1 < world.squad[tierOf(from)] - lc.lenderMinSquad) continue;
-      if (localBlock(repo, e.record.person, club, date, locks)) continue;
+      if (blockedFor(e, club)) continue;
       const share = lc.wageShares.find((x) => bill + ct.monthlyWage * x * 12 <= budget.wageBillMax * (1 + mk.wageSlack));
       if (share === undefined) continue;
       const value = marketValue({ quality: e.quality, potential: e.record.potential, age, monthlyWage: ct.monthlyWage, monthsLeft: Math.max(0, (Date.parse(ct.end) - Date.parse(date)) / (30.44 * 86400000)) }, params);
