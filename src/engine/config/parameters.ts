@@ -326,6 +326,8 @@ export type Params = {
   personal: {
     /** Parte do ordenado bruto que fica depois de impostos e descontos. */
     netShare: number;
+    /** Rendimento líquido mensal de outro emprego (o futebol amador não paga as contas): só enquanto o clube está nestes escalões. */
+    sideIncome: Record<Tier, number>;
     /** Saldo da conta no arranque. */
     startBalance: number;
     living: { base: number; /** Quanto sobe o custo por cada ordem de grandeza de população acima de 15 000. */ sizeFactor: number; /** Quanto sobe com a habitação pouco acessível. */ housingFactor: number };
@@ -400,6 +402,8 @@ export type Params = {
       raiseCooldownDays: number; raiseMinTenureDays: number;
       /** Cláusula de rescisão (RZ-210): meses de salário pagos a quem sai antes do fim (o clube se despede o gamer por resultados; o gamer se se demite). Cada mês acima do por omissão custa `weight` ao salário aceite; `warnMargin` = pontos de confiança acima do limite a partir dos quais avisa. */
       clause: { defaultMonths: number; min: number; max: number; weight: number; warnMargin: number };
+      /** Orçamento de plantel acordado no contrato (múltiplos do orçamento por defeito do clube): o teto da massa salarial e a verba de transferências que o presidente aceita crescem `wageSlope` e `transfersSlope` por cada ponto que a aceitação passa do normal, até `maxWage` e `maxTransfers`; nunca abaixo de 1; `min` é o mínimo que o gamer pode pedir. */
+      budget: { wageSlope: number; transfersSlope: number; maxWage: number; maxTransfers: number; min: number };
       /** Fim do contrato: se a aceitação do presidente (em múltiplos do salário de referência) chegar a `renewMinRatio` renova sozinho, senão o gamer fica livre; `noticeDays` = antecedência do aviso. */
       expiry: { renewMinRatio: number; noticeDays: number };
       /** Objetivo da época (classificação na liga): `stretch` × posição esperada pela reputação; bónus de `bonusMonths` salários se cumprido (conta pessoal) e `trustGain` de ressentimento a menos; falhar soma `missGrudge`. */
@@ -1177,6 +1181,7 @@ export const DEFAULT_PARAMETERS: Params = {
   knockoutRounds: { penalties: { initial: 5, goalProb: 0.76, takerSkill: 0.012, keeperSkill: 0.008 } },
   personal: {
     netShare: 0.74, startBalance: 2500,
+    sideIncome: { firstLeague: 0, secondLeague: 0, thirdLeague: 0, cp: 300, district: 700 },
     living: { base: 950, sizeFactor: 0.25, housingFactor: 0.2 },
     home: { priceMonths: 60, livingDiscount: 0.3 },
     course: { cost: [1500, 4000, 9000], days: [60, 120, 180] },
@@ -1210,6 +1215,7 @@ export const DEFAULT_PARAMETERS: Params = {
       expiry: { renewMinRatio: 1.0, noticeDays: 180 },
       objective: { stretch: 0.85, bonusMonths: 2, trustGain: 0.1, missGrudge: 0.05 },
       clause: { defaultMonths: 6, min: 1, max: 12, weight: 0.02, warnMargin: 15 },
+      budget: { wageSlope: 0.5, transfersSlope: 1.2, maxWage: 1.4, maxTransfers: 2.5, min: 0.5 },
     },
   },
   foreigners: { firstLeague: 0.55, secondLeague: 0.3, thirdLeague: 0.15, cp: 0.08, district: 0.03 },

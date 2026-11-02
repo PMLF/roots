@@ -184,17 +184,17 @@ type OfferAction = { id: number; action: "accept" | "reject" } | { id: number; a
 export type OfferAnswer = { ok: true; status: "done" | "counter" | "refused" | "withdrawn" | "rejected" | "expired"; offer?: OfferView } | { ok: false };
 export type RenewalsData = { season: number; nextSeasonStart: string; lines: RenewalLine[] };
 
-export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string; /** Salário mensal de referência que o clube oferece. */ wage: number; yearsMin: number; yearsMax: number; defaultYears: number; clause: { min: number; max: number; default: number } };
+export type ClubOffer = { id: string; name: string; league: string; tier: Tier; levelReputation: LevelReputation; since: string; /** Salário mensal de referência que o clube oferece. */ wage: number; yearsMin: number; yearsMax: number; defaultYears: number; clause: { min: number; max: number; default: number }; /** Orçamento por defeito do clube (€/ano e €) e mínimo pedido em múltiplos. */ budget: { wageBillMax: number; transfers: number; min: number } };
 /** Condições de um contrato do gamer e a resposta do presidente (RZ-161). */
-export type ContractTerms = { monthlyWage: number; years: number; /** Meses de salário da cláusula de rescisão. */ clauseMonths?: number };
-export type ContractReason = "budget" | "results" | "trust" | "greed" | "grudge" | "generic" | "cooldown" | "tenure";
+export type ContractTerms = { monthlyWage: number; years: number; /** Meses de salário da cláusula de rescisão. */ clauseMonths?: number; /** Orçamento de plantel: múltiplos do orçamento por defeito do clube. */ budget?: { wage: number; transfers: number } };
+export type ContractReason = "budget" | "results" | "squad" | "trust" | "greed" | "grudge" | "generic" | "cooldown" | "tenure";
 export type ContractReply =
   | { result: "accepted"; terms: ContractTerms }
   | { result: "counter"; terms: ContractTerms; reason: ContractReason }
   | { result: "refused"; reason: ContractReason };
-export type GamerContractView = { club: string; clubName: string; monthlyWage: number; start: string; end: string; reference: number; yearsMin: number; yearsMax: number; canAsk: boolean; askFrom?: string; /** Dias até o contrato acabar. */ daysLeft: number; /** O contrato acaba dentro do prazo de aviso: renegociar já. */ expiring: boolean; /** Objetivo da época em curso (RZ-161). */ objective?: { rank: number; of: number; bonus: number }; /** Cláusula de rescisão (RZ-210): meses, valor e limites. */ clause: { months: number; amount: number; min: number; max: number; default: number }; /** O que custa demitires-te agora (a cláusula, no máximo o saldo da conta pessoal). */ resignCost: number; /** Confiança da direção no gamer: com «perigo» o despedimento é provável. */ trust: "good" | "concerned" | "danger" };
+export type GamerContractView = { club: string; clubName: string; monthlyWage: number; start: string; end: string; reference: number; yearsMin: number; yearsMax: number; canAsk: boolean; askFrom?: string; /** Dias até o contrato acabar. */ daysLeft: number; /** O contrato acaba dentro do prazo de aviso: renegociar já. */ expiring: boolean; /** Objetivo da época em curso (RZ-161). */ objective?: { rank: number; of: number; bonus: number }; /** Cláusula de rescisão (RZ-210): meses, valor e limites. */ clause: { months: number; amount: number; min: number; max: number; default: number }; /** O que custa demitires-te agora (a cláusula, no máximo o saldo da conta pessoal). */ resignCost: number; /** Confiança da direção no gamer: com «perigo» o despedimento é provável. */ trust: "good" | "concerned" | "danger"; /** Orçamento de plantel (RZ-161): o que vale agora, o por defeito do clube e os múltiplos acordados. */ budget: { wageBillMax: number; transfers: number; defaultWageBillMax: number; defaultTransfers: number; min: number; mult: { wage: number; transfers: number } } };
 
-export type PersonalBankView = { balance: number; monthlyNet: number; living: number; savings: number; city: string; employed: boolean; minDonation: number };
+export type PersonalBankView = { balance: number; monthlyNet: number; /** Rendimento líquido de outro emprego (clubes amadores). */ sideIncome: number; living: number; savings: number; city: string; employed: boolean; minDonation: number };
 export type PersonalSpendingView = {
   balance: number;
   city: EntityRef;
@@ -646,6 +646,8 @@ export type EngineRequests = {
   negotiateOffer: { input: { id: string; terms: ContractTerms }; output: ContractReply };
   /** Pedir um aumento no clube atual. */
   askRaise: { input: { terms: ContractTerms }; output: ContractReply };
+  /** Responder à proposta de renovação do presidente (RZ-164): aceitar renova já; recusar deixa o contrato acabar. */
+  answerRenewal: { input: { accept: boolean }; output: null };
   /** Contratos a expirar no clube do gamer, com o pedido de cada jogador (RZ-165). Quem não tiver decisão renova pela fórmula do escalão. */
   renewals: { input: null; output: RenewalsData };
   bid: { input: BidAction; output: BidResult };

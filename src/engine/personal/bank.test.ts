@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_PARAMETERS as P, validateParameters } from "../config/parameters";
 import { data, fresh } from "../squad/testWorld.testlib";
 import { signInitial } from "../season/gamerContract";
-import { accrueBank, bankOf, donate, livingCost, monthlySavings } from "./bank";
+import { referenceWage } from "../season/gamerContract";
+import { accrueBank, bankOf, donate, livingCost, monthlySavings, sideIncomeOf } from "./bank";
 
 const club = data.clubs.find((c) => c.tier === "firstLeague")!;
 const small = data.clubs.find((c) => c.tier === "district")!;
@@ -68,5 +69,20 @@ describe("finanças pessoais do gamer (RZ-162)", { timeout: 120000 }, () => {
     expect(donate(repo, P, d0, "co00001", 1_000)).toEqual({ ok: false, reason: "cooldown" });
     expect(donate(repo, P, d0, "co00002", 10_000_000)).toEqual({ ok: false, reason: "funds" });
     expect(donate(repo, P, d0, "co00002", 10)).toEqual({ ok: false, reason: "amount" });
+  });
+});
+
+describe("ordenado face ao custo de vida (calibração)", { timeout: 120000 }, () => {
+  const tiers = ["district", "cp", "thirdLeague", "secondLeague", "firstLeague"] as const;
+  const median = (v: number[]) => [...v].sort((a, b) => a - b)[Math.floor(v.length / 2)]!;
+  it("em todos os escalões quase todos os clubes dão para viver e a poupança sobe com o escalão", () => {
+    const repo = fresh("wage-living");
+    const savings = tiers.map((tier) => data.clubs.filter((c) => c.tier === tier).map((c) => monthlySavings(referenceWage(c, P), livingCost(repo, data, P, c.city), P, sideIncomeOf(P, tier))));
+    savings.forEach((v, i) => {
+      expect(v.filter((x) => x > 0).length / v.length, tiers[i]).toBeGreaterThanOrEqual(0.9);
+      if (i > 0) expect(median(v), tiers[i]).toBeGreaterThan(median(savings[i - 1]!));
+    });
+    // as distritais não enriquecem ninguém: poupa-se pouco (menos de um custo de vida por mês)
+    expect(median(savings[0]!)).toBeLessThan(1000);
   });
 });
