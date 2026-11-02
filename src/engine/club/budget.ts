@@ -14,6 +14,7 @@ import { monthlyCosts, monthlyWageBill, estimatedAnnualRevenue, clubBalance } fr
 export type Budget = { season: number; wageBillMax: number; transfers: number };
 
 const round = (v: number) => Math.round(v / 1000) * 1000;
+const roundUp = (v: number) => Math.ceil(v / 1000) * 1000;
 
 /** O orçamento por defeito: a massa não fica abaixo da atual (ninguém tem de despedir) e só ganha folga enquanto não passa de `wageShareMax` das receitas (sem catraca) nem do peso máximo sobre as receitas. */
 export function defaultBudget(repo: Repository, c: BaseClub, params: Params, season: number): Budget {
@@ -25,7 +26,8 @@ export function defaultBudget(repo: Repository, c: BaseClub, params: Params, sea
   const spend = 1 + o.overspend * Math.max(0, -(readManagement(repo)[c.id] ?? 0));
   return {
     season,
-    wageBillMax: round(Math.max(currentBill, Math.min(currentBill * (1 + o.wageHeadroom), revenue * o.wageShareMax * spend), revenue * o.revenueAboutBill * spend)),
+    // arredonda para cima: arredondar para baixo deixava o teto uns euros abaixo da massa atual (margem negativa logo no início)
+    wageBillMax: roundUp(Math.max(currentBill, Math.min(currentBill * (1 + o.wageHeadroom), revenue * o.wageShareMax * spend), revenue * o.revenueAboutBill * spend)),
     transfers: round(Math.max(0, clubBalance(repo, c) - reserve) * o.transfersBye),
   };
 }

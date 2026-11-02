@@ -100,7 +100,7 @@ export async function openWasm(name: string, options: { bytes?: Uint8Array; memo
       const file = `/${name}.sqlite3`;
       if (options.bytes) await pool.importDb(file, options.bytes);
       const db = new pool.OpfsSAHPoolDb(file);
-      db.exec("PRAGMA foreign_keys = ON");
+      db.exec("PRAGMA foreign_keys = ON; PRAGMA locking_mode = EXCLUSIVE; PRAGMA cache_size = -131072");
       return { driver: involve(s, db), backend: "opfs", sqliteVersion };
     } catch (e) {
       memoryReason = e instanceof Error ? e.message : String(e);
