@@ -171,6 +171,15 @@ export type Params = {
     club: number;
     /** Prémio ao concelho (Câmara) do clube premiado. */
     city: number;
+    /** Como o autarca reparte o prémio da Câmara pelas áreas (pela agenda do orçamento), o que se perde e o que rende nos serviços. */
+    council: {
+      /** Quanto a relação com o autarca (no clube do gamer) puxa a parte do desporto. */
+      relationToSport: number;
+      /** Fração do prémio que se perde pelo caminho: base e quanto sobe por cada ponto de integridade abaixo de 10; teto. */
+      leak: { base: number; integrity: number; max: number };
+      /** Pontos que o investimento soma ao alvo do serviço, por cada 1 % da população em euros, com teto por serviço. */
+      invest: { pointsPer: number; maxPoints: number };
+    };
     /** Prémio ao vencedor de cada competição (RZ-216), em euros. As distritais e a Fase de Promoção são valores médios, escalados pelo distrito. */
     competitions: {
       firstLeague: number; secondLeague: number; thirdLeague: number;
@@ -1058,7 +1067,8 @@ export type Params = {
 export const DEFAULT_PARAMETERS: Params = {
   version: 1,
   prizes: {
-    club: 2_000_000, city: 1_000_000,
+    club: 5_000_000, city: 1_000_000,
+    council: { relationToSport: 0.5, leak: { base: 0.05, integrity: 0.3, max: 0.4 }, invest: { pointsPer: 0.15, maxPoints: 8 } },
     competitions: { firstLeague: 10_000_000, secondLeague: 2_000_000, thirdLeague: 500_000, cpSeries: 100_000, cpWinner: 100_000, district: 5_000, promotionPhase: 10_000, portugalCup: 2_000_000, superCup: 500_000, districtCup: 5_000, districtSuperCup: 2_500 },
     beatenFinalist: 0.25,
     portugalCupPerRound: { semi: 500_000, factor: 0.5, min: 5_000 },

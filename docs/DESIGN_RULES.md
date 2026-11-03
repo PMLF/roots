@@ -49,15 +49,15 @@ Efeito no CP: saem 4 (sobem à Terceira Liga) + 8 (descem) = **12 de 40 (30%)**,
 
 ## 3. Prémio do Estado por distrito
 
-`PARÂMETRO PREMIO_CLUBE = 2_000_000 €` · `PARÂMETRO PREMIO_CIDADE = 1_000_000 €`
+`PARÂMETRO PREMIO_CLUBE = 5_000_000 €` (era 2 M€ até 02-11-2026) · `PARÂMETRO PREMIO_CIDADE = 1_000_000 €`
 
 - **Quem:** em cada um dos 20 distritos, o clube **mais bem classificado da pirâmide** nessa época.
 - **Critério de "melhor classificado":** 1.º escalão mais alto; 2.º posição final na tabela (no CP, dentro da série); 3.º pontos por jogo; 4.º diferença de golos; 5.º golos marcados; 6.º, em empate total, ganha o clube de **menor reputação** (favorece o *underdog*).
 - **Clube:** recebe `PREMIO_CLUBE` na tesouraria, **de uso totalmente livre** (decisão do Pedro).
-- **Cidade:** a **Câmara do concelho do clube** recebe `PREMIO_CIDADE` no orçamento municipal. Não vai automaticamente para o clube: o presidente da Câmara decide, de acordo com a personalidade (`apoio_desporto`, `ambição`, `vaidade`) e com as promessas feitas. Cria jogo político: reunião, pedido de obra no estádio, ou o dinheiro desaparece numa rotunda.
+- **Cidade:** a **Câmara do concelho do clube** recebe `PREMIO_CIDADE` no orçamento municipal. Não vai automaticamente para o clube: o presidente da Câmara decide, de acordo com a personalidade (apoio ao desporto, vaidade, ambição, integridade) e, no clube do gamer, com a relação com ele. Três destinos (`prizes.council` em `parameters.ts`, `council/prizeChoice.ts`): **entrega-o ao clube** (subsídio na caixa); **reserva-o para uma obra no estádio** (só no clube do gamer: o crédito aprova o próximo pedido de obra até ao valor reservado); ou **desaparece** (a rotunda; mais provável com baixa integridade). A escolha vem na notícia do prémio.
 - **Notícias e história:** evento "Melhor do distrito" no histórico e no jornal; contador de anos seguidos por distrito.
 
-**Efeito esperado:** o valor é pequeno para quem já está na Primeira Liga (≈10% de um orçamento de 20 M€) mas enorme em baixo: **3× o orçamento mediano de um clube do CP e ~30× o de uma distrital**. Nos distritos sem grandes clubes, o melhor do distrito recebe um impulso real; em Lisboa e Porto o prémio cai quase sempre no mesmo sítio e vale pouco. Para a Câmara, 1 M€ pesa muito mais em concelhos pequenos (Corvo, Barrancos, Marvão) do que em Lisboa.
+**Efeito esperado:** o valor é pequeno para quem já está na Primeira Liga (≈10% de um orçamento de 20 M€) mas enorme em baixo: **cerca de 7× o orçamento mediano de um clube do CP e ~75× o de uma distrital** (com 5 M€; eram 3× e ~30× com 2 M€). Nos distritos sem grandes clubes, o melhor do distrito recebe um impulso real; em Lisboa e Porto o prémio cai quase sempre no mesmo sítio e vale pouco. Para a Câmara, 1 M€ pesa muito mais em concelhos pequenos (Corvo, Barrancos, Marvão) do que em Lisboa.
 
 **Riscos a vigiar:** (a) bola de neve em distritos onde o mesmo clube ganha sempre; (b) inflação do prémio ao longo de décadas (ligar a um índice).
 
