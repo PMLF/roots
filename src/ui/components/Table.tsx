@@ -25,6 +25,11 @@ type Props<L> = {
   simple?: boolean;
   /** Classe CSS por linha (ex.: zonas da classificação). */
   lineClass?: (l: L) => string | undefined;
+  /**
+   * Tabela paginada no motor: `lines` são só as páginas já pedidas; ordem e texto sobem para quem pede ao motor (`onQuery`) e
+   * «Mostrar mais» pede a página seguinte (`onMore`). Nunca se carrega a lista toda.
+   */
+  remote?: { total: number; onQuery: (q: { order: Order; text: string }) => void; onMore: () => void };
 };
 
 function readOrder(v: string | null, columns: readonly { id: string }[]): Order | undefined {
@@ -36,7 +41,7 @@ const isWidths = (v: unknown): v is Record<string, number> => typeof v === "obje
 const isTextList = (v: unknown): v is string[] => Array.isArray(v) && v.every((x) => typeof x === "string");
 
 /** A tabela única do jogo (TOM_E_UX §3.6): ordenar, filtrar, escolher colunas, exportar, setas e Enter. */
-export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initialOrder = null, simple = false, lineClass, phoneColumns }: Props<L>) {
+export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initialOrder = null, simple = false, lineClass, phoneColumns, remote }: Props<L>) {
   const { t } = useT();
   const params = useSearchParams();
   // A ordenação escolhida fica no URL (`sort=coluna:asc|desc`, sem nova entrada no histórico) para sobreviver a «Voltar».
@@ -106,12 +111,14 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initi
   }, [id]);
 
   const visibleColumns = useMemo(() => presetColumns(columns, visible ? { name: "saved", columns: visible } : undefined), [columns, visible]);
-  const shown = useMemo(() => sort(filter(lines, visibleColumns, text), visibleColumns, order), [lines, visibleColumns, text, order]);
+  const shown = useMemo(() => (remote ? lines : sort(filter(lines, visibleColumns, text), visibleColumns, order)), [lines, visibleColumns, text, order, remote]);
+  const onQuery = remote?.onQuery;
+  useEffect(() => { onQuery?.({ order, text }); }, [onQuery, order, text]);
 
   // tabelas grandes (ex.: olheiros, 3000+ linhas) mostram-se por páginas: desenhar tudo de uma vez bloqueia o ecrã durante segundos
   const [limit, setLimit] = useState(PAGE);
   useEffect(() => { setLimit(PAGE); }, [text, order, id]);
-  const page = useMemo(() => shown.slice(0, limit), [shown, limit]);
+  const page = useMemo(() => (remote ? shown : shown.slice(0, limit)), [shown, limit, remote]);
 
   const toggle = (columnId: string) => {
     const current = visibleColumns.map((c) => c.id);
@@ -138,7 +145,7 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initi
       {!simple && <div className="tabela-barra">
         {toolbar}
         <input type="search" value={text} onChange={(e) => setText(e.target.value)} placeholder={t("table.filter")} aria-label={t("table.filter")} />
-        <span className="suave">{t("table.lines", { n: shown.length, total: lines.length })}</span>
+        <span className="suave">{t("table.lines", { n: remote ? lines.length : shown.length, total: remote ? remote.total : lines.length })}</span>
         <div className="seletor-ligas seletor-tabela" ref={selector}>
           <button type="button" aria-expanded={choose} aria-haspopup="true" onClick={() => setChoose((v) => !v)}>
             {t("table.columns")} ({visibleColumns.length}/{columns.length}) <span aria-hidden="true">▾</span>
@@ -187,10 +194,10 @@ export function Table<L>({ id, columns, lines, rowKey, cell = {}, toolbar, initi
           )}
         </tbody>
       </table>
-      {shown.length > page.length && (
+      {(remote ? remote.total > page.length : shown.length > page.length) && (
         <div className="tabela-mais">
-          <span className="suave">{t("table.showing", { n: page.length, total: shown.length })}</span>
-          <button type="button" onClick={() => setLimit((n) => n + PAGE)} data-testid="tabela-mais">{t("table.more", { n: Math.min(PAGE, shown.length - page.length) })}</button>
+          <span className="suave">{t("table.showing", { n: page.length, total: remote ? remote.total : shown.length })}</span>
+          <button type="button" onClick={() => (remote ? remote.onMore() : setLimit((n) => n + PAGE))} data-testid="tabela-mais">{t("table.more", { n: Math.min(PAGE, (remote ? remote.total : shown.length) - page.length) })}</button>
         </div>
       )}
     </div>

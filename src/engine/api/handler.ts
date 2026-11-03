@@ -80,7 +80,8 @@ import { youthLevelOf } from "../squad/youthLevel";
 import { makeRequest } from "../council/requests";
 import { levelOf } from "../city/state";
 import { potentialRange, referenceTier, starsOf } from "../world/stars";
-import type { LocalTalentData, ViewPlan, OfferView, BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
+import { pageOf } from "./paging";
+import type { LocalTalentData, ViewPlan, OfferView, BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutingQuery, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SCHEMA_VERSION = DB_SCHEMA;
@@ -342,7 +343,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
     }
     case "scouting": {
       const { repository, data, params } = await context(servicos);
-      return scoutingData(repository, data, params);
+      return scoutingData(repository, data, params, m.input ?? {});
     }
     case "scoutOrder": {
       const { repository, data, params } = await context(servicos);
@@ -987,7 +988,7 @@ function localTalentData(r: Repository, data: BaseData, params: Params, cityId: 
 }
 
 /** Tabela de scouting do gamer: o que os olheiros alcançam, o que já foi observado e o que apareceu nas pesquisas. */
-function scoutingData(r: Repository, data: BaseData, params: Params): ScoutingData {
+function scoutingData(r: Repository, data: BaseData, params: Params, q: ScoutingQuery): ScoutingData {
   const club = gamerClubOf(r, data);
   const view = gamerView(r);
   const today = (r.meta("date.today") ?? "") as string;
@@ -1000,6 +1001,7 @@ function scoutingData(r: Repository, data: BaseData, params: Params): ScoutingDa
   const list = orders(r);
   const busy = new Map(list.filter((o) => !o.done && o.person).map((o) => [o.person as string, o.kind as "week" | "month"] as const));
   const rows: ScoutRow[] = [];
+  const domestic = new Set(data.clubs.map((c) => c.id));
   const scouted = scoutedLevels(r);
   const facts = r.playerFacts();
   if (club) {
@@ -1008,14 +1010,27 @@ function scoutingData(r: Repository, data: BaseData, params: Params): ScoutingDa
       if (j.club === club.id) continue;
       const level = scouted.get(j.person);
       const isFound = found.has(j.person);
+      if (q.position && (j.positions[0]?.pos ?? "") !== q.position) continue;
+      const origin = q.origin ?? "all";
+      if (origin === "free" ? !!j.club : origin === "domestic" ? !j.club || !domestic.has(j.club) : origin === "foreign" ? !j.club || domestic.has(j.club) : false) continue;
+      if (q.onlyKnown && !level) continue;
+      if (q.person && j.person !== q.person) continue;
+      if (q.foundOnly && !isFound) continue;
       if (!level && !isFound && !isVisible(seed, season, club.id, scouts.count, j, params)) continue;
       const row = scoutRowOf(r, data, params, club.tier, view, foreignName, j, today, level, isFound, busy, facts);
       if (row) rows.push(row);
     }
   }
   const names = (id: string): EntityRef => ({ k: "person", id, name: r.person(id)?.sportingName ?? id });
+  const needle = q.text?.trim().toLowerCase();
+  const matching = needle ? rows.filter((x) => `${x.name} ${x.club?.name ?? ""} ${x.position}`.toLowerCase().includes(needle)) : rows;
+  const page = pageOf(matching, q, {
+    name: (x) => x.name, age: (x) => x.age, pos: (x) => x.position, country: (x) => x.nationality, club: (x) => x.club?.name ?? "",
+    stars: (x) => x.rating?.stars ?? -1, potential: (x) => x.rating?.potential?.high ?? -1, contract: (x) => x.contractEnd ?? "",
+  }, (x) => x.id);
   return {
-    rows,
+    rows: page.rows,
+    total: page.total,
     orders: list.slice().reverse().slice(0, 20).map((o): ScoutOrderView => ({ id: o.id, kind: o.kind, ...(o.person ? { person: names(o.person) } : {}), ...(o.position ? { position: o.position } : {}), start: o.start, end: o.end, cost: o.cost, done: !!o.done, ...(o.results ? { results: o.results.length } : {}) })),
     scouts,
     scoutList: club ? r.publicRoles({ club: club.id }).filter((p) => p.fn === "scout").map((p) => ({ id: p.id, name: r.person(p.id)?.sportingName ?? p.id })) : [],

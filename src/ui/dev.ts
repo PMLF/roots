@@ -3,16 +3,29 @@ import { useEffect, useState } from "react";
 import { save, read } from "@/ui/storage";
 
 /**
- * Modo developer: páginas de ferramentas (Laboratório, Mundo) que não são «jogar o jogo».
- * Ligado em `pnpm dev` e em builds com `NEXT_PUBLIC_RAIZES_DEV=1`; num build normal só se alguém o ligar no seu
- * browser com `localStorage.setItem("raizes.dev", "true")`. Nunca aparece a quem só joga.
+ * Modo developer: ferramentas (Laboratório, Mundo, escolher clube, simular época, «Ver tudo») que não são «jogar o jogo».
+ * Está sempre desligado para quem joga, em qualquer build. Liga-se a quem desenvolve abrindo qualquer página com `?dev=1`
+ * (fica guardado neste browser) e desliga-se com `?dev=0`.
  */
-const daBuild = process.env.NODE_ENV !== "production" || process.env.NEXT_PUBLIC_RAIZES_DEV === "1";
+const DEV_KEY = "raizes.dev";
+const DEV_EVENT = "raizes:dev";
+const isFlag = (v: unknown): v is boolean => typeof v === "boolean";
 
 export function useDevMode(): boolean {
   const [dev, setDev] = useState(false);
   useEffect(() => {
-    setDev(daBuild || read("raizes.dev", (v): v is boolean => typeof v === "boolean") === true);
+    const asked = new URLSearchParams(window.location.search).get("dev");
+    if (asked === "1" || asked === "0") {
+      save(DEV_KEY, asked === "1");
+      const url = new URL(window.location.href);
+      url.searchParams.delete("dev");
+      window.history.replaceState(window.history.state, "", url);
+      window.dispatchEvent(new Event(DEV_EVENT));
+    }
+    const sync = () => setDev(read(DEV_KEY, isFlag) === true);
+    sync();
+    window.addEventListener(DEV_EVENT, sync);
+    return () => window.removeEventListener(DEV_EVENT, sync);
   }, []);
   return dev;
 }

@@ -70,7 +70,7 @@ export function BusyDialog({ capacity, running, onClose }: { capacity: number; r
 export function ObservePlayer({ person, name, onClose }: { person: string; name: string; onClose: () => void }) {
   const engine = useEngine();
   const [data, setData] = useState<ScoutingData | undefined>(undefined);
-  useEffect(() => { engine?.call("scouting", null).then(setData).catch(() => onClose()); }, [engine, onClose]);
+  useEffect(() => { engine?.call("scouting", { person, limit: 1 }).then(setData).catch(() => onClose()); }, [engine, onClose]);
   if (!data) return null;
   const running = data.orders.filter((o) => !o.done).length;
   if (running >= data.capacity) return <BusyDialog capacity={data.capacity} running={running} onClose={onClose} />;

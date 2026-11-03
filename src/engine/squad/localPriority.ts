@@ -39,7 +39,13 @@ export type LocalBlock = "prospect" | "locked";
 export function localBlock(repo: Repository, person: string, buyer: Pick<BaseClub, "city">, today: IsoDate, locks: Locks = readLocks(repo)): LocalBlock | undefined {
   const home = repo.person(person)?.birthCity;
   if (!home || home === buyer.city) return undefined;
-  if (repo.player(person)?.state === "prospect") return "prospect";
+  return localBlockWith(person, home, repo.player(person)?.state, buyer, today, locks);
+}
+
+/** Como `localBlock`, mas com a terra e o estado já lidos (para filtrar milhares de candidatos sem uma consulta por cada um). */
+export function localBlockWith(person: string, home: string | undefined, state: string | undefined, buyer: Pick<BaseClub, "city">, today: IsoDate, locks: Locks): LocalBlock | undefined {
+  if (!home || home === buyer.city) return undefined;
+  if (state === "prospect") return "prospect";
   const until = locks[person];
   return until !== undefined && today < until ? "locked" : undefined;
 }

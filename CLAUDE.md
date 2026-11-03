@@ -18,6 +18,7 @@ Jogo de browser de gestão de futebol português com **clubes ligados a cidades*
 - Histórico = log de eventos append-only + factos de jogo; derivadas reconstruíveis; nada se apaga na passagem de época.
 - A UI só lê através de `View` (público + observações); nunca a "verdade" oculta (personalidade, atributos, finanças).
 - **Código e BD em inglês** (incluindo nomes de ficheiros, scripts/comandos, variáveis de ambiente e pastas geradas; só os textos para o gamer ficam em pt-PT): tudo o que se guarda (códigos, enums, tipos de evento, colunas) em inglês; a interface traduz pelo idioma (ex.: posições GK/CB/LW…, `src/ui/i18n/position.ts`). Migração feita no RZ-143: nomes de ficheiros e pastas, identificadores, códigos guardados, colunas, cabeçalhos CSV, comandos e chaves i18n já estão em inglês (comentários e documentação ficam em português). Código novo nasce em inglês.
+- **Listas sempre às páginas:** o motor nunca devolve centenas ou milhares de linhas de uma vez. Todo o pedido de lista leva `PageQuery` (`offset`, `limit` com teto `MAX_PAGE`=100, `sort`, `text`, mais filtros próprios) e responde com `rows` (só a página) + `total`; é o front-end que escolhe a ordem. A `Table` tem o modo `remote` para isto. Vale também para as leituras à base de dados (limitar no SQL, não depois de ler tudo). Lista nova nasce paginada (`src/engine/api/paging.ts`).
 - Personalidade = um sistema único (traços + memória) para todas as pessoas e entidades.
 
 ## Comandos
