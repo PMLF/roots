@@ -13,6 +13,7 @@ import { Rng } from "../random/rng";
 import { cityStateNow } from "../city/cities";
 import { agendaOf, mayorOf, type MayorInfo } from "./agenda";
 import { adjustRelation, relationOf } from "./relation";
+import { stadiumCredit, useStadiumCredit } from "./prizeChoice";
 
 export type ReplyReason = "priority" | "relation" | "visibility" | "generic" | "noBudget" | "notPriority" | "poorRelation" | "expensive";
 export type MayorTone = "vain" | "ambitious" | "humble" | "plain";
@@ -163,9 +164,13 @@ export function dailyCouncil(repo: Repository, data: BaseData, params: Params, g
     const mayor = mayorOf(repo, data, r.city);
     // o autarca já não é o mesmo (eleições): o pedido caduca sem relação alterada
     if (!mayor || mayor.person !== r.mayor) { list = list.map((x) => (x.id === r.id ? { ...x, status: "refused" as const, decided: today, outcome: { reason: "notPriority" as const, tone: "plain" as const, amount: r.cost } } : x)); continue; }
-    const { approved, reason } = decide(repo, data, params, gamer, mayor, r, list);
+    // o dinheiro que a Câmara reservou do prémio do Estado para o estádio aprova a obra (até ao valor reservado)
+    const credit = r.kind === "stadium" ? stadiumCredit(repo, gamer.id) : 0;
+    const { approved, reason } = credit > 0 ? { approved: true, reason: "generic" as ReplyReason } : decide(repo, data, params, gamer, mayor, r, list);
     const tone = toneOf(mayor);
-    const done: CouncilRequest = { ...r, status: approved ? "approved" : "refused", decided: today, outcome: { reason, tone, amount: r.cost } };
+    const paid = credit > 0 ? Math.min(r.cost, credit) : r.cost;
+    if (credit > 0) useStadiumCredit(repo, gamer.id, paid);
+    const done: CouncilRequest = { ...r, cost: paid, status: approved ? "approved" : "refused", decided: today, outcome: { reason, tone, amount: paid } };
     list = list.map((x) => (x.id === r.id ? done : x));
     if (approved) apply(repo, params, gamer, done, season);
     adjustRelation(repo, params, mayor.person, approved ? params.city.council.relation.approved : params.city.council.relation.refused, approved ? "approved" : "refused");

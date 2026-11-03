@@ -24,6 +24,7 @@ import { settleObjective } from "./gamerObjective";
 import { adjustDistricts, isInSecondDistrict, type SecondDistrict } from "./districts";
 import { closeUntilMonths, post } from "../club/finances";
 import { districtFactors, prizeValue, type PrizeType } from "./competitionPrizes";
+import { usePrize } from "../council/prizeChoice";
 import { consecutiveYears, winnersPerDistrict, type RankedClub } from "./statePrize";
 import { seasonData, savePyramid, readPyramid, pyramidLeagues } from "./seasonPyramid";
 import { rolloverSquads } from "../squad/rollover";
@@ -161,7 +162,9 @@ export function closeSeason(repo: Repository, data: BaseData, paramsBase: Params
       const city = cityOf0.get(p.club);
       const cbp = data.clubs.find((x) => x.id === p.club);
       if (cbp) post(repo, cbp, "prizes", params.prizes.club);
-      repo.appendEvent({ type: "STATE_PRIZE", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: p.club, roleKind: "awarded" }, ...(city ? [{ k: "city" as const, id: city, roleKind: "council" }] : [])], data: { district: p.district, clubValue: params.prizes.club, cityValue: params.prizes.city, consecutive } });
+      // a Câmara decide o que faz com o seu milhão (docs/DESIGN_RULES.md §3)
+      const council = cbp ? usePrize(repo, data, params, cbp, p.club === repo.meta("gamer.club"), season) : undefined;
+      repo.appendEvent({ type: "STATE_PRIZE", date: today, season, visibility: "exposed", origin: "match", entities: [{ k: "club", id: p.club, roleKind: "awarded" }, ...(city ? [{ k: "city" as const, id: city, roleKind: "council" }] : [])], data: { district: p.district, clubValue: params.prizes.club, cityValue: params.prizes.city, consecutive, ...(council ? { top: council.top, leaked: council.leaked > 0 ? 1 : 0 } : {}) } });
     }
     // Supertaça da época seguinte: campeão da Primeira Liga contra o vencedor da Taça (RZ-141)
     planNextSeasonCups(repo, season, first[0], Object.fromEntries(Object.entries(districtsFinal).flatMap(([d, t]) => (t[0] ? [[d, t[0]]] : []))));
