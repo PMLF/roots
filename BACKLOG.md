@@ -322,6 +322,7 @@ Prioridade para lançar depressa uma versão para amigos. Ordem de trabalho: **R
 
 ## 11. Parking lot (ideias por entrar)
 
+- **PWA em ecrã inteiro** (pedido do autor, 05-11-2026; feita a versão simples): `manifest.webmanifest`, ícones, meta tags iOS, `viewport-fit=cover` e margens do ecrã. Falta (opcional): service worker para abrir offline, com cache versionada.
 - **Concentração de títulos na 1.ª Liga (02-11-2026):** se voltar a incomodar, um clube que já tem muitas estrelas atrai menos mais uma (menos minutos garantidos) e a receita do topo cresce menos com a reputação; hoje o maior campeão leva ~12 de 25.
 - **Calibração:** a 2.ª Liga falha o teste de correlação `leagueSpread` (rho 0,46–0,51 < 0,6), a população das cidades diverge (mín. 0,71, máx. 1,31 aos 25 anos), as distritais perdem caixa mediana com o tempo (71 k€ → 35 k€) e a vantagem de casa está um pouco baixa.
 
