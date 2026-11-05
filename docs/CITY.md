@@ -1,6 +1,6 @@
 # Raízes — A cidade, o estádio e a política
 
-Decisões do Pedro a 15-10-2026. Complementa `DESIGN_REGRAS` §5 (setores e sinergias) e `PERSONALIDADE` §5.3 (autarca).
+Decisões do autor a 15-10-2026. Complementa `DESIGN_REGRAS` §5 (setores e sinergias) e `PERSONALIDADE` §5.3 (autarca).
 
 ## 1. Princípios
 
@@ -148,7 +148,7 @@ No MVP, os **patrocínios dependem do setor** da cidade (sem empresas individuai
 | Depois do MVP, prioridade alta | Empresários e patrocínios locais (311) |
 | P3 | Mapa visual da cidade do gamer (506), regiões como atores |
 
-## 11. A cidade no MVP (RZ-133) — decisões do Pedro a 16-10-2026
+## 11. A cidade no MVP (RZ-133) — decisões do autor a 16-10-2026
 
 - **Visibilidade:** os números verdadeiros (0-100) ficam escondidos, como as finanças dos rivais. A interface vê **cinco níveis em palavras** (muito baixo … muito alto), a **tendência** face à época anterior (sobe, estável, desce) e o histórico por época. A **população é pública** (número exato). O orçamento da Câmara aparece em palavras, relativo às outras cidades (por habitante).
 - **Variáveis acompanhadas:** população, economia, emprego, turismo, orgulho no clube, notoriedade e cultura de futebol. Transportes, estacionamento e valor do solo ficam para os projetos (RZ-303/304).
@@ -162,7 +162,7 @@ No MVP, os **patrocínios dependem do setor** da cidade (sem empresas individuai
 
 ## 12. Interação cidade – empresas – clubes (desenho, 18-10-2026)
 
-Decisões do Pedro: serviços **saúde, educação, mobilidade, habitação e segurança**; qualidade do viveiro **sobretudo da cidade**; equilíbrio por **custos do sucesso** (sem tetos artificiais); **uma só página «Local»** com secções por nível. Todos os números são **ponto de partida**, a calibrar com o harness (RZ-123) e vivem em `parameters.ts`.
+Decisões do autor: serviços **saúde, educação, mobilidade, habitação e segurança**; qualidade do viveiro **sobretudo da cidade**; equilíbrio por **custos do sucesso** (sem tetos artificiais); **uma só página «Local»** com secções por nível. Todos os números são **ponto de partida**, a calibrar com o harness (RZ-123) e vivem em `parameters.ts`.
 
 ### 12.1 O ciclo e as ligações
 
@@ -198,7 +198,7 @@ Cinco variáveis 0-100 por **concelho**, ocultas, mostradas em palavras com tend
 
 `transportes`, `estacionamento` e `valor do solo` da §2 passam a ser **`mobilidade`** e **`habitacao`** (menos variáveis, mais legíveis); os projetos (RZ-303/304) mexem nelas diretamente.
 
-**Implementado (RZ-233), decidido com o Pedro a 22-10-2026.** São **seis** serviços (acrescentou-se o `entretenimento`), todos 0-100 com «mais alto = melhor»; a `habitacao` é a **acessibilidade** (alto = casas baratas). Estado e evolução em `city/state.ts`/`evolution.ts`, efeitos em `city/effects.ts`, números em `city.services` (`parameters.ts`).
+**Implementado (RZ-233), decidido com o autor a 22-10-2026.** São **seis** serviços (acrescentou-se o `entretenimento`), todos 0-100 com «mais alto = melhor»; a `habitacao` é a **acessibilidade** (alto = casas baratas). Estado e evolução em `city/state.ts`/`evolution.ts`, efeitos em `city/effects.ts`, números em `city.services` (`parameters.ts`).
 
 - **Vida:** mudança anual lenta (regressão de 15 % ao alvo + ruído) e **acontecimentos** que as abanam (hospital novo/urgências que fecham, onda de assaltos, escola nova, obras nos transportes, novo espaço de lazer, rendas que disparam, habitação acessível; mais os efeitos nos dez acontecimentos que já existiam). Os acontecimentos viram notícia.
 - **Alvo:** base + tamanho (por cada dez vezes mais população) + setor + **orçamento municipal por habitante** (−1 a +1 entre os concelhos: cidade com pouca verba não mantém as infraestruturas e os serviços pioram) + ligação à economia, ao emprego e ao turismo de cada momento (p. ex. a segurança segue o emprego; o entretenimento, o turismo; a habitação encarece com economia e turismo). Até haver Câmara (RZ-236) o orçamento municipal é o dado do concelho.
@@ -241,7 +241,7 @@ Papéis (cada um com ligação a RZ já existente):
 
 ### 12.6 O autarca e o orçamento
 
-Desenho decidido com o Pedro a 22-10-2026 (RZ-236, em duas fatias: **A** orçamento, relação e pedidos; **B** eleições).
+Desenho decidido com o autor a 22-10-2026 (RZ-236, em duas fatias: **A** orçamento, relação e pedidos; **B** eleições).
 
 **Orçamento por áreas.** A verba municipal (receita por habitante + transferências do Estado + prémio do Estado; já existe, relativa em palavras) reparte-se por sete áreas: **desporto, saúde, educação, mobilidade, habitação, segurança e lazer/cultura** (as seis dos serviços, §12.2, mais o desporto). Cada autarca tem **prioridades próprias** (as áreas que mais e menos valoriza) vindas da sua personalidade e do **humor da cidade** (o serviço que está pior pesa mais). O gamer vê, no separador **Câmara**, o **nível de prioridade de cada área em palavras, com seta e causa**, nunca euros. A verba de cada área empurra o alvo do respetivo serviço (área sem verba deixa o serviço descer; é a «habitação cara», a «saúde esquecida»).
 

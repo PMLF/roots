@@ -1,6 +1,6 @@
 # Raízes — contexto para o Claude (repositório: PMLF/roots)
 
-Jogo de browser de gestão de futebol português com **clubes ligados a cidades** (histórias de *underdogs*, descoberta de talento, Câmara, adeptos, política). Dono: Pedro (front-end dev, Portugal). Comunicar em português de Portugal.
+Jogo de browser de gestão de futebol português com **clubes ligados a cidades** (histórias de *underdogs*, descoberta de talento, Câmara, adeptos, política). Dono: o autor do projeto. Comunicar em português de Portugal.
 
 ## Glossário
 - **Gamer** = quem joga o jogo. **Jogador** (`player` no código) = jogador de futebol. Nunca usar "jogador" para o gamer; no código `gamer` é quem joga.

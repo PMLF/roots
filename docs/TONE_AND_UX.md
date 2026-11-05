@@ -1,6 +1,6 @@
 # Raízes — Tom, nomes e princípios de interface
 
-Decisões do Pedro a 15-10-2026.
+Decisões do autor a 15-10-2026.
 
 ## 1. Tom
 
