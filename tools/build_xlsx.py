@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Gera Clubes_Raizes.xlsx a partir dos CSV em data/. Corre depois de build_dados.py."""
+"""Gera Clubs_Raizes.xlsx a partir dos CSV em data/. Corre depois de build_data.py."""
 import csv
 from pathlib import Path
 from openpyxl import Workbook
@@ -35,35 +35,35 @@ def sheet(wb, title, cols, rows, widths, numfmt=None, first=False):
 
 wb = Workbook()
 I = int
-clubes = rd("clubes.csv")
-cols = [("Nome","nome",None),("Cidade","cidade",None),("Concelho","concelho",None),("Distrito","distrito",None),
-        ("Divisão","divisao",None),("Liga / Série","liga",None),("Reputação","rep",I),("Finanças Iniciais (€)","fin",I),
-        ("Capacidade Estádio","cap",I),("Estádio","estadio",None),("Cores do Clube","cores",None),("Alcunha","alcunha",None),
-        ("Mascote","mascote",None),("Rival","rival",None),("Setor","setor",None),("Setor 2","tag2",None),("Polo","polo",None),
-        ("Série CP","serie_cp",None),("Origem","origem",None),("ID","id",None)]
-sheet(wb, "Clubes", cols, clubes, [34,24,24,17,22,26,11,16,13,32,26,18,22,32,8,8,22,9,10,30],
+clubs = rd("clubs.csv")
+cols = [("Nome","name",None),("Cidade","city",None),("Concelho","municipality",None),("Distrito","district",None),
+        ("Divisão","division",None),("Liga / Série","league",None),("Reputação","reputation",I),("Finanças Iniciais (€)","finances",I),
+        ("Capacidade Estádio","capacity",I),("Estádio","stadium",None),("Cores do Clube","colours",None),("Alcunha","nickname",None),
+        ("Mascote","mascot",None),("Rival","rival",None),("Setor","sector",None),("Setor 2","sector2",None),("Polo","hub",None),
+        ("Série CP","cp_series",None),("Propriedade do estádio","stadium_ownership",None),("Localização do estádio","stadium_location",None),("Distância ao centro (km)","stadium_distance_km",float),("Transportes (0-100)","stadium_transport",I),("Acesso rodoviário (0-100)","stadium_road_access",I),("Estacionamento (0-100)","stadium_parking",I),("Lugares de estacionamento","stadium_parking_places",I),("Envolvente (0-100)","stadium_surroundings",I),("Terreno p/ expansão (0-100)","stadium_terrain",I),("Origem","origin",None),("ID","id",None)]
+sheet(wb, "Clubes", cols, clubs, [34,24,24,17,22,26,11,16,13,32,26,18,22,32,8,8,22,9,14,13,12,12,12,12,12,12,10,30],
       {"G":"#,##0","H":"#,##0","I":"#,##0"}, first=True)
 
-cid = rd("cidades.csv")
-cols = [("Concelho","concelho",None),("Distrito","distrito",None),("População (aprox.)","populacao",I),("Setor","setor",None),
-        ("Setor 2","tag2",None),("Polo","polo",None),("Ilha","ilha",None),("Orçamento municipal (€)","orcamento_municipal",I),
-        ("Presidente da Câmara (fictício)","autarca",None),("Ambição","ambicao",I),("Apoio ao desporto","apoio_desporto",I),
-        ("Vaidade","vaidade",I),("Paciência","paciencia",I),("Integridade","integridade",I),("Clubes","clubes",None)]
-sheet(wb, "Cidades", cols, cid, [26,17,13,8,8,22,6,16,30,9,11,9,10,11,60], {"C":"#,##0","H":"#,##0"})
+city_name = rd("cities.csv")
+cols = [("Concelho","municipality",None),("Distrito","district",None),("População (aprox.)","population",I),("Setor","sector",None),
+        ("Setor 2","sector2",None),("Polo","hub",None),("Ilha","island",None),("Orçamento municipal (€)","municipal_budget",I),
+        ("Presidente da Câmara (fictício)","mayor",None),("Ambição","ambition",I),("Apoio ao desporto","sport_support",I),
+        ("Vaidade","vanity",I),("Paciência","patience",I),("Integridade","integrity",I),("Cultura de futebol","football_culture",I),("Clubes","clubs",None)]
+sheet(wb, "Cidades", cols, city_name, [26,17,13,8,8,22,6,16,30,9,11,9,10,11,11,60], {"C":"#,##0","H":"#,##0"})
 
 # Distritos: contagens por fórmula, ligadas à folha Clubes
-dist = rd("distritos.csv")
+district = rd("districts.csv")
 ws = wb.create_sheet("Distritos")
 divs = ["Primeira Liga","Segunda Liga","Terceira Liga","Campeonato de Portugal","Distrital"]
 ws.append(["Distrito","Série CP"] + divs + ["Total"])
-for i, r in enumerate(dist, start=2):
-    row = [r["distrito"], r["serie_cp"]]
+for i, r in enumerate(district, start=2):
+    row = [r["district"], r["cp_series"]]
     for j, dv in enumerate(divs):
         col = get_column_letter(3 + j)
         row.append(f'=COUNTIFS(Clubes!$D:$D,$A{i},Clubes!$E:$E,{col}$1)')
     row.append(f"=SUM(C{i}:G{i})")
     ws.append(row)
-n = len(dist) + 1
+n = len(district) + 1
 ws.append(["Total", ""] + [f"=SUM({get_column_letter(3+j)}2:{get_column_letter(3+j)}{n})" for j in range(6)])
 for cell in ws[1]:
     cell.font = Font(name=F, size=10, bold=True, color="FFFFFF"); cell.fill = HDR
@@ -73,9 +73,9 @@ for row in ws.iter_rows(min_row=2):
 for i, w in enumerate([20,9,13,13,13,16,11,9], 1): ws.column_dimensions[get_column_letter(i)].width = w
 ws.freeze_panes = "B2"; ws.row_dimensions[1].height = 30
 
-riv = rd("rivalidades.csv")
-cols = [("Clube A","clube_a",None),("Clube B","clube_b",None),("Mútua","mutua",None),("Mesmo concelho","mesmo_concelho",None),
-        ("Mesmo distrito","mesmo_distrito",None),("Mesmo polo","mesmo_polo",None),("Mesma divisão","mesma_divisao",None)]
+riv = rd("rivalries.csv")
+cols = [("Clube A","club_a",None),("Clube B","club_b",None),("Mútua","mutual",None),("Mesmo concelho","same_municipality",None),
+        ("Mesmo distrito","same_district",None),("Mesmo polo","same_hub",None),("Mesma divisão","same_division",None)]
 sheet(wb, "Rivalidades", cols, riv, [34,34,9,15,15,12,14])
 
 # Parâmetros (azul = valor editável)
@@ -100,5 +100,5 @@ for row in ws.iter_rows(min_row=2):
     row[0].font = BASE; row[2].font = BASE
     row[1].font = INP if row[0].row <= 10 else BASE
 for i, w in enumerate([32,14,70], 1): ws.column_dimensions[get_column_letter(i)].width = w
-wb.save(ROOT / "Clubes_Raizes.xlsx")
+wb.save(ROOT / "Clubs_Raizes.xlsx")
 print("ok")

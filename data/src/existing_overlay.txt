@@ -1,0 +1,61 @@
+# Nome (exatamente como no ficheiro original)|Concelho|Rival|[Cidade, opcional: substitui a do original]
+Lourinhã FC|Lourinhã|Torres Vedras FC
+SC Cascais|Cascais|AC Oeiras
+CD Charneca|Almada|UA Almada
+UA Almada|Almada|CD Charneca
+GR Caldense|Caldas da Rainha|UD Alcobaça
+Leiria FC|Leiria|AD Marinha Grande
+FC Leixonense|Matosinhos|Leça de Palmeira SC
+Leça de Palmeira SC|Matosinhos|FC Leixonense
+Atlético de Barcelos|Barcelos|Famalicense Operário FC
+JD Golegã|Golegã|Grémio Ferroviário do Entroncamento
+SC Ilha do Pico|Madalena|AC Horta
+GD Terceirense 1917|Angra do Heroísmo|FC Praia da Vitória
+AD Câmara de Lobos|Câmara de Lobos|SC Funchal
+CN Machico|Machico|GD Santa Cruz
+Clube Sport Sagres|Vila do Bispo|GD Olhanense|Sagres
+Serpa Atlético Clube|Serpa|AC Moura|Serpa
+CD Matelense|Vimioso|AD Mirandelense|Matela
+Atlético de Coimbra|Coimbra|Coimbra Sport Clube
+Aveirense Futebol Clube|Aveiro|UD Ílhavo
+SC Santa Marta|Santa Marta de Penaguião|UD Vila-Realense
+AD Covilhanense|Covilhã|FC Estrela Serrana
+SC Castelo Branco|Castelo Branco|AD Covilhanense
+FC Estrela Serrana|Seia|Académico da Guarda
+Académico da Guarda|Guarda|FC Estrela Serrana
+GD Portalegrense|Portalegre|FC Elvas Fronteira
+AD Graciosa|Santa Cruz da Graciosa|GD Terceirense 1917
+FC Flores do Atlântico|Lajes das Flores|Corvos FC
+UD Santana|Santana|CD São Vicente
+FC Fafe|Fafe|Vimaranense Atlético Clube
+CD Gaia|Vila Nova de Gaia|FC Varziela
+CO Amadora Nova|Amadora|AD Sintra
+AC Sacavém|Loures|UD Vila Franca de Xira
+Académico Lamego|Lamego|CD Peso da Régua
+Sta Comba Dão FC|Santa Comba Dão|SC Tondela
+FC Barroselas|Viana do Castelo|SC Afife
+SU Évora Velha|Évora|CA Redondo FC
+CA Redondo FC|Redondo|SU Évora Velha
+C União Estarreja|Estarreja|SC Ovar
+Sporting Moita dos Ferreiros|Lourinhã|Lourinhã FC
+Torres Vedras FC|Torres Vedras|Lourinhã FC
+UD Saldanha|Lisboa|AD Alfama
+GD Lomba|Gondomar|SC Valongo
+SC Valongo|Valongo|GD Lomba
+FC Varziela|Felgueiras|CD Gaia|Varziela
+UD Ílhavo|Ílhavo|Aveirense Futebol Clube
+Atlético Oliveira de Azeméis|Oliveira de Azeméis|AC Santa Maria da Feira
+FC Elvas Fronteira|Elvas|SC Campo Maior
+SC Marvão|Marvão|GD Castelo de Vide
+UD Odemira|Odemira|CA Zambujeira do Mar
+CA Zambujeira do Mar|Odemira|UD Odemira
+Penichense FC|Peniche|CD Castelo de Óbidos
+CD Castelo de Óbidos|Óbidos|Penichense FC
+UD Palmelense|Palmela|FC Setúbal
+Atlético do Barreiro|Barreiro|AD Seixal
+Coimbra Sport Clube|Coimbra|Atlético de Coimbra
+FC Montemor-o-Velho|Montemor-o-Velho|UD Sourense
+União Desportiva Vimiosa|Vimioso|UD Izeda
+Grémio Ferroviário do Entroncamento|Entroncamento|JD Golegã
+Atlético de Chaves|Chaves|SC Flaviense
+Sambrasense Atlético Clube|São Brás de Alportel|Louletano Atlético
