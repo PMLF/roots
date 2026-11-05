@@ -1,0 +1,93 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+import { handle, type Servicos } from "../api/handler";
+import { MemoryRepository } from "../persistence/repositoryMemory";
+import { DEFAULT_PARAMETERS as P } from "../config/parameters";
+import { reach } from "./scouting";
+
+describe("scouting", { timeout: 120000 }, () => {
+  const repository = new MemoryRepository();
+  const read = (f: string) => readFileSync(`data/${f}.csv`, "utf8");
+  const s: Servicos = {
+    now: () => new Date(2026, 9, 15),
+    openRepository: async () => ({ repository, backend: "memory", sqliteVersion: "test" }),
+    loadData: async () => ({ clubs: read("clubs"), cities: read("cities"), localities: read("localities"), rivalries: read("rivalries"), districts: read("districts"), countries: read("countries") }),
+  };
+
+  /** Avança dia a dia (confirmando os jogos do gamer) até à data. */
+  const until = async (date: string) => {
+    for (let i = 0; i < 80; i++) {
+      const r = await handle({ id: 500 + i, type: "advance", input: { mode: "day" } }, s);
+      if (r.pause) await handle({ id: 600 + i, type: "confirmMatch", input: { match: r.pause.match } }, s);
+      if (r.state.today >= date) return;
+    }
+  };
+
+  it("o alcance sobe com os olheiros e mostra bem menos estrangeiros", async () => {
+    expect(reach(2, P)).toBeGreaterThan(reach(1, P));
+    expect(reach(100, P)).toBe(P.scouting.reach.max);
+    await handle({ id: 1, type: "createWorld", input: { seed: "scouting" } }, s);
+    const clubs = await handle({ id: 2, type: "clubs", input: null }, s);
+    const count = (id: string) => repository.publicRoles({ club: id }).filter((p) => p.fn === "scout").length;
+    const best = clubs.reduce((a, c) => (count(c.id) > count(a.id) ? c : a));
+    repository.setMeta("gamer.club", best.id);
+    repository.setMeta("date.today", "2026-10-15");
+    repository.setMeta("balance." + best.id, "100000");
+    // olheiros: mais nas ligas altas; nas distritais no máximo um e há quem não tenha
+    const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+    const byLeague = (p: (l: string) => boolean) => clubs.filter((c) => p(c.league)).map((c) => count(c.id));
+    const district = byLeague((l) => l.startsWith("Distrital"));
+    expect(Math.max(...district)).toBeLessThanOrEqual(1);
+    expect(Math.min(...district)).toBe(0);
+    expect(mean(byLeague((l) => l === "Primeira Liga"))).toBeGreaterThan(mean(district) + 2);
+    const d = await handle({ id: 3, type: "scouting", input: { limit: 100 } }, s);
+    expect(d.scouts.count).toBe(count(best.id));
+    expect(d.scouts.count).toBeGreaterThan(2);
+    // a lista vem às páginas: nunca mais do que o teto, mesmo com milhares de jogadores ao alcance
+    expect(d.total).toBeGreaterThan(200);
+    expect(d.rows.length).toBe(100);
+    expect((await handle({ id: 3, type: "scouting", input: { limit: 100000 } }, s)).rows.length).toBe(100);
+    const foreign = (await handle({ id: 3, type: "scouting", input: { origin: "foreign", limit: 1 } }, s)).total;
+    const domestic = (await handle({ id: 3, type: "scouting", input: { origin: "domestic", limit: 1 } }, s)).total;
+    const free = (await handle({ id: 3, type: "scouting", input: { origin: "free", limit: 1 } }, s)).total;
+    expect(foreign).toBeGreaterThan(0);
+    expect(foreign).toBeLessThan(domestic * 0.1);
+    expect(d.rows.every((r) => r.knowledge === "none" && r.rating === undefined)).toBe(true);
+    expect(free).toBeGreaterThan(0);
+    // ordem pedida pelo front-end: por idade, crescente
+    const byAge = (await handle({ id: 3, type: "scouting", input: { sort: { column: "age", direction: "asc" }, limit: 100 } }, s)).rows.map((r) => r.age);
+    expect(byAge).toEqual([...byAge].sort((a, b) => a - b));
+  });
+
+  it("uma semana dá estimativas, um mês dá tudo, a pesquisa traz uma lista e cada ordem custa dinheiro", async () => {
+    const before = await handle({ id: 11, type: "scouting", input: { origin: "domestic", limit: 100 } }, s);
+    const target = before.rows.find((r) => r.club && !r.club.foreign)!;
+    const cash0 = before.balance;
+    expect(await handle({ id: 12, type: "scoutOrder", input: { kind: "week", person: target.id } }, s)).toEqual({ ok: true });
+    const mid = await handle({ id: 13, type: "scouting", input: null }, s);
+    expect(mid.balance).toBe(cash0 - before.cost.week);
+    expect(mid.orders.length).toBe(1);
+    // cada olheiro faz até `perScout` ordens em simultâneo: com tudo ocupado não cabe outra
+    expect(before.capacity).toBe(before.scouts.count * P.scouting.perScout);
+    for (let i = 1; i < before.capacity; i++) expect(await handle({ id: 14 + i, type: "scoutOrder", input: { kind: "week", person: before.rows[i]!.id } }, s)).toEqual({ ok: true });
+    expect(await handle({ id: 14, type: "scoutOrder", input: { kind: "month", person: target.id } }, s)).toEqual({ ok: false, reason: "busy" });
+    await until("2026-10-24");
+    const week = (await handle({ id: 20, type: "scouting", input: { person: target.id } }, s)).rows[0]!;
+    expect(week.knowledge).toBe("week");
+    expect(week.rating?.stars).toBeGreaterThan(0);
+    expect(await handle({ id: 21, type: "scoutOrder", input: { kind: "search", position: "GK", maxAge: 24 } }, s)).toEqual({ ok: true });
+    await until("2026-11-12");
+    const after = await handle({ id: 40, type: "scouting", input: { foundOnly: true, limit: 100 } }, s);
+    const found = after.rows;
+    expect(found.length).toBeGreaterThan(0);
+    expect(found.length).toBeLessThanOrEqual(P.scouting.search.results);
+    expect(found.every((r) => r.position === "GK" && r.age <= 24 && r.rating !== undefined)).toBe(true);
+    expect(after.orders.some((o) => o.kind === "search" && o.done && (o.results ?? 0) > 0)).toBe(true);
+  });
+
+  it("sem caixa não há observação", async () => {
+    repository.setMeta("balance." + repository.meta("gamer.club"), "10");
+    const d = await handle({ id: 51, type: "scouting", input: { limit: 1 } }, s);
+    expect(await handle({ id: 52, type: "scoutOrder", input: { kind: "month", person: d.rows[0]!.id } }, s)).toEqual({ ok: false, reason: "noCash" });
+  });
+});

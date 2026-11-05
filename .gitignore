@@ -2,3 +2,12 @@ node_modules/
 .next/
 .DS_Store
 __pycache__/
+out/
+next-env.d.ts
+*.tsbuildinfo
+public/sqlite/
+public/data/
+calibration/
+
+# Skills e configuração local do Claude Code (não vão para o repositório público)
+.claude/

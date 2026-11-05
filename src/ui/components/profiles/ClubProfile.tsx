@@ -1,0 +1,339 @@
+"use client";
+import { useState } from "react";
+import { BarLevel, SERVICE_ARROW } from "@/ui/components/profiles/CityProfile";
+import type { ClubProfileData } from "@/engine/api/contracts";
+import type { ViewPerson } from "@/engine/view/types";
+import { Chip } from "@/ui/components/Attributes";
+import { ClubSwatch } from "@/ui/components/ClubSwatch";
+import { Card, Data, Top } from "@/ui/components/Card";
+import { Profile } from "@/ui/components/Profile";
+import { ClubMatches } from "@/ui/components/ClubMatches";
+import { DivisionsChart } from "@/ui/components/DivisionsChart";
+import { EntityLink } from "@/ui/components/Link";
+import { ClubCompetitions } from "@/ui/components/profiles/ClubCompetitions";
+import { ClubBudget } from "@/ui/components/profiles/ClubBudget";
+import { Table } from "@/ui/components/Table";
+import { Stars } from "@/ui/components/Stars";
+import { Flag } from "@/ui/components/Flag";
+import { BidDialog } from "@/ui/components/BidDialog";
+import { ObservePlayer } from "@/ui/components/ScoutDialogs";
+import { RenewalDialog } from "@/ui/components/RenewalDialog";
+import type { Key } from "@/ui/i18n";
+import { useEngine } from "@/ui/EngineProvider";
+import { useT } from "@/ui/i18n/LocaleProvider";
+import { abbreviationPosition, rankPosition } from "@/ui/i18n/position";
+import type { Column } from "@/ui/table/logic";
+import { useCountries } from "@/ui/useCountries";
+import { useOwnClub } from "@/ui/myClub";
+import { stadiumLabel } from "@/ui/stadiumName";
+import { StadiumTab } from "@/ui/components/profiles/StadiumTab";
+import { StaffManager } from "@/ui/components/profiles/StaffManager";
+
+/** Barra 0-100 (qualidade de um aspeto do estádio). */
+function Bar({ value }: { value: number }) {
+  return (
+    <span className="barra-medida" title={`${value}/100`}>
+      <span style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
+    </span>
+  );
+}
+
+export function ClubProfile({ d, seeAll, squadOnly = false }: { d: ClubProfileData; seeAll: boolean; squadOnly?: boolean }) {
+  const { t, locale } = useT();
+  const country = useCountries();
+  const n = new Intl.NumberFormat(locale);
+  const eur = new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+  const unknown = <span className="valor-estimado" title={t("person.unknown")}>?</span>;
+  const truth = seeAll ? d.truth : undefined;
+  const name = (p: ViewPerson) => <EntityLink k="person" id={p.id}>{p.sportingName}</EntityLink>;
+  const president = d.roles.find((c) => c.fn === "president");
+  const technicalTeam = d.roles.filter((c) => c.fn !== "president");
+
+  const squad: Column<ViewPerson>[] = [
+    { id: "name", title: t("column.name"), value: (p) => p.sportingName },
+    { id: "pos", title: t("column.position"), value: (p) => abbreviationPosition(t, p.player?.position ?? ""), sortValue: (p) => rankPosition(p.player?.position ?? "") },
+    { id: "age", title: t("column.age"), value: (p) => p.age, numeric: true },
+    { id: "stars", title: t("column.level"), value: (p) => d.extraSquad[p.id]?.rating?.stars ?? 0, numeric: true },
+    { id: "potential", title: t("column.potential"), value: (p) => d.extraSquad[p.id]?.rating?.potential?.high ?? 0, numeric: true },
+    { id: "value", title: t("column.value"), value: (p) => d.extraSquad[p.id]?.value ?? 0, numeric: true },
+    { id: "country", title: t("column.country"), value: (p) => country(p.nationality) },
+    { id: "wage", title: t("column.wage"), value: (p) => d.extraSquad[p.id]?.wage ?? 0, numeric: true },
+    { id: "games", title: t("column.matches"), value: (p) => d.season?.players[p.id]?.games ?? 0, numeric: true },
+    { id: "goals", title: t("column.goals"), value: (p) => d.season?.players[p.id]?.goals ?? 0, numeric: true },
+    { id: "foot", title: t("column.foot"), value: (p) => (p.player ? t(`foot.${p.player.foot}` as Key) : "") },
+    { id: "height", title: t("column.height"), value: (p) => p.player?.heightCm ?? 0, numeric: true },
+    { id: "weight", title: t("column.weight"), value: (p) => p.player?.weightKg ?? 0, numeric: true },
+    { id: "contract", title: t("column.contract"), value: (p) => d.extraSquad[p.id]?.endContract ?? "" },
+  ];
+  // estatísticas da época atual (RZ-175); o xG por jogador não se guarda
+  const ep = (p: ViewPerson) => d.season?.players[p.id];
+  const dec = (v: number, c = 1) => v.toFixed(c);
+  const g90 = (p: ViewPerson) => { const e = ep(p); return e && e.minutes > 0 ? (e.goals * 90) / e.minutes : 0; };
+  const countC = (id: string, title: Key, value: (p: ViewPerson) => number): Column<ViewPerson> => ({ id, title: t(title), value, numeric: true });
+  const base = squad.filter((c) => ["name", "pos"].includes(c.id));
+  const seasonCol: Column<ViewPerson>[] = [
+    ...base,
+    countC("games", "column.matches", (p) => ep(p)?.games ?? 0),
+    countC("minutes", "column.minutes", (p) => ep(p)?.minutes ?? 0),
+    countC("goals", "column.goals", (p) => ep(p)?.goals ?? 0),
+    countC("assists", "column.assists", (p) => ep(p)?.assists ?? 0),
+    countC("ga", "column.ga", (p) => (ep(p)?.goals ?? 0) + (ep(p)?.assists ?? 0)),
+    countC("g90", "column.goals90", g90),
+    countC("rating", "column.rating", (p) => ep(p)?.rating ?? 0),
+    countC("yellow", "column.yellows", (p) => ep(p)?.yellow ?? 0),
+    countC("red", "column.reds", (p) => ep(p)?.red ?? 0),
+  ];
+  const disciplineCol: Column<ViewPerson>[] = [
+    ...base,
+    countC("games", "column.matches", (p) => ep(p)?.games ?? 0),
+    countC("minutes", "column.minutes", (p) => ep(p)?.minutes ?? 0),
+    countC("mpg", "column.minPerMatch", (p) => { const e = ep(p); return e && e.games ? Math.round(e.minutes / e.games) : 0; }),
+    countC("yellow", "column.yellows", (p) => ep(p)?.yellow ?? 0),
+    countC("red", "column.reds", (p) => ep(p)?.red ?? 0),
+  ];
+  const [view, setView] = useState<"profile" | "season" | "discipline">("profile");
+  const [ownClub] = useOwnClub();
+  const ownSquad = ownClub === d.id;
+  const [renewing, setRenewing] = useState<ViewPerson | undefined>(undefined);
+  const [agreed, setAgreed] = useState<Record<string, true>>({});
+  const [observing, setObserving] = useState<ViewPerson | undefined>(undefined);
+  const [bidding, setBidding] = useState<ViewPerson | undefined>(undefined);
+  const engine = useEngine();
+  const [sale, setSale] = useState<Record<string, boolean>>({});
+  const isForSale = (p: ViewPerson) => sale[p.id] ?? d.extraSquad[p.id]?.forSale ?? false;
+  const toggleSale = (p: ViewPerson) => { const on = !isForSale(p); setSale((x) => ({ ...x, [p.id]: on })); void engine?.call("setForSale", { person: p.id, forSale: on }); };
+  const saleCol: Column<ViewPerson> = { id: "sale", title: t("squad.sale"), value: (p) => (isForSale(p) ? 1 : 0) };
+  const canRenew = d.squad.some((p) => d.extraSquad[p.id]?.renewable);
+  const renewalCol: Column<ViewPerson> = { id: "renewal", title: t("renewals.action"), value: (p) => (d.extraSquad[p.id]?.renewable ? 1 : 0), numeric: false };
+  const actionsCol: Column<ViewPerson> = { id: "actions", title: t("column.actions"), value: () => "" };
+  const viewColumns = view === "season" ? seasonCol : view === "discipline" ? disciplineCol : ownSquad ? [...squad, ...(canRenew ? [renewalCol] : []), saleCol] : canRenew ? [...squad, renewalCol] : [...squad, actionsCol];
+  const seasonCell = {
+    name: (p: ViewPerson) => <>{name(p)}{d.extraSquad[p.id]?.injured && <span className="lesao" role="img" aria-label={t("squad.injured")} title={t("squad.injured")}> ✚</span>}</>, country: (p: ViewPerson) => <Flag id={p.nationality} />, wage: (p: ViewPerson) => { const w = d.extraSquad[p.id]?.wage; return w !== undefined ? eur.format(w) : unknown; }, potential: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating?.potential; return r ? <Stars range={r} /> : unknown; }, stars: (p: ViewPerson) => { const r = d.extraSquad[p.id]?.rating; return r ? <Stars value={r.stars} /> : unknown; },
+    actions: (p: ViewPerson) => <span className="acoes-linha"><button type="button" className="secundario" disabled={!ownClub} onClick={() => setObserving(p)}>{t("squad.scout")}</button><button type="button" className="secundario" disabled={!ownClub} onClick={() => setBidding(p)}>{t("squad.offer")}</button></span>,
+    sale: (p: ViewPerson) => <button type="button" className={isForSale(p) ? "primario" : "secundario"} onClick={() => toggleSale(p)}>{t(isForSale(p) ? "squad.sale.on" : "squad.sale.off")}</button>,
+    value: (p: ViewPerson) => { const v = d.extraSquad[p.id]?.value; return v ? <span title={t("squad.valueHint")}>{ownSquad ? "" : "≈ "}{new Intl.NumberFormat(locale, { style: "currency", currency: "EUR", notation: "compact", maximumFractionDigits: 1 }).format(v)}</span> : "—"; },
+    contract: (p: ViewPerson) => { const e = d.extraSquad[p.id]; return e?.endingSoon ? <span className="erro" title={t("squad.endingSoon")}>{e.endContract}</span> : <>{e?.endContract ?? ""}</>; },
+    renewal: (p: ViewPerson) => (d.extraSquad[p.id]?.renewable ? (agreed[p.id] ? <b>{t("renewals.done")}</b> : <button type="button" className="secundario" onClick={() => setRenewing(p)}>{t("renewals.renew")}</button>) : null),
+    rating: (p: ViewPerson) => (ep(p)?.rating !== undefined ? dec(ep(p)?.rating ?? 0, 2) : "—"),
+    g90: (p: ViewPerson) => (ep(p)?.minutes ? dec(g90(p), 2) : "—"),
+  };
+  const viewSelect = (
+    <label className="vista-plantel">
+      <span className="so-leitor">{t("squad.view")}</span>
+      <select value={view} onChange={(e) => setView(e.target.value as typeof view)} data-testid="plantel-vista" aria-label={t("squad.view")}>
+        <option value="profile">{t("squad.view.profile")}</option>
+        <option value="season">{t("squad.view.season")}</option>
+        <option value="discipline">{t("squad.view.discipline")}</option>
+      </select>
+    </label>
+  );
+  const squadTable = (
+    <>
+      {observing && <ObservePlayer person={observing.id} name={observing.sportingName} onClose={() => setObserving(undefined)} />}
+      {bidding && <BidDialog person={bidding.id} name={bidding.sportingName} onClose={() => setBidding(undefined)} />}
+      {renewing && <RenewalDialog person={renewing.id} name={renewing.sportingName} onClose={() => setRenewing(undefined)} onAgreed={() => setAgreed((a) => ({ ...a, [renewing.id]: true }))} />}
+      <Table key={view} id={`plantel-${view}`} phoneColumns={view === "season" ? ["name", "pos", "games", "goals", "assists", "rating"] : view === "discipline" ? ["name", "pos", "games", "yellow", "red"] : ["name", "pos", "age", "stars"]} toolbar={viewSelect} columns={viewColumns} lines={d.squad} rowKey={(p) => p.id} cell={seasonCell} lineClass={(p) => (d.extraSquad[p.id]?.injured ? "lesionado" : undefined)} initialOrder={view === "profile" ? { column: "pos", direction: "asc" } : { column: view === "season" ? "ga" : "minutes", direction: "desc" }} />
+    </>
+  );
+  const tp = d.season?.tops;
+  const topLine = (rot: Key, x: { player: string; name: string; value: number } | undefined, fmt: (v: number) => string = String) =>
+    x ? [{ label: t(rot), value: <><EntityLink k="person" id={x.player}>{x.name}</EntityLink> <b>{fmt(x.value)}</b></> }] : [];
+  const clubTops = (
+    <Card title={t("card.clubTops")}>
+      {tp && Object.keys(tp).length > 0 ? (
+        <Data lines={[
+          ...topLine("tops.scorer", tp.scorer), ...topLine("tops.assistant", tp.assist), ...topLine("tops.ga", tp.goalsAndAssists),
+          ...topLine("tops.rating", tp.rating, (v) => dec(v, 2)), ...topLine("tops.matches", tp.games), ...topLine("tops.minutes", tp.minutes),
+          ...topLine("tops.yellows", tp.yellow), ...topLine("tops.reds", tp.red),
+        ]} />
+      ) : (
+        <p className="vazio">{t("tops.empty")}</p>
+      )}
+    </Card>
+  );
+  const eq = d.season?.team;
+  const clubSeason = eq ? (
+    <Card title={t("card.clubSeason", { season: d.season?.seasonLabel ?? "" })}>
+      <Data lines={[
+        { label: t("season.position"), value: <b>{eq.position}º</b> },
+        { label: t("season.matches"), value: eq.played },
+        { label: t("season.vde"), value: `${eq.won} / ${eq.drawn} / ${eq.lost}` },
+        { label: t("season.goals"), value: `${eq.goalsFor} / ${eq.goalsAgainst}` },
+        { label: t("season.points"), value: <b>{eq.points}</b> },
+      ]} />
+    </Card>
+  ) : null;
+  const staff: Column<ViewPerson>[] = [
+    { id: "name", title: t("column.name"), value: (p) => p.sportingName },
+    { id: "role", title: t("column.fn"), value: (p) => (p.fn ? t(`fn.${p.fn}` as Key) : "") },
+    { id: "age", title: t("column.age"), value: (p) => p.age, numeric: true },
+    { id: "country", title: t("column.country"), value: (p) => country(p.nationality) },
+    { id: "quality", title: t("column.quality"), value: (p) => { const q = truth?.staffQuality[p.id]; return q ? Object.entries(q).map(([k, v]) => `${t(`quality.${k}` as Key)} ${v}`).join(" · ") : "?"; } },
+  ];
+
+  const seasonsColumns: Column<ClubProfileData["divisionsHistory"][number]>[] = [
+    { id: "season", title: t("column.season"), value: (h) => h.season },
+    { id: "league", title: t("stat.competition"), value: (h) => h.league },
+    { id: "tier", title: t("column.tier"), value: (h) => t(`tier.${h.tier}` as Key) },
+    { id: "position", title: t("column.position"), value: (h) => h.position ?? 0, numeric: true },
+    { id: "movement", title: t("club.movement"), value: (h) => h.movement ?? "" },
+  ];
+
+  // plantel em números
+  const ages = d.squad.map((p) => p.age);
+  const meanAge = ages.length ? (ages.reduce((s, x) => s + x, 0) / ages.length).toFixed(1) : undefined;
+  const foreigners = d.squad.filter((p) => p.nationality !== "pt").length;
+  const goalkeeper = d.squad.filter((p) => p.player?.position === "GK").length;
+  const ratings = d.squad.map((p) => d.extraSquad[p.id]?.rating?.stars).filter((v): v is number => v !== undefined);
+  const averageLevel = ratings.length === d.squad.length && ratings.length > 0 ? <Stars value={Math.round((ratings.reduce((s, x) => s + x, 0) / ratings.length) * 2) / 2} /> : undefined;
+
+  const size = t(`reputation.level.${d.levelReputation}` as Key);
+  const labels = (
+    <>
+      <Chip>{size}</Chip>
+      <Chip tone="destaque"><EntityLink k="competition" id={d.league}>{d.league}</EntityLink>{d.season?.team ? ` · ${t("club.place", { n: d.season.team.position })}` : ""}</Chip>
+      <Chip tone="suave">{d.district}</Chip>
+    </>
+  );
+  const identity = (
+    <Data
+      lines={[
+        { label: t("club.locality"), value: <><EntityLink k="locality" id={d.locality.id}>{d.locality.name}</EntityLink> <span className="suave">({t(`status.${d.locality.status}` as Key).toLowerCase()})</span></> },
+        { label: t("club.municipality"), value: <EntityLink k="city" id={d.city.id}>{d.city.name}</EntityLink> },
+        { label: t("club.nickname"), value: `${d.nickname} · ${d.mascot}` },
+        ...(president ? [{ label: t("club.president"), value: name(president) }] : []),
+        ...(d.rival ? [{ label: t("club.rival"), value: <EntityLink k="club" id={d.rival.id}>{d.rival.name}</EntityLink> }] : []),
+      ]}
+    />
+  );
+
+  const e = d.detailStadium;
+  const summary = (
+    <div className="cartoes">
+      <Card title={t("card.size")}>
+        <Data
+          lines={[
+            { label: t("club.size"), value: <b>{size}</b> },
+            { label: t("club.division"), value: t(`tier.${d.tier}` as Key) },
+            ...(truth ? [{ label: t("dev.reputation"), value: n.format(truth.reputation) }] : []),
+          ]}
+        />
+      </Card>
+      <Card title={t("card.finances")}>
+        <Data
+          lines={[
+            { label: t("finances.state"), value: <span title={d.finances.exact ? undefined : t("finances.estimate")}>{t(`finances.state.${d.finances.state}` as Key)}{d.finances.exact ? "" : " ~"}</span> },
+            ...(d.finances.balance !== undefined ? [{ label: t("finances.balance"), value: eur.format(d.finances.balance) }] : []),
+            ...(d.finances.lastClose ? [
+              { label: t("finances.revenuesMonth"), value: eur.format(d.finances.lastClose.revenues) },
+              { label: t("finances.expensesMonth"), value: eur.format(-d.finances.lastClose.expenses) },
+            ] : []),
+            ...(d.sponsors.length ? [{ label: t("club.sponsorships"), value: d.sponsors.map((x) => x.name).join(", ") }] : []),
+          ]}
+        />
+        {d.finances.budget && <ClubBudget budget={d.finances.budget} {...(d.finances.balance !== undefined ? { balance: d.finances.balance } : {})} />}
+      </Card>
+      {clubSeason}
+      <ClubCompetitions club={d.id} />
+      {clubTops}
+      {d.youth && (
+        <Card title={t("card.youth")}>
+          <Data
+            lines={[{
+              label: t("youth.level"),
+              value: (
+                <span className="nivel-linha" title={t("youth.help")}>
+                  <BarLevel level={d.youth.level} />
+                  <b>{t(`city.level.${d.youth.level}` as Key)}</b>
+                  <span className={`tendencia tendencia-${d.youth.trend.startsWith("up") ? "rises" : d.youth.trend.startsWith("down") ? "drops" : "stable"}`} title={t(`city.serviceTrend.${d.youth.trend}` as Key)}>
+                    <span aria-hidden="true">{SERVICE_ARROW[d.youth.trend]}</span>
+                    <span className="so-leitor">{t(`city.serviceTrend.${d.youth.trend}` as Key)}</span>
+                  </span>
+                  {d.youth.cause && <span className="suave">{t(`youth.cause.${d.youth.cause}` as Key)}</span>}
+                </span>
+              ),
+            }]}
+          />
+        </Card>
+      )}
+      <Card title={t("card.squadNumbers")}>
+        <Data
+          lines={[
+            { label: t("club.squad"), value: d.squad.length },
+            { label: t("squad.averageAge"), value: meanAge ?? "—" },
+            { label: t("squad.foreigners"), value: d.squad.length ? `${foreigners} (${Math.round((foreigners / d.squad.length) * 100)}%)` : "—" },
+            { label: t("squad.goalkeeper"), value: goalkeeper },
+            { label: t("squad.averageLevel"), value: averageLevel ?? unknown },
+            { label: t("squad.injured"), value: d.squad.filter((p) => d.extraSquad[p.id]?.injured).length },
+          ]}
+        />
+      </Card>
+      <Card title={t("card.stadium")}>
+        <Data
+          lines={[
+            { label: stadiumLabel(t, d.stadium.name, d.stadium.sponsor), value: `${n.format(d.stadium.capacity)} ${t("stadium.places")}` },
+            ...(["central", "side", "north", "south"] as const).map((s) => ({ label: t(`stadium.sector.${s}` as Key), value: n.format(d.stadium.sectors[s]) })),
+            { label: t("stadium.ownership"), value: t(`ownership.${e.ownership}` as Key) },
+            { label: t("stadium.distance"), value: t("stadium.km", { n: e.centreDistanceKm }) },
+            { label: t("stadium.transport"), value: <Bar value={e.transport} /> },
+            { label: t("stadium.access"), value: <Bar value={e.roadAccess} /> },
+            { label: t("stadium.parking"), value: <Bar value={e.parking} /> },
+            { label: t("stadium.expansion"), value: <Bar value={e.expansionTerrain} /> },
+          ]}
+        />
+      </Card>
+      <Card title={t("card.technicalTeam")}>
+        {technicalTeam.length === 0 ? (
+          <p className="vazio">{t("club.noStaff")}</p>
+        ) : (
+          <Data lines={technicalTeam.map((p) => ({ label: t(`fn.${p.fn}` as Key), value: name(p) }))} />
+        )}
+      </Card>
+
+    </div>
+  );
+
+  if (squadOnly) {
+    return d.squad.length > 0 ? (
+      squadTable
+    ) : (
+      <p className="vazio">{t("club.noWorld")}</p>
+    );
+  }
+
+  return (
+    <Profile
+      type="club"
+      title={d.name}
+      top={<Top title={d.name} crest={<ClubSwatch colours={d.colours} className="amostra-titulo" />} labels={labels} card={identity} />}
+      tabs={{
+        summary,
+        squad: d.squad.length > 0 ? (
+          squadTable
+        ) : (
+          <p className="vazio">{t("club.noWorld")}</p>
+        ),
+        stadium: <StadiumTab club={d.id} clubName={d.name} cityName={d.city.name} name={d.stadium.name} capacity={d.stadium.capacity} ownership={d.stadium.ownership} />,
+        matches: <ClubMatches club={d.id} league={d.league} />,
+        story: (
+          <>
+                  <Card title={t("card.divisions")} wide>
+        <DivisionsChart points={d.divisionsHistory} />
+      </Card>
+            <Card title={t("club.seasons")} wide>
+              <Table id="clube-epocas" columns={seasonsColumns} lines={[...d.divisionsHistory].reverse()} rowKey={(h) => String(h.season)} simple cell={{ season: (h) => (h.past ? <span className="suave">{h.label}</span> : h.label), position: (h) => (h.position ? `${h.position} / ${h.of}` : "—"), movement: (h) => (h.movement ? <span className={h.movement === "promoted" ? "subiu" : "desceu"}>{t(h.movement === "promoted" ? "zone.promotion" : "zone.relegation")}</span> : "") }} />
+            </Card>
+          </>
+        ),
+        staff: d.roles.length > 0 ? (
+          <>
+            {ownSquad && <p className="staff-gamer" data-testid="staff-gamer"><b>{t("fn.gamerCoach")}</b> <span className="suave">{t("club.gamerCoach")}</span></p>}
+            {ownSquad ? <StaffManager club={d.id} /> : <Table id="staff" columns={staff} lines={d.roles} rowKey={(p) => p.id} cell={{ name: name }} />}
+          </>
+        ) : (
+          <p className="vazio">{t("club.noWorld")}</p>
+        ),
+      }}
+    />
+  );
+}

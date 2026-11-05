@@ -1,0 +1,41 @@
+{
+  "name": "raizes",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Raízes — jogo de browser de gestão de futebol português ligado às cidades",
+  "scripts": {
+    "dev": "pnpm assets:copy && next dev",
+    "build": "pnpm assets:copy && next build",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.engine.json && tsc --noEmit -p tsconfig.worker.json",
+    "lint": "eslint .",
+    "test": "vitest run --project fast",
+    "test:slow": "vitest run --project slow",
+    "test:all": "vitest run",
+    "calibrate": "CALIBRATE_SEASONS=${CALIBRATE_SEASONS:-10} vitest run src/engine/lab/seasonCalibration.test.ts",
+    "ci": "pnpm typecheck && pnpm lint && pnpm test:all && pnpm build",
+    "assets:copy": "node tools/copy-sqlite-wasm.mjs && node tools/copy-data.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "dependencies": {
+    "@sqlite.org/sqlite-wasm": "3.54.1-build1",
+    "better-sqlite3": "^13.0.3",
+    "intl-messageformat": "12.1.4",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "eslint": "9.39.5",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.72.0",
+    "vitest": "5.0.5"
+  },
+  "packageManager": "pnpm@10.28.0"
+}
