@@ -24,6 +24,8 @@
   "start.dbWaiting": "A abrir a base de dados…",
   "start.dbError": "Não foi possível abrir a base de dados: {error}",
   "start.dbOpfs": "SQLite {sqlite} (esquema {schema}) guardado no navegador. Aberta {openings, plural, one {# vez} other {# vezes}}; {events, plural, one {# evento} other {# eventos}} no histórico.",
+  "engine.elsewhere": "O jogo está aberto noutro separador ou janela. Fecha-o e tenta de novo; os teus saves estão guardados.",
+  "engine.retry": "Tentar de novo",
   "start.dbMemory": "SQLite {sqlite} (esquema {schema}) só em memória: os dados perdem-se ao fechar a página. Motivo: {reason}",
   "world.title": "Mundo",
   "world.seed": "Semente",

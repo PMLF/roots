@@ -1,5 +1,8 @@
 import type { Message, EngineRequests, WorldProgress, EngineResponse, RequestType } from "@/engine/api/contracts";
 
+/** Código enviado pelo worker quando outro separador tem a base aberta (ver driverWasm.ts). */
+const OPEN_ELSEWHERE = "RZ_OPEN_ELSEWHERE";
+
 /** Cliente da interface para o motor, que corre num Web Worker (a interface nunca bloqueia). */
 export class ClientEngine {
   private readonly worker: Worker;
@@ -17,7 +20,10 @@ export class ClientEngine {
       }
       this.pending.delete(ev.data.id);
       if (ev.data.ok) p.ok(ev.data.output);
-      else p.error(new Error(ev.data.error));
+      else {
+        if (ev.data.error.includes(OPEN_ELSEWHERE)) window.dispatchEvent(new Event("raizes:ocupado"));
+        p.error(new Error(ev.data.error));
+      }
     };
   }
 

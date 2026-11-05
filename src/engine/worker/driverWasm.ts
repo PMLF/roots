@@ -33,12 +33,16 @@ const sqlite = () =>
     return m.default();
   })());
 
+/** Código do erro quando o OPFS está preso por outro separador; a interface mostra o aviso em pt-PT. */
+export const OPEN_ELSEWHERE = "RZ_OPEN_ELSEWHERE";
+const isLocked = (e: unknown) => /NoModificationAllowed|access handle|createSyncAccessHandle|locked|busy/i.test(`${(e as { name?: string })?.name ?? ""} ${e instanceof Error ? e.message : String(e)}`);
+
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Instala o VFS no OPFS. Pode demorar uns instantes a obter o bloqueio se outro worker acabou de sair. */
 async function installOpfs(s: Sqlite3Static, name: string) {
   let last: unknown;
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 12; i++) {
     try {
       return await s.installOpfsSAHPoolVfs({ name: `raizes-${name}`, initialCapacity: 12 });
     } catch (e) {
@@ -103,6 +107,9 @@ export async function openWasm(name: string, options: { bytes?: Uint8Array; memo
       db.exec("PRAGMA foreign_keys = ON; PRAGMA locking_mode = EXCLUSIVE; PRAGMA cache_size = -131072");
       return { driver: involve(s, db), backend: "opfs", sqliteVersion };
     } catch (e) {
+      // Outro separador (ou um worker que ainda não saiu) tem o ficheiro aberto: cair para memória escondia o mundo
+      // guardado e deixava o gamer num mundo vazio. Falha com um código que a interface traduz.
+      if (isLocked(e)) throw new Error(OPEN_ELSEWHERE);
       memoryReason = e instanceof Error ? e.message : String(e);
     }
   }

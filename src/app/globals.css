@@ -1433,3 +1433,11 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 
 /* Tabelas grandes por páginas */
 .tabela-mais { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 4px 2px; flex-wrap: wrap; }
+
+.aviso-ocupado { position: fixed; z-index: 90; left: 12px; right: 12px; top: calc(12px + env(safe-area-inset-top)); display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 10px; background: var(--painel); border: 1px solid var(--zona-descida); box-shadow: 0 8px 30px rgba(0, 0, 0, .35); }
+/* PWA em ecrã inteiro: o topo respeita o entalhe e as bordas laterais (deitado) */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+  .topo { padding-top: calc(10px + env(safe-area-inset-top)); padding-left: max(24px, env(safe-area-inset-left)); padding-right: max(24px, env(safe-area-inset-right)); }
+}
+@media (max-width: 760px) { .topo { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); } }
+body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
