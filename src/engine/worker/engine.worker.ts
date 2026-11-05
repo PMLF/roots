@@ -56,7 +56,8 @@ const servicos: Servicos = {
   },
   // Abre a base uma só vez por worker. O save "ativo" chama-se "current"; os outros saves são cópias (`saves/`).
   openRepository() {
-    isOpen ??= open();
+    // um erro (ex.: outro separador com o jogo aberto) não pode ficar em cache: tenta de novo no pedido seguinte
+    isOpen ??= open().catch((e) => { isOpen = undefined; throw e; });
     return isOpen;
   },
 };

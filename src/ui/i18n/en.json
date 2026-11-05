@@ -24,6 +24,8 @@
   "start.dbWaiting": "Opening the database…",
   "start.dbError": "Could not open the database: {error}",
   "start.dbOpfs": "SQLite {sqlite} (schema {schema}) stored in the browser. Opened {openings, plural, one {# time} other {# times}}; {events, plural, one {# event} other {# events}} in the history.",
+  "engine.elsewhere": "The game is open in another tab or window. Close it and try again; your saves are safe.",
+  "engine.retry": "Try again",
   "start.dbMemory": "SQLite {sqlite} (schema {schema}) in memory only: data is lost when the page closes. Reason: {reason}",
   "world.title": "World",
   "world.seed": "Seed",
