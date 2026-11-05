@@ -33,7 +33,7 @@ export function Scouting() {
   const [showRequest, setShowRequest] = useState(false);
   // a tabela vem do motor às páginas: aqui ficam só as páginas já pedidas; filtros, ordem e texto vão no pedido
   const [rows, setRows] = useState<ScoutRow[]>([]);
-  const [query, setQuery] = useState<{ order: Order; text: string } | undefined>(undefined);
+  const [query, setQuery] = useState<{ order: Order; text: string }>({ order: null, text: "" });
   const latest = useRef(0);
   const fetchPage = useCallback((from: number) => {
     if (!engine || !query) return;
