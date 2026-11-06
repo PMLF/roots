@@ -1441,3 +1441,7 @@ a.botao, .contrato-resposta a.primario { display: inline-block; font: inherit; c
 }
 @media (max-width: 760px) { .topo { padding-left: max(12px, env(safe-area-inset-left)); padding-right: max(12px, env(safe-area-inset-right)); } }
 body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
+
+.coluna-lateral { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.coluna-lateral > .cartao:last-child { flex: 1; }
+.tabela tr.linha-sujeito td { background: color-mix(in srgb, var(--destaque) 14%, transparent); }

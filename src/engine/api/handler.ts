@@ -81,7 +81,7 @@ import { makeRequest } from "../council/requests";
 import { levelOf } from "../city/state";
 import { potentialRange, referenceTier, starsOf } from "../world/stars";
 import { pageOf } from "./paging";
-import type { LocalTalentData, ViewPlan, OfferView, BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutingQuery, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
+import type { LocalTalentData, ViewPlan, OfferView, BidAction, BidReply, BidResult, BidView, ScoutingData, ScoutingQuery, ScoutRow, ScoutOrderView, CareerLine, RenewalLine, RenewalsData, StarRating, PositionRanking, EstimatedLevel, PersonTruth, SummaryClub, DbDiagnostics, ClubProfileData, ClubFinances, LocalityProfileData, PersonProfileData, EntityRef, LocalityStatus, Message, EngineRequests, WorldProgress, CreatedWorldSummary, RequestType } from "./contracts";
 
 export const ENGINE_VERSION = "0.1.0";
 export const SCHEMA_VERSION = DB_SCHEMA;
@@ -216,8 +216,11 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       const level = playerLevel(repository, m.input.id, profile.exposed.player?.position, profile.attributes?.fields, m.input.seeAll === true || monthScouted);
       if (level) output.level = level;
       const ratingClub = profile.exposed.club ? data.clubs.find((c) => c.id === profile.exposed.club) : undefined;
-      const rating = playerRating(repository, m.input.id, level, profile.potential?.fields.potential, ratingClub?.tier, params, m.input.seeAll === true || monthScouted);
+      const viewer = gamerClubOf(repository, data)?.tier;
+      const rating = playerRating(repository, m.input.id, level, profile.potential?.fields.potential, viewer ?? ratingClub?.tier, params, m.input.seeAll === true || monthScouted);
       if (rating) output.rating = rating;
+      const ranking = level ? positionRanking(repository, data, params, m.input.id, profile.exposed.player?.position, level) : undefined;
+      if (ranking) output.positionRanking = ranking;
       {
         const own = profile.exposed.club !== undefined && repository.meta("gamer.club") === profile.exposed.club;
         const today = (repository.meta("date.today") ?? "") as IsoDate;
@@ -291,7 +294,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
         const known = seeAll ? undefined : ownProfile(repository, view, j.id);
         const fields = known?.attributes?.fields;
         const level = playerLevel(repository, j.id, j.player?.position, fields, seeAll);
-        const rating = playerRating(repository, j.id, level, known?.potential?.fields.potential, c.tier, params, seeAll);
+        const rating = playerRating(repository, j.id, level, known?.potential?.fields.potential, gamerClubOf(repository, data)?.tier ?? c.tier, params, seeAll);
         const mv = (level || ownClub) && today ? valueView(repository, data, params, j.id, today as IsoDate, ownClub) : undefined;
         output.extraSquad[j.id] = { ...(mv ? { value: mv.value } : {}), ...(ct ? { endContract: ct.end } : {}), ...(level ? { level } : {}), ...(rating ? { rating } : {}), ...(injured.has(j.id) ? { injured: true } : {}), ...(expiring.has(j.id) ? { renewable: true } : {}), ...(ct && today && ct.end < addDays(today as IsoDate, 365) ? { endingSoon: true } : {}), ...(repository.meta("gamer.club") === c.id && forSale(repository).has(j.id) ? { forSale: true } : {}), ...(ownClub && ct ? { wage: ct.monthlyWage } : {}) };
       }
@@ -941,6 +944,28 @@ function playerRating(r: Repository, id: string, level: EstimatedLevel | undefin
   if (truth !== undefined) rating.potential = potentialRange(truth, truth, level.value, tier, params);
   else if (potential) rating.potential = potentialRange(potential.value - potential.margin, potential.value + potential.margin, level.value, tier, params);
   return rating;
+}
+
+/** Comparação na posição: o jogador da ficha e os do clube do gamer que jogam nela (aptidão ≥ 10), pela qualidade nessa posição. */
+function positionRanking(r: Repository, data: BaseData, params: Params, id: string, position: string | undefined, level: EstimatedLevel): PositionRanking | undefined {
+  const club = gamerClubOf(r, data);
+  if (!club || !position || !(position in KEY)) return undefined;
+  const pos = position as Position;
+  const stars = (v: number) => starsOf(v, club.tier, params);
+  const rows: PositionRanking["rows"] = r.clubPlayers(club.id).flatMap((j) => {
+    if (j.person === id || !j.positions.some((x) => x.pos === pos && x.aptitude >= 10)) return [];
+    const at = r.player(j.person)?.attributes;
+    const v = at ? generalLevel((a) => at[a], pos) : undefined;
+    const name = r.person(j.person)?.sportingName;
+    return v === undefined || !name ? [] : [{ id: j.person, name, level: v, stars: stars(v) }];
+  });
+  const name = r.person(id)?.sportingName;
+  if (name) rows.push({ id, name, level: level.value, stars: stars(level.value), subject: true, ...(level.exact ? {} : { estimated: true as const }) });
+  rows.sort((a, b) => b.level - a.level || a.name.localeCompare(b.name, "pt"));
+  // o jogador da ficha entra sempre, mesmo que fique fora do limite
+  const top = rows.slice(0, 12);
+  if (!top.some((x) => x.subject)) top[top.length - 1] = rows.find((x) => x.subject) as PositionRanking["rows"][number];
+  return { position, rows: top };
 }
 
 /** Uma linha de jogador para o gamer: só o que ele sabe (estrelas só depois de observar). */

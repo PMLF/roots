@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { SCHEMA_VERSION, ENGINE_VERSION, handle, type Servicos } from "./handler";
 import { DEFAULT_PARAMETERS } from "../config/parameters";
 import { MemoryRepository } from "../persistence/repositoryMemory";
+import { starsOf } from "../world/stars";
 
 function testServicos(): Servicos {
   const repository = new MemoryRepository();
@@ -234,5 +235,28 @@ describe("competition page (RZ-145)", () => {
     expect(d.players.length).toBeGreaterThanOrEqual(22);
     expect(d.players.find((p) => p.goals === 3)).toMatchObject({ games: 1, minutes: 90 });
     expect(d.highlights.bestRated).toEqual([]); // só 1 jogo com nota, mínimo é 3
+  });
+
+  it("estrelas relativas ao escalão do clube do gamer e comparação na posição", async () => {
+    const s3 = testServicos();
+    await handle({ id: 90, type: "createWorld", input: { seed: "estrelas" } }, s3);
+    const { repository: r } = await s3.openRepository();
+    r.setMeta("gamer.club", "sc-cascais"); // 1.ª Liga
+    const other = (await handle({ id: 91, type: "clubProfile", input: { id: "fc-sao-pedro-do-sul" } }, s3))!;
+    expect(other.tier).not.toBe("firstLeague");
+    const stranger = other.squad.find((p) => p.player?.position && p.player.position !== "GK")!;
+    const prof = (await handle({ id: 92, type: "personProfile", input: { id: stranger.id, seeAll: true } }, s3))!;
+    // as estrelas medem-se contra o escalão do clube do gamer, não o do jogador
+    expect(prof.rating!.stars).toBe(starsOf(prof.level!.value, "firstLeague", DEFAULT_PARAMETERS));
+    expect(prof.rating!.stars).toBeLessThanOrEqual(starsOf(prof.level!.value, other.tier, DEFAULT_PARAMETERS));
+    const row = (await handle({ id: 93, type: "clubProfile", input: { id: "fc-sao-pedro-do-sul", seeAll: true } }, s3))!.extraSquad[stranger.id]!;
+    expect(row.rating!.stars).toBe(prof.rating!.stars);
+    // comparação: ele e os do clube do gamer na posição, do melhor para o pior, e ele marcado
+    const rk = prof.positionRanking!;
+    expect(rk.position).toBe(stranger.player!.position);
+    expect(rk.rows.filter((x) => x.subject)).toHaveLength(1);
+    expect(rk.rows.length).toBeGreaterThan(1);
+    expect(rk.rows.length).toBeLessThanOrEqual(12);
+    expect(rk.rows.map((x) => x.level)).toEqual([...rk.rows.map((x) => x.level)].sort((a, b) => b - a));
   });
 });
