@@ -287,11 +287,12 @@ function build(e: HistoryEvent, c: Context, inboxOnly: boolean): NewsItem | unde
 function context(repo: Repository, data: BaseData): Context {
   const club = repo.meta("gamer.club") || undefined;
   const names = new Map(data.clubs.map((x) => [x.id, x] as const));
+  const foreign = new Map(foreignClubList(repo).map((x) => [x.id, x.name] as const));
   return {
     repo, data,
     ...(club ? { club } : {}),
     ...(club && names.get(club) ? { league: names.get(club)!.league } : {}),
-    clubName: (id) => names.get(id)?.name ?? id,
+    clubName: (id) => names.get(id)?.name ?? foreign.get(id) ?? id,
     personName: (id) => repo.publicPerson(id)?.sportingName ?? id,
   };
 }
