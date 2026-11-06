@@ -324,7 +324,7 @@ export function advance(repo: Repository, base: BaseData, params: Params, mode: 
     const today = repo.meta("date.today") as IsoDate;
     const its = gamerClub ? repo.dayMatches(today).find((g) => (g.home === gamerClub || g.away === gamerClub) && !repo.match(g.id)) : undefined;
     if (its && !confirmedMatch(repo, its.id)) {
-      const name = (id: string) => data.clubs.find((c) => c.id === id)?.name ?? id;
+      const name = (id: string) => data.clubs.find((c) => c.id === id)?.name ?? data.foreignClubs?.find((c) => c.id === id)?.name ?? id;
       pause = { ongoing: !!repo.meta(SESSION_KEY), match: its.id, date: today, competition: its.competition, round: its.round, home: its.home, away: its.away, homeName: name(its.home), awayName: name(its.away) };
       break;
     }

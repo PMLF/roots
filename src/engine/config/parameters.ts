@@ -716,7 +716,7 @@ export type Params = {
     qualityByReputation: number;
     /** Peso da reputação (o resto é o dinheiro, em escala logarítmica) na posição de um clube no seu escalão (RZ-263). */
     standingReputationWeight: number;
-    /** Estrelas (RZ-916): qualidade relativa ao escalão onde joga, em meias estrelas. `centre` = estrelas de quem tem a qualidade média do escalão; `pointsPerStar` = pontos de qualidade (1-20) por estrela. */
+    /** Estrelas: qualidade relativa ao escalão do clube do gamer, em meias estrelas. `centre` = estrelas de quem tem a qualidade média do escalão (3-3,5 = «do nível da divisão»); `pointsPerStar` = pontos de qualidade (1-20) por estrela (≈ o desvio dos jogadores do escalão, 2,4, a dividir por 0,9: 4 = muito bom, 4,5-5 = devia estar acima ou é dos melhores do mundo). */
     stars: { centre: number; pointsPerStar: number; freeAgentTier: Tier };
     /** Variação relativa (±) do % de estrangeiros com a reputação do clube dentro do escalão (0,35 → de −35 % a +35 % da média do escalão). */
     variationForeignersReputation: number;
@@ -1495,7 +1495,7 @@ export const DEFAULT_PARAMETERS: Params = {
     },
     qualityByReputation: 2.8,
     standingReputationWeight: 0.6,
-    stars: { centre: 2.5, pointsPerStar: 1, freeAgentTier: "thirdLeague" },
+    stars: { centre: 3.4, pointsPerStar: 2.7, freeAgentTier: "thirdLeague" },
     variationForeignersReputation: 0.35,
     squad: { firstLeague: 28, secondLeague: 26, thirdLeague: 25, cp: 23, district: 20 },
     placesByPosition: { GK: 3, RB: 2, CB: 4, LB: 2, DM: 2, CM: 3, AM: 2, RW: 2, LW: 2, ST: 3 },
