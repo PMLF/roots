@@ -443,7 +443,7 @@ export async function handle(m: Message, servicos: Servicos, onProgress: (p: Wor
       if (camp) { const g = gamerClubOf(repository, data); if (g) out.campaign = { city: g.city }; }
       const patron = pendingPatrons(repository)[0];
       if (patron) out.patron = { id: patron.id };
-      const bid = bids(repository).map((b) => bidViewOf(repository, data, params, b)).find((v) => (v.stage === "club" || v.stage === "agent") && !v.pending && !v.closed);
+      const bid = bids(repository).map((b) => bidViewOf(repository, data, params, b)).find((v) => (v.stage === "club" || v.stage === "agent") && !v.pending && !v.closed && !v.waitUntil);
       if (bid) out.bid = { person: bid.person };
       return out;
     }

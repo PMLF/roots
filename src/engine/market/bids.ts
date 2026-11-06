@@ -58,6 +58,8 @@ export type Bid = {
   confirmFrom?: IsoDate;
   /** A mensagem do acordo com o agente já foi para a caixa de entrada. */
   notified?: boolean;
+  /** O aviso de que o agente já atende (depois do acordo com o clube) já foi para a caixa de entrada. */
+  agentNotified?: boolean;
   /** O clube/agente só volta a falar depois desta data. */
   reopens?: IsoDate;
   /** Acordo fechado fora da janela: o jogador muda-se nesta data. */
@@ -435,6 +437,16 @@ export function dailyBids(repo: Repository, data: BaseData, params: Params, club
   const done: Bid[] = [];
   // respostas que chegam hoje
   for (const b of bids(repo)) if (b.pending && b.pending.due <= today) resolvePending(repo, data, params, club, today, season, b);
+  // acordo com o clube: quando o agente passa a atender, avisa o gamer na caixa de entrada (o jogo avança entretanto)
+  for (const b of bids(repo)) {
+    if (b.stage !== "agent" || b.agentNotified || (b.agentFrom ?? today) > today) continue;
+    update(repo, { ...b, agentNotified: true });
+    repo.appendEvent({
+      type: "BID_REPLY", date: today, season, visibility: "exposed", origin: "generated",
+      entities: [{ k: "club", id: club.id }, { k: "person", id: b.person, roleKind: "target" }],
+      data: { status: "agentReady", kind: "terms", seller: "" },
+    });
+  }
   // acordos com o agente: a mensagem para confirmar chega no dia seguinte
   for (const b of bids(repo)) {
     if (b.stage !== "agreed" || b.notified || (b.confirmFrom ?? today) > today) continue;

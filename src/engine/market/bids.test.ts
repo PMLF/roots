@@ -81,7 +81,13 @@ describe("propostas do gamer", { timeout: 180000 }, () => {
     const budgetBefore = (JSON.parse(repository.meta("budget." + me) ?? "{}") as { transfers?: number }).transfers;
     const accepted = await handle({ id: 12, type: "bid", input: { person: other.person, action: "fee", fee: 3000000 } }, s);
     expect(accepted.ok && accepted.bid.waitUntil?.who).toBe("agent");
+    // enquanto o agente não atende, o «Avançar» não fica preso à negociação
+    const waiting = await handle({ id: 120, type: "attention", input: null }, s);
+    expect(waiting.bid).toBeUndefined();
     const fee = await settle(other.person);
+    // quando o agente passa a atender, chega uma mensagem à caixa de entrada
+    const agentMsg = (await handle({ id: 121, type: "inbox", input: { limit: 100 } }, s)).messages.filter((x) => x.type === "bid_agent" && x.links.some((l) => l.k === "person" && l.id === other.person));
+    expect(agentMsg).toHaveLength(1);
     expect(fee.stage).toBe("agent");
     const ask = fee.terms!.ask;
     expect(ask.release).toBeGreaterThan(0);
