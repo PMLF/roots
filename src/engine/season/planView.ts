@@ -8,6 +8,7 @@ import { FORMATION_IDS, FORMATIONS } from "../match/formations";
 import type { FormationId } from "../match/types";
 import { POSITIONS, type Position } from "../world/types";
 import type { Repository } from "../persistence/repository";
+import type { IsoDate, ScheduledMatch } from "../persistence/types";
 import { addDays } from "../calendar/dates";
 import { aptitudeIn, aptitudeFactor } from "../match/team";
 import { clubCandidates, timeState } from "./advance";
@@ -21,6 +22,19 @@ function readiness(players: readonly (string | undefined)[], away: ReadonlyMap<s
   return out.length > 0 ? { ok: false, reason: "unavailable", names: out.map(name) } : { ok: true };
 }
 
+/** O próximo jogo do clube por jogar: um dia com dois jogos (liga e taça) não esconde o segundo depois de jogar o primeiro. */
+export function nextUnplayed(repo: Repository, club: string, today: IsoDate): ScheduledMatch | undefined {
+  let since = today;
+  for (let i = 0; i < 400; i++) {
+    const n = repo.nextMatch(club, since);
+    if (!n) return undefined;
+    const open = repo.dayMatches(n.date).find((g) => (g.home === club || g.away === club) && !repo.match(g.id));
+    if (open) return open;
+    since = addDays(n.date, 1);
+  }
+  return undefined;
+}
+
 export function planView(repo: Repository, data: BaseData, params: Params, club: string): ViewPlan {
   const { today, season } = timeState(repo, data, params);
   const seed = repo.meta("seed") ?? "?";
@@ -28,8 +42,7 @@ export function planView(repo: Repository, data: BaseData, params: Params, club:
   const players = repo.clubPlayers(club).filter((j) => j.state === "active");
   const name = (id: string) => repo.publicPerson(id)?.sportingName ?? id;
   // um jogo de hoje que já foi jogado (ao vivo) deixa de ser «o próximo»
-  let next = repo.nextMatch(club, today);
-  if (next && repo.match(next.id)) next = repo.nextMatch(club, addDays(today, 1));
+  const next = nextUnplayed(repo, club, today);
   const away = next ? unavailable(repo, club, players.map((j) => j.person), next.competition, season, next.round, next.date, seed, params) : new Map();
   const candidates = clubCandidates(repo, club, next?.date ?? today, params);
   const form = new Map(candidates.map((c) => [c.person, c.form ?? 1] as const));
