@@ -114,7 +114,7 @@ const tiersOf = (data: BaseData, ids: Iterable<string>): Record<string, string> 
   return out;
 };
 
-const namesOf = (data: BaseData) => new Map(data.clubs.map((c) => [c.id, c.name] as const));
+export const namesOf = (data: BaseData) => new Map([...data.clubs, ...(data.foreignClubs ?? [])].map((c) => [c.id, c.name] as const));
 
 /** Começa o jogo do gamer (já com a tática e o onze do plano). Não regista nada no histórico. */
 export function startSession(repo: Repository, base: BaseData, params: Params, gamerClub: string, match: string): LiveMatch {

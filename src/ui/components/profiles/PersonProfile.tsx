@@ -174,6 +174,25 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
     </Card>
   ) : undefined;
 
+  const ranking = d.positionRanking;
+  const cardRanking = j && ranking && ranking.rows.length > 1 ? (
+    <Card title={t("person.ranking", { position: namePosition(t, ranking.position) })}>
+      <table className="tabela">
+        <thead><tr><th>{t("column.name")}</th><th>{t("person.rankingStars")}</th><th className="within">{t("person.rankingLevel")}</th></tr></thead>
+        <tbody>
+          {ranking.rows.map((x) => (
+            <tr key={x.id} className={x.subject ? "linha-sujeito" : undefined}>
+              <td>{x.subject ? <b>{x.name}</b> : <EntityLink k="person" id={x.id}>{x.name}</EntityLink>}</td>
+              <td><Stars value={x.stars} /></td>
+              <td className="num">{x.estimated ? "≈ " : ""}{String(x.level).replace(".", ",")}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
+  ) : undefined;
+  const side = cardPositions || cardRanking;
+
   const cardDev = truth && (
     <Card title={t("dev.card")} wide dev>
       <Data
@@ -189,12 +208,12 @@ export function PersonProfile({ d, seeAll }: { d: PersonProfileData; seeAll: boo
 
   const summary = j ? (
     <div className="cartoes">
-      <div className={`cartoes-atributos${cardPositions ? "" : " sozinho"}`}>
+      <div className={`cartoes-atributos${side ? "" : " sozinho"}`}>
         <Card title={t("card.attributes")}>
           {!attributes && !truth && <p className="suave">{t("person.unobservedShort")}</p>}
           <Attributes groups={groups} />
         </Card>
-        {cardPositions}
+        {side && <div className="coluna-lateral">{cardPositions}{cardRanking}</div>}
       </div>
       {cardDev}
     </div>

@@ -62,6 +62,8 @@ export type EntityRef = { k: "club" | "city" | "locality" | "person" | "competit
 import type { StarRating } from "../world/stars";
 export type { StarRating };
 
+export type PositionRanking = { position: string; rows: { id: string; name: string; level: number; stars: number; /** É o jogador da ficha. */ subject?: true; /** Nível estimado (jogador de fora do clube do gamer). */ estimated?: true }[] };
+
 export type EstimatedLevel = { value: number; margin: number; exact: boolean };
 
 /** A verdade oculta, só devolvida no modo developer («ver tudo»). */
@@ -314,8 +316,10 @@ export type PersonProfileData = {
   /** Cláusulas do contrato: só no teu clube (ou em modo developer). */
   clauses?: { release?: number };
   level?: EstimatedLevel;
-  /** Estrelas (RZ-916): qualidade relativa ao escalão onde joga e intervalo de potencial. */
+  /** Estrelas (RZ-916): qualidade relativa ao escalão do clube do gamer e intervalo de potencial. */
   rating?: StarRating;
+  /** Comparação na posição: o jogador e os do clube do gamer que jogam nessa posição, do melhor para o pior (máx. 12). */
+  positionRanking?: PositionRanking;
   truth?: PersonTruth;
 };
 
